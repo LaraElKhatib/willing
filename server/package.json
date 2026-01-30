@@ -7,13 +7,20 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "start": "tsc && node dist/index.js"
+    "start": "tsc && node dist/index.js",
+    "migrate": "tsc && node dist/db/migrate.js"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
+    "@types/morgan": "^1.9.10",
+    "@types/pg": "^8.16.0",
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "express": "^5.2.1"
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "kysely": "^0.28.10",
+    "pg": "^8.17.2",
+    "zod": "^4.3.6"
   }
 }
