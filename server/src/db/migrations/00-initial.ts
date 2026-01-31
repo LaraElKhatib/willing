@@ -1,7 +1,6 @@
 import { Kysely } from 'kysely';
 
 export async function up(db: Kysely<any>): Promise<void> {
-  // Example to create a table : https://www.kysely.dev/docs/migrations
 
   await db.schema
     .createTable('organization_account')
@@ -46,10 +45,11 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('first_name', 'varchar(64)', col => col.notNull())
     .addColumn('last_name', 'varchar(64)', col => col.notNull())
     .execute();
-  // Create all the tables here...
 }
 
 export async function down(db: Kysely<any>): Promise<void> {
-  // Undo the changes here
-  // await db.schema.dropTable("person")
+  await db.schema.dropTable('admin_account').execute()
+  await db.schema.dropTable('volunteer_account').execute()
+  await db.schema.dropTable('organization_request').execute()
+  await db.schema.dropTable('organization_account').execute()
 }
