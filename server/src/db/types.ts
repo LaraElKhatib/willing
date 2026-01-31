@@ -13,7 +13,6 @@ export interface VolunteerAccountTable {
   id: Generated<number>;
   first_name: string;
   last_name: string;
-  username: string;
   email: string;
   password: string;
   date_of_birth: string;
@@ -28,6 +27,7 @@ export interface OrganizationRequestTable {
   url: string;
   latitude: string;
   longitude: string;
+  location_name: string;
 }
 
 export interface OrganizationAccountTable {
@@ -39,6 +39,7 @@ export interface OrganizationAccountTable {
   url: string;
   latitude: number;
   longitude: number;
+  location_name: string;
 }
 
 export interface AdminAccountTable {
