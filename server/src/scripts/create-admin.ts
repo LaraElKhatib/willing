@@ -9,3 +9,4 @@ await database.insertInto('admin_account').values({
 }).execute();
 
 console.log('Admin account successfully created!');
+await database.destroy();
