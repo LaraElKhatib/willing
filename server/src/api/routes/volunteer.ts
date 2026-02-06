@@ -8,7 +8,6 @@ import { authorizeOnly } from '../authorization.js';
 
 const volunteerRouter = Router();
 
-// Zod schema for volunteer creation
 const createVolunteerSchema = z.object({
   first_name: z.string().min(1, 'First name is required'),
   last_name: z.string().min(1, 'Last name is required'),
@@ -26,7 +25,6 @@ const createVolunteerSchema = z.object({
   gender: z.enum(['male', 'female', 'other'], 'Gender should be \'female\', \'male\', or \'other\' '),
 });
 
-// Create a new volunteer
 volunteerRouter.post('/create', async (req, res) => {
   const body = createVolunteerSchema.parse(req.body);
 
@@ -66,16 +64,13 @@ volunteerRouter.post('/create', async (req, res) => {
     config.JWT_SECRET,
   );
 
-  // Do not return password
   // @ts-expect-error: do not return the password
   delete newVolunteer.password;
   res.status(201).json({ volunteer: newVolunteer, token });
 });
 
-// Protect all routes below for volunteers only
 volunteerRouter.use(authorizeOnly('volunteer'));
 
-// Get current logged-in volunteer
 volunteerRouter.get('/me', async (req, res) => {
   const volunteer = await database
     .selectFrom('volunteer_account')
