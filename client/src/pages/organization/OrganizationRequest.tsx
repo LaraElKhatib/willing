@@ -56,7 +56,7 @@ export default function OrgRegPage() {
           </p>
         </div>
 
-        <div className="card bg-base-100 w-full max-w-md shrink-0 shadow-2xl">
+        <div className="card bg-base-100 w-full max-w-lg shrink-0 shadow-2xl">
           <form className="card-body" onSubmit={handleSubmit}>
             <fieldset className="fieldset">
               <label className="label">Organization name</label>
