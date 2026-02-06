@@ -74,7 +74,11 @@ function AdminLogin() {
                 placeholder="Password"
                 onChange={handlePasswordChange}
               />
-              <button className="btn btn-primary mt-4" type="submit">
+              <button
+                className="btn btn-primary mt-4"
+                type="submit"
+                disabled={!email || !password}
+              >
                 Login
               </button>
             </fieldset>

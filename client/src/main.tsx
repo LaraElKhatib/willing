@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
 import HomePage from './pages/HomePage';
+import UserLoginPage from './pages/UserLoginPage';
 import AdminPage from './pages/admin/AdminPage';
 import OrgReqPage from './pages/OrgReqPage';
 import VolunteerCreate from './pages/volunteer/VolunteerCreate';
@@ -20,6 +21,7 @@ createRoot(document.getElementById('root')!).render(
     <BrowserRouter>
       <Routes>
         <Route index element={<HomePage />} />
+        <Route path="login" element={<UserLoginPage />} />
         <Route path="admin" element={<AdminPage />}>
           <Route index element={<AdminHome />} />
           <Route path="login" element={<AdminLogin />} />
