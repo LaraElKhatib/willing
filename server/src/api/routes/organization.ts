@@ -7,7 +7,7 @@ const orgRouter = Router();
 
 const orgRequestSchema = zod.object({
   name: zod.string().min(1),
-  email: zod.string().email(),
+  email: zod.email(),
   phone_number: zod.string().optional().default(''),
   url: zod.string().optional().default(''),
   location_name: zod.string().min(1),
