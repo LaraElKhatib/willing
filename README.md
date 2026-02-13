@@ -113,3 +113,6 @@ This project is built using a modern frontend and backend stack with TypeScript,
 - **GitHub Projects 📋**  
   - Used for project management and team coordination.  
   - Helps track tasks, features, bugs, and progress across the team using boards and issues.
+
+## Database Schema
+Database Schema can be found [here](https://lucid.app/lucidchart/15a30743-fdc2-4bd8-9e96-1cb2923f0955/edit?invitationId=inv_c991f4c1-95ff-4610-8ce9-994a89865101)
