@@ -6,7 +6,7 @@ import zod from 'zod';
 import config from '../../../config.js';
 import database from '../../../db/index.js';
 import { sendOrganizationAcceptanceEmail, sendOrganizationRejectionEmail } from '../../../SMTP/emails.js';
-import { LoginInfoSchema } from '../../../types.js';
+import { loginInfoSchema } from '../../../types.js';
 import { authorizeOnly } from '../../authorization.js';
 
 const adminRouter = Router();
