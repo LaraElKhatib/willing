@@ -143,8 +143,8 @@ export const OrganizationPostingSchema = zod.object({
     .max(180, { message: 'Longitude must be <= 180' })
     .optional(),
   max_volunteers: zod.number().optional(),
-  start_timestamp: zod.date({ message: 'Start time is required and must be a valid date' }),
-  end_timestamp: zod.date({ message: 'End time must be a valid date' }).optional(),
+  start_timestamp: zod.preprocess((val) => val ? new Date(val as string) : val, zod.date({ message: 'Start time is required and must be a valid date' })),
+  end_timestamp: zod.preprocess((val) => val ? new Date(val as string) : undefined, zod.date({ message: 'End time must be a valid date' })).optional(),
   minimum_age: zod.number().optional(),
   is_open: zod.boolean().default(true),
 });
