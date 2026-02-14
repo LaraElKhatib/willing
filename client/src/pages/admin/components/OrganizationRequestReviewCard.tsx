@@ -1,13 +1,13 @@
 import { useCallback, useState } from 'react';
 
-import requestServer from '../../../requestServer';
 import LocationPicker from '../../../components/LocationPicker';
+import requestServer from '../../../requestServer';
 
-import type { OrganizationRequest } from '../../../../../server/src/db/types';
+import type { OrganizationRequest } from '../../../../../server/src/db/tables';
 
 function OrganizationRequestReviewCard({ request, refreshOrganizationRequests }: {
   request: OrganizationRequest;
-  refreshOrganizationRequests: () => Promise<void>;
+  refreshOrganizationRequests: (...args: unknown[]) => unknown;
 }) {
   const [reason, setReason] = useState('');
 
