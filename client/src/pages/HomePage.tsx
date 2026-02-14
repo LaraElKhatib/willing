@@ -76,7 +76,7 @@ function HomePage() {
 
           <div className="card bg-base-200 rounded-box grid h-64 grow place-items-center p-8 text-center border-2 border-transparent hover:border-secondary hover:-translate-y-2 transition-all duration-300 shadow-sm hover:shadow-xl">
             <span className="text-xs font-black uppercase tracking-[0.2em] text-secondary">For Organizations</span>
-            <h2 className="text-2xl font-bold mb-2">I want help</h2>
+            <h2 className="text-3xl font-bold mb-2">I want help</h2>
             <p className="mb-6 opacity-80">Request to register your organization and find volunteers.</p>
 
             {role === 'admin'
