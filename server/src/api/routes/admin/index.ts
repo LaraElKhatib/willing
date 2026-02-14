@@ -6,7 +6,7 @@ import database from '../../../db/index.js';
 import { authorizeOnly } from '../../authorization.js';
 import config from '../../../config.js';
 import { LoginInfoSchema } from '../../../types.js';
-import { sendOrganizationAcceptanceEmail, sendOrganizationRejectionEmail } from './emails.js';
+import { sendOrganizationAcceptanceEmail, sendOrganizationRejectionEmail } from '../../../SMTP/emails.js';
 
 const adminRouter = Router();
 
