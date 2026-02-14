@@ -4,16 +4,22 @@ import requestServer from '../../requestServer';
 import { z } from 'zod';
 
 // Frontend validation schema
-const volunteerSchema = z.object({
-  first_name: z.string().min(1),
-  last_name: z.string().min(1),
-  email: z.email(),
-  password: z.string().min(6),
-  date_of_birth: z.string().min(1),
-  gender: z.enum(['male', 'female', 'other']),
-});
+const volunteerSchema = z
+  .object({
+    first_name: z.string().min(1),
+    last_name: z.string().min(1),
+    email: z.email(),
+    password: z.string().min(6),
+    confirmPassword: z.string().min(6),
+    date_of_birth: z.string().min(1),
+    gender: z.enum(['male', 'female', 'other']),
+  })
+  .refine(data => data.password === data.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+  });
 
-type VolunteerCreatePayload = z.infer<typeof volunteerSchema>;
+type VolunteerCreatePayload = Omit<z.infer<typeof volunteerSchema>, 'confirmPassword'>;
 
 export default function VolunteerCreate() {
   const navigate = useNavigate();
@@ -22,6 +28,7 @@ export default function VolunteerCreate() {
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [gender, setGender] = useState<'male' | 'female' | 'other'>('male');
 
@@ -36,6 +43,7 @@ export default function VolunteerCreate() {
       last_name: lastName,
       email,
       password,
+      confirmPassword,
       date_of_birth: dateOfBirth,
       gender,
     });
@@ -45,7 +53,7 @@ export default function VolunteerCreate() {
       return;
     }
 
-    const volunteerData: VolunteerCreatePayload = parseResult.data;
+    const { confirmPassword: _, ...volunteerData } = parseResult.data;
 
     // TODO: rely on global error handler (no try/catch here)
     const response = await requestServer<{
@@ -76,23 +84,28 @@ export default function VolunteerCreate() {
 
         <div className="card bg-base-100 w-full max-w-lg shadow-2xl">
           <form className="card-body" onSubmit={handleSubmit}>
-            <label className="label">First Name</label>
-            <input
-              className="input w-full"
-              value={firstName}
-              placeholder="First name"
-              onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                setFirstName(e.target.value)}
-            />
-
-            <label className="label">Last Name</label>
-            <input
-              className="input w-full"
-              value={lastName}
-              placeholder="Last name"
-              onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                setLastName(e.target.value)}
-            />
+            <div className="flex gap-4">
+              <div className="flex-1">
+                <label className="label">First Name</label>
+                <input
+                  className="input w-full"
+                  value={firstName}
+                  placeholder="First name"
+                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                    setFirstName(e.target.value)}
+                />
+              </div>
+              <div className="flex-1">
+                <label className="label">Last Name</label>
+                <input
+                  className="input w-full"
+                  value={lastName}
+                  placeholder="Last name"
+                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                    setLastName(e.target.value)}
+                />
+              </div>
+            </div>
 
             <label className="label">Email</label>
             <input
@@ -114,31 +127,46 @@ export default function VolunteerCreate() {
                 setPassword(e.target.value)}
             />
 
-            <label className="label">Date of Birth</label>
+            <label className="label">Confirm Password</label>
             <input
-              type="date"
+              type="password"
               className="input w-full"
-              value={dateOfBirth}
+              placeholder="Confirm password"
+              value={confirmPassword}
               onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                setDateOfBirth(e.target.value)}
+                setConfirmPassword(e.target.value)}
             />
 
-            <label className="label">Gender</label>
-            <select
-              className="select w-full"
-              value={gender}
-              onChange={e =>
-                setGender(e.target.value as 'male' | 'female' | 'other')}
-            >
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-              <option value="other">Other</option>
-            </select>
+            <div className="flex gap-4">
+              <div className="flex-1">
+                <label className="label">Date of Birth</label>
+                <input
+                  type="date"
+                  className="input w-full"
+                  value={dateOfBirth}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                    setDateOfBirth(e.target.value)}
+                />
+              </div>
+              <div className="flex-1">
+                <label className="label">Gender</label>
+                <select
+                  className="select w-full"
+                  value={gender}
+                  onChange={e =>
+                    setGender(e.target.value as 'male' | 'female' | 'other')}
+                >
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+            </div>
 
-            <button 
+            <button
               className="btn btn-primary mt-4"
               type="submit"
-              disabled={!firstName || !lastName || !email || !password || !dateOfBirth || !gender}
+              disabled={!firstName || !lastName || !email || !password || !confirmPassword || !dateOfBirth || !gender}
             >
               Register
             </button>
