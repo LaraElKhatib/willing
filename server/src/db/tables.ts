@@ -152,7 +152,12 @@ export type OrganizationPosting = zod.infer<typeof organizationPostingSchema>;
 
 export type OrganizationPostingTable = WithGeneratedID<OrganizationPosting>;
 
-export const newOrganizationPostingSchema = organizationPostingSchema.omit({ id: true });
+export const newOrganizationPostingSchema = organizationPostingSchema
+  .omit({ id: true })
+  .extend({ skills: zod
+    .array(zod.string().min(1, 'Skill name is required'))
+    .optional(),
+  });
 export type NewOrganizationPosting = zod.infer<typeof newOrganizationPostingSchema>;
 
 export const PostingSkillSchema = zod.object({
