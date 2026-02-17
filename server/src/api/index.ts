@@ -2,7 +2,7 @@ import { Router } from 'express';
 
 import { setUserJWT, authorizeOnly } from './authorization.js';
 import adminRouter from './routes/admin/index.js';
-import indexRouter from './routes/organization/organizationIndex.js';
+import indexRouter from './routes/organization/index.js';
 import postingRouter from './routes/organization/organizationPosting.js';
 import userRouter from './routes/user.js';
 import volunteerRouter from './routes/volunteer.js';
