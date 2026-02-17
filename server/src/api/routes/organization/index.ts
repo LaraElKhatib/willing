@@ -4,9 +4,9 @@ import database from '../../../db/index.js';
 import { newOrganizationRequestSchema } from '../../../db/tables.js';
 import { sendAdminOrganizationRequestEmail } from '../../../SMTP/emails.js';
 
-const indexRouter = Router();
+const organizationRouter = Router();
 
-indexRouter.post('/request', async (req, res) => {
+organizationRouter.post('/request', async (req, res) => {
   const body = newOrganizationRequestSchema.parse(req.body);
 
   const email = body.email.toLowerCase().trim();
@@ -18,10 +18,8 @@ indexRouter.post('/request', async (req, res) => {
     .executeTakeFirst();
 
   if (checkAccountRequest) {
-    return res.status(400).json({
-      success: false,
-      message: 'An organization with this email account already exists',
-    });
+    res.status(400);
+    throw new Error('An organization with this email account already exists');
   }
 
   const checkPendingRequest = await database
@@ -31,10 +29,8 @@ indexRouter.post('/request', async (req, res) => {
     .executeTakeFirst();
 
   if (checkPendingRequest) {
-    return res.status(400).json({
-      success: false,
-      message: 'A request with this email is already pending',
-    });
+    res.status(400);
+    throw new Error('A request with this email is already pending');
   }
 
   const organization = await database
@@ -58,8 +54,8 @@ indexRouter.post('/request', async (req, res) => {
     } catch (error) {
       console.error('Failed to send organization request email to admin', error);
     }
-    res.status(201).json({ success: true });
+    res.json({});
   }
 });
 
-export default indexRouter;
+export default organizationRouter;
