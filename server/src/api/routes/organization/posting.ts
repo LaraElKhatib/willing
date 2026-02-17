@@ -1,15 +1,20 @@
 import { Router } from 'express';
 
 import database from '../../../db/index.js';
-import { newOrganizationPostingSchema, type NewOrganizationPosting } from '../../../db/tables.js';
+import { newOrganizationPostingSchema, type NewOrganizationPosting, type PostingSkill } from '../../../db/tables.js';
 
 const postingRouter = Router();
 
 postingRouter.post('/', async (req, res) => {
   const body: NewOrganizationPosting = newOrganizationPostingSchema.parse(req.body);
-  const orgId = req.userJWT!.id;
+  const orgId = req.userJWT?.id;
 
-  const posting = await database.transaction().execute(async (trx) => {
+  if (!orgId) {
+    res.status(401);
+    throw new Error('Unauthorized');
+  }
+
+  const result = await database.transaction().execute(async (trx) => {
     const newPosting = await trx
       .insertInto('organization_posting')
       .values({
@@ -32,32 +37,60 @@ postingRouter.post('/', async (req, res) => {
       throw new Error('Failed to create posting');
     }
 
+    let skills: PostingSkill[] = [];
     if (body.skills && body.skills.length > 0) {
       const skillRows = body.skills.map(skill => ({
         posting_id: newPosting.id,
         name: skill,
       }));
 
-      await trx.insertInto('posting_skill').values(skillRows).execute();
+      skills = await trx.insertInto('posting_skill').values(skillRows).returningAll().execute();
     }
 
-    return newPosting;
+    return { posting: newPosting, skills };
   });
 
-  res.json({ success: true, posting: posting });
+  res.json({ posting: result.posting, skills: result.skills });
 });
 
 postingRouter.get('/', async (req, res) => {
-  const orgId = req.userJWT!.id;
+  const orgId = req.userJWT?.id;
 
-  const posting = await database
+  if (!orgId) {
+    res.status(401);
+    throw new Error('Unauthorized');
+  }
+
+  const postings = await database
     .selectFrom('organization_posting')
     .selectAll()
     .where('organization_id', '=', orgId)
     .orderBy('start_timestamp', 'asc')
     .execute();
 
-  res.json({ posting });
+  const postingIds = postings.map(p => p.id);
+  const skills = postingIds.length > 0
+    ? await database
+        .selectFrom('posting_skill')
+        .selectAll()
+        .where('posting_id', 'in', postingIds)
+        .execute()
+    : [];
+
+  const skillsByPostingId = new Map<number, PostingSkill[]>();
+  skills.forEach((skill) => {
+    if (!skillsByPostingId.has(skill.posting_id)) {
+      skillsByPostingId.set(skill.posting_id, []);
+    }
+    skillsByPostingId.get(skill.posting_id)!.push(skill);
+  });
+
+  const postingsWithSkills = postings.map(posting => ({
+    ...posting,
+    skills: skillsByPostingId.get(posting.id) || [],
+  }));
+
+  res.json({ posting: postingsWithSkills });
 });
 
 export default postingRouter;
