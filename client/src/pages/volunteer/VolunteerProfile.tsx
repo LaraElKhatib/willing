@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Globe, Lock, Mars, Venus } from 'lucide-react';
 
 import Loading from '../../components/Loading';
 import requestServer from '../../utils/requestServer';
@@ -16,14 +17,14 @@ type VolunteerProfileResponse = {
   skills: string[];
   cv: string | null;
   privacy: string | null;
-  unavailableFields: Array<'cv' | 'privacy'>;
+  unavailableFields: Array<'cv'>;
 };
 
 type ProfileFormState = {
   description: string;
   skills: string;
   cv: string;
-  privacy: string;
+  privacy: 'public' | 'private';
 };
 const DESCRIPTION_MAX_LENGTH = 300;
 const SKILL_BADGE_STYLES = [
@@ -37,7 +38,7 @@ const getDefaultFormState = (profile: VolunteerProfileResponse): ProfileFormStat
   description: profile.volunteer.description ?? '',
   skills: profile.skills.join(', '),
   cv: profile.cv ?? '',
-  privacy: profile.privacy ?? '',
+  privacy: profile.privacy === 'private' ? 'private' : 'public',
 });
 
 function VolunteerProfile() {
@@ -46,7 +47,7 @@ function VolunteerProfile() {
     description: '',
     skills: '',
     cv: '',
-    privacy: '',
+    privacy: 'public',
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -87,6 +88,13 @@ function VolunteerProfile() {
     if (value === 'other') return 'Other';
 
     return value.charAt(0).toUpperCase() + value.slice(1);
+  }, [profile?.volunteer.gender]);
+
+  const genderBadgeStyles = useMemo(() => {
+    if (!profile?.volunteer.gender) return 'badge-outline';
+    if (profile.volunteer.gender === 'male') return 'badge-info';
+    if (profile.volunteer.gender === 'female') return 'badge-secondary';
+    return 'badge-accent';
   }, [profile?.volunteer.gender]);
 
   const initials = useMemo(() => {
@@ -143,7 +151,7 @@ function VolunteerProfile() {
             description: form.description,
             skills: parsedSkills,
             cv: form.cv || null,
-            privacy: form.privacy || undefined,
+            privacy: form.privacy,
           }),
         },
         true,
@@ -207,7 +215,6 @@ function VolunteerProfile() {
 
   const avatarUrl = '';
   const unavailableCv = profile.unavailableFields.includes('cv');
-  const unavailablePrivacy = profile.unavailableFields.includes('privacy');
 
   return (
     <div className="grow bg-base-200">
@@ -251,13 +258,11 @@ function VolunteerProfile() {
           </div>
         )}
 
-        {(unavailableCv || unavailablePrivacy) && (
+        {unavailableCv && (
           <div role="alert" className="alert alert-info mt-4">
             <span>
               Some profile fields are not configured in the current database:
-              {unavailableCv ? ' CV' : ''}
-              {unavailableCv && unavailablePrivacy ? ',' : ''}
-              {unavailablePrivacy ? ' privacy' : ''}
+              {' CV'}
               .
             </span>
           </div>
@@ -284,7 +289,10 @@ function VolunteerProfile() {
                   <div>
                     <h4 className="text-xl font-bold">{volunteerName}</h4>
                     <div className="mt-1">
-                      <span className="badge badge-outline badge-sm">
+                      <span className={`badge badge-sm gap-1 ${genderBadgeStyles}`}>
+                        {profile.volunteer.gender === 'male' && <Mars size={12} />}
+                        {profile.volunteer.gender === 'female' && <Venus size={12} />}
+                        {profile.volunteer.gender === 'other' && <span className="font-bold">•</span>}
                         {formattedGender}
                       </span>
                     </div>
@@ -409,23 +417,33 @@ function VolunteerProfile() {
                 <p className="text-sm opacity-70 mb-2">Profile visibility preference.</p>
                 {isEditMode
                   ? (
-                      <select
-                        className="select select-bordered w-full max-w-xs"
-                        value={form.privacy}
-                        onChange={(e) => updateForm('privacy', e.target.value)}
-                        disabled={saving || unavailablePrivacy}
-                      >
-                        <option value="">Select privacy</option>
-                        <option value="public">Public</option>
-                        <option value="private">Private</option>
-                      </select>
+                      <div className="join">
+                        <button
+                          type="button"
+                          className={`btn btn-sm join-item gap-2 ${form.privacy === 'public' ? 'btn-primary' : 'btn-outline'}`}
+                          onClick={() => updateForm('privacy', 'public')}
+                          disabled={saving}
+                        >
+                          <Globe size={14} />
+                          Public
+                        </button>
+                        <button
+                          type="button"
+                          className={`btn btn-sm join-item gap-2 ${form.privacy === 'private' ? 'btn-warning' : 'btn-outline'}`}
+                          onClick={() => updateForm('privacy', 'private')}
+                          disabled={saving}
+                        >
+                          <Lock size={14} />
+                          Private
+                        </button>
+                      </div>
                     )
                   : (
-                      <p className="text-sm opacity-80">
-                        {unavailablePrivacy ? 'Not configured in database.' : (form.privacy || 'Not set')}
-                      </p>
+                      <span className={`badge gap-2 ${form.privacy === 'private' ? 'badge-warning' : 'badge-primary'}`}>
+                        {form.privacy === 'private' ? <Lock size={12} /> : <Globe size={12} />}
+                        {form.privacy === 'private' ? 'Private' : 'Public'}
+                      </span>
                     )}
-                {unavailablePrivacy && <p className="text-xs opacity-60 mt-2">Privacy field not configured in database.</p>}
               </div>
             </div>
           </div>

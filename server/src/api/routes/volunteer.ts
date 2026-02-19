@@ -1,7 +1,6 @@
 import bcrypt from 'bcrypt';
 import { Router } from 'express';
 import * as jose from 'jose';
-import { sql } from 'kysely';
 import zod from 'zod';
 
 import resetPassword from '../../auth/resetPassword.js';
@@ -11,8 +10,6 @@ import { newVolunteerAccountSchema } from '../../db/tables.js';
 import { authorizeOnly } from '../authorization.js';
 
 const volunteerRouter = Router();
-const optionalVolunteerProfileColumns = ['cv', 'privacy'] as const;
-type OptionalVolunteerProfileColumn = (typeof optionalVolunteerProfileColumns)[number];
 
 type VolunteerProfileResponse = {
   volunteer: {
@@ -27,26 +24,15 @@ type VolunteerProfileResponse = {
   skills: string[];
   cv: string | null;
   privacy: string | null;
-  unavailableFields: OptionalVolunteerProfileColumn[];
+  unavailableFields: ['cv'];
 };
 
 const volunteerProfileUpdateSchema = zod.object({
   description: zod.string().optional(),
   skills: zod.array(zod.string().trim().min(1, 'Skill cannot be empty')).optional(),
   cv: zod.string().nullable().optional(),
-  privacy: zod.string().trim().min(1).optional(),
+  privacy: zod.enum(['public', 'private']).optional(),
 });
-
-const getAvailableOptionalColumns = async () => {
-  const rows = await sql<{ column_name: string }>`
-    select column_name
-    from information_schema.columns
-    where table_name = 'volunteer_account'
-      and column_name in ('cv', 'privacy')
-  `.execute(database);
-
-  return new Set(rows.rows.map(row => row.column_name as OptionalVolunteerProfileColumn));
-};
 
 const getVolunteerProfile = async (volunteerId: number): Promise<VolunteerProfileResponse> => {
   const volunteer = await database
@@ -59,6 +45,7 @@ const getVolunteerProfile = async (volunteerId: number): Promise<VolunteerProfil
       'date_of_birth',
       'gender',
       'description',
+      'privacy',
     ])
     .where('id', '=', volunteerId)
     .executeTakeFirstOrThrow();
@@ -69,29 +56,6 @@ const getVolunteerProfile = async (volunteerId: number): Promise<VolunteerProfil
     .where('volunteer_id', '=', volunteerId)
     .orderBy('id', 'asc')
     .execute();
-
-  const availableColumns = await getAvailableOptionalColumns();
-  const unavailableFields = optionalVolunteerProfileColumns.filter(column => !availableColumns.has(column));
-
-  let cv: string | null = null;
-  if (availableColumns.has('cv')) {
-    const cvResult = await sql<{ cv: string | null }>`
-      select cv
-      from volunteer_account
-      where id = ${volunteerId}
-    `.execute(database);
-    cv = cvResult.rows[0]?.cv ?? null;
-  }
-
-  let privacy: string | null = null;
-  if (availableColumns.has('privacy')) {
-    const privacyResult = await sql<{ privacy: string | null }>`
-      select privacy
-      from volunteer_account
-      where id = ${volunteerId}
-    `.execute(database);
-    privacy = privacyResult.rows[0]?.privacy ?? null;
-  }
 
   return {
     volunteer: {
@@ -104,9 +68,9 @@ const getVolunteerProfile = async (volunteerId: number): Promise<VolunteerProfil
       ...(volunteer.description !== undefined ? { description: volunteer.description } : {}),
     },
     skills: volunteerSkills.map(skill => skill.name),
-    cv,
-    privacy,
-    unavailableFields,
+    cv: null,
+    privacy: volunteer.privacy ?? null,
+    unavailableFields: ['cv'],
   };
 };
 
@@ -179,14 +143,19 @@ volunteerRouter.put('/profile', async (req, res) => {
   const body = volunteerProfileUpdateSchema.parse(req.body);
   const volunteerId = req.userJWT!.id;
 
-  const availableColumns = await getAvailableOptionalColumns();
-  const unavailableFields: OptionalVolunteerProfileColumn[] = [];
-
   await database.transaction().execute(async (trx) => {
-    if (body.description !== undefined) {
+    const volunteerUpdate: {
+      description?: string;
+      privacy?: 'public' | 'private';
+    } = {};
+
+    if (body.description !== undefined) volunteerUpdate.description = body.description;
+    if (body.privacy !== undefined) volunteerUpdate.privacy = body.privacy;
+
+    if (Object.keys(volunteerUpdate).length > 0) {
       await trx
         .updateTable('volunteer_account')
-        .set({ description: body.description })
+        .set(volunteerUpdate)
         .where('id', '=', volunteerId)
         .execute();
     }
@@ -211,34 +180,10 @@ volunteerRouter.put('/profile', async (req, res) => {
           .execute();
       }
     }
-
-    if (body.cv !== undefined) {
-      if (availableColumns.has('cv')) {
-        await sql`
-          update volunteer_account
-          set cv = ${body.cv}
-          where id = ${volunteerId}
-        `.execute(trx);
-      } else {
-        unavailableFields.push('cv');
-      }
-    }
-
-    if (body.privacy !== undefined) {
-      if (availableColumns.has('privacy')) {
-        await sql`
-          update volunteer_account
-          set privacy = ${body.privacy}
-          where id = ${volunteerId}
-        `.execute(trx);
-      } else {
-        unavailableFields.push('privacy');
-      }
-    }
   });
 
   const profile = await getVolunteerProfile(volunteerId);
-  res.json({ ...profile, unavailableFields: Array.from(new Set([...profile.unavailableFields, ...unavailableFields])) });
+  res.json(profile);
 });
 
 volunteerRouter.post('/reset-password', resetPassword);
