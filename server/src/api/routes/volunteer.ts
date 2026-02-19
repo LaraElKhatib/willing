@@ -1,6 +1,8 @@
 import bcrypt from 'bcrypt';
 import { Router } from 'express';
 import * as jose from 'jose';
+import { sql } from 'kysely';
+import zod from 'zod';
 
 import resetPassword from '../../auth/resetPassword.js';
 import config from '../../config.js';
@@ -9,6 +11,104 @@ import { newVolunteerAccountSchema } from '../../db/tables.js';
 import { authorizeOnly } from '../authorization.js';
 
 const volunteerRouter = Router();
+const optionalVolunteerProfileColumns = ['cv', 'privacy'] as const;
+type OptionalVolunteerProfileColumn = (typeof optionalVolunteerProfileColumns)[number];
+
+type VolunteerProfileResponse = {
+  volunteer: {
+    id: number;
+    first_name: string;
+    last_name: string;
+    email: string;
+    date_of_birth: string;
+    gender: 'male' | 'female' | 'other';
+    description?: string;
+  };
+  skills: string[];
+  cv: string | null;
+  privacy: string | null;
+  unavailableFields: OptionalVolunteerProfileColumn[];
+};
+
+const volunteerProfileUpdateSchema = zod.object({
+  description: zod.string().optional(),
+  skills: zod.array(zod.string().trim().min(1, 'Skill cannot be empty')).optional(),
+  cv: zod.string().nullable().optional(),
+  privacy: zod.string().trim().min(1).optional(),
+});
+
+const getAvailableOptionalColumns = async () => {
+  const rows = await sql<{ column_name: string }>`
+    select column_name
+    from information_schema.columns
+    where table_name = 'volunteer_account'
+      and column_name in ('cv', 'privacy')
+  `.execute(database);
+
+  return new Set(rows.rows.map(row => row.column_name as OptionalVolunteerProfileColumn));
+};
+
+const getVolunteerProfile = async (volunteerId: number): Promise<VolunteerProfileResponse> => {
+  const volunteer = await database
+    .selectFrom('volunteer_account')
+    .select([
+      'id',
+      'first_name',
+      'last_name',
+      'email',
+      'date_of_birth',
+      'gender',
+      'description',
+    ])
+    .where('id', '=', volunteerId)
+    .executeTakeFirstOrThrow();
+
+  const volunteerSkills = await database
+    .selectFrom('volunteer_skill')
+    .select('name')
+    .where('volunteer_id', '=', volunteerId)
+    .orderBy('id', 'asc')
+    .execute();
+
+  const availableColumns = await getAvailableOptionalColumns();
+  const unavailableFields = optionalVolunteerProfileColumns.filter(column => !availableColumns.has(column));
+
+  let cv: string | null = null;
+  if (availableColumns.has('cv')) {
+    const cvResult = await sql<{ cv: string | null }>`
+      select cv
+      from volunteer_account
+      where id = ${volunteerId}
+    `.execute(database);
+    cv = cvResult.rows[0]?.cv ?? null;
+  }
+
+  let privacy: string | null = null;
+  if (availableColumns.has('privacy')) {
+    const privacyResult = await sql<{ privacy: string | null }>`
+      select privacy
+      from volunteer_account
+      where id = ${volunteerId}
+    `.execute(database);
+    privacy = privacyResult.rows[0]?.privacy ?? null;
+  }
+
+  return {
+    volunteer: {
+      id: volunteer.id,
+      first_name: volunteer.first_name,
+      last_name: volunteer.last_name,
+      email: volunteer.email,
+      date_of_birth: volunteer.date_of_birth,
+      gender: volunteer.gender,
+      ...(volunteer.description !== undefined ? { description: volunteer.description } : {}),
+    },
+    skills: volunteerSkills.map(skill => skill.name),
+    cv,
+    privacy,
+    unavailableFields,
+  };
+};
 
 volunteerRouter.post('/create', async (req, res) => {
   const body = newVolunteerAccountSchema.parse(req.body);
@@ -68,6 +168,77 @@ volunteerRouter.get('/me', async (req, res) => {
   delete volunteer.password;
 
   res.json({ volunteer });
+});
+
+volunteerRouter.get('/profile', async (req, res) => {
+  const profile = await getVolunteerProfile(req.userJWT!.id);
+  res.json(profile);
+});
+
+volunteerRouter.put('/profile', async (req, res) => {
+  const body = volunteerProfileUpdateSchema.parse(req.body);
+  const volunteerId = req.userJWT!.id;
+
+  const availableColumns = await getAvailableOptionalColumns();
+  const unavailableFields: OptionalVolunteerProfileColumn[] = [];
+
+  await database.transaction().execute(async (trx) => {
+    if (body.description !== undefined) {
+      await trx
+        .updateTable('volunteer_account')
+        .set({ description: body.description })
+        .where('id', '=', volunteerId)
+        .execute();
+    }
+
+    if (body.skills !== undefined) {
+      const normalizedSkills = Array.from(
+        new Set(body.skills.map(skill => skill.trim()).filter(Boolean)),
+      );
+
+      await trx
+        .deleteFrom('volunteer_skill')
+        .where('volunteer_id', '=', volunteerId)
+        .execute();
+
+      if (normalizedSkills.length > 0) {
+        await trx
+          .insertInto('volunteer_skill')
+          .values(normalizedSkills.map((name) => ({
+            volunteer_id: volunteerId,
+            name,
+          })))
+          .execute();
+      }
+    }
+
+    if (body.cv !== undefined) {
+      if (availableColumns.has('cv')) {
+        await sql`
+          update volunteer_account
+          set cv = ${body.cv}
+          where id = ${volunteerId}
+        `.execute(trx);
+      } else {
+        unavailableFields.push('cv');
+      }
+    }
+
+    if (body.privacy !== undefined) {
+      if (availableColumns.has('privacy')) {
+        await sql`
+          update volunteer_account
+          set privacy = ${body.privacy}
+          where id = ${volunteerId}
+        `.execute(trx);
+      } else {
+        unavailableFields.push('privacy');
+      }
+    }
+  });
+
+  const profile = await getVolunteerProfile(volunteerId);
+  res.json({ ...profile, unavailableFields: Array.from(new Set([...profile.unavailableFields, ...unavailableFields])) });
 });
 
 volunteerRouter.post('/reset-password', resetPassword);
