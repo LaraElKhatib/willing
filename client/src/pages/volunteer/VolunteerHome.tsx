@@ -100,21 +100,23 @@ function VolunteerHome() {
               className="input input-bordered"
             />
           </div>
-          <button
-            className="btn btn-sm btn-primary"
-            disabled={!filters.location && !filters.skill && !filters.startDate && !filters.endDate}
-            onClick={fetchPostings}
-          >
-            Apply Filters
-          </button>
+          <div className="flex gap-3">
+            <button
+              className="btn btn-sm btn-primary"
+              disabled={!filters.location && !filters.skill && !filters.startDate && !filters.endDate}
+              onClick={fetchPostings}
+            >
+              Apply Filters
+            </button>
 
-          <button
-            className="btn btn-sm btn-primary"
-            disabled={!filters.location && !filters.skill && !filters.startDate && !filters.endDate}
-            onClick={resetFilters}
-          >
-            Reset Filters
-          </button>
+            <button
+              className="btn btn-sm btn-ghost"
+              disabled={!filters.location && !filters.skill && !filters.startDate && !filters.endDate}
+              onClick={resetFilters}
+            >
+              Reset Filters
+            </button>
+          </div>
         </div>
 
         {postings.length === 0
