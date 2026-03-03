@@ -113,6 +113,16 @@ volunteerPostingRouter.get('/:id', async (req, res) => {
     .where('posting_id', '=', id)
     .execute();
 
+  const pendingApplication = await database
+    .selectFrom('enrollment_application')
+    .selectAll()
+    .where(eb => eb('volunteer_id', '=', volunteerId))
+    .executeTakeFirst();
+
+  const applicableApplication = pendingApplication && 'posting_id' in pendingApplication && (pendingApplication as any).posting_id === id
+    ? pendingApplication
+    : null;
+
   const existingEnrollment = await database
     .selectFrom('enrollment')
     .select('id')
@@ -120,7 +130,12 @@ volunteerPostingRouter.get('/:id', async (req, res) => {
     .where('volunteer_id', '=', volunteerId)
     .executeTakeFirst();
 
-  res.json({ posting, skills, isEnrolled: Boolean(existingEnrollment) });
+  res.json({
+    posting,
+    skills,
+    hasPendingApplication: Boolean(applicableApplication),
+    isEnrolled: Boolean(existingEnrollment),
+  });
 });
 
 volunteerPostingRouter.post('/:id/enroll', async (req, res) => {

@@ -62,6 +62,7 @@ function PostingView({ mode = 'organization' }: { mode?: PostingViewerMode }) {
   const [posting, setPosting] = useState<PostingWithSkills | null>(null);
   const [enrollments, setEnrollments] = useState<EnrolledVolunteer[]>([]);
   const [applications, setApplications] = useState<PendingApplication[]>([]);
+  const [hasPendingApplication, setHasPendingApplication] = useState(false);
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [skills, setSkills] = useState<string[]>([]);
   const [position, setPosition] = useState<[number, number]>([33.90192863620578, 35.477959277880416]);
@@ -116,6 +117,7 @@ function PostingView({ mode = 'organization' }: { mode?: PostingViewerMode }) {
 
         setPosting(postingWithSkills);
         setEnrollments([]);
+        setHasPendingApplication(postingResponse.hasPendingApplication);
         setIsEnrolled(postingResponse.isEnrolled);
         setSkills(postingResponse.skills.map(s => s.name));
         setPosition([
@@ -162,6 +164,7 @@ function PostingView({ mode = 'organization' }: { mode?: PostingViewerMode }) {
       }
 
       setIsEnrolled(false);
+      setHasPendingApplication(false);
       setSkills(postingResponse.skills.map(s => s.name));
       setPosition([
         postingResponse.posting.latitude ?? 33.90192863620578,
@@ -303,15 +306,15 @@ function PostingView({ mode = 'organization' }: { mode?: PostingViewerMode }) {
   }, []);
 
   const openApplyModal = useCallback(() => {
-    if (!id || isEnrolled) return;
+    if (!id || hasPendingApplication || isEnrolled) return;
     setSaveMessage(null);
     setSaveError(null);
     setApplyError(null);
     setIsApplyModalOpen(true);
-  }, [id, isEnrolled]);
+  }, [id, hasPendingApplication, isEnrolled]);
 
   const submitApplication = useCallback(async (message?: string) => {
-    if (!id || isEnrolled) return;
+    if (!id || hasPendingApplication || isEnrolled) return;
 
     try {
       setApplying(true);
@@ -329,7 +332,7 @@ function PostingView({ mode = 'organization' }: { mode?: PostingViewerMode }) {
         true,
       );
 
-      setIsEnrolled(true);
+      setHasPendingApplication(true);
       setIsApplyModalOpen(false);
       setSaveMessage('Application submitted successfully.');
     } catch (error) {
@@ -339,11 +342,11 @@ function PostingView({ mode = 'organization' }: { mode?: PostingViewerMode }) {
     } finally {
       setApplying(false);
     }
-  }, [id, isEnrolled]);
+  }, [id, hasPendingApplication, isEnrolled]);
 
   const withdrawApplication = useCallback(async () => {
-    if (!id || !isEnrolled) return;
-    if (!confirm('Are you sure you want to withdraw your application?')) return;
+    if (!id || (!hasPendingApplication && !isEnrolled)) return;
+    if (!confirm(isEnrolled ? 'Are you sure you want to leave this position?' : 'Are you sure you want to withdraw your application?')) return;
 
     try {
       setWithdrawing(true);
@@ -352,15 +355,16 @@ function PostingView({ mode = 'organization' }: { mode?: PostingViewerMode }) {
 
       await requestServer(`/volunteer/posting/${id}/enroll`, { method: 'DELETE' }, true);
 
+      setHasPendingApplication(false);
       setIsEnrolled(false);
-      setSaveMessage('Application withdrawn successfully.');
+      setSaveMessage(isEnrolled ? 'Left volunteering position.' : 'Application withdrawn successfully.');
     } catch (error) {
-      const messageText = error instanceof Error ? error.message : 'Failed to withdraw application';
+      const messageText = error instanceof Error ? error.message : 'Failed to withdraw';
       setSaveError(messageText);
     } finally {
       setWithdrawing(false);
     }
-  }, [id, isEnrolled]);
+  }, [id, hasPendingApplication, isEnrolled]);
 
   const acceptApplication = useCallback(async (applicationId: number) => {
     if (!id) return;
@@ -519,18 +523,28 @@ function PostingView({ mode = 'organization' }: { mode?: PostingViewerMode }) {
                             onClick={withdrawApplication}
                             disabled={withdrawing}
                           >
-                            {withdrawing ? 'Withdrawing...' : 'Withdraw Application'}
+                            {withdrawing ? 'Leaving...' : 'Leave Position'}
                           </button>
                         )
-                      : (
-                          <button
-                            className="btn btn-primary"
-                            onClick={openApplyModal}
-                            disabled={applying}
-                          >
-                            {applying ? 'Applying...' : 'Apply'}
-                          </button>
-                        )}
+                      : hasPendingApplication
+                        ? (
+                            <button
+                              className="btn btn-error btn-outline"
+                              onClick={withdrawApplication}
+                              disabled={withdrawing}
+                            >
+                              {withdrawing ? 'Withdrawing...' : 'Withdraw Application'}
+                            </button>
+                          )
+                        : (
+                            <button
+                              className="btn btn-primary"
+                              onClick={openApplyModal}
+                              disabled={applying}
+                            >
+                              {applying ? 'Applying...' : 'Apply'}
+                            </button>
+                          )}
                   </>
                 )
               : isEditMode
