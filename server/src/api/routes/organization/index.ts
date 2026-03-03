@@ -1,17 +1,16 @@
 import { Router, Response } from 'express';
 
-import { OrganizationMeResponse } from './index.types.js';
+import { OrganizationMeResponse, OrganizationRequestResponse } from './index.types.js';
 import postingRouter from './posting.js';
 import resetPassword from '../../../auth/resetPassword.js';
 import database from '../../../db/index.js';
 import { newOrganizationRequestSchema } from '../../../db/tables.js';
 import { sendAdminOrganizationRequestEmail } from '../../../SMTP/emails.js';
-import { Success } from '../../../types.js';
 import { authorizeOnly } from '../../authorization.js';
 
 const organizationRouter = Router();
 
-organizationRouter.post('/request', async (req, res: Response<Success>) => {
+organizationRouter.post('/request', async (req, res: Response<OrganizationRequestResponse>) => {
   const body = newOrganizationRequestSchema.parse(req.body);
 
   const email = body.email;

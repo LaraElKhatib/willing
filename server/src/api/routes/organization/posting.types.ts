@@ -1,5 +1,5 @@
 import { OrganizationPosting, PostingSkill } from '../../../db/tables.js';
-import { PostingWithSkills, PostingEnrollment, Success, PostingApplication } from '../../../types.js';
+import { PostingWithSkills, PostingEnrollment, SuccessResponse, PostingApplication } from '../../../types.js';
 
 export type OrganizationPostingCreateResponse = {
   posting: OrganizationPosting;
@@ -24,12 +24,12 @@ export type OrganizationPostingUpdateResponse = {
   skills: PostingSkill[];
 };
 
-export type OrganizationPostingDeleteResponse = Success;
+export type OrganizationPostingDeleteResponse = SuccessResponse;
 
 export type OrganizationPostingApplicationsReponse = {
   applications: PostingApplication[];
 };
 
-export type OrganizationPostingApplicationAcceptanceResponse = Success;
+export type OrganizationPostingApplicationAcceptanceResponse = SuccessResponse;
 
-export type OrganizationPostingApplicationRejectionResponse = Success;
+export type OrganizationPostingApplicationRejectionResponse = SuccessResponse;

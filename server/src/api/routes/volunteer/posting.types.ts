@@ -1,5 +1,5 @@
-import { Enrollment, OrganizationPosting, PostingSkill } from '../../../db/tables.js';
-import { PostingWithSkillsAndOrgName } from '../../../types.js';
+import { EnrollmentApplication, OrganizationPosting, PostingSkill } from '../../../db/tables.js';
+import { PostingWithSkillsAndOrgName, SuccessResponse } from '../../../types.js';
 
 export type VolunteerPostingSearchResponse = {
   postings: PostingWithSkillsAndOrgName[];
@@ -13,5 +13,8 @@ export type VolunteerPostingResponse = {
 };
 
 export type VolunteerPostingEnrollResponse = {
-  enrollment: Enrollment;
+  application: EnrollmentApplication;
+  isOpen: boolean;
 };
+
+export type VolunteerPostingWithdrawResponse = SuccessResponse;

@@ -12,7 +12,7 @@ export type Role = 'admin' | 'volunteer' | 'organization';
 export const genderSchema = zod.enum(['male', 'female', 'other'], 'Gender should be \'female\', \'male\', or \'other\' ');
 export type Gender = zod.infer<typeof genderSchema>;
 
-export type Success = Record<string, never>;
+export type SuccessResponse = Record<string, never>;
 
 export interface UserJWT {
   id: number;
