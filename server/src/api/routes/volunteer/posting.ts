@@ -3,6 +3,7 @@ import zod from 'zod';
 
 import { VolunteerPostingEnrollResponse, VolunteerPostingResponse, VolunteerPostingSearchResponse, VolunteerPostingWithdrawResponse } from './posting.types.js';
 import database from '../../../db/index.js';
+import { Enrollment, EnrollmentApplication } from '../../../db/tables.js';
 import { authorizeOnly } from '../../authorization.js';
 
 const volunteerPostingRouter = Router();
@@ -108,33 +109,30 @@ volunteerPostingRouter.get('/:id', async (req, res: Response<VolunteerPostingRes
     throw new Error('Posting not found');
   }
 
-  const skills = await database
-    .selectFrom('posting_skill')
-    .selectAll()
-    .where('posting_id', '=', id)
-    .execute();
-
-  const pendingApplication = await database
-    .selectFrom('enrollment_application')
-    .selectAll()
-    .where(eb => eb('volunteer_id', '=', volunteerId))
-    .executeTakeFirst();
-
-  const applicableApplication = pendingApplication && 'posting_id' in pendingApplication && (pendingApplication as Record<string, unknown>).posting_id === id
-    ? pendingApplication
-    : null;
-
-  const existingEnrollment = await database
-    .selectFrom('enrollment_application')
-    .select('id')
-    .where('posting_id', '=', id)
-    .where('volunteer_id', '=', volunteerId)
-    .executeTakeFirst();
+  const [skills, pendingApplication, existingEnrollment] = await Promise.all([
+    database
+      .selectFrom('posting_skill')
+      .selectAll()
+      .where('posting_id', '=', id)
+      .execute(),
+    database
+      .selectFrom('enrollment_application')
+      .selectAll()
+      .where(eb => eb('volunteer_id', '=', volunteerId))
+      .where(eb => eb('posting_id', '=', id))
+      .executeTakeFirst(),
+    database
+      .selectFrom('enrollment')
+      .select('id')
+      .where('posting_id', '=', id)
+      .where('volunteer_id', '=', volunteerId)
+      .executeTakeFirst(),
+  ]);
 
   res.json({
     posting,
     skills,
-    hasPendingApplication: Boolean(applicableApplication),
+    hasPendingApplication: Boolean(pendingApplication),
     isEnrolled: Boolean(existingEnrollment),
   });
 });
@@ -155,56 +153,85 @@ volunteerPostingRouter.post('/:id/enroll', async (req, res: Response<VolunteerPo
     throw new Error('Posting not found');
   }
 
-  const existingApplication = await database
-    .selectFrom('enrollment_application')
-    .select('id')
-    .where('posting_id', '=', id)
-    .where('volunteer_id', '=', volunteerId)
-    .executeTakeFirst();
+  const [existingApplication, existingEnrollment] = await Promise.all([
+    database
+      .selectFrom('enrollment_application')
+      .select('id')
+      .where('posting_id', '=', id)
+      .where('volunteer_id', '=', volunteerId)
+      .executeTakeFirst(),
+    database
+      .selectFrom('enrollment')
+      .select('id')
+      .where('posting_id', '=', id)
+      .where('volunteer_id', '=', volunteerId)
+      .executeTakeFirst(),
+  ]);
 
-  if (existingApplication) {
+  if (existingApplication || existingEnrollment) {
     res.status(409);
-    throw new Error('You have already applied to this posting');
+    throw new Error('You are already enrolled or have already applied to this posting');
   }
 
-  const application = await database
-    .insertInto('enrollment_application')
-    .values({
-      volunteer_id: volunteerId,
-      posting_id: id,
-      message: message ?? undefined,
-    })
-    .returningAll()
-    .executeTakeFirst();
+  let enrollment: Enrollment | EnrollmentApplication | undefined;
 
-  if (!application) {
+  if (posting.is_open) {
+    enrollment = await database
+      .insertInto('enrollment')
+      .values({
+        volunteer_id: volunteerId,
+        posting_id: id,
+        message: message ?? undefined,
+      })
+      .returningAll()
+      .executeTakeFirst();
+  } else {
+    enrollment = await database
+      .insertInto('enrollment_application')
+      .values({
+        volunteer_id: volunteerId,
+        posting_id: id,
+        message: message ?? undefined,
+      })
+      .returningAll()
+      .executeTakeFirst();
+  }
+
+  if (!enrollment) {
     res.status(500);
-    throw new Error('Failed to create application');
+    throw new Error('Failed to create enrollment');
   }
 
-  res.json({ application, isOpen: posting.is_open });
+  res.json({ enrollment, isOpen: posting.is_open });
 });
 
 volunteerPostingRouter.delete('/:id/enroll', async (req, res: Response<VolunteerPostingWithdrawResponse>) => {
   const volunteerId = req.userJWT!.id;
   const { id } = postingIdParamsSchema.parse(req.params);
 
-  const application = await database
-    .selectFrom('enrollment_application')
-    .selectAll()
-    .where('posting_id', '=', id)
-    .where('volunteer_id', '=', volunteerId)
+  const posting = await database
+    .selectFrom('organization_posting')
+    .select(['id', 'is_open'])
+    .where('id', '=', id)
     .executeTakeFirst();
 
-  if (!application) {
+  if (!posting) {
     res.status(404);
-    throw new Error('Enrollment not found');
+    throw new Error('Posting not found');
   }
 
-  await database
-    .deleteFrom('enrollment_application')
-    .where('id', '=', application.id)
-    .execute();
+  await Promise.all([
+    database
+      .deleteFrom('enrollment')
+      .where('volunteer_id', '=', volunteerId)
+      .where('posting_id', '=', id)
+      .execute(),
+    !posting.is_open && database
+      .deleteFrom('enrollment_application')
+      .where('volunteer_id', '=', volunteerId)
+      .where('posting_id', '=', id)
+      .execute(),
+  ]);
 
   res.json({});
 });

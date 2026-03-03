@@ -3,10 +3,10 @@ import { useMemo, type ReactNode } from 'react';
 
 import SkillsList from './SkillsList';
 
-import type { PostingEnrollment } from '../../../server/src/types';
+import type { PostingApplication, PostingEnrollment } from '../../../server/src/types';
 
 interface VolunteerInfoCollapseProps {
-  volunteer: PostingEnrollment;
+  volunteer: PostingEnrollment | PostingApplication;
   actions?: ReactNode;
 }
 

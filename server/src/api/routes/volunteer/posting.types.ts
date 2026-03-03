@@ -1,4 +1,4 @@
-import { EnrollmentApplication, OrganizationPosting, PostingSkill } from '../../../db/tables.js';
+import { Enrollment, EnrollmentApplication, OrganizationPosting, PostingSkill } from '../../../db/tables.js';
 import { PostingWithSkillsAndOrgName, SuccessResponse } from '../../../types.js';
 
 export type VolunteerPostingSearchResponse = {
@@ -13,7 +13,7 @@ export type VolunteerPostingResponse = {
 };
 
 export type VolunteerPostingEnrollResponse = {
-  application: EnrollmentApplication;
+  enrollment: Enrollment | EnrollmentApplication;
   isOpen: boolean;
 };
 
