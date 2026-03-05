@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router';
 
 import Loading from '../../components/Loading';
 import LocationPicker from '../../components/LocationPicker';
+import PageHeader from '../../components/PageHeader';
 import SkillsInput from '../../components/SkillsInput';
 import { ToggleButton } from '../../components/ToggleButton';
 import { organizationPostingFormSchema, type OrganizationPostingFormData } from '../../schemas/auth';
@@ -75,7 +76,10 @@ export default function OrganizationPostingCreate() {
   return (
     <div className="grow bg-base-200">
       <div className="p-6 md:container mx-auto">
-        <h2 className="text-3xl font-extrabold tracking-tight mb-6">Create Posting</h2>
+        <PageHeader
+          title="Create Posting"
+          backTo="/organization"
+        />
 
         <div className="card bg-base-100 w-full shadow-2xl">
           <form className="card-body space-y-6" onSubmit={submit}>
