@@ -14,6 +14,7 @@ import { z } from 'zod';
 import { volunteerAccountSchema } from '../../../../server/src/db/tables';
 import ColumnLayout from '../../components/ColumnLayout';
 import Loading from '../../components/Loading';
+import PageHeader from '../../components/PageHeader';
 import SkillsInput from '../../components/SkillsInput';
 import SkillsList from '../../components/SkillsList';
 import { ToggleButton } from '../../components/ToggleButton';
@@ -252,32 +253,32 @@ function VolunteerProfile() {
   return (
     <div className="grow bg-base-200">
       <div className="p-6 md:container mx-auto">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <h3 className="text-3xl font-extrabold tracking-tight">Volunteer Profile</h3>
-            <p className="opacity-70 mt-1">Manage your details, availability, and focus areas.</p>
-          </div>
-          <div className="flex gap-2">
-            {
-              isEditMode
-                ? (
-                    <button className="btn btn-outline" onClick={onCancelEdit} disabled={saving}>
-                      Cancel
-                    </button>
-                  )
-                : (
-                    <button className="btn btn-outline" onClick={() => setIsEditMode(true)}>
-                      Edit Profile
-                    </button>
-                  )
-            }
-            {isEditMode && (
-              <button className="btn btn-primary" onClick={onSave} disabled={saving}>
-                {saving ? 'Saving...' : 'Save Changes'}
-              </button>
-            )}
-          </div>
-        </div>
+        <PageHeader
+          title="Volunteer Profile"
+          subtitle="Manage your details, availability, and focus areas."
+          actions={(
+            <>
+              {
+                isEditMode
+                  ? (
+                      <button className="btn btn-outline" onClick={onCancelEdit} disabled={saving}>
+                        Cancel
+                      </button>
+                    )
+                  : (
+                      <button className="btn btn-outline" onClick={() => setIsEditMode(true)}>
+                        Edit Profile
+                      </button>
+                    )
+              }
+              {isEditMode && (
+                <button className="btn btn-primary" onClick={onSave} disabled={saving}>
+                  {saving ? 'Saving...' : 'Save Changes'}
+                </button>
+              )}
+            </>
+          )}
+        />
 
         {saveMessage && (
           <div
