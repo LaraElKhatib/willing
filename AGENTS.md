@@ -118,6 +118,8 @@ All components are in `client/src/components/`. **Use these instead of recreatin
   - `subtitle` (optional): Description text below title
   - `backTo` (optional): Navigation path for back button. Only include for pages not directly linked from navbar (e.g., posting detail pages)
   - `actions` (optional): ReactNode for action buttons (Edit, Save, Delete, etc.) displayed on the right
+  - `icon` (optional): Lucide icon component to display before the title
+  - `badge` (optional): ReactNode to display as a badge (e.g., counts, status) to the right of title section
   - Use for all pages with consistent title layouts. Omit `backTo` for navbar-linked pages (home, settings, profile).
 - **`Footer`**: Standard footer with company info, contact email, and GitHub link. Use at bottom of main pages.
 

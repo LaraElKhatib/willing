@@ -1,4 +1,4 @@
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, type LucideIcon } from 'lucide-react';
 import { type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -7,6 +7,8 @@ type PageHeaderProps = {
   subtitle?: string;
   backTo?: string;
   actions?: ReactNode;
+  icon?: LucideIcon;
+  badge?: ReactNode;
 };
 
 export default function PageHeader({
@@ -14,6 +16,8 @@ export default function PageHeader({
   subtitle,
   backTo,
   actions,
+  icon: Icon,
+  badge,
 }: PageHeaderProps) {
   const navigate = useNavigate();
 
@@ -28,6 +32,7 @@ export default function PageHeader({
             <ArrowLeft size={20} />
           </button>
         )}
+        {Icon && <Icon className="text-primary" size={32} />}
         <div>
           <h3 className="text-3xl font-extrabold tracking-tight">{title}</h3>
           {subtitle && (
@@ -35,11 +40,14 @@ export default function PageHeader({
           )}
         </div>
       </div>
-      {actions && (
-        <div className="flex gap-2">
-          {actions}
-        </div>
-      )}
+      <div className="flex items-center gap-2">
+        {badge && badge}
+        {actions && (
+          <div className="flex gap-2">
+            {actions}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

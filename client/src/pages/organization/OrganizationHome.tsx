@@ -1,6 +1,7 @@
-import { Plus, Eye } from 'lucide-react';
+import { Plus, Eye, ClipboardList } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
+import PageHeader from '../../components/PageHeader';
 import PostingCard from '../../components/PostingCard';
 import requestServer from '../../utils/requestServer';
 import useAsync from '../../utils/useAsync';
@@ -26,17 +27,28 @@ function OrganizationHome() {
   return (
     <div className="grow bg-base-200">
       <div className="p-6 md:container mx-auto">
-        <h3 className="text-3xl font-extrabold tracking-tight mb-6">
-          Organization Home
-        </h3>
-
-        <button
-          className="btn btn-primary mb-6"
-          onClick={() => navigate('posting')}
-        >
-          <Plus className="w-4 h-4" />
-          Create New Posting
-        </button>
+        <PageHeader
+          title="My Postings"
+          icon={ClipboardList}
+          badge={
+            postings && (
+              <div className="badge badge-primary badge-outline">
+                {postings.length}
+                {' '}
+                {postings.length === 1 ? 'Posting' : 'Postings'}
+              </div>
+            )
+          }
+          actions={(
+            <button
+              className="btn btn-primary"
+              onClick={() => navigate('posting')}
+            >
+              <Plus className="w-4 h-4" />
+              Create New Posting
+            </button>
+          )}
+        />
 
         {error && (
           <div className="alert alert-error mb-4">

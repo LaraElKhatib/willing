@@ -254,7 +254,7 @@ function VolunteerProfile() {
     <div className="grow bg-base-200">
       <div className="p-6 md:container mx-auto">
         <PageHeader
-          title="Volunteer Profile"
+          title="Profile"
           subtitle="Manage your details, availability, and focus areas."
           actions={(
             <>
