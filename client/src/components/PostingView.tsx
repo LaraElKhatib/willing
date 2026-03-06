@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
+  Building2,
   Calendar,
   Cake,
   Edit3,
@@ -12,7 +13,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import CalenderInfo from './CalenderInfo.tsx';
 import ColumnLayout from './ColumnLayout';
@@ -29,7 +30,7 @@ import { executeAndShowError, FormField } from '../utils/formUtils';
 import requestServer from '../utils/requestServer';
 import { useOrganization } from '../utils/useUsers';
 
-import type { OrganizationPostingApplicationsReponse, OrganizationPostingEnrollmentsResponse, OrganizationPostingResponse, VolunteerPostingResponse } from '../../../server/src/api/types';
+import type { OrganizationPostingApplicationsReponse, OrganizationPostingEnrollmentsResponse, OrganizationPostingResponse, OrganizationProfileResponse, VolunteerPostingResponse } from '../../../server/src/api/types';
 import type { OrganizationPosting, PostingSkill } from '../../../server/src/db/tables';
 import type { PostingApplication, PostingEnrollment } from '../../../server/src/types';
 
@@ -73,6 +74,7 @@ function PostingView({ mode = 'organization' }: { mode?: PostingViewerMode }) {
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [isSaveMessageVisible, setIsSaveMessageVisible] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [postingOrganization, setPostingOrganization] = useState<{ id: number; name: string } | null>(null);
 
   const form = useForm<OrganizationPostingFormData>({
     resolver: zodResolver(organizationPostingFormSchema),
@@ -116,6 +118,23 @@ function PostingView({ mode = 'organization' }: { mode?: PostingViewerMode }) {
           postingResponse.posting.latitude ?? 33.90192863620578,
           postingResponse.posting.longitude ?? 35.477959277880416,
         ]);
+
+        try {
+          const organizationResponse = await requestServer<OrganizationProfileResponse>(
+            `/organization/${postingResponse.posting.organization_id}`,
+            { includeJwt: true },
+          );
+
+          setPostingOrganization({
+            id: organizationResponse.organization.id,
+            name: organizationResponse.organization.name,
+          });
+        } catch {
+          setPostingOrganization({
+            id: postingResponse.posting.organization_id,
+            name: 'Organization',
+          });
+        }
 
         form.reset({
           title: postingResponse.posting.title,
@@ -162,6 +181,16 @@ function PostingView({ mode = 'organization' }: { mode?: PostingViewerMode }) {
         postingResponse.posting.longitude ?? 35.477959277880416,
       ]);
 
+      setPostingOrganization(account
+        ? {
+            id: account.id,
+            name: account.name,
+          }
+        : {
+            id: postingResponse.posting.organization_id,
+            name: 'Organization',
+          });
+
       form.reset({
         title: postingResponse.posting.title,
         description: postingResponse.posting.description,
@@ -179,7 +208,7 @@ function PostingView({ mode = 'organization' }: { mode?: PostingViewerMode }) {
     } finally {
       setLoading(false);
     }
-  }, [id, form, isVolunteerView]);
+  }, [id, form, isVolunteerView, account]);
 
   useEffect(() => {
     loadPosting();
@@ -510,7 +539,8 @@ function PostingView({ mode = 'organization' }: { mode?: PostingViewerMode }) {
         <PageHeader
           title="Posting Details"
           subtitle={isVolunteerView ? 'Review details before applying' : 'View and manage your posting'}
-          backTo={isVolunteerView ? '/volunteer' : '/organization'}
+          showBack
+          defaultBackTo={isVolunteerView ? '/volunteer' : '/organization'}
           actions={!isVolunteerView && (isEditMode
             ? (
                 <>
@@ -566,7 +596,18 @@ function PostingView({ mode = 'organization' }: { mode?: PostingViewerMode }) {
               <>
                 <div className="card bg-base-100 shadow-md">
                   <div className="card-body">
-                    <h4 className="text-xl font-bold mb-4">Posting Information</h4>
+                    <div className="flex items-center justify-between gap-4 mb-4">
+                      <h4 className="text-xl font-bold">{formValues.title}</h4>
+                      {isVolunteerView && postingOrganization && (
+                        <Link
+                          to={`/organization/${postingOrganization.id}`}
+                          className="link link-primary link-hover font-medium text-sm inline-flex items-center gap-1.5 shrink-0"
+                        >
+                          <Building2 size={14} />
+                          <span>{postingOrganization.name}</span>
+                        </Link>
+                      )}
+                    </div>
 
                     {isEditMode
                       ? (
@@ -619,10 +660,6 @@ function PostingView({ mode = 'organization' }: { mode?: PostingViewerMode }) {
                         )
                       : (
                           <div className="space-y-4">
-                            <div>
-                              <label className="text-xs font-semibold opacity-70 uppercase">Title</label>
-                              <p className="text-lg font-semibold text-primary">{formValues.title}</p>
-                            </div>
                             <div>
                               <label className="text-xs font-semibold opacity-70 uppercase">Description</label>
                               <p className="text-sm opacity-80 whitespace-pre-wrap">{formValues.description}</p>

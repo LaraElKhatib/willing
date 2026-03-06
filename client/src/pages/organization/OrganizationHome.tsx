@@ -1,4 +1,4 @@
-import { Plus, Eye, ClipboardList } from 'lucide-react';
+import { Plus, ClipboardList } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import PageHeader from '../../components/PageHeader';
@@ -74,17 +74,6 @@ function OrganizationHome() {
               <PostingCard
                 key={posting.id}
                 posting={posting}
-                footer={(
-                  <div className="card-actions gap-2">
-                    <button
-                      className="btn btn-sm w-full gap-2"
-                      onClick={() => navigate(`/organization/posting/${posting.id}`)}
-                    >
-                      <Eye size={16} />
-                      <span className="group-hover:font-semibold">View Details</span>
-                    </button>
-                  </div>
-                )}
               />
             ))}
           </div>

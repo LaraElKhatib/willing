@@ -30,7 +30,7 @@ export type PostingWithSkills = OrganizationPosting & {
   skills: PostingSkill[];
 };
 
-export type PostingWithSkillsAndOrgName = PostingWithSkills & {
+export type PostingWithSkillsAndOrg = PostingWithSkills & {
   organization_name: string;
 };
 

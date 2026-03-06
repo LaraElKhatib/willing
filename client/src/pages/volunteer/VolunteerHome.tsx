@@ -1,6 +1,5 @@
-import { Eye, TextSearch } from 'lucide-react';
+import { TextSearch } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 
 import CalenderInfo from '../../components/CalenderInfo.tsx';
 import PageHeader from '../../components/PageHeader';
@@ -8,11 +7,10 @@ import PostingCard from '../../components/PostingCard';
 import requestServer from '../../utils/requestServer';
 
 import type { VolunteerPostingSearchResponse } from '../../../../server/src/api/types';
-import type { PostingWithSkillsAndOrgName } from '../../../../server/src/types';
+import type { PostingWithSkillsAndOrg } from '../../../../server/src/types';
 
 function VolunteerHome() {
-  const navigate = useNavigate();
-  const [postings, setPostings] = useState<PostingWithSkillsAndOrgName[]>([]);
+  const [postings, setPostings] = useState<PostingWithSkillsAndOrg[]>([]);
   const [filters, setFilters] = useState<{
     location: string;
     skill: string;
@@ -129,17 +127,10 @@ function VolunteerHome() {
                   <PostingCard
                     key={posting.id}
                     posting={posting}
-                    footer={(
-                      <div className="card-actions gap-2">
-                        <button
-                          className="btn btn-sm w-full gap-2"
-                          onClick={() => navigate(`/volunteer/posting/${posting.id}`)}
-                        >
-                          <Eye size={16} />
-                          <span>View Details</span>
-                        </button>
-                      </div>
-                    )}
+                    organization={{
+                      name: posting.organization_name,
+                      id: posting.organization_id,
+                    }}
                   />
                 ))}
               </div>

@@ -15,6 +15,7 @@ import OrganizationHome from './pages/organization/OrganizationHome';
 import OrganizationPage from './pages/organization/OrganizationPage';
 import OrganizationPostingCreate from './pages/organization/OrganizationPostingCreate';
 import OrganizationPostingView from './pages/organization/OrganizationPostingView';
+import OrganizationProfile from './pages/organization/OrganizationProfile';
 import OrganizationRequest from './pages/organization/OrganizationRequest';
 import OrganizationSettings from './pages/organization/VolunteerSettings';
 import UserLoginPage from './pages/UserLoginPage';
@@ -160,6 +161,7 @@ createRoot(document.getElementById('root')!).render(
               )}
             />
           </Route>
+          <Route path="organization/:id" element={<OrganizationProfile />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </AuthProvider>

@@ -79,7 +79,8 @@ export default function OrganizationPostingCreate() {
       <div className="p-6 md:container mx-auto">
         <PageHeader
           title="Create Posting"
-          backTo="/organization"
+          showBack
+          defaultBackTo="/organization"
         />
 
         <div className="card bg-base-100 w-full shadow-2xl">
