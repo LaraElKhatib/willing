@@ -206,6 +206,7 @@ volunteerPostingRouter.post('/:id/enroll', async (req, res: Response<VolunteerPo
         volunteer_id: volunteerId,
         posting_id: id,
         message: message ?? undefined,
+        is_done: false,
       })
       .returningAll()
       .executeTakeFirst();
