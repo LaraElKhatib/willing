@@ -16,7 +16,7 @@ import { useForm, useWatch } from 'react-hook-form';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import AuthContext from '../auth/AuthContext';
-import CalenderInfo from '../components/CalenderInfo';
+import CalendarInfo from '../components/CalendarInfo.tsx';
 import ColumnLayout from '../components/layout/ColumnLayout';
 import PageHeader from '../components/layout/PageHeader';
 import Loading from '../components/Loading';
@@ -649,7 +649,7 @@ function PostingPage() {
                               placeholder="Optional"
                               Icon={ShieldCheck}
                             />
-                            <CalenderInfo
+                            <CalendarInfo
                               form={form}
                               startName="start_timestamp"
                               endName="end_timestamp"
