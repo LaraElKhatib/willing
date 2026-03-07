@@ -1,4 +1,4 @@
-import { Cake, Mail, Mars, Venus } from 'lucide-react';
+import { Cake, Mail, Mars, MessageSquare, MessageSquareMore, Venus } from 'lucide-react';
 import { useMemo, type ReactNode } from 'react';
 
 import SkillsList from './skills/SkillsList';
@@ -42,7 +42,12 @@ function VolunteerInfoCollapse({ volunteer, actions }: VolunteerInfoCollapseProp
             </div>
           </div>
           <div className="flex flex-col">
-            <h5 className="font-bold text-base leading-tight">{volunteerName}</h5>
+            <span className="flex items-center gap-2">
+              <h5 className="font-bold text-base leading-tight">{volunteerName}</h5>
+              {
+                volunteer.message && <MessageSquare size={12} strokeWidth={3} opacity={0.7} />
+              }
+            </span>
             <div className="flex gap-2 mt-1">
               <span className={`badge badge-sm gap-1 ${genderBadgeStyles}`}>
                 {volunteer.gender === 'male' && <Mars size={10} />}
@@ -51,7 +56,7 @@ function VolunteerInfoCollapse({ volunteer, actions }: VolunteerInfoCollapseProp
                 {volunteer.gender.charAt(0).toUpperCase() + volunteer.gender.slice(1)}
               </span>
               <span className="badge badge-sm gap-1">
-                <Cake size={10} />
+                <Cake size={12} />
                 {age}
                 {' '}
                 years old
