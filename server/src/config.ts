@@ -28,7 +28,7 @@ const schema = zod.object({
   SMTP_PASS: zod.preprocess(v => (v === '' ? undefined : v), zod.string().nonempty().optional()),
   MAIL_FROM: zod.preprocess(v => (v === '' ? undefined : v), zod.string().nonempty().optional()),
 
-  LOCATION_IQ_API_KEY: zod.string().nonempty().optional(),
+  LOCATION_IQ_API_KEY: zod.preprocess(v => (v === '' ? undefined : v), zod.string().nonempty().optional()),
 }).superRefine((values, ctx) => {
   if (values.NODE_ENV === 'development') return;
 
