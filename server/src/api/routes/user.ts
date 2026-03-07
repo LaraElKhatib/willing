@@ -5,7 +5,11 @@ import { Router, Response } from 'express';
 import * as jose from 'jose';
 import zod from 'zod';
 
-import { UserForgotPasswordResetResponse, UserForgotPasswordResponse, UserLoginResponse } from './user.types.js';
+import {
+  UserForgotPasswordResetResponse,
+  UserForgotPasswordResponse,
+  UserLoginResponse,
+} from './user.types.js';
 import config from '../../config.js';
 import database from '../../db/index.js';
 import { passwordSchema } from '../../db/tables.js';
