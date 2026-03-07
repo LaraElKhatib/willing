@@ -64,8 +64,8 @@ function HomePage() {
       }
       />
 
-      <main className="grow flex flex-col items-center justify-center max-w-5xl mx-auto py-12 px-4">
-        <div className="text-center mb-16">
+      <main className="grow flex flex-col items-center justify-center max-w-5xl mx-auto py-12 px-4 mt-16">
+        <div className="text-center mb-26">
           <h1 className="text-4xl md:text-6xl font-extrabold mb-4">
             Connecting volunteers to their
             <br />
@@ -76,7 +76,7 @@ function HomePage() {
           <p className="text-xl opacity-70">Join Willing to discover local volunteering opportunities or expand your organization’s impact</p>
         </div>
 
-        <div className="flex flex-col md:flex-row w-full gap-4">
+        <div className="flex flex-col md:flex-row w-full gap-4 mt-8">
 
           <div className="card bg-base-200 rounded-box grid min-h-72 grow place-items-center p-8 text-center border-2 border-transparent hover:border-primary hover:-translate-y-2 transition-all duration-300 shadow-sm hover:shadow-xl">
             <Users className="text-primary mb-4" size={48} />
@@ -173,12 +173,12 @@ function HomePage() {
           </div>
         )}
 
-        <div className="mb-10 w-full max-w-3xl space-y-24 mt-16">
+        <div className="mb-10 w-full max-w-3xl space-y-24 mt-28">
           <div>
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="card border border-primary/20 bg-primary/5 px-10 py-8">
+              <div className="card border border-primary/20 bg-primary/5 h-44 w-full sm:w-80 flex items-center justify-center px-10 py-8">
                 <div className="flex items-center gap-4">
-                  <div className="text-8xl font-black text-primary -translate-y-2">{totalVolunteers}</div>
+                  <div className="text-8xl font-black text-primary -translate-y-1">{totalVolunteers}</div>
                   <Heart className="text-primary" size={68} strokeWidth={3.5} />
                 </div>
               </div>
@@ -190,14 +190,14 @@ function HomePage() {
           </div>
 
           <div>
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col-reverse gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-3xl font-bold text-accent">Number of opportunities</p>
                 <p className="text-lg opacity-60">Find the perfect opportunity that matches your skills</p>
               </div>
-              <div className="card border border-accent/20 bg-accent/5 px-10 py-8 sm:ml-auto">
+              <div className="card border border-accent/20 bg-accent/5 h-44 w-full sm:w-80 flex items-center justify-center px-10 py-8 sm:ml-auto">
                 <div className="flex items-center gap-4">
-                  <div className="text-8xl font-black text-accent -translate-y-2">{totalOpportunities}</div>
+                  <div className="text-8xl font-black text-accent -translate-y-1">{totalOpportunities}</div>
                   <Zap className="text-accent" size={68} strokeWidth={3} />
                 </div>
               </div>
@@ -206,9 +206,9 @@ function HomePage() {
 
           <div>
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="card border border-secondary/20 bg-secondary/5 px-10 py-8">
+              <div className="card border border-secondary/20 bg-secondary/5 h-44 w-full sm:w-80 flex items-center justify-center px-10 py-8">
                 <div className="flex items-center gap-4">
-                  <div className="text-8xl font-black text-secondary -translate-y-2">{totalOrganizations}</div>
+                  <div className="text-8xl font-black text-secondary -translate-y-1">{totalOrganizations}</div>
                   <Building2 className="text-secondary" size={68} strokeWidth={2.5} />
                 </div>
               </div>
