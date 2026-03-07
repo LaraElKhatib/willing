@@ -234,7 +234,7 @@ async function seed() {
         start_timestamp: new Date(`${nowYear}-01-15T15:00:00Z`),
         end_timestamp: new Date(`${nowYear}-01-15T17:00:00Z`),
         minimum_age: 18,
-        is_open: true,
+        is_open: false,
       },
       {
         organization_id: orgByName.get('Org Two')!,
@@ -260,7 +260,7 @@ async function seed() {
         start_timestamp: new Date(`${nowYear}-01-19T16:00:00Z`),
         end_timestamp: new Date(`${nowYear}-01-19T19:00:00Z`),
         minimum_age: 18,
-        is_open: true,
+        is_open: false,
       },
       {
         organization_id: orgByName.get('Org Three')!,
@@ -286,7 +286,7 @@ async function seed() {
         start_timestamp: new Date(`${nowYear}-01-22T11:00:00Z`),
         end_timestamp: new Date(`${nowYear}-01-22T12:30:00Z`),
         minimum_age: 18,
-        is_open: true,
+        is_open: false,
       },
       {
         organization_id: orgByName.get('Org Three')!,
@@ -299,7 +299,7 @@ async function seed() {
         start_timestamp: new Date(`${nowYear}-01-24T09:30:00Z`),
         end_timestamp: new Date(`${nowYear}-01-24T13:30:00Z`),
         minimum_age: 18,
-        is_open: true,
+        is_open: false,
       },
       {
         organization_id: orgByName.get('Org One')!,
@@ -438,21 +438,15 @@ async function seed() {
     { volunteer_id: volByEmail.get('vol8@willing.com')!, name: 'Organization' },
   ]).execute();
 
+  // Application-based postings (require org approval before enrollment)
+  // Postings: Tutor Kids, Homework Hotline, Elder Visit, Medical Supply Sorting
+
+  // Pending applications (not yet approved)
   await database.insertInto('enrollment_application').values([
-    {
-      volunteer_id: volByEmail.get('vol2@willing.com')!,
-      posting_id: postingByTitle.get('Winter Clothes Drive')!,
-      message: 'Happy to help with folding and sorting clothes.',
-    },
     {
       volunteer_id: volByEmail.get('vol5@willing.com')!,
       posting_id: postingByTitle.get('Tutor Kids')!,
       message: 'I have experience helping children with reading and schoolwork.',
-    },
-    {
-      volunteer_id: volByEmail.get('vol6@willing.com')!,
-      posting_id: postingByTitle.get('Beach Cleanup')!,
-      message: 'Available and comfortable with physically demanding tasks.',
     },
     {
       volunteer_id: volByEmail.get('vol7@willing.com')!,
@@ -464,7 +458,42 @@ async function seed() {
       posting_id: postingByTitle.get('Medical Supply Sorting')!,
       message: 'Strong attention to detail and good with sorting supplies.',
     },
+    {
+      volunteer_id: volByEmail.get('vol1@willing.com')!,
+      posting_id: postingByTitle.get('Elder Visit')!,
+      message: 'I would like to spend time with elderly residents and keep them company.',
+    },
   ]).execute();
+
+  // Approved enrollments (applications that were approved)
+  await database.insertInto('enrollment').values([
+    {
+      volunteer_id: volByEmail.get('vol2@willing.com')!,
+      posting_id: postingByTitle.get('Tutor Kids')!,
+      message: 'I have experience with teaching and patience for working with children.',
+      attended: true,
+    },
+    {
+      volunteer_id: volByEmail.get('vol4@willing.com')!,
+      posting_id: postingByTitle.get('Elder Visit')!,
+      message: 'Patient, communicative, and comfortable spending time with elderly residents.',
+      attended: true,
+    },
+    {
+      volunteer_id: volByEmail.get('vol5@willing.com')!,
+      posting_id: postingByTitle.get('Homework Hotline')!,
+      message: 'Confident supporting students remotely with homework and structure.',
+      attended: false,
+    },
+    {
+      volunteer_id: volByEmail.get('vol6@willing.com')!,
+      posting_id: postingByTitle.get('Medical Supply Sorting')!,
+      message: 'Strong attention to detail and comfortable handling sorted supplies accurately.',
+      attended: true,
+    },
+  ]).execute();
+  // Direct enrollment postings (no approval required)
+  // Postings: Food Packing, Beach Cleanup, Winter Clothes Drive, Community Kitchen, Sort Donations, Library Reading Hour
   await database.insertInto('enrollment').values([
     {
       volunteer_id: volByEmail.get('vol1@willing.com')!,
@@ -477,12 +506,6 @@ async function seed() {
       posting_id: postingByTitle.get('Beach Cleanup')!,
       message: 'Can help with cleanup, lifting, and staying organized during the event.',
       attended: false,
-    },
-    {
-      volunteer_id: volByEmail.get('vol2@willing.com')!,
-      posting_id: postingByTitle.get('Tutor Kids')!,
-      message: 'Enjoy helping students with homework and explaining things clearly.',
-      attended: true,
     },
     {
       volunteer_id: volByEmail.get('vol2@willing.com')!,
@@ -504,33 +527,9 @@ async function seed() {
     },
     {
       volunteer_id: volByEmail.get('vol4@willing.com')!,
-      posting_id: postingByTitle.get('Elder Visit')!,
-      message: 'Patient, communicative, and comfortable spending time with elderly residents.',
-      attended: true,
-    },
-    {
-      volunteer_id: volByEmail.get('vol4@willing.com')!,
       posting_id: postingByTitle.get('Sort Donations')!,
       message: 'Can help sort donations carefully and keep sections organized.',
       attended: false,
-    },
-    {
-      volunteer_id: volByEmail.get('vol5@willing.com')!,
-      posting_id: postingByTitle.get('Homework Hotline')!,
-      message: 'Confident supporting students remotely with reading and homework structure.',
-      attended: true,
-    },
-    {
-      volunteer_id: volByEmail.get('vol5@willing.com')!,
-      posting_id: postingByTitle.get('Tutor Kids')!,
-      message: 'Would be happy to help younger students stay focused and understand tasks.',
-      attended: false,
-    },
-    {
-      volunteer_id: volByEmail.get('vol6@willing.com')!,
-      posting_id: postingByTitle.get('Medical Supply Sorting')!,
-      message: 'Strong attention to detail and comfortable handling sorted supplies accurately.',
-      attended: true,
     },
     {
       volunteer_id: volByEmail.get('vol6@willing.com')!,
@@ -543,12 +542,6 @@ async function seed() {
       posting_id: postingByTitle.get('Community Kitchen')!,
       message: 'Happy to assist with prep, serving, and keeping the workflow smooth.',
       attended: true,
-    },
-    {
-      volunteer_id: volByEmail.get('vol7@willing.com')!,
-      posting_id: postingByTitle.get('Homework Hotline')!,
-      message: 'Can listen carefully to students and help them work through problems step by step.',
-      attended: false,
     },
     {
       volunteer_id: volByEmail.get('vol8@willing.com')!,
