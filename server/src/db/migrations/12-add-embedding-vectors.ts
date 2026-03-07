@@ -23,6 +23,11 @@ export async function up(db: Kysely<unknown>): Promise<void> {
   `.execute(db);
 
   await sql`
+    ALTER TABLE enrollment
+    DROP COLUMN IF EXISTS experience_vector;
+  `.execute(db);
+
+  await sql`
     CREATE INDEX IF NOT EXISTS idx_organization_account_org_vector
     ON organization_account
     USING ivfflat (org_vector vector_cosine_ops)
@@ -80,5 +85,10 @@ export async function down(db: Kysely<unknown>): Promise<void> {
   await sql`
     ALTER TABLE organization_account
     DROP COLUMN IF EXISTS org_vector;
+  `.execute(db);
+
+  await sql`
+    ALTER TABLE enrollment
+    ADD COLUMN IF NOT EXISTS experience_vector vector;
   `.execute(db);
 }
