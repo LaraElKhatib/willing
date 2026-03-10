@@ -1,5 +1,5 @@
 import bcrypt from 'bcrypt';
-import { Router, Response, type Request } from 'express';
+import { Router, Response } from 'express';
 import * as jose from 'jose';
 import zod from 'zod';
 
