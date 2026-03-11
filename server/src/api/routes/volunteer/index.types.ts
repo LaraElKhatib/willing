@@ -1,7 +1,7 @@
 import { ResetPasswordResponse } from '../../../auth/resetPassword.js';
 import { VolunteerAccountWithoutPassword } from '../../../db/tables.js';
 
-import type { VolunteerProfileData } from '../../../services/volunteer/profile.js';
+import type { VolunteerProfileData } from '../../../services/volunteer/index.js';
 
 export type VolunteerCreateResponse = {
   volunteer: VolunteerAccountWithoutPassword;

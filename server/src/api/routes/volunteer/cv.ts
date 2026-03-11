@@ -83,6 +83,7 @@ volunteerCvRouter.get('/preview', async (req: Request, res: Response, next: Next
     throw new Error('No CV uploaded.');
   }
 
+  res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', 'inline; filename="cv.pdf"');
 
@@ -105,6 +106,7 @@ volunteerCvRouter.get('/download', async (req: Request, res: Response, next: Nex
     throw new Error('No CV uploaded.');
   }
 
+  res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', 'attachment; filename="cv.pdf"');
 
