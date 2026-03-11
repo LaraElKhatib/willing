@@ -1,12 +1,15 @@
-import { ClipboardCheck, Inbox } from 'lucide-react';
+import { AlertCircle, ArrowRight, ClipboardCheck, LayoutDashboard } from 'lucide-react';
 import { useCallback } from 'react';
+import { Link } from 'react-router';
 
 import PageHeader from '../../components/layout/PageHeader';
-import OrganizationRequestReviewCard from '../../components/OrganizationRequestReviewCard';
 import requestServer from '../../utils/requestServer';
 import useAsync from '../../utils/useAsync';
 
-import type { AdminOrganizationRequestsResponse } from '../../../../server/src/api/types';
+import type {
+  AdminCrisesResponse,
+  AdminOrganizationRequestsResponse,
+} from '../../../../server/src/api/types';
 
 function AdminHome() {
   const getOrganizationRequests = useCallback(async () => {
@@ -14,69 +17,90 @@ function AdminHome() {
     return res.organizationRequests;
   }, []);
 
-  const {
-    data: organizationRequests,
-    trigger: refreshOrganizationRequests,
-  } = useAsync(getOrganizationRequests, true);
+  const getCrises = useCallback(async () => {
+    const res = await requestServer<AdminCrisesResponse>('/admin/crises', { includeJwt: true });
+    return res.crises;
+  }, []);
+
+  const { data: organizationRequests } = useAsync(getOrganizationRequests, true);
+  const { data: crises } = useAsync(getCrises, true);
+
+  const pinnedCrisis = crises?.find(crisis => crisis.pinned);
 
   return (
     <div className="grow bg-base-200">
       <div className="p-6 md:container mx-auto">
         <PageHeader
-          title="Organization Requests"
-          icon={ClipboardCheck}
-          badge={
-            organizationRequests
-              ? (
-                  <div className="badge badge-primary">
-                    {organizationRequests.length}
-                    {' '}
-                    Pending
-                  </div>
-                )
-              : (
-                  <div className="w-22 h-6 skeleton" />
-                )
-          }
+          title="Admin Dashboard"
+          subtitle="Quick overview of requests and active crises."
+          icon={LayoutDashboard}
         />
 
-        {
-          organizationRequests
-            ? (organizationRequests.length > 0
-                ? (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6">
-                      {organizationRequests.map(request => (
-                        <OrganizationRequestReviewCard
-                          request={request}
-                          refreshOrganizationRequests={refreshOrganizationRequests}
-                          key={request.id}
-                        />
-                      ))}
-                    </div>
-                  )
-                : (
-                    <div className="hero bg-base-200 rounded-box p-10">
-                      <div className="hero-content text-center">
-                        <div className="max-w-md flex flex-col items-center">
-                          <Inbox size={64} className="opacity-20 mb-4" />
-                          <p className="py-2 font-bold opacity-80">All caught up!</p>
-                          <p className="pb-6 opacity-60">No organization requests found at this time.</p>
-                        </div>
-                      </div>
-                    </div>
-                  )
-              )
-            : (
-                <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6">
-                  <div className="card shadow-sm border border-base-200 skeleton h-169">
-                  </div>
-                  <div className="card shadow-sm border border-base-200 skeleton h-169">
-                  </div>
-                  <div className="card shadow-sm border border-base-200 skeleton h-169">
-                  </div>
-                </div>
-              )
-        }
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+          <div className="card bg-base-100 shadow-md">
+            <div className="card-body">
+              <div className="flex items-center justify-between">
+                <h3 className="card-title">
+                  <ClipboardCheck size={20} />
+                  Organization Requests
+                </h3>
+                {!organizationRequests
+                  ? <div className="skeleton w-16 h-6" />
+                  : (
+                      <span className="badge badge-primary">
+                        {organizationRequests.length}
+                        {' '}
+                        Pending
+                      </span>
+                    )}
+              </div>
+
+              <p className="text-sm opacity-70">
+                Review incoming organization applications and approve or reject requests.
+              </p>
+
+              <div className="card-actions justify-end">
+                <Link to="/admin/requests" className="btn btn-outline btn-sm">
+                  Open Requests
+                  <ArrowRight size={14} />
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          <div className="card bg-base-100 shadow-md">
+            <div className="card-body">
+              <div className="flex items-center justify-between">
+                <h3 className="card-title">
+                  <AlertCircle size={20} />
+                  Crises
+                </h3>
+                {!crises
+                  ? <div className="skeleton w-16 h-6" />
+                  : (
+                      <span className="badge badge-secondary">
+                        {crises.length}
+                        {' '}
+                        Total
+                      </span>
+                    )}
+              </div>
+
+              <p className="text-sm opacity-70">
+                {pinnedCrisis
+                  ? `Pinned: ${pinnedCrisis.name}`
+                  : 'No pinned crisis at the moment.'}
+              </p>
+
+              <div className="card-actions justify-end">
+                <Link to="/admin/crises" className="btn btn-outline btn-sm">
+                  Open Crises
+                  <ArrowRight size={14} />
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

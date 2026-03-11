@@ -3,16 +3,33 @@ import { Router, Response } from 'express';
 import * as jose from 'jose';
 import zod from 'zod';
 
-import { AdminLoginResponse, AdminMeResponse, AdminOrganizationRequestReviewResponse, AdminOrganizationRequestsResponse } from './index.types.js';
+import {
+  AdminCrisisCreateResponse,
+  AdminCrisisDeleteResponse,
+  AdminCrisisUpdateResponse,
+  AdminCrisesResponse,
+  AdminLoginResponse,
+  AdminMeResponse,
+  AdminOrganizationRequestReviewResponse,
+  AdminOrganizationRequestsResponse,
+} from './index.types.js';
 import resetPassword from '../../../auth/resetPassword.js';
 import config from '../../../config.js';
 import database from '../../../db/index.js';
+import { newCrisisSchema } from '../../../db/tables.js';
 import { recomputeOrganizationVector } from '../../../services/embeddings/embeddingUpdateService.js';
 import { sendOrganizationAcceptanceEmail, sendOrganizationRejectionEmail } from '../../../SMTP/emails.js';
 import { loginInfoSchema } from '../../../types.js';
 import { authorizeOnly } from '../../authorization.js';
 
 const adminRouter = Router();
+const createCrisisBodySchema = newCrisisSchema.pick({
+  name: true,
+  description: true,
+});
+const crisisParamsSchema = zod.object({
+  id: zod.coerce.number().int().positive('ID must be a positive number'),
+});
 
 adminRouter.post('/login', async (req, res: Response<AdminLoginResponse>) => {
   const body = loginInfoSchema.parse(req.body);
@@ -144,6 +161,77 @@ adminRouter.post('/reviewOrganizationRequest', async (req, res: Response<AdminOr
   res.json({
     organization: insertedOrganization,
   });
+});
+
+adminRouter.get('/crises', async (_req, res: Response<AdminCrisesResponse>) => {
+  const crises = await database
+    .selectFrom('crisis')
+    .selectAll()
+    .orderBy('pinned', 'desc')
+    .orderBy('created_at', 'desc')
+    .execute();
+
+  res.json({ crises });
+});
+
+adminRouter.post('/crises', async (req, res: Response<AdminCrisisCreateResponse>) => {
+  const body = createCrisisBodySchema.parse(req.body);
+
+  const crisis = await database
+    .insertInto('crisis')
+    .values({
+      name: body.name,
+      description: body.description,
+      pinned: false,
+    })
+    .returningAll()
+    .executeTakeFirst();
+
+  if (!crisis) {
+    res.status(500);
+    throw new Error('Failed to create crisis');
+  }
+
+  res.status(201).json({ crisis });
+});
+
+adminRouter.put('/crises/:id', async (req, res: Response<AdminCrisisUpdateResponse>) => {
+  const { id } = crisisParamsSchema.parse(req.params);
+  const body = createCrisisBodySchema.parse(req.body);
+
+  const crisis = await database
+    .updateTable('crisis')
+    .set({
+      name: body.name,
+      description: body.description,
+    })
+    .where('id', '=', id)
+    .returningAll()
+    .executeTakeFirst();
+
+  if (!crisis) {
+    res.status(404);
+    throw new Error('Crisis not found');
+  }
+
+  res.json({ crisis });
+});
+
+adminRouter.delete('/crises/:id', async (req, res: Response<AdminCrisisDeleteResponse>) => {
+  const { id } = crisisParamsSchema.parse(req.params);
+
+  const deleted = await database
+    .deleteFrom('crisis')
+    .where('id', '=', id)
+    .returning('id')
+    .executeTakeFirst();
+
+  if (!deleted) {
+    res.status(404);
+    throw new Error('Crisis not found');
+  }
+
+  res.json({});
 });
 
 adminRouter.post('/reset-password', resetPassword);

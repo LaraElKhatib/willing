@@ -1,5 +1,10 @@
 import { ResetPasswordResponse } from '../../../auth/resetPassword.js';
-import { AdminAccountWithoutPassword, OrganizationAccountWithoutPassword, OrganizationRequest } from '../../../db/tables.js';
+import {
+  AdminAccountWithoutPassword,
+  Crisis,
+  OrganizationAccountWithoutPassword,
+  OrganizationRequest,
+} from '../../../db/tables.js';
 
 export type AdminLoginResponse = {
   token: string;
@@ -17,5 +22,19 @@ export type AdminOrganizationRequestsResponse = {
 export type AdminOrganizationRequestReviewResponse = object | {
   organization: OrganizationAccountWithoutPassword;
 };
+
+export type AdminCrisesResponse = {
+  crises: Crisis[];
+};
+
+export type AdminCrisisCreateResponse = {
+  crisis: Crisis;
+};
+
+export type AdminCrisisUpdateResponse = {
+  crisis: Crisis;
+};
+
+export type AdminCrisisDeleteResponse = object;
 
 export type AdminResetPasswordResponse = ResetPasswordResponse;
