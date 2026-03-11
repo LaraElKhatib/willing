@@ -191,7 +191,7 @@ function AdminCrises() {
             <div className="rounded-2xl border border-primary/20 bg-gradient-to-r from-primary/10 via-base-100 to-secondary/10 p-6">
               <PageHeader
                 title="Crisis Management"
-                subtitle="Create, edit, and remove crises with clear status cards."
+                subtitle="Create, edit, delete, and pin crises according to the current situation."
                 icon={AlertCircle}
                 badge={crisisCountBadge}
               />
@@ -202,7 +202,7 @@ function AdminCrises() {
                 <div className="card border border-primary/20 bg-base-100 shadow-sm xl:sticky xl:top-24">
                   <div className="card-body">
                     <h3 className="card-title text-base">Create Crisis</h3>
-                    <p className="text-sm opacity-70">Add a new crisis entry to the registry.</p>
+                    <p className="text-sm opacity-70">Add a new crisis entry.</p>
 
                     <form className="mt-2 space-y-4" onSubmit={onCreateCrisis}>
                       <FormField
