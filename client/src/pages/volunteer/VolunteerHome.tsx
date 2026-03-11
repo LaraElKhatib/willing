@@ -64,33 +64,31 @@ function VolunteerHome() {
 
         <div className="space-y-10">
 
-          <HorizontalScrollSection
-            title="My Enrollments"
-            subtitle="Here you can view all postings you're currently enrolled in or have applied to"
-            hasItems={!enrolledLoading && (enrolledPostings?.length ?? 0) > 0}
-            action={(
-              <Link to="/volunteer/enrollments" className="btn btn-sm btn-primary">
-                View All
-              </Link>
-            )}
-            emptyState={enrolledLoading
-              ? <RailLoadingState />
-              : enrolledError
-                ? (
-                    <div className="alert alert-error">
-                      <span>{enrolledError.message}</span>
-                    </div>
-                  )
-                : (
-                    <div className="alert bg-base-100 shadow-sm">
-                      <span>You have not enrolled in any postings yet.</span>
-                    </div>
-                  )}
-          >
-            {(enrolledPostings ?? []).map(posting => (
-              <PostingRailCard key={posting.id} posting={posting} />
-            ))}
-          </HorizontalScrollSection>
+          {(enrolledLoading || enrolledError || (enrolledPostings?.length ?? 0) > 0) && (
+            <HorizontalScrollSection
+              title="My Enrollments"
+              subtitle="Here you can view all postings you're currently enrolled in or have applied to"
+              hasItems={!enrolledLoading && (enrolledPostings?.length ?? 0) > 0}
+              action={(
+                <Link to="/volunteer/enrollments" className="btn btn-sm btn-primary">
+                  View All
+                </Link>
+              )}
+              emptyState={enrolledLoading
+                ? <RailLoadingState />
+                : enrolledError
+                  ? (
+                      <div className="alert alert-error">
+                        <span>{enrolledError.message}</span>
+                      </div>
+                    )
+                  : null}
+            >
+              {(enrolledPostings ?? []).map(posting => (
+                <PostingRailCard key={posting.id} posting={posting} />
+              ))}
+            </HorizontalScrollSection>
+          )}
 
           <HorizontalScrollSection
             title="For You"
