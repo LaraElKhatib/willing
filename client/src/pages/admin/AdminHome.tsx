@@ -25,7 +25,7 @@ function AdminHome() {
   const { data: organizationRequests } = useAsync(getOrganizationRequests, true);
   const { data: crises } = useAsync(getCrises, true);
 
-  const pinnedCrisis = crises?.find(crisis => crisis.pinned);
+  const pinnedCrises = crises?.filter(crisis => crisis.pinned) ?? [];
 
   return (
     <div className="grow bg-base-200">
@@ -87,9 +87,11 @@ function AdminHome() {
               </div>
 
               <p className="text-sm opacity-70">
-                {pinnedCrisis
-                  ? `Pinned: ${pinnedCrisis.name}`
-                  : 'No pinned crisis at the moment.'}
+                {crises === undefined
+                  ? 'Loading pinned crises...'
+                  : pinnedCrises.length > 0
+                    ? `Pinned (${pinnedCrises.length}): ${pinnedCrises.map(crisis => crisis.name).join(', ')}`
+                    : 'No pinned crisis at the moment.'}
               </p>
 
               <div className="card-actions justify-end">

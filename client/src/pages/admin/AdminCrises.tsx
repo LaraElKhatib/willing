@@ -1,10 +1,11 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AlertCircle, FileText, Pencil, Pin, PinOff, PlusCircle, Trash2 } from 'lucide-react';
+import { AlertCircle, Pencil, Pin, PinOff, PlusCircle, Trash2 } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import zod from 'zod';
 
 import { newCrisisSchema } from '../../../../server/src/db/tables';
+import ColumnLayout from '../../components/layout/ColumnLayout';
 import PageHeader from '../../components/layout/PageHeader';
 import { executeAndShowError, FormField, FormRootError } from '../../utils/formUtils';
 import requestServer from '../../utils/requestServer';
@@ -190,13 +191,12 @@ function AdminCrises() {
           title="Crisis Management"
           subtitle="Create, edit, delete, and pin crises according to the current situation."
           icon={AlertCircle}
-          badge={crisisCountBadge}
-          variant="gradient"
         />
 
-        <div className="mt-6 grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
-          <section className="xl:col-span-4">
-            <div className="card border border-primary/20 bg-base-100 shadow-sm xl:sticky xl:top-24">
+        <ColumnLayout
+          stickySidebar
+          sidebar={(
+            <div className="card border border-primary/20 bg-base-100 shadow-sm">
               <div className="card-body">
                 <h3 className="card-title text-base">Create Crisis</h3>
                 <p className="text-sm opacity-70">Add a new crisis entry.</p>
@@ -214,7 +214,6 @@ function AdminCrises() {
                     name="description"
                     label="Description (Optional)"
                     type="textarea"
-                    Icon={FileText}
                   />
 
                   <button
@@ -230,9 +229,9 @@ function AdminCrises() {
                 <FormRootError form={crisisForm} />
               </div>
             </div>
-          </section>
-
-          <section className="xl:col-span-8">
+          )}
+        >
+          <section>
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-lg font-semibold">Existing Crises</h3>
               {crisisCountBadge}
@@ -355,7 +354,7 @@ function AdminCrises() {
                     </div>
                   )}
           </section>
-        </div>
+        </ColumnLayout>
       </div>
     </div>
   );
