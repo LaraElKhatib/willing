@@ -1,5 +1,9 @@
 import { ResetPasswordResponse } from '../../../auth/resetPassword.js';
-import { AdminAccountWithoutPassword, OrganizationAccountWithoutPassword, OrganizationRequest } from '../../../db/tables.js';
+import {
+  AdminAccountWithoutPassword,
+  OrganizationAccountWithoutPassword,
+  OrganizationRequest,
+} from '../../../db/tables.js';
 
 export type AdminLoginResponse = {
   token: string;

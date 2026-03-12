@@ -8,7 +8,11 @@ import HorizontalScrollSection from '../../components/postings/HorizontalScrollS
 import requestServer from '../../utils/requestServer';
 import useAsync from '../../utils/useAsync';
 
-import type { VolunteerEnrollmentsResponse, VolunteerPostingSearchResponse } from '../../../../server/src/api/types';
+import type {
+  VolunteerEnrollmentsResponse,
+  VolunteerPinnedCrisesResponse,
+  VolunteerPostingSearchResponse,
+} from '../../../../server/src/api/types';
 import type { PostingWithSkillsAndOrgName } from '../../../../server/src/types';
 
 const PostingRailCard = ({ posting }: { posting: PostingWithSkillsAndOrgName }) => (
@@ -25,6 +29,11 @@ const RailLoadingState = () => (
     <Loading size="lg" />
   </div>
 );
+
+const getPostingCrisisId = (posting: PostingWithSkillsAndOrgName): number | undefined => {
+  const maybePosting = posting as PostingWithSkillsAndOrgName & { crisis_id?: unknown };
+  return typeof maybePosting.crisis_id === 'number' ? maybePosting.crisis_id : undefined;
+};
 
 function VolunteerHome() {
   const {
@@ -51,14 +60,44 @@ function VolunteerHome() {
     true,
   );
 
+  const {
+    data: pinnedCrises,
+    loading: crisesLoading,
+    error: crisesError,
+  } = useAsync<VolunteerPinnedCrisesResponse['crises'], []>(
+    async () => {
+      const res = await requestServer<VolunteerPinnedCrisesResponse>('/volunteer/crises/pinned', { includeJwt: true });
+      return res.crises;
+    },
+    true,
+  );
+
   const forYouPostings = (allPostings ?? []).slice(0, 8);
+  const featuredCrises = (pinnedCrises ?? []).slice(0, 8);
+  const postingsByCrisisId = new Map<number, PostingWithSkillsAndOrgName[]>();
+
+  (allPostings ?? []).forEach((posting) => {
+    const crisisId = getPostingCrisisId(posting);
+    if (crisisId === undefined) return;
+
+    const crisisPostings = postingsByCrisisId.get(crisisId) ?? [];
+    crisisPostings.push(posting);
+    postingsByCrisisId.set(crisisId, crisisPostings);
+  });
+
+  const featuredCrisesWithPostings = featuredCrises
+    .map(crisis => ({
+      crisis,
+      postings: postingsByCrisisId.get(crisis.id) ?? [],
+    }))
+    .filter(({ postings }) => postings.length > 0);
 
   return (
     <div className="grow bg-base-200">
       <div className="p-6 md:container mx-auto">
         <PageHeader
           title="Home"
-          subtitle="Your enrollments and personalised picks - all in one place."
+          subtitle="Your enrollments, pinned crises, and personalised picks - all in one place."
           icon={House}
         />
 
@@ -89,6 +128,36 @@ function VolunteerHome() {
               ))}
             </HorizontalScrollSection>
           )}
+
+          {crisesLoading && <RailLoadingState />}
+
+          {crisesError && (
+            <div className="alert alert-error">
+              <span>{crisesError.message}</span>
+            </div>
+          )}
+
+          {!crisesLoading && !crisesError && featuredCrisesWithPostings.map(({ crisis, postings }) => (
+            <HorizontalScrollSection
+              key={crisis.id}
+              title={crisis.name}
+              subtitle={crisis.description || 'No description provided.'}
+              hasItems={postings.length > 0}
+              action={(
+                <Link
+                  to={`/volunteer/crises/${crisis.id}/postings`}
+                  state={{ crisis }}
+                  className="btn btn-sm btn-primary"
+                >
+                  View All
+                </Link>
+              )}
+            >
+              {postings.map(posting => (
+                <PostingRailCard key={posting.id} posting={posting} />
+              ))}
+            </HorizontalScrollSection>
+          ))}
 
           <HorizontalScrollSection
             title="For You"

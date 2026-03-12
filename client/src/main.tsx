@@ -8,7 +8,9 @@ import LoggedOutPage from './auth/pages/LoggedOutPage';
 import OrganizationPage from './auth/pages/OrganizationPage';
 import SharedPage from './auth/pages/SharedPage';
 import VolunteerPage from './auth/pages/VolunteerPage';
+import AdminCrises from './pages/admin/AdminCrises';
 import AdminHome from './pages/admin/AdminHome';
+import AdminRequests from './pages/admin/AdminRequests';
 import AdminSettings from './pages/admin/AdminSettings';
 import AdminLogin from './pages/AdminLogin';
 import ForgotPassword from './pages/ForgotPassword';
@@ -21,6 +23,7 @@ import OrganizationProfile from './pages/OrganizationProfile';
 import OrganizationRequest from './pages/OrganizationRequest';
 import Posting from './pages/Posting';
 import UserLogin from './pages/UserLogin';
+import VolunteerCrisisPostings from './pages/volunteer/VolunteerCrisisPostings';
 import VolunteerEnrollments from './pages/volunteer/VolunteerEnrollments';
 import VolunteerHome from './pages/volunteer/VolunteerHome';
 import VolunteerProfile from './pages/volunteer/VolunteerProfile';
@@ -48,6 +51,8 @@ createRoot(document.getElementById('root')!).render(
 
           <Route path="admin" element={<AdminPage />}>
             <Route index element={<AdminHome />} />
+            <Route path="requests" element={<AdminRequests />} />
+            <Route path="crises" element={<AdminCrises />} />
             <Route path="settings" element={<AdminSettings />} />
           </Route>
 
@@ -60,6 +65,7 @@ createRoot(document.getElementById('root')!).render(
           <Route path="volunteer" element={<VolunteerPage />}>
             <Route index element={<VolunteerHome />} />
             <Route path="enrollments" element={<VolunteerEnrollments />} />
+            <Route path="crises/:crisisId/postings" element={<VolunteerCrisisPostings />} />
             <Route path="profile" element={<VolunteerProfile />} />
             <Route path="search" element={<VolunteerSearch />} />
             <Route path="settings" element={<VolunteerSettings />} />

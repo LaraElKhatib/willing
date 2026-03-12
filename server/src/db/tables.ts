@@ -188,6 +188,26 @@ export const passwordResetTokenSchema = zod.object({
 export type PasswordResetToken = zod.infer<typeof passwordResetTokenSchema>;
 export type PasswordResetTokenTable = WithGeneratedID<PasswordResetToken>;
 
+// crisis
+
+export const crisisSchema = zod.object({
+  id: zod.number(),
+  name: zod.string().trim().min(1, 'Crisis name is required').max(256, 'Crisis name can at most be 256 characters'),
+  description: zod.string().trim().optional(),
+  pinned: zod.boolean(),
+  created_at: zod.date(),
+});
+
+export type Crisis = zod.infer<typeof crisisSchema>;
+export type CrisisTable = WithGeneratedIDAndCreatedAt<Crisis>;
+
+export const newCrisisSchema = crisisSchema.omit({
+  id: true,
+  pinned: true,
+  created_at: true,
+});
+export type NewCrisis = zod.infer<typeof newCrisisSchema>;
+
 // organization_posting
 
 export const organizationPostingSchema = zod.object({
@@ -289,6 +309,7 @@ export interface Database {
   organization_request: OrganizationRequestTable;
   organization_account: OrganizationAccountTable;
   admin_account: AdminAccountTable;
+  crisis: CrisisTable;
   organization_posting: OrganizationPostingTable;
   posting_skill: PostingSkillTable;
   volunteer_skill: VolunteerSkillTable;

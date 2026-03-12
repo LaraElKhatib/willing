@@ -3,7 +3,13 @@ import { Router, Response } from 'express';
 import * as jose from 'jose';
 import zod from 'zod';
 
-import { AdminLoginResponse, AdminMeResponse, AdminOrganizationRequestReviewResponse, AdminOrganizationRequestsResponse } from './index.types.js';
+import adminCrisesRouter from './crises.js';
+import {
+  AdminLoginResponse,
+  AdminMeResponse,
+  AdminOrganizationRequestReviewResponse,
+  AdminOrganizationRequestsResponse,
+} from './index.types.js';
 import resetPassword from '../../../auth/resetPassword.js';
 import config from '../../../config.js';
 import database from '../../../db/index.js';
@@ -147,5 +153,7 @@ adminRouter.post('/reviewOrganizationRequest', async (req, res: Response<AdminOr
 });
 
 adminRouter.post('/reset-password', resetPassword);
+
+adminRouter.use('/crises', adminCrisesRouter);
 
 export default adminRouter;
