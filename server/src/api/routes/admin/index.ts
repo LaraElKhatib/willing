@@ -59,7 +59,6 @@ adminRouter.post('/login', async (req, res: Response<AdminLoginResponse>) => {
 });
 
 adminRouter.use(authorizeOnly('admin'));
-adminRouter.use('/crises', adminCrisesRouter);
 
 adminRouter.get('/me', async (req, res: Response<AdminMeResponse>) => {
   const admin = await database
@@ -154,5 +153,7 @@ adminRouter.post('/reviewOrganizationRequest', async (req, res: Response<AdminOr
 });
 
 adminRouter.post('/reset-password', resetPassword);
+
+adminRouter.use('/crises', adminCrisesRouter);
 
 export default adminRouter;

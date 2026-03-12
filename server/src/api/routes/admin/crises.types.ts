@@ -1,4 +1,5 @@
 import { Crisis } from '../../../db/tables.js';
+import { SuccessResponse } from '../../../types.js';
 
 export type AdminCrisesResponse = {
   crises: Crisis[];
@@ -16,4 +17,4 @@ export type AdminCrisisPinResponse = {
   crisis: Crisis;
 };
 
-export type AdminCrisisDeleteResponse = object;
+export type AdminCrisisDeleteResponse = SuccessResponse;
