@@ -20,7 +20,7 @@ Willing connects volunteers with organizations that publish real-world help oppo
 - **Volunteer**: End-user who creates a profile, adds skills, discovers postings, applies, enrolls, and may later be marked as attended by organizations.
 - **Organization**: Account type that creates and manages volunteer postings after being approved by an admin.
 - **Admin**: Platform moderator who reviews organization onboarding requests and manages crisis definitions.
-- **Posting**: A volunteer opportunity created by an organization (title, description, time window, location, requirements, skills).
+- **Posting**: A volunteer opportunity created by an organization (title, description, time window, location, requirements, skills, optional maximum number of volunteers, opptional minimum age, optional tag (crisis), either open (anyone that applies is accepted) or review-based (requires acceptance from the organization)).
 - **Enrollment application**: A volunteer's application to a posting (optional message included).
 - **Enrollment**: Accepted application record; later can be marked attended.
 - **Crisis**: A major event/context (for example, flood, conflict escalation, wildfire response) used to classify and surface urgent opportunities. Crises can be pinned to highlight priority contexts.
