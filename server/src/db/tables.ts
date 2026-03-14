@@ -219,6 +219,7 @@ export type NewCrisis = zod.infer<typeof newCrisisSchema>;
 export const organizationPostingSchema = zod.object({
   id: zod.number(),
   organization_id: zod.number().min(1, 'Organization ID is required'),
+  crisis_id: zod.number().int().positive().optional(),
   title: zod.string().min(1, 'Title is required'),
   description: zod.string().min(1, 'Description is required'),
   latitude: zod
@@ -237,7 +238,6 @@ export const organizationPostingSchema = zod.object({
   minimum_age: zod.number().optional(),
   automatic_acceptance: zod.boolean().default(true),
   is_closed: zod.boolean().default(false),
-  crisis_id: zod.number().int().positive().optional(),
   location_name: zod.string().min(2, 'Location must be longer than 2 characters'),
   opportunity_vector: zod.string().optional(),
   posting_context_vector: zod.string().optional(),

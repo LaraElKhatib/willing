@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Send, MapPin, Edit3, Users, ShieldCheck, LockOpen, Lock } from 'lucide-react';
-import { useCallback, useState } from 'react';
+import { Send, MapPin, Edit3, Users, ShieldCheck, LockOpen, Lock, Tag } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { useNavigate } from 'react-router';
 
@@ -15,7 +15,7 @@ import { executeAndShowError, FormField, FormRootError } from '../../utils/formU
 import requestServer from '../../utils/requestServer';
 import { useOrganization } from '../../utils/useUsers';
 
-import type { OrganizationPostingCreateResponse } from '../../../../server/src/api/types';
+import type { OrganizationCrisesResponse, OrganizationPostingCreateResponse } from '../../../../server/src/api/types';
 
 export default function OrganizationPostingCreate() {
   const account = useOrganization();
@@ -31,9 +31,32 @@ export default function OrganizationPostingCreate() {
   });
 
   const [skills, setSkills] = useState<string[]>([]);
+  const [selectedCrisisId, setSelectedCrisisId] = useState<number | undefined>(undefined);
+  const [crises, setCrises] = useState<OrganizationCrisesResponse['crises']>([]);
+  const [crisesError, setCrisesError] = useState<string | null>(null);
+  const [loadingCrises, setLoadingCrises] = useState(true);
   const [position, setPosition] = useState<[number, number]>([33.90192863620578, 35.477959277880416]);
   const startTimestamp = useWatch({ control: form.control, name: 'start_timestamp' }) ?? '';
   const endTimestamp = useWatch({ control: form.control, name: 'end_timestamp' }) ?? '';
+
+  useEffect(() => {
+    const loadCrises = async () => {
+      try {
+        setLoadingCrises(true);
+        setCrisesError(null);
+        const response = await requestServer<OrganizationCrisesResponse>('/organization/crises', {
+          includeJwt: true,
+        });
+        setCrises(response.crises);
+      } catch (error) {
+        setCrisesError(error instanceof Error ? error.message : 'Failed to load crisis tags');
+      } finally {
+        setLoadingCrises(false);
+      }
+    };
+
+    loadCrises();
+  }, []);
 
   const submit = form.handleSubmit(async (data) => {
     await executeAndShowError(form, async () => {
@@ -54,6 +77,7 @@ export default function OrganizationPostingCreate() {
         minimum_age: data.minimum_age ? Number(data.minimum_age) : undefined,
         automatic_acceptance: data.automatic_acceptance,
         skills: skills.length > 0 ? skills : undefined,
+        crisis_id: selectedCrisisId,
       };
 
       console.log('Submitting posting payload:', payload);
@@ -117,7 +141,7 @@ export default function OrganizationPostingCreate() {
 
             <div className="space-y-4">
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-3">
                     <FormField
@@ -164,6 +188,37 @@ export default function OrganizationPostingCreate() {
 
                   <SkillsInput skills={skills} setSkills={setSkills} />
 
+                  <div className="rounded-box border border-base-300 bg-base-200/50 p-4">
+                    <div className="mb-3">
+                      <h4 className="font-semibold inline-flex items-center gap-2">
+                        <Tag size={16} className="text-accent" />
+                        Crisis Tag
+                      </h4>
+                      <p className="text-xs opacity-70 mt-1">Optional. Select a crisis tag for this posting. Pinned tags appear first.</p>
+                    </div>
+
+                    <select
+                      className="select select-bordered w-full"
+                      value={selectedCrisisId ?? ''}
+                      onChange={(event) => {
+                        const value = event.target.value;
+                        setSelectedCrisisId(value ? Number(value) : undefined);
+                      }}
+                      disabled={loadingCrises || form.formState.isSubmitting}
+                    >
+                      <option value="">No crisis tag</option>
+                      {crises.map(crisis => (
+                        <option key={crisis.id} value={crisis.id}>
+                          {crisis.name}
+                          {!crisis.pinned ? ' (Unpinned)' : ''}
+                        </option>
+                      ))}
+                    </select>
+
+                    {loadingCrises && <p className="text-xs opacity-70 mt-2">Loading crisis tags...</p>}
+                    {crisesError && <p className="text-xs text-error mt-2">{crisesError}</p>}
+                  </div>
+
                   <ToggleButton
                     form={form}
                     name="automatic_acceptance"
@@ -187,12 +242,18 @@ export default function OrganizationPostingCreate() {
                   />
                 </div>
 
-                <div className="lg:col-span-1">
-                  <fieldset className="fieldset">
+                <div className="lg:col-span-1 flex flex-col">
+                  <fieldset className="fieldset h-full flex flex-col">
                     <label className="label">
                       <span className="label-text font-medium">Pin Location on Map</span>
                     </label>
-                    <LocationPicker position={position} setPosition={onMapPositionPick} />
+                    <div className="grow min-h-[32rem]">
+                      <LocationPicker
+                        position={position}
+                        setPosition={onMapPositionPick}
+                        className="h-full"
+                      />
+                    </div>
                   </fieldset>
                 </div>
               </div>

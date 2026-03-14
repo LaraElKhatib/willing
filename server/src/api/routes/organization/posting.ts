@@ -30,10 +30,13 @@ import {
 } from '../../../SMTP/emails.js';
 
 const postingRouter = Router();
-const organizationPostingUpdateSchema = newOrganizationPostingSchema.partial();
+const organizationPostingUpdateSchema = newOrganizationPostingSchema.partial().extend({
+  crisis_id: zod.number().int().positive().nullable().optional(),
+});
 const organizationPostingResponseColumns = [
   'organization_posting.id',
   'organization_posting.organization_id',
+  'organization_posting.crisis_id',
   'organization_posting.title',
   'organization_posting.description',
   'organization_posting.latitude',
@@ -63,15 +66,43 @@ const attendanceUpdateBodySchema = zod.object({
   attended: zod.boolean(),
 });
 
+const assertCrisisExists = async (crisisId: number, res: Response) => {
+  const crisis = await database
+    .selectFrom('crisis')
+    .select(['id'])
+    .where('id', '=', crisisId)
+    .executeTakeFirst();
+
+  if (!crisis) {
+    res.status(400);
+    throw new Error('Selected crisis tag does not exist');
+  }
+};
+
+const getPostingCrisis = async (crisisId: number | undefined | null) => {
+  if (crisisId == null) return undefined;
+
+  return database
+    .selectFrom('crisis')
+    .selectAll()
+    .where('id', '=', crisisId)
+    .executeTakeFirst();
+};
+
 postingRouter.post('/', async (req, res: Response<OrganizationPostingCreateResponse>) => {
   const body: NewOrganizationPosting = newOrganizationPostingSchema.parse(req.body);
   const orgId = req.userJWT!.id;
+
+  if (body.crisis_id !== undefined) {
+    await assertCrisisExists(body.crisis_id, res);
+  }
 
   const result = await database.transaction().execute(async (trx) => {
     const newPosting = await trx
       .insertInto('organization_posting')
       .values({
         organization_id: orgId,
+        crisis_id: body.crisis_id,
         title: body.title,
         description: body.description,
         latitude: body.latitude ?? undefined,
@@ -189,13 +220,20 @@ postingRouter.get('/:id', async (req, res: Response<OrganizationPostingResponse>
     throw new Error('Posting not found');
   }
 
-  const skills = await database
-    .selectFrom('posting_skill')
-    .selectAll()
-    .where('posting_id', '=', postingId)
-    .execute();
+  const [skills, crisis] = await Promise.all([
+    database
+      .selectFrom('posting_skill')
+      .selectAll()
+      .where('posting_id', '=', postingId)
+      .execute(),
+    getPostingCrisis(posting.crisis_id),
+  ]);
 
-  res.json({ posting, skills });
+  res.json({
+    posting,
+    skills,
+    ...(crisis ? { crisis } : {}),
+  });
 });
 
 postingRouter.get('/:id/enrollments', async (req, res: Response<OrganizationPostingEnrollmentsResponse>) => {
@@ -307,6 +345,7 @@ postingRouter.put('/:id', async (req, res: Response<OrganizationPostingUpdateRes
     .selectFrom('organization_posting')
     .select([
       'id',
+      'crisis_id',
       'title',
       'description',
       'location_name',
@@ -322,6 +361,10 @@ postingRouter.put('/:id', async (req, res: Response<OrganizationPostingUpdateRes
   if (!posting) {
     res.status(404);
     throw new Error('Posting not found');
+  }
+
+  if (body.crisis_id !== undefined && body.crisis_id !== null && body.crisis_id !== posting.crisis_id) {
+    await assertCrisisExists(body.crisis_id, res);
   }
 
   const existingSkills = await database
@@ -361,6 +404,7 @@ postingRouter.put('/:id', async (req, res: Response<OrganizationPostingUpdateRes
     if (body.automatic_acceptance !== undefined) postingFields.automatic_acceptance = body.automatic_acceptance;
     if (body.is_closed !== undefined) postingFields.is_closed = body.is_closed;
     if (body.location_name !== undefined) postingFields.location_name = body.location_name;
+    if (body.crisis_id !== undefined) postingFields.crisis_id = body.crisis_id;
 
     if (Object.keys(postingFields).length > 0) {
       await trx
@@ -400,13 +444,20 @@ postingRouter.put('/:id', async (req, res: Response<OrganizationPostingUpdateRes
     .where('organization_id', '=', orgId)
     .executeTakeFirstOrThrow();
 
-  const skills = await database
-    .selectFrom('posting_skill')
-    .selectAll()
-    .where('posting_id', '=', postingId)
-    .execute();
+  const [skills, crisis] = await Promise.all([
+    database
+      .selectFrom('posting_skill')
+      .selectAll()
+      .where('posting_id', '=', postingId)
+      .execute(),
+    getPostingCrisis(updatedPosting.crisis_id),
+  ]);
 
-  res.json({ posting: updatedPosting, skills });
+  res.json({
+    posting: updatedPosting,
+    skills,
+    ...(crisis ? { crisis } : {}),
+  });
 });
 
 postingRouter.delete('/:id', async (req, res: Response<OrganizationPostingDeleteResponse>) => {

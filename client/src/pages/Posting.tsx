@@ -1,13 +1,16 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
+  AlertTriangle,
   Building2,
   Calendar,
   Cake,
   Edit3,
+  ExternalLink,
   Lock,
   LockOpen,
   MapPin,
   ShieldCheck,
+  Tag,
   Trash2,
   Users,
 } from 'lucide-react';
@@ -31,7 +34,17 @@ import { executeAndShowError, FormField } from '../utils/formUtils.tsx';
 import requestServer from '../utils/requestServer.ts';
 import { useOrganization } from '../utils/useUsers.ts';
 
-import type { OrganizationPostingApplicationsReponse, OrganizationPostingEnrollmentsResponse, OrganizationPostingResponse, OrganizationProfileResponse, VolunteerPostingResponse } from '../../../server/src/api/types.ts';
+import type {
+  OrganizationCrisisResponse,
+  OrganizationCrisesResponse,
+  OrganizationPostingApplicationsReponse,
+  OrganizationPostingEnrollmentsResponse,
+  OrganizationPostingResponse,
+  OrganizationProfileResponse,
+  VolunteerCrisisResponse,
+  VolunteerPostingResponse,
+} from '../../../server/src/api/types.ts';
+import type { Crisis } from '../../../server/src/db/tables.ts';
 import type { PostingApplication, PostingEnrollment, PostingWithSkills } from '../../../server/src/types.ts';
 
 const getDateTimeInputValue = (value: Date | string) => {
@@ -57,11 +70,17 @@ function PostingPage() {
   const [hasPendingApplication, setHasPendingApplication] = useState(false);
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [skills, setSkills] = useState<string[]>([]);
+  const [selectedCrisisId, setSelectedCrisisId] = useState<number | undefined>(undefined);
+  const [availableCrises, setAvailableCrises] = useState<OrganizationCrisesResponse['crises']>([]);
+  const [currentPostingCrisis, setCurrentPostingCrisis] = useState<Crisis | undefined>(undefined);
+  const [loadingCrises, setLoadingCrises] = useState(false);
+  const [crisesError, setCrisesError] = useState<string | null>(null);
   const [position, setPosition] = useState<[number, number]>([33.90192863620578, 35.477959277880416]);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [togglingClosed, setTogglingClosed] = useState(false);
   const [applying, setApplying] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
   const [processingApplicationId, setProcessingApplicationId] = useState<number | null>(null);
@@ -90,6 +109,84 @@ function PostingPage() {
     defaultValue: true,
   });
 
+  const selectedCrisisName = useMemo(() => {
+    if (selectedCrisisId == null) return null;
+    return availableCrises.find(crisis => crisis.id === selectedCrisisId)?.name
+      ?? (currentPostingCrisis?.id === selectedCrisisId ? currentPostingCrisis.name : `Crisis #${selectedCrisisId}`);
+  }, [availableCrises, currentPostingCrisis, selectedCrisisId]);
+
+  const selectedCrisis = useMemo(() => {
+    if (selectedCrisisId == null) return null;
+    return availableCrises.find(crisis => crisis.id === selectedCrisisId)
+      ?? (currentPostingCrisis?.id === selectedCrisisId ? currentPostingCrisis : null);
+  }, [availableCrises, currentPostingCrisis, selectedCrisisId]);
+
+  useEffect(() => {
+    if (isVolunteerView) return;
+
+    const loadCrises = async () => {
+      try {
+        setLoadingCrises(true);
+        setCrisesError(null);
+        const response = await requestServer<OrganizationCrisesResponse>('/organization/crises', {
+          includeJwt: true,
+        });
+        setAvailableCrises(response.crises);
+      } catch (error) {
+        setCrisesError(error instanceof Error ? error.message : 'Failed to load crisis tags');
+      } finally {
+        setLoadingCrises(false);
+      }
+    };
+
+    loadCrises();
+  }, [isVolunteerView]);
+
+  useEffect(() => {
+    if (selectedCrisisId == null) {
+      setCurrentPostingCrisis(undefined);
+      return;
+    }
+
+    const existingMatch = availableCrises.find(crisis => crisis.id === selectedCrisisId);
+    if (existingMatch) {
+      setCurrentPostingCrisis(existingMatch);
+      return;
+    }
+
+    if (currentPostingCrisis?.id === selectedCrisisId) {
+      return;
+    }
+
+    let isCancelled = false;
+
+    const loadCurrentCrisis = async () => {
+      try {
+        const response = isVolunteerView
+          ? await requestServer<VolunteerCrisisResponse>(`/volunteer/crises/${selectedCrisisId}`, {
+              includeJwt: true,
+            })
+          : await requestServer<OrganizationCrisisResponse>(`/organization/crises/${selectedCrisisId}`, {
+              includeJwt: true,
+            });
+
+        if (!isCancelled) {
+          setCurrentPostingCrisis(response.crisis);
+        }
+      } catch {
+        if (!isCancelled) {
+          setCurrentPostingCrisis(undefined);
+        }
+      }
+    };
+
+    loadCurrentCrisis();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [availableCrises, currentPostingCrisis?.id, isVolunteerView, selectedCrisisId]);
+
   const loadPosting = useCallback(async () => {
     if (!id) return;
 
@@ -109,10 +206,12 @@ function PostingPage() {
         };
 
         setPosting(postingWithSkills);
+        setCurrentPostingCrisis(undefined);
         setEnrollments([]);
         setHasPendingApplication(postingResponse.hasPendingApplication);
         setIsEnrolled(postingResponse.isEnrolled);
         setSkills(postingResponse.skills.map(s => s.name));
+        setSelectedCrisisId(postingResponse.posting.crisis_id ?? undefined);
         setPosition([
           postingResponse.posting.latitude ?? 33.90192863620578,
           postingResponse.posting.longitude ?? 35.477959277880416,
@@ -163,6 +262,7 @@ function PostingPage() {
       };
 
       setPosting(postingWithSkills);
+      setCurrentPostingCrisis(postingResponse.crisis);
       setEnrollments(enrollmentsResponse.enrollments);
 
       if (!postingResponse.posting.automatic_acceptance) {
@@ -176,6 +276,7 @@ function PostingPage() {
       setIsEnrolled(false);
       setHasPendingApplication(false);
       setSkills(postingResponse.skills.map(s => s.name));
+      setSelectedCrisisId(postingResponse.posting.crisis_id ?? undefined);
       setPosition([
         postingResponse.posting.latitude ?? 33.90192863620578,
         postingResponse.posting.longitude ?? 35.477959277880416,
@@ -256,6 +357,7 @@ function PostingPage() {
           automatic_acceptance: data.automatic_acceptance,
           is_closed: data.is_closed,
           skills: skills.length > 0 ? skills : undefined,
+          crisis_id: selectedCrisisId ?? null,
         };
 
         const response = await requestServer<OrganizationPostingResponse>(
@@ -273,7 +375,9 @@ function PostingPage() {
         };
 
         setPosting(updatedPosting);
+        setCurrentPostingCrisis(response.crisis);
         setSkills(response.skills.map(s => s.name));
+        setSelectedCrisisId(response.posting.crisis_id ?? undefined);
         setSaveMessage('Posting updated successfully.');
         setIsEditMode(false);
       } catch (error) {
@@ -298,6 +402,7 @@ function PostingPage() {
       is_closed: posting.is_closed,
     });
     setSkills(posting.skills.map(s => s.name));
+    setSelectedCrisisId(posting.crisis_id ?? undefined);
     setPosition([
       posting.latitude ?? 33.90192863620578,
       posting.longitude ?? 35.477959277880416,
@@ -319,6 +424,31 @@ function PostingPage() {
       alert(error instanceof Error ? error.message : 'Failed to delete posting');
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const onToggleClosed = async () => {
+    if (!id || !posting) return;
+    try {
+      setTogglingClosed(true);
+      setSaveError(null);
+      setSaveMessage(null);
+      const response = await requestServer<OrganizationPostingResponse>(
+        `/organization/posting/${id}`,
+        {
+          method: 'PUT',
+          body: { is_closed: !posting.is_closed },
+          includeJwt: true,
+        },
+      );
+      const updatedPosting = { ...response.posting, skills: response.skills };
+      setPosting(updatedPosting);
+      form.setValue('is_closed', response.posting.is_closed);
+      setSaveMessage(response.posting.is_closed ? 'Posting closed successfully.' : 'Posting reopened successfully.');
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'Failed to update posting');
+    } finally {
+      setTogglingClosed(false);
     }
   };
 
@@ -557,6 +687,14 @@ function PostingPage() {
               )
             : (
                 <>
+                  <button
+                    className={`btn btn-outline ${posting?.is_closed ? 'btn-success' : 'btn-warning'}`}
+                    onClick={onToggleClosed}
+                    disabled={togglingClosed || !posting}
+                  >
+                    {posting?.is_closed ? <LockOpen size={16} /> : <Lock size={16} />}
+                    {togglingClosed ? '...' : posting?.is_closed ? 'Reopen' : 'Close'}
+                  </button>
                   <button className="btn btn-outline" onClick={() => setIsEditMode(true)}>
                     <Edit3 size={16} />
                     Edit
@@ -721,7 +859,99 @@ function PostingPage() {
 
                 <div className="card bg-base-100 shadow-md">
                   <div className="card-body">
-                    <h5 className="font-bold text-lg">Status</h5>
+                    {isEditMode
+                      ? (
+                          <>
+                            <div className="mb-2">
+                              <h5 className="font-bold text-lg inline-flex items-center gap-2">
+                                <AlertTriangle size={17} className="text-accent" />
+                                Crisis Tag
+                              </h5>
+                              {!isVolunteerView && (
+                                <p className="text-sm opacity-70">
+                                  Add a crisis tag to this posting.
+                                </p>
+                              )}
+                            </div>
+                            <fieldset className="fieldset">
+                              <label className="label">
+                                <span className="label-text font-medium">Selected Crisis</span>
+                              </label>
+                              <select
+                                className="select select-bordered w-full"
+                                value={selectedCrisisId?.toString() ?? ''}
+                                onChange={(event) => {
+                                  const value = event.target.value;
+                                  setSelectedCrisisId(value ? Number(value) : undefined);
+                                }}
+                                disabled={saving || loadingCrises}
+                              >
+                                <option value="">No crisis tag</option>
+                                {availableCrises.map(crisis => (
+                                  <option key={crisis.id} value={crisis.id.toString()}>
+                                    {crisis.name}
+                                    {!crisis.pinned ? ' (Unpinned)' : ''}
+                                  </option>
+                                ))}
+                              </select>
+                              {loadingCrises && <span className="label-text-alt opacity-70">Loading crisis tags...</span>}
+                              {crisesError && <span className="label-text-alt text-error">{crisesError}</span>}
+                            </fieldset>
+                          </>
+                        )
+                      : selectedCrisisName
+                        ? (
+                            isVolunteerView && selectedCrisisId
+                              ? (
+                                  <Link
+                                    to={`/volunteer/crises/${selectedCrisisId}/postings`}
+                                    state={{ crisis: selectedCrisis }}
+                                    className="-m-2 rounded-box bg-base-100 px-3 py-3 flex items-start justify-between gap-3 hover:bg-base-200/40 transition-colors group"
+                                  >
+                                    <div className="flex-1 min-w-0">
+                                      <h5 className="font-bold text-lg inline-flex items-center gap-2 text-accent mb-1">
+                                        <AlertTriangle size={16} />
+                                        {selectedCrisisName}
+                                        <ExternalLink size={13} className="opacity-60 group-hover:opacity-100 transition-opacity" />
+                                      </h5>
+                                      <p className="text-sm opacity-70">
+                                        {selectedCrisis?.description?.trim() || 'No crisis description provided.'}
+                                      </p>
+                                    </div>
+                                  </Link>
+                                )
+                              : (
+                                  <div>
+                                    <h5 className="font-bold text-lg inline-flex items-center gap-2 text-accent mb-1">
+                                      <AlertTriangle size={17} />
+                                      {selectedCrisisName}
+                                    </h5>
+                                    <p className="text-sm opacity-70">
+                                      {selectedCrisis?.description?.trim() || 'No crisis description provided.'}
+                                    </p>
+                                  </div>
+                                )
+                          )
+                        : (
+                            <div>
+                              <h5 className="font-bold text-lg inline-flex items-center gap-2 mb-1">
+                                <AlertTriangle size={17} className="text-accent" />
+                                Crisis Tag
+                              </h5>
+                              <p className="text-sm opacity-70">This posting is not tagged with any crisis.</p>
+                            </div>
+                          )}
+                  </div>
+                </div>
+
+                <div className="card bg-base-100 shadow-md">
+                  <div className="card-body">
+                    <h5 className="font-bold text-lg inline-flex items-center gap-2">
+                      {isOpen
+                        ? <LockOpen size={17} className="text-primary" />
+                        : <Lock size={17} className="text-secondary" />}
+                      Status
+                    </h5>
                     <p className="text-sm opacity-70 mb-3">Posting visibility.</p>
                     {isEditMode
                       ? (
@@ -762,40 +992,16 @@ function PostingPage() {
                           : 'Volunteers must be accepted by the organization.'}
                     </p>
 
-                    {isEditMode && (
-                      <div className="mt-4">
-                        <ToggleButton
-                          form={form}
-                          name="is_closed"
-                          label="Close Posting"
-                          disabled={saving}
-                          options={[
-                            {
-                              value: false,
-                              label: 'Open',
-                              description: 'Posting is active.',
-                              Icon: LockOpen,
-                              btnColor: 'btn-primary',
-                            },
-                            {
-                              value: true,
-                              label: 'Closed',
-                              description: 'Posting is closed.',
-                              Icon: Lock,
-                              btnColor: 'btn-error',
-                            },
-                          ]}
-                        />
-                      </div>
-                    )}
-
                   </div>
                 </div>
 
                 {!isVolunteerView && (
                   <div className="card bg-base-100 shadow-md">
                     <div className="card-body">
-                      <h5 className="font-bold text-lg">Location</h5>
+                      <h5 className="font-bold text-lg inline-flex items-center gap-2">
+                        <MapPin size={17} className="text-primary" />
+                        Location
+                      </h5>
                       <p className="text-sm opacity-70 mb-2">
                         {isEditMode ? 'Pick the location on the map.' : 'Posting location on map.'}
                       </p>
@@ -813,7 +1019,10 @@ function PostingPage() {
             {isVolunteerView && (
               <div className="card bg-base-100 shadow-md">
                 <div className="card-body">
-                  <h5 className="font-bold text-lg">Application Status</h5>
+                  <h5 className="font-bold text-lg inline-flex items-center gap-2">
+                    <ShieldCheck size={17} className="text-primary" />
+                    Application Status
+                  </h5>
                   <span className={`badge mt-1 w-fit ${applicationStatus.badgeClassName}`}>
                     {applicationStatus.label}
                   </span>
@@ -858,7 +1067,10 @@ function PostingPage() {
 
             <div className="card bg-base-100 shadow-md">
               <div className="card-body">
-                <h5 className="font-bold text-lg">Required Skills</h5>
+                <h5 className="font-bold text-lg inline-flex items-center gap-2">
+                  <Tag size={17} className="text-primary" />
+                  Required Skills
+                </h5>
                 <p className="text-sm opacity-70 mt-1">Skills needed for this opportunity.</p>
 
                 {isEditMode
@@ -874,7 +1086,10 @@ function PostingPage() {
             {isVolunteerView && (
               <div className="card bg-base-100 shadow-md">
                 <div className="card-body">
-                  <h5 className="font-bold text-lg">Location</h5>
+                  <h5 className="font-bold text-lg inline-flex items-center gap-2">
+                    <MapPin size={17} className="text-primary" />
+                    Location
+                  </h5>
                   <p className="text-sm opacity-70 mb-2">
                     {isEditMode ? 'Pick the location on the map.' : 'Posting location on map.'}
                   </p>
