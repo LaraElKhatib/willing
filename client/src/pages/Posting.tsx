@@ -80,6 +80,7 @@ function PostingPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [togglingClosed, setTogglingClosed] = useState(false);
   const [applying, setApplying] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
   const [processingApplicationId, setProcessingApplicationId] = useState<number | null>(null);
@@ -426,6 +427,31 @@ function PostingPage() {
     }
   };
 
+  const onToggleClosed = async () => {
+    if (!id || !posting) return;
+    try {
+      setTogglingClosed(true);
+      setSaveError(null);
+      setSaveMessage(null);
+      const response = await requestServer<OrganizationPostingResponse>(
+        `/organization/posting/${id}`,
+        {
+          method: 'PUT',
+          body: { is_closed: !posting.is_closed },
+          includeJwt: true,
+        },
+      );
+      const updatedPosting = { ...response.posting, skills: response.skills };
+      setPosting(updatedPosting);
+      form.setValue('is_closed', response.posting.is_closed);
+      setSaveMessage(response.posting.is_closed ? 'Posting closed successfully.' : 'Posting reopened successfully.');
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'Failed to update posting');
+    } finally {
+      setTogglingClosed(false);
+    }
+  };
+
   const closeApplyModal = useCallback(() => {
     setIsApplyModalOpen(false);
     setApplyError(null);
@@ -661,6 +687,14 @@ function PostingPage() {
               )
             : (
                 <>
+                  <button
+                    className={`btn btn-outline ${posting?.is_closed ? 'btn-success' : 'border-orange-400 text-orange-400 hover:bg-orange-400 hover:border-orange-400 hover:text-white'}`}
+                    onClick={onToggleClosed}
+                    disabled={togglingClosed || !posting}
+                  >
+                    {posting?.is_closed ? <LockOpen size={16} /> : <Lock size={16} />}
+                    {togglingClosed ? '...' : posting?.is_closed ? 'Reopen' : 'Close'}
+                  </button>
                   <button className="btn btn-outline" onClick={() => setIsEditMode(true)}>
                     <Edit3 size={16} />
                     Edit
@@ -960,33 +994,6 @@ function PostingPage() {
                           ? 'Volunteers are accepted automatically.'
                           : 'Volunteers must be accepted by the organization.'}
                     </p>
-
-                    {isEditMode && (
-                      <div className="mt-4">
-                        <ToggleButton
-                          form={form}
-                          name="is_closed"
-                          label="Close Posting"
-                          disabled={saving}
-                          options={[
-                            {
-                              value: false,
-                              label: 'Open',
-                              description: 'Posting is active.',
-                              Icon: LockOpen,
-                              btnColor: 'btn-primary',
-                            },
-                            {
-                              value: true,
-                              label: 'Closed',
-                              description: 'Posting is closed.',
-                              Icon: Lock,
-                              btnColor: 'btn-error',
-                            },
-                          ]}
-                        />
-                      </div>
-                    )}
 
                   </div>
                 </div>
