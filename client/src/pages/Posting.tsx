@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
+  AlertTriangle,
   Building2,
   Calendar,
   Cake,
@@ -821,7 +822,7 @@ function PostingPage() {
                     <div className="flex items-start justify-between gap-3 mb-2">
                       <div>
                         <h5 className="font-bold text-lg inline-flex items-center gap-2">
-                          <Tag size={17} className="text-accent" />
+                          <AlertTriangle size={17} className="text-accent" />
                           Crisis Tag
                         </h5>
                         {!isVolunteerView && (
@@ -881,7 +882,12 @@ function PostingPage() {
 
                 <div className="card bg-base-100 shadow-md">
                   <div className="card-body">
-                    <h5 className="font-bold text-lg">Status</h5>
+                    <h5 className="font-bold text-lg inline-flex items-center gap-2">
+                      {isOpen
+                        ? <LockOpen size={17} className="text-primary" />
+                        : <Lock size={17} className="text-secondary" />}
+                      Status
+                    </h5>
                     <p className="text-sm opacity-70 mb-3">Posting visibility.</p>
                     {isEditMode
                       ? (
@@ -926,7 +932,10 @@ function PostingPage() {
                 {!isVolunteerView && (
                   <div className="card bg-base-100 shadow-md">
                     <div className="card-body">
-                      <h5 className="font-bold text-lg">Location</h5>
+                      <h5 className="font-bold text-lg inline-flex items-center gap-2">
+                        <MapPin size={17} className="text-primary" />
+                        Location
+                      </h5>
                       <p className="text-sm opacity-70 mb-2">
                         {isEditMode ? 'Pick the location on the map.' : 'Posting location on map.'}
                       </p>
@@ -944,7 +953,10 @@ function PostingPage() {
             {isVolunteerView && (
               <div className="card bg-base-100 shadow-md">
                 <div className="card-body">
-                  <h5 className="font-bold text-lg">Application Status</h5>
+                  <h5 className="font-bold text-lg inline-flex items-center gap-2">
+                    <ShieldCheck size={17} className="text-primary" />
+                    Application Status
+                  </h5>
                   <span className={`badge mt-1 w-fit ${applicationStatus.badgeClassName}`}>
                     {applicationStatus.label}
                   </span>
@@ -989,7 +1001,10 @@ function PostingPage() {
 
             <div className="card bg-base-100 shadow-md">
               <div className="card-body">
-                <h5 className="font-bold text-lg">Required Skills</h5>
+                <h5 className="font-bold text-lg inline-flex items-center gap-2">
+                  <Tag size={17} className="text-primary" />
+                  Required Skills
+                </h5>
                 <p className="text-sm opacity-70 mt-1">Skills needed for this opportunity.</p>
 
                 {isEditMode
@@ -1005,7 +1020,10 @@ function PostingPage() {
             {isVolunteerView && (
               <div className="card bg-base-100 shadow-md">
                 <div className="card-body">
-                  <h5 className="font-bold text-lg">Location</h5>
+                  <h5 className="font-bold text-lg inline-flex items-center gap-2">
+                    <MapPin size={17} className="text-primary" />
+                    Location
+                  </h5>
                   <p className="text-sm opacity-70 mb-2">
                     {isEditMode ? 'Pick the location on the map.' : 'Posting location on map.'}
                   </p>
