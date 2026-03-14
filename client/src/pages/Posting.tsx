@@ -688,7 +688,7 @@ function PostingPage() {
             : (
                 <>
                   <button
-                    className={`btn btn-outline ${posting?.is_closed ? 'btn-success' : 'border-orange-400 text-orange-400 hover:bg-orange-400 hover:border-orange-400 hover:text-white'}`}
+                    className={`btn btn-outline ${posting?.is_closed ? 'btn-success' : 'btn-warning'}`}
                     onClick={onToggleClosed}
                     disabled={togglingClosed || !posting}
                   >
@@ -906,7 +906,7 @@ function PostingPage() {
                                   <Link
                                     to={`/volunteer/crises/${selectedCrisisId}/postings`}
                                     state={{ crisis: selectedCrisis }}
-                                    className="-m-2 rounded-box border border-base-300 bg-base-100 px-3 py-3 flex items-start justify-between gap-3 hover:border-accent/40 hover:bg-base-200/40 transition-colors group"
+                                    className="-m-2 rounded-box bg-base-100 px-3 py-3 flex items-start justify-between gap-3 hover:bg-base-200/40 transition-colors group"
                                   >
                                     <div className="flex-1 min-w-0">
                                       <h5 className="font-bold text-lg inline-flex items-center gap-2 text-accent mb-1">

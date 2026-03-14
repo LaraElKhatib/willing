@@ -112,7 +112,7 @@ function PostingCard({ posting, applicationStatus = 'none', showCrisis = true }:
                         Registered
                       </span>
                     )
-                  : posting.is_open
+                  : posting.automatic_acceptance
                     ? (
                         <span className="badge badge-primary inline-flex items-center gap-2">
                           <LockOpen size={14} />
