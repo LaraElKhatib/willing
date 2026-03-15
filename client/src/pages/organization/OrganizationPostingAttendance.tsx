@@ -1,4 +1,4 @@
-import { CheckCheck, Clock3, Download, RotateCcw, Save, Undo2, Users } from 'lucide-react';
+import { CheckCheck, Download, RotateCcw, Save, Undo2, Users } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router';
 
@@ -9,8 +9,6 @@ import requestServer, { SERVER_BASE_URL } from '../../utils/requestServer';
 
 import type { OrganizationPostingAttendanceResponse } from '../../../../server/src/api/types';
 import type { PostingEnrollment } from '../../../../server/src/types';
-
-const formatDateTime = (value: Date | string) => new Date(value).toLocaleString();
 
 function OrganizationPostingAttendance() {
   const { id } = useParams<{ id: string }>();
@@ -44,7 +42,7 @@ function OrganizationPostingAttendance() {
   }, [id]);
 
   const toggleAttendance = useCallback(async (enrollment: PostingEnrollment) => {
-    if (!data?.can_edit_attendance || saving) return;
+    if (saving) return;
     setError(null);
     setMessage(null);
     setDraftAttendance(current => ({
@@ -54,7 +52,7 @@ function OrganizationPostingAttendance() {
   }, [data, saving]);
 
   const setAllAttendanceDraft = useCallback((attended: boolean) => {
-    if (!data?.can_edit_attendance || saving) return;
+    if (saving) return;
     setError(null);
     setMessage(null);
     setDraftAttendance(
@@ -63,7 +61,7 @@ function OrganizationPostingAttendance() {
   }, [data, saving]);
 
   const submitAttendance = useCallback(async () => {
-    if (!id || !data?.can_edit_attendance || saving) return;
+    if (!id || !data || saving) return;
 
     const changedEnrollments = data.enrollments.filter((enrollment) => {
       const nextAttendedValue = draftAttendance[enrollment.enrollment_id] ?? enrollment.attended;
@@ -152,8 +150,6 @@ function OrganizationPostingAttendance() {
       setExportingCsv(false);
     }
   }, [exportingCsv, id]);
-
-  const isAttendanceClosed = data?.attendance_status === 'closed';
 
   const hasUnsavedChanges = useMemo(() => {
     if (!data) return false;
@@ -266,7 +262,7 @@ function OrganizationPostingAttendance() {
               <button
                 className="btn btn-success btn-soft"
                 onClick={() => setAllAttendanceDraft(true)}
-                disabled={!data.can_edit_attendance || saving || data.enrollments.length === 0}
+                disabled={saving || data.enrollments.length === 0}
               >
                 <CheckCheck size={16} />
                 Mark All Present
@@ -274,7 +270,7 @@ function OrganizationPostingAttendance() {
               <button
                 className="btn btn-warning btn-soft"
                 onClick={() => setAllAttendanceDraft(false)}
-                disabled={!data.can_edit_attendance || saving || data.enrollments.length === 0}
+                disabled={saving || data.enrollments.length === 0}
               >
                 <RotateCcw size={16} />
                 Clear All
@@ -290,7 +286,7 @@ function OrganizationPostingAttendance() {
               <button
                 className="btn btn-primary"
                 onClick={() => void submitAttendance()}
-                disabled={!data.can_edit_attendance || saving || !hasUnsavedChanges}
+                disabled={saving || !hasUnsavedChanges}
               >
                 <Save size={16} />
                 {saving ? 'Saving...' : 'Save Attendance'}
@@ -299,19 +295,8 @@ function OrganizationPostingAttendance() {
           )}
         />
 
-        {isAttendanceClosed && (
-          <div className="alert alert-warning mb-2">
-            <span>Attendance editing is closed.</span>
-          </div>
-        )}
         <div className="mb-4 flex items-center gap-2 text-sm opacity-80">
-          <Clock3 size={14} className="opacity-70" />
-          <span>
-            Editable until
-            {' '}
-            <span className="font-semibold">{formatDateTime(data.attendance_edit_ends_at)}</span>
-          </span>
-          {data.can_edit_attendance && hasUnsavedChanges && (
+          {hasUnsavedChanges && (
             <span className="badge badge-ghost">Unsaved changes</span>
           )}
         </div>
@@ -382,7 +367,7 @@ function OrganizationPostingAttendance() {
                           type="checkbox"
                           className="toggle toggle-success"
                           checked={volunteer.attended}
-                          disabled={!data.can_edit_attendance || saving}
+                          disabled={saving}
                           onChange={() => void toggleAttendance(volunteer)}
                         />
                       </label>

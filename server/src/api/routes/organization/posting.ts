@@ -3,7 +3,6 @@ import { sql } from 'kysely';
 import zod from 'zod';
 
 import {
-  AttendanceStatus,
   OrganizationPostingApplicationAcceptanceResponse,
   OrganizationPostingApplicationRejectionResponse,
   OrganizationPostingAttendanceBulkUpdateResponse,
@@ -72,7 +71,6 @@ const attendanceUpdateBodySchema = zod.object({
 const attendanceBulkUpdateBodySchema = zod.object({
   attended: zod.boolean(),
 });
-const ATTENDANCE_EDIT_WINDOW_DAYS = 14;
 
 const toCsvCell = (value: string | number | boolean | null | undefined) => {
   const stringValue = String(value ?? '');
@@ -87,62 +85,6 @@ const toCsv = (
   const headerLine = headers.map(toCsvCell).join(',');
   const bodyLines = rows.map(row => headers.map(header => toCsvCell(row[header])).join(','));
   return [headerLine, ...bodyLines].join('\n');
-};
-
-const getAttendanceWindow = (posting: { start_timestamp: Date; end_timestamp: Date | undefined }) => {
-  const attendanceEditStartsAt = posting.start_timestamp;
-  const baseEnd = posting.end_timestamp && posting.end_timestamp >= posting.start_timestamp
-    ? posting.end_timestamp
-    : posting.start_timestamp;
-  const attendanceEditEndsAt = new Date(baseEnd.getTime() + ATTENDANCE_EDIT_WINDOW_DAYS * 24 * 60 * 60 * 1000);
-  return { attendanceEditStartsAt, attendanceEditEndsAt };
-};
-
-const getAttendanceStatus = (posting: { start_timestamp: Date; end_timestamp: Date | undefined }): {
-  status: AttendanceStatus;
-  canEditAttendance: boolean;
-  attendanceEditStartsAt: Date;
-  attendanceEditEndsAt: Date;
-} => {
-  const now = new Date();
-  const { attendanceEditStartsAt, attendanceEditEndsAt } = getAttendanceWindow(posting);
-
-  if (now < attendanceEditStartsAt) {
-    return {
-      status: 'not_started',
-      canEditAttendance: false,
-      attendanceEditStartsAt,
-      attendanceEditEndsAt,
-    };
-  }
-
-  if (now > attendanceEditEndsAt) {
-    return {
-      status: 'closed',
-      canEditAttendance: false,
-      attendanceEditStartsAt,
-      attendanceEditEndsAt,
-    };
-  }
-
-  return {
-    status: 'open',
-    canEditAttendance: true,
-    attendanceEditStartsAt,
-    attendanceEditEndsAt,
-  };
-};
-
-const assertAttendanceEditable = (posting: { start_timestamp: Date; end_timestamp: Date | undefined }, res: Response) => {
-  const status = getAttendanceStatus(posting);
-  if (!status.canEditAttendance) {
-    res.status(403);
-    throw new Error(
-      status.status === 'not_started'
-        ? 'Attendance can only be edited after the posting start time.'
-        : `Attendance editing window is closed. It closes ${ATTENDANCE_EDIT_WINDOW_DAYS} days after posting end.`,
-    );
-  }
 };
 
 const getPostingEnrollments = async (postingId: number): Promise<PostingEnrollment[]> => {
@@ -383,7 +325,7 @@ postingRouter.get('/:id/attendance', async (req, res: Response<OrganizationPosti
 
   const posting = await database
     .selectFrom('organization_posting')
-    .select(['id', 'title', 'location_name', 'start_timestamp', 'end_timestamp'])
+    .select(['id', 'title', 'location_name'])
     .where('id', '=', postingId)
     .where('organization_id', '=', orgId)
     .executeTakeFirst();
@@ -393,16 +335,11 @@ postingRouter.get('/:id/attendance', async (req, res: Response<OrganizationPosti
     throw new Error('Posting not found');
   }
 
-  const attendanceStatus = getAttendanceStatus(posting);
   const enrollments = await getPostingEnrollments(postingId);
 
   res.json({
     posting,
     enrollments,
-    attendance_status: attendanceStatus.status,
-    can_edit_attendance: attendanceStatus.canEditAttendance,
-    attendance_edit_starts_at: attendanceStatus.attendanceEditStartsAt,
-    attendance_edit_ends_at: attendanceStatus.attendanceEditEndsAt,
   });
 });
 
@@ -413,7 +350,7 @@ postingRouter.patch('/:id/attendance', async (req, res: Response<OrganizationPos
 
   const posting = await database
     .selectFrom('organization_posting')
-    .select(['id', 'start_timestamp', 'end_timestamp'])
+    .select(['id'])
     .where('id', '=', postingId)
     .where('organization_id', '=', orgId)
     .executeTakeFirst();
@@ -422,8 +359,6 @@ postingRouter.patch('/:id/attendance', async (req, res: Response<OrganizationPos
     res.status(404);
     throw new Error('Posting not found');
   }
-
-  assertAttendanceEditable(posting, res);
 
   const changed = await database
     .updateTable('enrollment')
@@ -499,7 +434,7 @@ postingRouter.patch('/:id/enrollments/:enrollmentId/attendance', async (req, res
 
   const posting = await database
     .selectFrom('organization_posting')
-    .select(['id', 'start_timestamp', 'end_timestamp'])
+    .select(['id'])
     .where('organization_posting.id', '=', postingId)
     .where('organization_posting.organization_id', '=', orgId)
     .executeTakeFirst();
@@ -508,8 +443,6 @@ postingRouter.patch('/:id/enrollments/:enrollmentId/attendance', async (req, res
     res.status(404);
     throw new Error('Posting not found');
   }
-
-  assertAttendanceEditable(posting, res);
 
   const enrollment = await database
     .selectFrom('enrollment')

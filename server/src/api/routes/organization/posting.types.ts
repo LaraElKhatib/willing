@@ -38,15 +38,9 @@ export type OrganizationPostingApplicationRejectionResponse = SuccessResponse;
 
 export type OrganizationPostingEnrollmentAttendanceUpdateResponse = SuccessResponse;
 
-export type AttendanceStatus = 'not_started' | 'open' | 'closed';
-
 export type OrganizationPostingAttendanceResponse = {
-  posting: Pick<OrganizationPostingWithoutVectors, 'id' | 'title' | 'start_timestamp' | 'end_timestamp' | 'location_name'>;
+  posting: Pick<OrganizationPostingWithoutVectors, 'id' | 'title' | 'location_name'>;
   enrollments: PostingEnrollment[];
-  attendance_status: AttendanceStatus;
-  can_edit_attendance: boolean;
-  attendance_edit_starts_at: Date;
-  attendance_edit_ends_at: Date;
 };
 
 export type OrganizationPostingAttendanceBulkUpdateResponse = {
