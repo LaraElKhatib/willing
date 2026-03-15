@@ -585,36 +585,63 @@ volunteerPostingRouter.delete('/:id/enroll', async (req, res: Response<Volunteer
   const volunteerId = req.userJWT!.id;
   const { id } = postingIdParamsSchema.parse(req.params);
 
-  const posting = await database
-    .selectFrom('organization_posting')
-    .select(['id', 'automatic_acceptance'])
-    .where('id', '=', id)
-    .executeTakeFirst();
+  const { existingEnrollment } = await database.transaction().execute(async (trx) => {
+    const posting = await trx
+      .selectFrom('organization_posting')
+      .select(['id', 'automatic_acceptance', 'is_closed', 'max_volunteers'])
+      .where('id', '=', id)
+      .forUpdate()
+      .executeTakeFirst();
 
-  if (!posting) {
-    res.status(404);
-    throw new Error('Posting not found');
-  }
+    if (!posting) {
+      res.status(404);
+      throw new Error('Posting not found');
+    }
 
-  const existingEnrollment = await database
-    .selectFrom('enrollment')
-    .select(['id', 'attended'])
-    .where('volunteer_id', '=', volunteerId)
-    .where('posting_id', '=', id)
-    .executeTakeFirst();
+    const existingEnrollment = await trx
+      .selectFrom('enrollment')
+      .select(['id', 'attended'])
+      .where('volunteer_id', '=', volunteerId)
+      .where('posting_id', '=', id)
+      .executeTakeFirst();
 
-  await Promise.all([
-    database
+    await trx
       .deleteFrom('enrollment')
       .where('volunteer_id', '=', volunteerId)
       .where('posting_id', '=', id)
-      .execute(),
-    !posting.automatic_acceptance && database
-      .deleteFrom('enrollment_application')
-      .where('volunteer_id', '=', volunteerId)
-      .where('posting_id', '=', id)
-      .execute(),
-  ]);
+      .execute();
+
+    if (!posting.automatic_acceptance) {
+      await trx
+        .deleteFrom('enrollment_application')
+        .where('volunteer_id', '=', volunteerId)
+        .where('posting_id', '=', id)
+        .execute();
+    }
+
+    if (
+      posting.is_closed
+      && posting.max_volunteers !== undefined
+      && posting.max_volunteers !== null
+    ) {
+      const enrollmentCountRow = await trx
+        .selectFrom('enrollment')
+        .select(sql<number>`count(enrollment.id)`.as('count'))
+        .where('posting_id', '=', id)
+        .executeTakeFirst();
+
+      if (Number(enrollmentCountRow?.count ?? 0) < posting.max_volunteers) {
+        await trx
+          .updateTable('organization_posting')
+          .set({ is_closed: false })
+          .where('id', '=', id)
+          .where('is_closed', '=', true)
+          .execute();
+      }
+    }
+
+    return { existingEnrollment };
+  });
 
   if (existingEnrollment?.attended) {
     await recomputeVolunteerExperienceVector(volunteerId);
