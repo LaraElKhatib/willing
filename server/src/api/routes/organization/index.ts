@@ -1,6 +1,7 @@
 import { Router, Response } from 'express';
 import zod from 'zod';
 
+import attendanceRouter from './attendance.js';
 import {
   OrganizationCrisisResponse,
   OrganizationCrisesResponse,
@@ -276,5 +277,6 @@ organizationRouter.put('/profile', async (req, res) => {
 organizationRouter.post('/reset-password', resetPassword);
 
 organizationRouter.use('/posting', postingRouter);
+organizationRouter.use('/posting', attendanceRouter);
 
 export default organizationRouter;

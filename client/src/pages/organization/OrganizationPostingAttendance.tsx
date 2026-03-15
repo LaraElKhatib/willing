@@ -295,12 +295,6 @@ function OrganizationPostingAttendance() {
           )}
         />
 
-        <div className="mb-4 flex items-center gap-2 text-sm opacity-80">
-          {hasUnsavedChanges && (
-            <span className="badge badge-ghost">Unsaved changes</span>
-          )}
-        </div>
-
         {error && (
           <div role="alert" className="alert alert-error mt-4">
             <span>{error}</span>
