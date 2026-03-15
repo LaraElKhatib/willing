@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import { sql } from 'kysely';
 import zod from 'zod';
 
+import attendanceRouter from './attendance.js';
 import {
   OrganizationPostingApplicationAcceptanceResponse,
   OrganizationPostingApplicationRejectionResponse,
@@ -649,5 +650,7 @@ postingRouter.delete('/:id/applications/:applicationId', async (req, res: Respon
 
   res.json({});
 });
+
+postingRouter.use(attendanceRouter);
 
 export default postingRouter;

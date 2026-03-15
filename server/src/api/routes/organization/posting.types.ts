@@ -35,14 +35,3 @@ export type OrganizationPostingApplicationsReponse = {
 export type OrganizationPostingApplicationAcceptanceResponse = SuccessResponse;
 
 export type OrganizationPostingApplicationRejectionResponse = SuccessResponse;
-
-export type OrganizationPostingEnrollmentAttendanceUpdateResponse = SuccessResponse;
-
-export type OrganizationPostingAttendanceResponse = {
-  posting: Pick<OrganizationPostingWithoutVectors, 'id' | 'title' | 'location_name'>;
-  enrollments: PostingEnrollment[];
-};
-
-export type OrganizationPostingAttendanceBulkUpdateResponse = {
-  updated_count: number;
-};
