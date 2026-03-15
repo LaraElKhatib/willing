@@ -2,10 +2,10 @@ import { Router, Response } from 'express';
 import { sql } from 'kysely';
 import zod from 'zod';
 
+import attendanceRouter from './attendance.js';
 import {
   OrganizationPostingApplicationAcceptanceResponse,
   OrganizationPostingApplicationRejectionResponse,
-  OrganizationPostingEnrollmentAttendanceUpdateResponse,
   OrganizationPostingApplicationsReponse,
   OrganizationPostingCreateResponse,
   OrganizationPostingDeleteResponse,
@@ -14,6 +14,7 @@ import {
   OrganizationPostingResponse,
   OrganizationPostingUpdateResponse,
 } from './posting.types.js';
+import { getPostingEnrollments } from './postingEnrollments.js';
 import database from '../../../db/index.js';
 import {
   newOrganizationPostingSchema,
@@ -61,9 +62,6 @@ const areDatesEqual = (left: Date | undefined, right: Date | undefined) => (left
 
 const postingIdParamsSchema = zod.object({
   id: zod.coerce.number().int().positive('ID must be a positive number'),
-});
-const attendanceUpdateBodySchema = zod.object({
-  attended: zod.boolean(),
 });
 
 const assertCrisisExists = async (crisisId: number, res: Response) => {
@@ -242,7 +240,7 @@ postingRouter.get('/:id/enrollments', async (req, res: Response<OrganizationPost
 
   const posting = await database
     .selectFrom('organization_posting')
-    .select(['id'])
+    .select(['id', 'start_timestamp', 'end_timestamp'])
     .where('organization_posting.id', '=', postingId)
     .where('organization_posting.organization_id', '=', orgId)
     .executeTakeFirst();
@@ -251,89 +249,8 @@ postingRouter.get('/:id/enrollments', async (req, res: Response<OrganizationPost
     res.status(404);
     throw new Error('Posting not found');
   }
-
-  const enrollments = await database
-    .selectFrom('enrollment')
-    .innerJoin('volunteer_account', 'volunteer_account.id', 'enrollment.volunteer_id')
-    .select([
-      'enrollment.id as enrollment_id',
-      'enrollment.volunteer_id',
-      'enrollment.message',
-      'enrollment.attended',
-      'volunteer_account.first_name',
-      'volunteer_account.last_name',
-      'volunteer_account.email',
-      'volunteer_account.date_of_birth',
-      'volunteer_account.gender',
-    ])
-    .where('enrollment.posting_id', '=', postingId)
-    .execute();
-
-  const volunteerIds = enrollments.map(e => e.volunteer_id);
-  const skills = volunteerIds.length > 0
-    ? await database
-        .selectFrom('volunteer_skill')
-        .selectAll()
-        .where('volunteer_id', 'in', volunteerIds)
-        .execute()
-    : [];
-
-  const skillsByVolunteerId = new Map<number, typeof skills>();
-  skills.forEach((skill) => {
-    if (!skillsByVolunteerId.has(skill.volunteer_id)) {
-      skillsByVolunteerId.set(skill.volunteer_id, []);
-    }
-    skillsByVolunteerId.get(skill.volunteer_id)!.push(skill);
-  });
-
-  const enrollmentsWithSkills = enrollments.map(enrollment => ({
-    ...enrollment,
-    skills: skillsByVolunteerId.get(enrollment.volunteer_id) || [],
-  }));
-
-  res.json({ enrollments: enrollmentsWithSkills });
-});
-
-postingRouter.patch('/:id/enrollments/:enrollmentId/attendance', async (req, res: Response<OrganizationPostingEnrollmentAttendanceUpdateResponse>) => {
-  const orgId = req.userJWT!.id;
-  const { id: postingId, enrollmentId } = zod.object({
-    id: zod.coerce.number().int().positive(),
-    enrollmentId: zod.coerce.number().int().positive(),
-  }).parse(req.params);
-  const body = attendanceUpdateBodySchema.parse(req.body);
-
-  const posting = await database
-    .selectFrom('organization_posting')
-    .select(['id'])
-    .where('organization_posting.id', '=', postingId)
-    .where('organization_posting.organization_id', '=', orgId)
-    .executeTakeFirst();
-
-  if (!posting) {
-    res.status(404);
-    throw new Error('Posting not found');
-  }
-
-  const enrollment = await database
-    .selectFrom('enrollment')
-    .select(['id', 'volunteer_id', 'posting_id'])
-    .where('id', '=', enrollmentId)
-    .executeTakeFirst();
-
-  if (!enrollment || enrollment.posting_id !== postingId) {
-    res.status(404);
-    throw new Error('Enrollment not found');
-  }
-
-  await database
-    .updateTable('enrollment')
-    .set({ attended: body.attended })
-    .where('id', '=', enrollmentId)
-    .execute();
-
-  await recomputeVolunteerExperienceVector(enrollment.volunteer_id);
-
-  res.json({});
+  const enrollments = await getPostingEnrollments(postingId);
+  res.json({ enrollments });
 });
 
 postingRouter.put('/:id', async (req, res: Response<OrganizationPostingUpdateResponse>) => {
@@ -634,7 +551,7 @@ postingRouter.post('/:id/applications/:applicationId/accept', async (req, res: R
         volunteer_id: application.volunteer_id,
         posting_id: application.posting_id,
         message: application.message ?? undefined,
-        attended: false,
+        attended: true,
       })
       .returningAll()
       .executeTakeFirst();
@@ -733,5 +650,7 @@ postingRouter.delete('/:id/applications/:applicationId', async (req, res: Respon
 
   res.json({});
 });
+
+postingRouter.use(attendanceRouter);
 
 export default postingRouter;
