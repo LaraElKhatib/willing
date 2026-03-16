@@ -125,7 +125,7 @@ export const organizationAccountSchema = zod.object({
   email: zod.email('Invalid email').transform(val => val.toLowerCase().trim()),
   phone_number: zod.e164('Phone number is invalid'),
   url: organizationWebsiteSchema,
-  description: zod.string().max(500, 'Description must be less than 500 characters').optional(),
+  description: zod.string().max(300, 'Description must be less than 300 characters').optional(),
   latitude: zod
     .number()
     .min(-90, { message: 'Latitude must be >= -90' })

@@ -1,4 +1,4 @@
-import { MapPin, Globe, Mail, Phone } from 'lucide-react';
+import { MapPin, Globe, Mail, Phone, Building2 } from 'lucide-react';
 import { useParams } from 'react-router-dom';
 
 import ColumnLayout from '../components/layout/ColumnLayout';
@@ -85,6 +85,23 @@ function OrganizationProfile() {
                       <div className="divider my-4" />
 
                       <div className="space-y-4">
+                        {data.organization.description && (
+                          <div className="flex gap-3">
+                            <Building2
+                              size={20}
+                              className="text-primary shrink-0 mt-0.5"
+                            />
+                            <div className="flex-1">
+                              <p className="text-xs opacity-70 font-semibold mb-0.5">
+                                DESCRIPTION
+                              </p>
+                              <p className="text-sm whitespace-pre-wrap break-words">
+                                {data.organization.description}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
                         {data.organization.location_name && (
                           <div className="flex gap-3">
                             <MapPin

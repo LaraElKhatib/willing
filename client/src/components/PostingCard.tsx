@@ -72,7 +72,7 @@ function PostingCard({ posting, applicationStatus = 'none', showCrisis = true }:
                     </Link>
                   </h3>
                   <p className="text-xs mt-1">
-                    <Link to={`/organization/${posting.organization_id}`} className="text-primary">
+                    <Link to={`/organization/${posting.organization_id}`} className="link link-primary link-hover no-underline hover:underline">
                       {posting.organization_name}
                     </Link>
                   </p>
