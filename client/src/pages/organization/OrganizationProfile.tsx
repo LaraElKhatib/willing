@@ -15,6 +15,8 @@ import requestServer from '../../utils/requestServer';
 
 import type { OrganizationMeResponse } from '../../../../server/src/api/types';
 
+const ORG_DESCRIPTION_MAX_LENGTH = 300;
+
 const profileFormSchema = organizationAccountSchema.omit({
   id: true,
   password: true,
@@ -311,14 +313,28 @@ function OrganizationProfile() {
                         <FormField form={form} name="location_name" label="Location Name" Icon={MapPin} />
 
                         <div className="md:col-span-2">
-                          <FormField
-                            form={form}
-                            name="description"
-                            label="Organization Description"
-                            type="textarea"
-                            Icon={Building2}
+                          <label className="text-sm font-medium mb-2 block">Organization Description</label>
+                          <textarea
+                            id="organization-description"
+                            className="textarea textarea-bordered w-full"
+                            {...form.register('description')}
+                            disabled={saving}
+                            rows={5}
+                            maxLength={ORG_DESCRIPTION_MAX_LENGTH}
                             placeholder="Describe your organization and impact."
                           />
+                          <p
+                            className={`block min-h-5 text-xs mt-1 ${
+                              form.formState.errors.description ? 'text-error' : 'invisible'
+                            }`}
+                          >
+                            {form.formState.errors.description?.message || 'placeholder'}
+                          </p>
+                          <p className="text-xs opacity-60 mt-1 text-right">
+                            {formValues.description?.length || 0}
+                            /
+                            {ORG_DESCRIPTION_MAX_LENGTH}
+                          </p>
                         </div>
 
                         <div className="md:col-span-2">
