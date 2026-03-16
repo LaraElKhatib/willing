@@ -516,6 +516,16 @@ volunteerPostingRouter.post('/:id/enroll', async (req, res: Response<VolunteerPo
 
       return createdEnrollment;
     });
+    enrollment = await database
+      .insertInto('enrollment')
+      .values({
+        volunteer_id: volunteerId,
+        posting_id: id,
+        message: message ?? undefined,
+        attended: true,
+      })
+      .returningAll()
+      .executeTakeFirst();
   } else {
     enrollment = await database.transaction().execute(async (trx) => {
       const lockedPosting = await trx

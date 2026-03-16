@@ -35,5 +35,3 @@ export type OrganizationPostingApplicationsReponse = {
 export type OrganizationPostingApplicationAcceptanceResponse = SuccessResponse;
 
 export type OrganizationPostingApplicationRejectionResponse = SuccessResponse;
-
-export type OrganizationPostingEnrollmentAttendanceUpdateResponse = SuccessResponse;
