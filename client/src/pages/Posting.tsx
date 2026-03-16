@@ -92,6 +92,7 @@ function PostingPage() {
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [isSaveMessageVisible, setIsSaveMessageVisible] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [postingIsFull, setPostingIsFull] = useState(false);
   const [postingOrganization, setPostingOrganization] = useState<{ id: number; name: string } | null>(null);
 
   const form = useForm<OrganizationPostingFormData>({
@@ -211,6 +212,7 @@ function PostingPage() {
         setEnrollments([]);
         setHasPendingApplication(postingResponse.hasPendingApplication);
         setIsEnrolled(postingResponse.isEnrolled);
+        setPostingIsFull(postingResponse.is_full);
         setSkills(postingResponse.skills.map(s => s.name));
         setSelectedCrisisId(postingResponse.posting.crisis_id ?? undefined);
         setPosition([
@@ -265,6 +267,7 @@ function PostingPage() {
       setPosting(postingWithSkills);
       setCurrentPostingCrisis(postingResponse.crisis);
       setEnrollments(enrollmentsResponse.enrollments);
+      setPostingIsFull(postingResponse.is_full);
 
       if (!postingResponse.posting.automatic_acceptance) {
         const applicationsResponse = await requestServer<OrganizationPostingApplicationsReponse>(
@@ -624,6 +627,12 @@ function PostingPage() {
     if (isVolunteerView || !posting) return false;
     return new Date() >= new Date(posting.start_timestamp);
   }, [isVolunteerView, posting]);
+
+  const isPostingFull = useMemo(() => {
+    if (isVolunteerView) return postingIsFull;
+    if (!posting?.max_volunteers) return false;
+    return enrollments.length >= posting.max_volunteers;
+  }, [isVolunteerView, postingIsFull, posting?.max_volunteers, enrollments.length]);
 
   if (loading) {
     return (
@@ -996,7 +1005,7 @@ function PostingPage() {
                       : (
                           <span className={`badge gap-2 ${posting?.is_closed ? 'badge-error' : isOpen ? 'badge-primary' : 'badge-secondary'}`}>
                             {posting?.is_closed ? <Lock size={12} /> : isOpen ? <LockOpen size={12} /> : <Lock size={12} />}
-                            {posting?.is_closed ? 'Closed' : isOpen ? 'Open' : 'Review Based'}
+                            {posting?.is_closed ? 'Closed' : isPostingFull ? 'Full' : isOpen ? 'Open' : 'Review Based'}
                           </span>
                         )}
                     <p className="text-xs opacity-70 mt-2">

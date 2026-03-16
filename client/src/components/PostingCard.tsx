@@ -31,6 +31,7 @@ function PostingCard({ posting, applicationStatus = 'none', showCrisis = true }:
 
   const volunteerFilled = posting.enrollment_count ?? 0;
   const volunteerPercent = posting.max_volunteers ? Math.round((volunteerFilled / posting.max_volunteers) * 100) : 0;
+  const isPostingFull = Boolean(posting.max_volunteers && volunteerFilled >= posting.max_volunteers);
   let radialColor = 'text-primary';
   if (volunteerPercent >= 100) radialColor = 'text-error';
   else if (volunteerPercent > 70) radialColor = 'text-warning';
@@ -112,19 +113,26 @@ function PostingCard({ posting, applicationStatus = 'none', showCrisis = true }:
                         Registered
                       </span>
                     )
-                  : posting.automatic_acceptance
+                  : isPostingFull
                     ? (
-                        <span className="badge badge-primary inline-flex items-center gap-2">
-                          <LockOpen size={14} />
-                          Open
+                        <span className="badge badge-error inline-flex items-center gap-2">
+                          <Users size={14} />
+                          Full
                         </span>
                       )
-                    : (
-                        <span className="badge badge-secondary inline-flex items-center gap-2">
-                          <Clock size={14} />
-                          Review based
-                        </span>
-                      )
+                    : posting.automatic_acceptance
+                      ? (
+                          <span className="badge badge-primary inline-flex items-center gap-2">
+                            <LockOpen size={14} />
+                            Open
+                          </span>
+                        )
+                      : (
+                          <span className="badge badge-secondary inline-flex items-center gap-2">
+                            <Clock size={14} />
+                            Review based
+                          </span>
+                        )
           }
         </div>
       </div>
