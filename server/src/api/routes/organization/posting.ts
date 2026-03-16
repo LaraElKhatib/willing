@@ -59,6 +59,9 @@ const areSkillListsEqual = (left: string[], right: string[]) => {
   return left.every((value, index) => value === right[index]);
 };
 const areDatesEqual = (left: Date | undefined, right: Date | undefined) => (left?.getTime() ?? null) === (right?.getTime() ?? null);
+const isPostingFull = (maxVolunteers: number | undefined, enrollmentCount: number) => maxVolunteers !== undefined
+  && maxVolunteers !== null
+  && enrollmentCount >= maxVolunteers;
 
 const postingIdParamsSchema = zod.object({
   id: zod.coerce.number().int().positive('ID must be a positive number'),
@@ -193,11 +196,16 @@ postingRouter.get('/', async (req, res: Response<OrganizationPostingListResponse
     countsByPostingId.set(row.posting_id, Number(row.count ?? 0));
   });
 
-  const postingsWithSkills = postings.map(posting => ({
-    ...posting,
-    skills: skillsByPostingId.get(posting.id) || [],
-    enrollment_count: countsByPostingId.get(posting.id) ?? 0,
-  }));
+  const postingsWithSkills = postings.map((posting) => {
+    const enrollmentCount = countsByPostingId.get(posting.id) ?? 0;
+
+    return {
+      ...posting,
+      skills: skillsByPostingId.get(posting.id) || [],
+      enrollment_count: enrollmentCount,
+      is_full: isPostingFull(posting.max_volunteers, enrollmentCount),
+    };
+  });
 
   res.json({ postings: postingsWithSkills });
 });
@@ -218,18 +226,26 @@ postingRouter.get('/:id', async (req, res: Response<OrganizationPostingResponse>
     throw new Error('Posting not found');
   }
 
-  const [skills, crisis] = await Promise.all([
+  const [skills, crisis, enrollmentCountRow] = await Promise.all([
     database
       .selectFrom('posting_skill')
       .selectAll()
       .where('posting_id', '=', postingId)
       .execute(),
     getPostingCrisis(posting.crisis_id),
+    database
+      .selectFrom('enrollment')
+      .select(sql<number>`count(enrollment.id)`.as('count'))
+      .where('posting_id', '=', postingId)
+      .executeTakeFirst(),
   ]);
+
+  const enrollmentCount = Number(enrollmentCountRow?.count ?? 0);
 
   res.json({
     posting,
     skills,
+    is_full: isPostingFull(posting.max_volunteers, enrollmentCount),
     ...(crisis ? { crisis } : {}),
   });
 });
@@ -421,7 +437,7 @@ postingRouter.get('/:id/applications', async (req, res: Response<OrganizationPos
 
   const posting = await database
     .selectFrom('organization_posting')
-    .select(['id', 'automatic_acceptance'])
+    .select(['id', 'automatic_acceptance', 'is_closed', 'max_volunteers'])
     .where('organization_posting.id', '=', postingId)
     .where('organization_posting.organization_id', '=', orgId)
     .executeTakeFirst();
@@ -488,7 +504,7 @@ postingRouter.post('/:id/applications/:applicationId/accept', async (req, res: R
 
   const posting = await database
     .selectFrom('organization_posting')
-    .select(['id', 'automatic_acceptance'])
+    .select(['id', 'automatic_acceptance', 'is_closed', 'max_volunteers'])
     .where('organization_posting.id', '=', postingId)
     .where('organization_posting.organization_id', '=', orgId)
     .executeTakeFirst();
@@ -545,6 +561,19 @@ postingRouter.post('/:id/applications/:applicationId/accept', async (req, res: R
     throw new Error('Application not found');
   }
   await database.transaction().execute(async (trx) => {
+    const lockedPosting = await trx
+      .selectFrom('organization_posting')
+      .select(['id', 'is_closed', 'max_volunteers'])
+      .where('id', '=', postingId)
+      .where('organization_id', '=', orgId)
+      .forUpdate()
+      .executeTakeFirst();
+
+    if (!lockedPosting) {
+      res.status(404);
+      throw new Error('Posting not found');
+    }
+
     const enrollment = await trx
       .insertInto('enrollment')
       .values({

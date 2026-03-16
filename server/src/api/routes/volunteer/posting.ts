@@ -55,6 +55,10 @@ function calculateAge(dateOfBirth: string, at: Date = new Date()): number | null
   return age;
 }
 
+function isPostingFull(maxVolunteers: number | undefined, enrollmentCount: number): boolean {
+  return maxVolunteers !== undefined && maxVolunteers !== null && enrollmentCount >= maxVolunteers;
+}
+
 volunteerPostingRouter.use(authorizeOnly('volunteer'));
 
 volunteerPostingRouter.get('/', async (req, res: Response<VolunteerPostingSearchResponse>) => {
@@ -213,11 +217,16 @@ volunteerPostingRouter.get('/', async (req, res: Response<VolunteerPostingSearch
     countsByPostingId.set(r.posting_id, Number(r.count ?? 0));
   });
 
-  const postingWithSkills = postings.map(posting => ({
-    ...posting,
-    skills: skillsByPostingId.get(posting.id) || [],
-    enrollment_count: countsByPostingId.get(posting.id) ?? 0,
-  }));
+  const postingWithSkills = postings.map((posting) => {
+    const enrollmentCount = countsByPostingId.get(posting.id) ?? 0;
+
+    return {
+      ...posting,
+      skills: skillsByPostingId.get(posting.id) || [],
+      enrollment_count: enrollmentCount,
+      is_full: isPostingFull(posting.max_volunteers, enrollmentCount),
+    };
+  });
 
   res.json({ postings: postingWithSkills });
 });
@@ -296,13 +305,18 @@ volunteerPostingRouter.get('/enrollments', async (req, res: Response<VolunteerEn
 
   const postings = Array.from(postingsMap.values())
     .sort((a, b) => new Date(a.start_timestamp).getTime() - new Date(b.start_timestamp).getTime())
-    .map(posting => ({
-      ...posting,
-      skills: skillsByPostingId.get(posting.id) ?? [],
-      status: statusMap.get(posting.id) as 'enrolled' | 'pending',
-      enrollment_count: countsByPostingId.get(posting.id) ?? 0,
-      crisis_name: posting.crisis_name ?? null,
-    }));
+    .map((posting) => {
+      const enrollmentCount = countsByPostingId.get(posting.id) ?? 0;
+
+      return {
+        ...posting,
+        skills: skillsByPostingId.get(posting.id) ?? [],
+        status: statusMap.get(posting.id) as 'enrolled' | 'pending',
+        enrollment_count: enrollmentCount,
+        is_full: isPostingFull(posting.max_volunteers, enrollmentCount),
+        crisis_name: posting.crisis_name ?? null,
+      };
+    });
 
   res.json({ postings });
 });
@@ -327,7 +341,7 @@ volunteerPostingRouter.get('/:id', async (req, res: Response<VolunteerPostingRes
     throw new Error('Posting not found');
   }
 
-  const [skills, pendingApplication, existingEnrollment] = await Promise.all([
+  const [skills, pendingApplication, existingEnrollment, enrollmentCountRow] = await Promise.all([
     database
       .selectFrom('posting_skill')
       .selectAll()
@@ -345,13 +359,21 @@ volunteerPostingRouter.get('/:id', async (req, res: Response<VolunteerPostingRes
       .where('posting_id', '=', id)
       .where('volunteer_id', '=', volunteerId)
       .executeTakeFirst(),
+    database
+      .selectFrom('enrollment')
+      .select(sql<number>`count(enrollment.id)`.as('count'))
+      .where('posting_id', '=', id)
+      .executeTakeFirst(),
   ]);
+
+  const enrollmentCount = Number(enrollmentCountRow?.count ?? 0);
 
   res.json({
     posting,
     skills,
     hasPendingApplication: Boolean(pendingApplication),
     isEnrolled: Boolean(existingEnrollment),
+    is_full: isPostingFull(posting.max_volunteers, enrollmentCount),
   });
 });
 
@@ -363,7 +385,7 @@ volunteerPostingRouter.post('/:id/enroll', async (req, res: Response<VolunteerPo
   const [posting, volunteer] = await Promise.all([
     database
       .selectFrom('organization_posting')
-      .select(['id', 'automatic_acceptance', 'is_closed', 'minimum_age'])
+      .select(['id', 'automatic_acceptance', 'is_closed', 'minimum_age', 'max_volunteers'])
       .where('id', '=', id)
       .executeTakeFirst(),
     database
@@ -386,6 +408,19 @@ volunteerPostingRouter.post('/:id/enroll', async (req, res: Response<VolunteerPo
   if (!volunteer) {
     res.status(404);
     throw new Error('Volunteer not found');
+  }
+
+  if (posting.max_volunteers !== undefined && posting.max_volunteers !== null) {
+    const enrollmentCountRow = await database
+      .selectFrom('enrollment')
+      .select(sql<number>`count(enrollment.id)`.as('count'))
+      .where('posting_id', '=', id)
+      .executeTakeFirst();
+
+    if (Number(enrollmentCountRow?.count ?? 0) >= posting.max_volunteers) {
+      res.status(403);
+      throw new Error('This posting has reached the maximum number of volunteers');
+    }
   }
 
   if (posting.minimum_age !== undefined && posting.minimum_age !== null) {
@@ -425,26 +460,105 @@ volunteerPostingRouter.post('/:id/enroll', async (req, res: Response<VolunteerPo
   let enrollment: Enrollment | EnrollmentApplication | undefined;
 
   if (posting.automatic_acceptance) {
-    enrollment = await database
-      .insertInto('enrollment')
-      .values({
-        volunteer_id: volunteerId,
-        posting_id: id,
-        message: message ?? undefined,
-        attended: true,
-      })
-      .returningAll()
-      .executeTakeFirst();
+    enrollment = await database.transaction().execute(async (trx) => {
+      const lockedPosting = await trx
+        .selectFrom('organization_posting')
+        .select(['id', 'is_closed', 'max_volunteers'])
+        .where('id', '=', id)
+        .forUpdate()
+        .executeTakeFirst();
+
+      if (!lockedPosting) {
+        res.status(404);
+        throw new Error('Posting not found');
+      }
+
+      if (lockedPosting.is_closed) {
+        res.status(403);
+        throw new Error('This posting is closed and no longer accepting applications');
+      }
+
+      let currentEnrollmentCount = 0;
+      if (lockedPosting.max_volunteers !== undefined && lockedPosting.max_volunteers !== null) {
+        const enrollmentCountRow = await trx
+          .selectFrom('enrollment')
+          .select(sql<number>`count(enrollment.id)`.as('count'))
+          .where('posting_id', '=', id)
+          .executeTakeFirst();
+
+        currentEnrollmentCount = Number(enrollmentCountRow?.count ?? 0);
+
+        if (currentEnrollmentCount >= lockedPosting.max_volunteers) {
+          res.status(403);
+          throw new Error('This posting has reached the maximum number of volunteers');
+        }
+      }
+
+      const createdEnrollment = await trx
+        .insertInto('enrollment')
+        .values({
+          volunteer_id: volunteerId,
+          posting_id: id,
+          message: message ?? undefined,
+          attended: false,
+        })
+        .returningAll()
+        .executeTakeFirst();
+
+      if (!createdEnrollment) {
+        throw new Error('Failed to create enrollment');
+      }
+
+      return createdEnrollment;
+    });
   } else {
-    enrollment = await database
-      .insertInto('enrollment_application')
-      .values({
-        volunteer_id: volunteerId,
-        posting_id: id,
-        message: message ?? undefined,
-      })
-      .returningAll()
-      .executeTakeFirst();
+    enrollment = await database.transaction().execute(async (trx) => {
+      const lockedPosting = await trx
+        .selectFrom('organization_posting')
+        .select(['id', 'is_closed', 'max_volunteers'])
+        .where('id', '=', id)
+        .forUpdate()
+        .executeTakeFirst();
+
+      if (!lockedPosting) {
+        res.status(404);
+        throw new Error('Posting not found');
+      }
+
+      if (lockedPosting.is_closed) {
+        res.status(403);
+        throw new Error('This posting is closed and no longer accepting applications');
+      }
+
+      if (lockedPosting.max_volunteers !== undefined && lockedPosting.max_volunteers !== null) {
+        const enrollmentCountRow = await trx
+          .selectFrom('enrollment')
+          .select(sql<number>`count(enrollment.id)`.as('count'))
+          .where('posting_id', '=', id)
+          .executeTakeFirst();
+
+        if (Number(enrollmentCountRow?.count ?? 0) >= lockedPosting.max_volunteers) {
+          res.status(403);
+          throw new Error('This posting has reached the maximum number of volunteers');
+        }
+      }
+
+      const createdApplication = await trx
+        .insertInto('enrollment_application')
+        .values({
+          volunteer_id: volunteerId,
+          posting_id: id,
+          message: message ?? undefined,
+        })
+        .returningAll()
+        .executeTakeFirst();
+
+      if (!createdApplication) {
+        throw new Error('Failed to create enrollment');
+      }
+
+      return createdApplication;
+    });
   }
 
   if (!enrollment) {
@@ -459,36 +573,42 @@ volunteerPostingRouter.delete('/:id/enroll', async (req, res: Response<Volunteer
   const volunteerId = req.userJWT!.id;
   const { id } = postingIdParamsSchema.parse(req.params);
 
-  const posting = await database
-    .selectFrom('organization_posting')
-    .select(['id', 'automatic_acceptance'])
-    .where('id', '=', id)
-    .executeTakeFirst();
+  const { existingEnrollment } = await database.transaction().execute(async (trx) => {
+    const posting = await trx
+      .selectFrom('organization_posting')
+      .select(['id', 'automatic_acceptance'])
+      .where('id', '=', id)
+      .forUpdate()
+      .executeTakeFirst();
 
-  if (!posting) {
-    res.status(404);
-    throw new Error('Posting not found');
-  }
+    if (!posting) {
+      res.status(404);
+      throw new Error('Posting not found');
+    }
 
-  const existingEnrollment = await database
-    .selectFrom('enrollment')
-    .select(['id', 'attended'])
-    .where('volunteer_id', '=', volunteerId)
-    .where('posting_id', '=', id)
-    .executeTakeFirst();
+    const existingEnrollment = await trx
+      .selectFrom('enrollment')
+      .select(['id', 'attended'])
+      .where('volunteer_id', '=', volunteerId)
+      .where('posting_id', '=', id)
+      .executeTakeFirst();
 
-  await Promise.all([
-    database
+    await trx
       .deleteFrom('enrollment')
       .where('volunteer_id', '=', volunteerId)
       .where('posting_id', '=', id)
-      .execute(),
-    !posting.automatic_acceptance && database
-      .deleteFrom('enrollment_application')
-      .where('volunteer_id', '=', volunteerId)
-      .where('posting_id', '=', id)
-      .execute(),
-  ]);
+      .execute();
+
+    if (!posting.automatic_acceptance) {
+      await trx
+        .deleteFrom('enrollment_application')
+        .where('volunteer_id', '=', volunteerId)
+        .where('posting_id', '=', id)
+        .execute();
+    }
+
+    return { existingEnrollment };
+  });
 
   if (existingEnrollment?.attended) {
     await recomputeVolunteerExperienceVector(volunteerId);
