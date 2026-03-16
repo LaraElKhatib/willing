@@ -4,6 +4,7 @@ import { useContext } from 'react';
 import { useForm } from 'react-hook-form';
 import zod from 'zod';
 
+import Alert from './Alert';
 import Loading from './Loading';
 import { passwordSchema } from '../../../server/src/db/tables';
 import AuthContext from '../auth/AuthContext';
@@ -65,10 +66,10 @@ function PasswordResetCard() {
 
           {form.formState.isSubmitSuccessful
             && (
-              <div role="alert" className="alert alert-success alert-soft mt-2">
+              <Alert role="alert" className="alert-success alert-soft mt-2">
                 <CheckCircle2 size={20} />
                 <span>Your password was successfully updated</span>
-              </div>
+              </Alert>
             )}
 
           <FormRootError form={form} />
