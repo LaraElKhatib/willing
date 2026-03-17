@@ -184,7 +184,7 @@ function OrganizationProfile() {
                     </div>
                   </div>
 
-                  {(data.organization.latitude && data.organization.longitude) && (
+                  {(data.organization.latitude != null && data.organization.longitude != null) && (
                     <div className="card bg-base-100 shadow-md border border-base-200">
                       <div className="card-body">
                         <h5 className="font-bold text-lg">Location</h5>
