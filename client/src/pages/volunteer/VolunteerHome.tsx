@@ -123,7 +123,7 @@ function VolunteerHome() {
                 ? <RailLoadingState />
                 : enrolledError
                   ? (
-                      <Alert className="alert-error">
+                      <Alert color="error">
                         <span>{enrolledError.message}</span>
                       </Alert>
                     )
@@ -138,7 +138,7 @@ function VolunteerHome() {
           {crisesLoading && <RailLoadingState />}
 
           {crisesError && (
-            <Alert className="alert-error">
+            <Alert color="error">
               <span>{crisesError.message}</span>
             </Alert>
           )}
@@ -178,7 +178,7 @@ function VolunteerHome() {
               ? <RailLoadingState />
               : allError
                 ? (
-                    <Alert className="alert-error">
+                    <Alert color="error">
                       <span>{allError.message}</span>
                     </Alert>
                   )

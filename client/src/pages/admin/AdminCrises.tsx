@@ -239,7 +239,7 @@ function AdminCrises() {
             </div>
 
             {editingError && (
-              <Alert role="alert" className="alert-error mb-3">
+              <Alert role="alert" color="error" className="mb-3">
                 <span>{editingError}</span>
               </Alert>
             )}
@@ -253,7 +253,7 @@ function AdminCrises() {
                 )
               : crises.length === 0
                 ? (
-                    <Alert className="alert-soft">
+                    <Alert style="soft">
                       <span>No crises added yet.</span>
                     </Alert>
                   )

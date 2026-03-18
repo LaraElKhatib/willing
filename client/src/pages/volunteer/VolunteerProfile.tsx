@@ -339,7 +339,7 @@ function VolunteerProfile() {
     return (
       <div className="grow bg-base-200">
         <div className="p-6 md:container mx-auto">
-          <Alert role="alert" className="alert-error">
+          <Alert role="alert" color="error">
             <span>{fetchError}</span>
           </Alert>
           <button className="btn btn-outline mt-4" onClick={loadProfile}>
@@ -354,7 +354,7 @@ function VolunteerProfile() {
     return (
       <div className="grow bg-base-200">
         <div className="p-6 md:container mx-auto">
-          <Alert role="alert" className="alert-warning">
+          <Alert role="alert" color="warning">
             <span>Profile not found.</span>
           </Alert>
         </div>
@@ -397,7 +397,8 @@ function VolunteerProfile() {
         {saveMessage && (
           <Alert
             role="alert"
-            className={`alert-success mt-4 transition-all duration-500 ${
+            color="success"
+            className={`mt-4 transition-all duration-500 ${
               isSaveMessageVisible
                 ? 'opacity-100 translate-y-0'
                 : 'opacity-0 -translate-y-1'
@@ -408,7 +409,7 @@ function VolunteerProfile() {
         )}
 
         {saveError && (
-          <Alert role="alert" className="alert-error mt-4">
+          <Alert role="alert" color="error" className="mt-4">
             <span>{saveError}</span>
           </Alert>
         )}
@@ -567,7 +568,7 @@ function VolunteerProfile() {
                 <p className="text-sm opacity-70 mt-1">
                   This section will show your past volunteering experiences completed through the platform.
                 </p>
-                <Alert className="alert-soft mt-4">
+                <Alert style="soft" className="mt-4">
                   <span className="text-sm">No experiences to show yet.</span>
                 </Alert>
               </div>
@@ -610,7 +611,7 @@ function VolunteerProfile() {
                         </div>
                       )
                     : (
-                        <Alert className="alert-soft">
+                        <Alert style="soft">
                           <span className="text-sm">No CV uploaded yet.</span>
                         </Alert>
                       )}

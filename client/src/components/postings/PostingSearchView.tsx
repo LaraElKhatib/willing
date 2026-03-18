@@ -222,7 +222,7 @@ function PostingSearchView({
       </div>
 
       {error && (
-        <Alert className="alert-error mb-4">
+        <Alert color="error" className="mb-4">
           <span>{error}</span>
         </Alert>
       )}

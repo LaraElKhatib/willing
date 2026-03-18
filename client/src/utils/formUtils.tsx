@@ -137,8 +137,12 @@ export function FormRootError<T extends FieldValues>({
   if (!error) return null;
 
   return (
-    <Alert className="alert-error alert-soft mt-2 shadow-sm py-3 transition-all animate-in fade-in slide-in-from-top-1">
-      <AlertCircle size={20} />
+    <Alert
+      color="error"
+      icon={AlertCircle}
+      style="soft"
+      className="mt-2 shadow-sm py-3 transition-all animate-in fade-in slide-in-from-top-1"
+    >
       <span className="text-sm font-medium">
         {error.message as string}
       </span>

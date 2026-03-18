@@ -651,7 +651,7 @@ function PostingPage() {
     return (
       <div className="grow bg-base-200">
         <div className="p-6 md:container mx-auto">
-          <Alert role="alert" className="alert-error">
+          <Alert role="alert" color="error">
             <span>{fetchError}</span>
           </Alert>
           <button className="btn btn-outline mt-4" onClick={loadPosting}>Retry</button>
@@ -664,7 +664,7 @@ function PostingPage() {
     return (
       <div className="grow bg-base-200">
         <div className="p-6 md:container mx-auto">
-          <Alert role="alert" className="alert-warning">
+          <Alert role="alert" color="warning">
             <span>Posting not found.</span>
           </Alert>
           <button className="btn btn-outline mt-4" onClick={() => navigate('/organization')}>
@@ -741,7 +741,8 @@ function PostingPage() {
           {saveMessage && (
             <Alert
               role="alert"
-              className={`alert-success mb-4 transition-all duration-500 ${
+              color="success"
+              className={`mb-4 transition-all duration-500 ${
                 isSaveMessageVisible
                   ? 'opacity-100 translate-y-0'
                   : 'opacity-0 -translate-y-1'
@@ -752,7 +753,7 @@ function PostingPage() {
           )}
 
           {saveError && (
-            <Alert role="alert" className="alert-error mb-4">
+            <Alert role="alert" color="error" className="mb-4">
               <span>{saveError}</span>
             </Alert>
           )}

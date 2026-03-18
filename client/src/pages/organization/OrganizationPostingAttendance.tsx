@@ -229,7 +229,7 @@ function OrganizationPostingAttendance() {
     return (
       <div className="grow bg-base-200">
         <div className="p-6 md:container mx-auto">
-          <Alert role="alert" className="alert-error mb-4">
+          <Alert role="alert" color="error" className="mb-4">
             <span>{error}</span>
           </Alert>
           <button className="btn btn-outline" onClick={() => void loadAttendance()}>
@@ -298,13 +298,13 @@ function OrganizationPostingAttendance() {
         />
 
         {error && (
-          <Alert role="alert" className="alert-error mt-4">
+          <Alert role="alert" color="error" className="mt-4">
             <span>{error}</span>
           </Alert>
         )}
 
         {message && (
-          <Alert role="alert" className="alert-success mt-4">
+          <Alert role="alert" color="success" className="mt-4">
             <span>{message}</span>
           </Alert>
         )}

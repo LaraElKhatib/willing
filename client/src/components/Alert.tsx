@@ -1,14 +1,24 @@
+import type { LucideIcon } from 'lucide-react';
 import type { HTMLAttributes, ReactNode } from 'react';
 
-type AlertProps = HTMLAttributes<HTMLDivElement> & {
+type AlertColor = 'primary' | 'secondary' | 'accent' | 'neutral' | 'info' | 'success' | 'warning' | 'error';
+type AlertStyle = 'normal' | 'soft' | 'outline';
+
+type AlertProps = Omit<HTMLAttributes<HTMLDivElement>, 'style'> & {
+  color?: AlertColor;
+  icon?: LucideIcon;
+  style?: AlertStyle;
   children: ReactNode;
 };
 
-function Alert({ children, className, ...props }: AlertProps) {
-  const alertClassName = ['alert', className].filter(Boolean).join(' ');
+function Alert({ color, icon: Icon, style = 'normal', children, className, ...props }: AlertProps) {
+  const colorClassName = color ? `alert-${color}` : '';
+  const styleClassName = style === 'soft' ? 'alert-soft' : style === 'outline' ? 'alert-outline' : '';
+  const alertClassName = ['alert', colorClassName, styleClassName, className].filter(Boolean).join(' ');
 
   return (
     <div className={alertClassName} {...props}>
+      {Icon && <Icon size={20} />}
       {children}
     </div>
   );
