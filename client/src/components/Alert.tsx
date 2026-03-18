@@ -11,7 +11,7 @@ type AlertProps = Omit<HTMLAttributes<HTMLDivElement>, 'style'> & {
   children: ReactNode;
 };
 
-function Alert({ color, icon: Icon, style = 'normal', role = 'alert', children, className, ...props }: AlertProps) {
+function Alert({ color, icon: Icon, style = 'soft', role = 'alert', children, className, ...props }: AlertProps) {
   const colorClassName = color ? `alert-${color}` : '';
   const styleClassName = style === 'soft' ? 'alert-soft' : style === 'outline' ? 'alert-outline' : '';
   const alertClassName = ['alert', 'shadow-sm', colorClassName, styleClassName, className].filter(Boolean).join(' ');
