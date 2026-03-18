@@ -24,7 +24,7 @@ import {
 import {
   recomputePostingVectors,
   recomputeVolunteerExperienceVector,
-} from '../../../services/embeddings/embeddingUpdateService.js';
+} from '../../../services/embeddings/updates.js';
 import {
   sendVolunteerApplicationAcceptedEmail,
   sendVolunteerApplicationRejectedEmail,
