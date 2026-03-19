@@ -1,19 +1,28 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Building2, Mail, MapPin, Phone } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Building2, ImageUp, Mail, MapPin, Phone, ShieldCheck, Trash2 } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
-import { organizationAccountSchema } from '../../../../server/src/db/tables';
+import { newOrganizationCertificateInfoSchema, organizationAccountSchema } from '../../../../server/src/db/tables';
 import { useOrganization } from '../../auth/useUsers';
 import ColumnLayout from '../../components/layout/ColumnLayout';
 import PageHeader from '../../components/layout/PageHeader';
 import Loading from '../../components/Loading';
 import LocationPicker from '../../components/LocationPicker';
+import { ToggleButton } from '../../components/ToggleButton';
 import { executeAndShowError, FormField, FormRootError } from '../../utils/formUtils';
-import requestServer from '../../utils/requestServer';
+import requestServer, { SERVER_BASE_URL } from '../../utils/requestServer';
 
-import type { OrganizationMeResponse } from '../../../../server/src/api/types';
+import type {
+  DeleteCertificateSignatureResponse,
+  GetCertificateInfoResponse,
+  OrganizationDeleteLogoResponse,
+  OrganizationMeResponse,
+  OrganizationUploadLogoResponse,
+  UpdateCertificateInfoResponse,
+  UploadCertificateSignatureResponse,
+} from '../../../../server/src/api/types';
 
 const ORG_DESCRIPTION_MAX_LENGTH = 300;
 
@@ -28,18 +37,81 @@ const profileFormSchema = organizationAccountSchema.omit({
   updated_at: true,
 });
 
+const certificateFormSchema = newOrganizationCertificateInfoSchema.pick({
+  certificate_feature_enabled: true,
+  signatory_name: true,
+  signatory_position: true,
+}).extend({
+  hours_threshold: z.preprocess(
+    (value) => {
+      if (value === '' || value === null || value === undefined) return null;
+      if (typeof value === 'number') return value;
+      return Number(value);
+    },
+    z.number().int().min(0, 'Hours threshold must be >= 0').nullable(),
+  ),
+  hasLogo: z.boolean(),
+  hasSignature: z.boolean(),
+}).superRefine((data, ctx) => {
+  if (!data.certificate_feature_enabled) return;
+
+  if (!data.hasLogo) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['certificate_feature_enabled'],
+      message: 'Organization profile picture is required to enable certificates.',
+    });
+  }
+  if (data.hours_threshold === null) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['hours_threshold'],
+      message: 'Hours threshold is required when certificate feature is enabled.',
+    });
+  }
+  if (!data.signatory_name?.trim()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['signatory_name'],
+      message: 'Signatory name is required when certificate feature is enabled.',
+    });
+  }
+  if (!data.signatory_position?.trim()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['signatory_position'],
+      message: 'Signatory position is required when certificate feature is enabled.',
+    });
+  }
+  if (!data.hasSignature) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['hasSignature'],
+      message: 'Signature image is required when certificate feature is enabled.',
+    });
+  }
+});
+
 type ProfileFormData = z.infer<typeof profileFormSchema>;
+type CertificateFormData = z.infer<typeof certificateFormSchema>;
 
 function OrganizationProfile() {
   const organizationFromAuth = useOrganization();
   const [profile, setProfile] = useState<OrganizationMeResponse | null>(null);
+  const [certificateInfo, setCertificateInfo] = useState<GetCertificateInfoResponse['certificateInfo']>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [isSaveMessageVisible, setIsSaveMessageVisible] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [position, setPosition] = useState<[number, number]>([33.90192863620578, 35.477959277880416]);
+  const [logoBusy, setLogoBusy] = useState(false);
+  const [signatureBusy, setSignatureBusy] = useState(false);
+  const [logoVersion, setLogoVersion] = useState(0);
+  const logoInputRef = useRef<HTMLInputElement | null>(null);
+  const signatureInputRef = useRef<HTMLInputElement | null>(null);
 
   const form = useForm<ProfileFormData>({
     resolver: zodResolver(profileFormSchema),
@@ -53,32 +125,70 @@ function OrganizationProfile() {
     },
   });
 
+  const certificateForm = useForm<CertificateFormData>({
+    resolver: zodResolver(certificateFormSchema),
+    mode: 'onTouched',
+    defaultValues: {
+      certificate_feature_enabled: false,
+      hours_threshold: null,
+      signatory_name: '',
+      signatory_position: '',
+      hasLogo: false,
+      hasSignature: false,
+    },
+  });
+
+  const resetFormsFromData = useCallback((
+    organizationResponse: OrganizationMeResponse,
+    certificateInfoResponse: GetCertificateInfoResponse['certificateInfo'],
+  ) => {
+    form.reset({
+      phone_number: organizationResponse.organization.phone_number,
+      description: organizationResponse.organization.description ?? '',
+      location_name: organizationResponse.organization.location_name,
+      latitude: organizationResponse.organization.latitude,
+      longitude: organizationResponse.organization.longitude,
+    });
+    certificateForm.reset({
+      certificate_feature_enabled: certificateInfoResponse?.certificate_feature_enabled ?? false,
+      hours_threshold: certificateInfoResponse?.hours_threshold ?? null,
+      signatory_name: certificateInfoResponse?.signatory_name ?? '',
+      signatory_position: certificateInfoResponse?.signatory_position ?? '',
+      hasLogo: Boolean(organizationResponse.organization.logo_path),
+      hasSignature: Boolean(certificateInfoResponse?.signature_path),
+    });
+    setPosition([
+      organizationResponse.organization.latitude ?? 33.90192863620578,
+      organizationResponse.organization.longitude ?? 35.477959277880416,
+    ]);
+  }, [form, certificateForm]);
+
   const loadProfile = useCallback(async () => {
     try {
       setLoading(true);
       setFetchError(null);
-      const response = await requestServer<OrganizationMeResponse>(
-        '/organization/me',
-        { includeJwt: true },
-      );
-      setProfile(response);
-      form.reset({
-        phone_number: response.organization.phone_number,
-        description: response.organization.description ?? '',
-        location_name: response.organization.location_name,
-        latitude: response.organization.latitude,
-        longitude: response.organization.longitude,
-      });
-      setPosition([
-        response.organization.latitude ?? 33.90192863620578,
-        response.organization.longitude ?? 35.477959277880416,
+      setSaveError(null);
+
+      const [organizationResponse, certificateResponse] = await Promise.all([
+        requestServer<OrganizationMeResponse>(
+          '/organization/me',
+          { includeJwt: true },
+        ),
+        requestServer<GetCertificateInfoResponse>(
+          '/organization/certificate-info',
+          { includeJwt: true },
+        ),
       ]);
+
+      setProfile(organizationResponse);
+      setCertificateInfo(certificateResponse.certificateInfo);
+      resetFormsFromData(organizationResponse, certificateResponse.certificateInfo);
     } catch (error) {
       setFetchError(error instanceof Error ? error.message : 'Failed to load organization profile');
     } finally {
       setLoading(false);
     }
-  }, [form]);
+  }, [resetFormsFromData]);
 
   useEffect(() => {
     loadProfile();
@@ -103,11 +213,17 @@ function OrganizationProfile() {
   }, [saveMessage]);
 
   const formValues = form.watch();
+  const certificateValues = certificateForm.watch();
 
   const initials = useMemo(() => {
     const words = (profile?.organization.name ?? '').trim().split(/\s+/).filter(Boolean);
     return words.slice(0, 2).map(word => word.charAt(0).toUpperCase()).join('');
   }, [profile?.organization.name]);
+
+  const logoUrl = useMemo(() => {
+    if (!profile?.organization.logo_path) return '';
+    return `${SERVER_BASE_URL}/organization/${profile.organization.id}/logo?v=${logoVersion}`;
+  }, [logoVersion, profile]);
 
   const onMapPositionPick = useCallback((coords: [number, number], name?: string) => {
     setPosition(coords);
@@ -119,43 +235,173 @@ function OrganizationProfile() {
     }
   }, [form]);
 
-  const onSave = form.handleSubmit(async (data) => {
+  const onUploadLogo = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setLogoBusy(true);
+      setSaveError(null);
+      setSaveMessage(null);
+
+      const formData = new FormData();
+      formData.append('logo', file);
+
+      const response = await requestServer<OrganizationUploadLogoResponse>(
+        '/organization/logo',
+        {
+          method: 'POST',
+          body: formData,
+          includeJwt: true,
+        },
+      );
+
+      setProfile(response);
+      certificateForm.setValue('hasLogo', true, { shouldValidate: true });
+      setLogoVersion(prev => prev + 1);
+      setSaveMessage('Profile picture uploaded.');
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'Failed to upload profile picture');
+    } finally {
+      setLogoBusy(false);
+      if (logoInputRef.current) logoInputRef.current.value = '';
+    }
+  };
+
+  const onDeleteLogo = async () => {
+    try {
+      setLogoBusy(true);
+      setSaveError(null);
+      setSaveMessage(null);
+
+      const response = await requestServer<OrganizationDeleteLogoResponse>(
+        '/organization/logo',
+        {
+          method: 'DELETE',
+          includeJwt: true,
+        },
+      );
+
+      setProfile(response);
+      certificateForm.setValue('hasLogo', false, { shouldValidate: true });
+      setLogoVersion(prev => prev + 1);
+      setSaveMessage('Profile picture removed.');
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'Failed to remove profile picture');
+    } finally {
+      setLogoBusy(false);
+    }
+  };
+
+  const onUploadSignature = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setSignatureBusy(true);
+      setSaveError(null);
+      setSaveMessage(null);
+
+      const formData = new FormData();
+      formData.append('signature', file);
+
+      const response = await requestServer<UploadCertificateSignatureResponse>(
+        '/organization/certificate-info/upload-signature',
+        {
+          method: 'POST',
+          body: formData,
+          includeJwt: true,
+        },
+      );
+
+      setCertificateInfo(response.certificateInfo);
+      certificateForm.setValue('hasSignature', true, { shouldValidate: true });
+      setSaveMessage('Certificate signature uploaded.');
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'Failed to upload signature');
+    } finally {
+      setSignatureBusy(false);
+      if (signatureInputRef.current) signatureInputRef.current.value = '';
+    }
+  };
+
+  const onDeleteSignature = async () => {
+    try {
+      setSignatureBusy(true);
+      setSaveError(null);
+      setSaveMessage(null);
+
+      await requestServer<DeleteCertificateSignatureResponse>(
+        '/organization/certificate-info/signature',
+        {
+          method: 'DELETE',
+          includeJwt: true,
+        },
+      );
+
+      setCertificateInfo(prev => prev ? { ...prev, signature_path: null } : prev);
+      certificateForm.setValue('hasSignature', false, { shouldValidate: true });
+      setSaveMessage('Certificate signature removed.');
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'Failed to remove signature');
+    } finally {
+      setSignatureBusy(false);
+    }
+  };
+
+  const onSave = form.handleSubmit(async (profileData) => {
     if (!isEditMode) return;
 
     await executeAndShowError(form, async () => {
+      const certificateIsValid = await certificateForm.trigger();
+      if (!certificateIsValid) {
+        throw new Error('Certificate settings are invalid.');
+      }
+
+      const certificateData = certificateFormSchema.parse(certificateForm.getValues());
+
       try {
         setSaving(true);
+        setSaveError(null);
         setSaveMessage(null);
 
-        const response = await requestServer<OrganizationMeResponse>(
-          '/organization/profile',
-          {
-            method: 'PUT',
-            body: {
-              phone_number: data.phone_number,
-              description: data.description,
-              location_name: data.location_name,
-              latitude: data.latitude,
-              longitude: data.longitude,
+        const [organizationResponse, certificateResponse] = await Promise.all([
+          requestServer<OrganizationMeResponse>(
+            '/organization/profile',
+            {
+              method: 'PUT',
+              body: {
+                phone_number: profileData.phone_number,
+                description: profileData.description,
+                location_name: profileData.location_name,
+                latitude: profileData.latitude,
+                longitude: profileData.longitude,
+              },
+              includeJwt: true,
             },
-            includeJwt: true,
-          },
-        );
-
-        setProfile(response);
-        form.reset({
-          phone_number: response.organization.phone_number,
-          description: response.organization.description ?? '',
-          location_name: response.organization.location_name,
-          latitude: response.organization.latitude,
-          longitude: response.organization.longitude,
-        });
-        setPosition([
-          response.organization.latitude ?? position[0],
-          response.organization.longitude ?? position[1],
+          ),
+          requestServer<UpdateCertificateInfoResponse>(
+            '/organization/certificate-info',
+            {
+              method: 'PUT',
+              body: {
+                certificate_feature_enabled: certificateData.certificate_feature_enabled,
+                hours_threshold: certificateData.hours_threshold,
+                signatory_name: certificateData.signatory_name?.trim() ? certificateData.signatory_name.trim() : null,
+                signatory_position: certificateData.signatory_position?.trim() ? certificateData.signatory_position.trim() : null,
+              },
+              includeJwt: true,
+            },
+          ),
         ]);
+
+        setProfile(organizationResponse);
+        setCertificateInfo(certificateResponse.certificateInfo);
+        resetFormsFromData(organizationResponse, certificateResponse.certificateInfo);
         setSaveMessage('Profile changes saved.');
         setIsEditMode(false);
+      } catch (error) {
+        setSaveError(error instanceof Error ? error.message : 'Failed to save profile');
       } finally {
         setSaving(false);
       }
@@ -164,22 +410,13 @@ function OrganizationProfile() {
 
   const onCancelEdit = useCallback(() => {
     if (!profile) return;
-
-    form.reset({
-      phone_number: profile.organization.phone_number,
-      description: profile.organization.description ?? '',
-      location_name: profile.organization.location_name,
-      latitude: profile.organization.latitude,
-      longitude: profile.organization.longitude,
-    });
-    setPosition([
-      profile.organization.latitude ?? 33.90192863620578,
-      profile.organization.longitude ?? 35.477959277880416,
-    ]);
+    resetFormsFromData(profile, certificateInfo);
     setIsEditMode(false);
+    setSaveError(null);
     setSaveMessage(null);
     form.clearErrors();
-  }, [form, profile]);
+    certificateForm.clearErrors();
+  }, [certificateForm, certificateInfo, form, profile, resetFormsFromData]);
 
   if (loading) {
     return (
@@ -259,7 +496,14 @@ function OrganizationProfile() {
           </div>
         )}
 
+        {saveError && (
+          <div role="alert" className="alert alert-error mt-4">
+            <span>{saveError}</span>
+          </div>
+        )}
+
         <FormRootError form={form} />
+        <FormRootError form={certificateForm} />
 
         <div className="mt-4">
           <ColumnLayout
@@ -267,8 +511,18 @@ function OrganizationProfile() {
               <div className="card bg-base-100 shadow-md mt-4">
                 <div className="card-body">
                   <div className="flex items-center gap-4">
-                    <div className="bg-primary text-primary-content rounded-full w-20 h-20 flex items-center justify-center">
-                      <span className="text-2xl">{initials || 'O'}</span>
+                    <div className="avatar">
+                      {logoUrl
+                        ? (
+                            <div className="rounded-full w-20">
+                              <img src={logoUrl} alt={`${profile.organization.name} logo`} />
+                            </div>
+                          )
+                        : (
+                            <div className="bg-primary text-primary-content rounded-full w-20 h-20 flex items-center justify-center">
+                              <span className="text-2xl">{initials || 'O'}</span>
+                            </div>
+                          )}
                     </div>
                     <div>
                       <h4 className="text-xl font-bold">{profile.organization.name || organizationFromAuth?.name || 'Organization'}</h4>
@@ -278,6 +532,38 @@ function OrganizationProfile() {
                       </span>
                     </div>
                   </div>
+
+                  {isEditMode && (
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <input
+                        ref={logoInputRef}
+                        type="file"
+                        accept="image/png,image/jpeg,image/jpg"
+                        className="hidden"
+                        onChange={onUploadLogo}
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-outline btn-sm gap-2"
+                        onClick={() => logoInputRef.current?.click()}
+                        disabled={logoBusy || saving}
+                      >
+                        <ImageUp size={14} />
+                        {logoBusy ? 'Uploading...' : 'Upload Picture'}
+                      </button>
+                      {profile.organization.logo_path && (
+                        <button
+                          type="button"
+                          className="btn btn-outline btn-error btn-sm gap-2"
+                          onClick={onDeleteLogo}
+                          disabled={logoBusy || saving}
+                        >
+                          <Trash2 size={14} />
+                          Remove Picture
+                        </button>
+                      )}
+                    </div>
+                  )}
 
                   <div className="divider my-4" />
 
@@ -386,17 +672,120 @@ function OrganizationProfile() {
               </div>
             </div>
 
-            {!isEditMode && (
-              <div className="card bg-base-100 shadow-md">
-                <div className="card-body">
-                  <h5 className="font-bold text-lg">Description</h5>
-                  <p className="text-sm opacity-80 leading-relaxed mt-1">
-                    {formValues.description?.trim() || 'No description added yet.'}
-                  </p>
-                </div>
-              </div>
-            )}
+            <div className="card bg-base-100 shadow-md">
+              <div className="card-body">
+                <h5 className="font-bold text-lg flex items-center gap-2">
+                  <ShieldCheck size={18} />
+                  Certificate Settings
+                </h5>
+                <p className="text-sm opacity-70 mt-1">
+                  Allow volunteers to include this organization on generated certificates.
+                </p>
 
+                {isEditMode
+                  ? (
+                      <div className={`mt-3 space-y-4 ${saving ? 'pointer-events-none opacity-70' : ''}`}>
+                        <ToggleButton
+                          form={certificateForm}
+                          name="certificate_feature_enabled"
+                          label="Enable Certificate Feature"
+                          compact={true}
+                          options={[
+                            { value: true, label: 'Enabled', btnColor: 'btn-primary' },
+                            { value: false, label: 'Disabled' },
+                          ]}
+                          disabled={saving}
+                        />
+                        {!profile.organization.logo_path && (
+                          <div role="alert" className="alert alert-warning">
+                            <span>Upload organization profile picture before enabling this feature.</span>
+                          </div>
+                        )}
+
+                        {certificateValues.certificate_feature_enabled && (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <FormField
+                              form={certificateForm}
+                              name="hours_threshold"
+                              label="Hours Threshold"
+                              type="number"
+                            />
+                            <FormField
+                              form={certificateForm}
+                              name="signatory_name"
+                              label="Signatory Name"
+                            />
+                            <FormField
+                              form={certificateForm}
+                              name="signatory_position"
+                              label="Signatory Position"
+                            />
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium block">Signature</label>
+                              <input
+                                ref={signatureInputRef}
+                                type="file"
+                                accept="image/png,image/jpeg,image/jpg"
+                                className="hidden"
+                                onChange={onUploadSignature}
+                              />
+                              <div className="flex flex-wrap gap-2">
+                                <button
+                                  type="button"
+                                  className="btn btn-outline btn-sm gap-2"
+                                  onClick={() => signatureInputRef.current?.click()}
+                                  disabled={signatureBusy || saving}
+                                >
+                                  <ImageUp size={14} />
+                                  {signatureBusy ? 'Uploading...' : 'Upload Signature'}
+                                </button>
+                                {certificateInfo?.signature_path && (
+                                  <button
+                                    type="button"
+                                    className="btn btn-outline btn-error btn-sm gap-2"
+                                    onClick={onDeleteSignature}
+                                    disabled={signatureBusy || saving}
+                                  >
+                                    <Trash2 size={14} />
+                                    Remove Signature
+                                  </button>
+                                )}
+                              </div>
+                              {!certificateInfo?.signature_path && (
+                                <p className="text-xs text-warning">No signature uploaded yet.</p>
+                              )}
+                              {certificateForm.formState.errors.hasSignature?.message && (
+                                <p className="text-xs text-error">{certificateForm.formState.errors.hasSignature.message}</p>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  : (
+                      <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div className="rounded-box border border-base-300 p-3">
+                          <p className="opacity-70">Feature Status</p>
+                          <p className="font-semibold mt-1">
+                            {certificateInfo?.certificate_feature_enabled ? 'Enabled' : 'Disabled'}
+                          </p>
+                        </div>
+                        <div className="rounded-box border border-base-300 p-3">
+                          <p className="opacity-70">Hours Threshold</p>
+                          <p className="font-semibold mt-1">{certificateInfo?.hours_threshold ?? '-'}</p>
+                        </div>
+                        <div className="rounded-box border border-base-300 p-3">
+                          <p className="opacity-70">Signatory Name</p>
+                          <p className="font-semibold mt-1">{certificateInfo?.signatory_name || '-'}</p>
+                        </div>
+                        <div className="rounded-box border border-base-300 p-3">
+                          <p className="opacity-70">Signatory Position</p>
+                          <p className="font-semibold mt-1">{certificateInfo?.signatory_position || '-'}</p>
+                        </div>
+                      </div>
+                    )}
+              </div>
+            </div>
           </ColumnLayout>
         </div>
       </div>

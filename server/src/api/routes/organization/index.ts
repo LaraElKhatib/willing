@@ -351,9 +351,22 @@ organizationRouter.delete('/logo', async (req, res: Response<OrganizationDeleteL
   const organizationId = req.userJWT!.id;
   const existingOrganization = await database
     .selectFrom('organization_account')
-    .select(['logo_path'])
+    .select(['logo_path', 'certificate_info_id'])
     .where('id', '=', organizationId)
     .executeTakeFirstOrThrow();
+
+  if (existingOrganization.certificate_info_id) {
+    const certificateInfo = await database
+      .selectFrom('organization_certificate_info')
+      .select(['certificate_feature_enabled'])
+      .where('id', '=', existingOrganization.certificate_info_id)
+      .executeTakeFirst();
+
+    if (certificateInfo?.certificate_feature_enabled) {
+      res.status(400);
+      throw new Error('Disable certificates before removing organization profile picture.');
+    }
+  }
 
   if (existingOrganization.logo_path) {
     try {
