@@ -38,7 +38,7 @@ function PostingCard({ posting, applicationStatus = 'none', showCrisis = true }:
         .split(/\s+/)
         .filter(Boolean)
         .slice(0, 2)
-        .map(word => word[0]?.toUpperCase() ?? '')
+        .map((word: string) => word[0]?.toUpperCase() ?? '')
         .join('')
     : '';
 
