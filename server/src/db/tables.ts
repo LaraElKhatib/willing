@@ -76,7 +76,7 @@ export const newVolunteerAccountSchema = volunteerAccountSchema.omit({
   experience_vector: true,
   created_at: true,
   updated_at: true,
-});
+}).strict();
 export type NewVolunteerAccount = zod.infer<typeof newVolunteerAccountSchema>;
 
 export const volunteerAccountWithoutPasswordSchema = volunteerAccountSchema.omit({
@@ -114,7 +114,7 @@ export type OrganizationRequest = zod.infer<typeof organizationRequestSchema>;
 
 export type OrganizationRequestTable = WithGeneratedIDAndCreatedAt<OrganizationRequest>;
 
-export const newOrganizationRequestSchema = organizationRequestSchema.omit({ id: true, created_at: true });
+export const newOrganizationRequestSchema = organizationRequestSchema.omit({ id: true, created_at: true }).strict();
 export type NewOrganizationRequest = zod.infer<typeof newOrganizationRequestSchema>;
 
 // organization_account
@@ -138,6 +138,8 @@ export const organizationAccountSchema = zod.object({
     .optional(),
   location_name: zod.string().min(2, 'Location must be longer than 2 characters'),
   password: passwordSchema,
+  logo_path: zod.string().optional(),
+  certificate_info_id: zod.number().nullable().optional(),
   org_vector: zod.string().optional(),
   updated_at: zod.date(),
   created_at: zod.date(),
@@ -147,14 +149,15 @@ export type OrganizationAccount = zod.infer<typeof organizationAccountSchema>;
 
 export type OrganizationAccountTable = WithGeneratedIDAndTimestamps<OrganizationAccount>;
 
-export const newOrganizationAccountSchema = organizationAccountSchema.omit({ id: true, org_vector: true, created_at: true, updated_at: true });
+export const newOrganizationAccountSchema = organizationAccountSchema.omit({ id: true, certificate_info_id: true, org_vector: true, created_at: true, updated_at: true }).strict();
 export type NewOrganizationAccount = zod.infer<typeof newOrganizationAccountSchema>;
 
-export const organizationAccountUpdate = organizationAccountSchema.omit({ password: true, org_vector: true, created_at: true, updated_at: true });
+export const organizationAccountUpdate = organizationAccountSchema.omit({ password: true, certificate_info_id: true, org_vector: true, created_at: true, updated_at: true });
 export type OrganizationAccountWithoutPassword = zod.infer<typeof organizationAccountUpdate>;
 
 export const organizationAccountWithoutPasswordAndVectorSchema = organizationAccountSchema.omit({
   password: true,
+  certificate_info_id: true,
   org_vector: true,
 });
 export type OrganizationAccountWithoutPasswordAndVector = zod.infer<typeof organizationAccountWithoutPasswordAndVectorSchema>;
@@ -175,7 +178,7 @@ export type AdminAccount = zod.infer<typeof adminAccountSchema>;
 
 export type AdminAccountTable = WithGeneratedIDAndTimestamps<AdminAccount>;
 
-export const newAdminAccountSchema = adminAccountSchema.omit({ id: true, created_at: true, updated_at: true });
+export const newAdminAccountSchema = adminAccountSchema.omit({ id: true, created_at: true, updated_at: true }).strict();
 export type NewAdminAccount = zod.infer<typeof newAdminAccountSchema>;
 
 export const adminAccountUpdate = adminAccountSchema.omit({ password: true, created_at: true, updated_at: true });
@@ -212,7 +215,7 @@ export const newCrisisSchema = crisisSchema.omit({
   id: true,
   pinned: true,
   created_at: true,
-});
+}).strict();
 export type NewCrisis = zod.infer<typeof newCrisisSchema>;
 
 // organization_posting
@@ -251,12 +254,13 @@ export type OrganizationPosting = zod.infer<typeof organizationPostingSchema>;
 export type OrganizationPostingTable = WithGeneratedIDAndTimestamps<OrganizationPosting>;
 
 export const newOrganizationPostingSchema = organizationPostingSchema
-  .omit({ id: true, opportunity_vector: true, posting_context_vector: true, created_at: true, updated_at: true })
+  .omit({ id: true, opportunity_vector: true, posting_context_vector: true, created_at: true, updated_at: true, organization_id: true })
   .extend({
     skills: zod
       .array(zod.string().min(1, 'Skill name is required'))
       .optional(),
-  });
+  })
+  .strict();
 export type NewOrganizationPosting = zod.infer<typeof newOrganizationPostingSchema>;
 
 export const organizationPostingWithoutVectorsSchema = organizationPostingSchema.omit({
@@ -301,7 +305,7 @@ export const enrollmentSchema = zod.object({
 });
 
 export type Enrollment = zod.infer<typeof enrollmentSchema>;
-export const newEnrollmentSchema = enrollmentSchema.omit({ id: true, created_at: true, attended: true });
+export const newEnrollmentSchema = enrollmentSchema.omit({ id: true, created_at: true, attended: true }).strict();
 
 export type EnrollmentTable = WithGeneratedIDAndCreatedAt<Enrollment>;
 
@@ -316,8 +320,26 @@ export const enrollmentApplicationSchema = zod.object({
 });
 
 export type EnrollmentApplication = zod.infer<typeof enrollmentApplicationSchema>;
-export const newEnrollmentApplicationSchema = enrollmentApplicationSchema.omit({ id: true, created_at: true });
+export const newEnrollmentApplicationSchema = enrollmentApplicationSchema.omit({ id: true, created_at: true }).strict();
 export type EnrollmentApplicationTable = WithGeneratedIDAndCreatedAt<EnrollmentApplication>;
+
+// organization_certificate_info
+
+export const organizationCertificateInfoSchema = zod.object({
+  id: zod.number(),
+  hours_threshold: zod.number().int().min(0, 'Hours threshold must be >= 0').nullable(),
+  signatory_name: zod.string().max(128, 'Signatory name must be at most 128 characters').nullable(),
+  signature_path: zod.string().max(256, 'Signature path must be at most 256 characters').nullable(),
+});
+
+export type OrganizationCertificateInfo = zod.infer<typeof organizationCertificateInfoSchema>;
+
+export type OrganizationCertificateInfoTable = WithGeneratedID<OrganizationCertificateInfo>;
+
+export const newOrganizationCertificateInfoSchema = organizationCertificateInfoSchema.omit({
+  id: true,
+}).strict();
+export type NewOrganizationCertificateInfo = zod.infer<typeof newOrganizationCertificateInfoSchema>;
 
 export interface Database {
   volunteer_account: VolunteerAccountTable;
@@ -331,4 +353,5 @@ export interface Database {
   password_reset_token: PasswordResetTokenTable;
   enrollment: EnrollmentTable;
   enrollment_application: EnrollmentApplicationTable;
+  organization_certificate_info: OrganizationCertificateInfoTable;
 }
