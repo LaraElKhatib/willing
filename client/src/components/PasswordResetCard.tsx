@@ -1,10 +1,11 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { CheckCircle, CheckCircle2, LockKeyhole } from 'lucide-react';
+import { CheckCircle, CheckCircle2, LockKeyhole, Save } from 'lucide-react';
 import { useContext } from 'react';
 import { useForm } from 'react-hook-form';
 import zod from 'zod';
 
-import Loading from './Loading';
+import Alert from './Alert';
+import Button from './Button';
 import { passwordSchema } from '../../../server/src/db/tables';
 import AuthContext from '../auth/AuthContext';
 import { executeAndShowError, FormField, FormRootError } from '../utils/formUtils';
@@ -65,22 +66,23 @@ function PasswordResetCard() {
 
           {form.formState.isSubmitSuccessful
             && (
-              <div role="alert" className="alert alert-success alert-soft mt-2">
-                <CheckCircle2 size={20} />
-                <span>Your password was successfully updated</span>
-              </div>
+              <Alert color="success" style="soft" icon={CheckCircle2} className="mt-2">
+                Your password was successfully updated
+              </Alert>
             )}
 
           <FormRootError form={form} />
 
           <div className="card-actions justify-end mt-6 gap-2">
-            <button type="submit" className="btn btn-primary">
-              {
-                form.formState.isSubmitting
-                  ? <Loading />
-                  : 'Update Password'
-              }
-            </button>
+            <Button
+              color="primary"
+              type="submit"
+              className="btn btn-primary"
+              loading={form.formState.isSubmitting}
+              Icon={Save}
+            >
+              Update Password
+            </Button>
           </div>
 
         </form>

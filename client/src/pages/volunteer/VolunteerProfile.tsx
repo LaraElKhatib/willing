@@ -1,19 +1,26 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Calendar,
+  Edit3,
   Globe,
   Lock,
   Mail,
   Mars,
   Venus,
   FileText,
+  RefreshCcw,
+  Save,
   Trash2,
+  Upload,
+  X,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import { volunteerAccountSchema } from '../../../../server/src/db/tables';
+import Alert from '../../components/Alert';
+import Button from '../../components/Button';
 import ColumnLayout from '../../components/layout/ColumnLayout';
 import PageHeader from '../../components/layout/PageHeader';
 import Loading from '../../components/Loading';
@@ -338,12 +345,12 @@ function VolunteerProfile() {
     return (
       <div className="grow bg-base-200">
         <div className="p-6 md:container mx-auto">
-          <div role="alert" className="alert alert-error">
-            <span>{fetchError}</span>
-          </div>
-          <button className="btn btn-outline mt-4" onClick={loadProfile}>
+          <Alert color="error">
+            {fetchError}
+          </Alert>
+          <Button className="mt-4" style="outline" onClick={loadProfile} Icon={RefreshCcw}>
             Retry
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -353,9 +360,9 @@ function VolunteerProfile() {
     return (
       <div className="grow bg-base-200">
         <div className="p-6 md:container mx-auto">
-          <div role="alert" className="alert alert-warning">
-            <span>Profile not found.</span>
-          </div>
+          <Alert color="warning">
+            Profile not found.
+          </Alert>
         </div>
       </div>
     );
@@ -373,43 +380,41 @@ function VolunteerProfile() {
             <>
               {isEditMode
                 ? (
-                    <button className="btn btn-outline" onClick={onCancelEdit} disabled={saving}>
+                    <Button color="primary" style="outline" onClick={onCancelEdit} loading={saving} Icon={X}>
                       Cancel
-                    </button>
+                    </Button>
                   )
                 : (
-                    <button className="btn btn-outline" onClick={() => setIsEditMode(true)}>
+                    <Button color="primary" style="outline" onClick={() => setIsEditMode(true)} Icon={Edit3}>
                       Edit Profile
-                    </button>
+                    </Button>
                   )}
               {isEditMode && (
-                <button className="btn btn-primary" onClick={onSave} disabled={saving}>
-                  {saving
-                    ? 'Saving...'
-                    : 'Save Changes'}
-                </button>
+                <Button color="primary" onClick={onSave} loading={saving} Icon={Save}>
+                  Save Changes
+                </Button>
               )}
             </>
           )}
         />
 
         {saveMessage && (
-          <div
-            role="alert"
-            className={`alert alert-success mt-4 transition-all duration-500 ${
+          <Alert
+            color="success"
+            className={`mt-4 transition-all duration-500 ${
               isSaveMessageVisible
                 ? 'opacity-100 translate-y-0'
                 : 'opacity-0 -translate-y-1'
             }`}
           >
-            <span>{saveMessage}</span>
-          </div>
+            {saveMessage}
+          </Alert>
         )}
 
         {saveError && (
-          <div role="alert" className="alert alert-error mt-4">
-            <span>{saveError}</span>
-          </div>
+          <Alert color="error" className="mt-4">
+            {saveError}
+          </Alert>
         )}
 
         <div className="mt-4">
@@ -536,7 +541,7 @@ function VolunteerProfile() {
                           </>
                         )
                       : (
-                          <p className="text-sm opacity-80 whitespace-pre-wrap break-words">
+                          <p className="text-sm opacity-80 whitespace-pre-wrap wrap-break-word">
                             {formValues.description || 'No description added yet.'}
                           </p>
                         )}
@@ -566,9 +571,9 @@ function VolunteerProfile() {
                 <p className="text-sm opacity-70 mt-1">
                   This section will show your past volunteering experiences completed through the platform.
                 </p>
-                <div className="alert alert-soft mt-4">
-                  <span className="text-sm">No experiences to show yet.</span>
-                </div>
+                <Alert style="soft" className="mt-4">
+                  No experiences to show yet.
+                </Alert>
               </div>
             </div>
 
@@ -583,35 +588,33 @@ function VolunteerProfile() {
                   {profile.volunteer.cv_path
                     ? (
                         <div className="flex flex-wrap items-center gap-3">
-                          <button
+                          <Button
+                            color="primary"
                             type="button"
-                            className="btn btn-outline"
+                            style="soft"
                             onClick={onViewCv}
                             disabled={cvBusy}
+                            Icon={FileText}
                           >
-                            <FileText size={16} />
-                            {cvBusy
-                              ? 'Opening CV...'
-                              : 'View Current CV'}
-                          </button>
+                            View Current CV
+                          </Button>
 
-                          <button
+                          <Button
                             type="button"
-                            className="btn btn-error btn-outline"
+                            color="error"
+                            style="soft"
                             onClick={onDeleteCv}
                             disabled={cvBusy}
+                            Icon={Trash2}
                           >
-                            <Trash2 size={16} />
-                            {cvBusy
-                              ? 'Removing...'
-                              : 'Remove CV'}
-                          </button>
+                            Remove CV
+                          </Button>
                         </div>
                       )
                     : (
-                        <div className="alert alert-soft">
-                          <span className="text-sm">No CV uploaded yet.</span>
-                        </div>
+                        <Alert style="soft">
+                          No CV uploaded yet.
+                        </Alert>
                       )}
 
                   <input
@@ -624,16 +627,15 @@ function VolunteerProfile() {
                   />
 
                   <div className="flex flex-wrap items-center gap-3">
-                    <button
+                    <Button
                       type="button"
-                      className="btn btn-outline"
+                      style="outline"
                       onClick={() => fileInputRef.current?.click()}
                       disabled={cvBusy}
+                      Icon={Upload}
                     >
-                      {cvBusy
-                        ? 'Uploading...'
-                        : 'Upload CV'}
-                    </button>
+                      Upload CV
+                    </Button>
 
                     <span className="text-xs opacity-60">
                       PDF only, up to 3 pages, up to 5MB.

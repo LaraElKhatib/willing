@@ -2,6 +2,7 @@ import { Plus, X } from 'lucide-react';
 import { useState, useCallback } from 'react';
 
 import SkillsList from './SkillsList';
+import IconButton from '../IconButton';
 
 interface SkillsInputProps {
   skills: string[];
@@ -33,7 +34,7 @@ export default function SkillsInput({ skills, setSkills }: SkillsInputProps) {
       </label>
       <div className="join w-full">
         <input
-          className="input input-bordered join-item flex-grow"
+          className="input input-bordered join-item grow"
           placeholder="e.g. First Aid"
           value={skillInput}
           onChange={e => setSkillInput(e.target.value)}
@@ -44,13 +45,13 @@ export default function SkillsInput({ skills, setSkills }: SkillsInputProps) {
             }
           }}
         />
-        <button
+        <IconButton
           type="button"
-          className="btn btn-square btn-primary join-item"
+          color="primary"
+          className="join-item"
           onClick={addSkill}
-        >
-          <Plus size={20} />
-        </button>
+          Icon={Plus}
+        />
       </div>
 
       {skills.length === 0

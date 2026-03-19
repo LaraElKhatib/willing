@@ -13,7 +13,7 @@ import { useForm } from 'react-hook-form';
 import { Link } from 'react-router-dom';
 
 import AuthContext from '../auth/AuthContext';
-import Loading from '../components/Loading';
+import Button from '../components/Button';
 import { volunteerSignupSchema, type VolunteerSignupFormData } from '../schemas/auth';
 import { executeAndShowError, FormField, FormRootError } from '../utils/formUtils';
 
@@ -127,22 +127,16 @@ export default function VolunteerCreate() {
 
             <FormRootError form={form} />
 
-            <button
-              className="btn btn-primary mt-4"
+            <Button
               type="submit"
-              disabled={form.formState.isSubmitting}
+              color="primary"
+              loading={form.formState.isSubmitting}
+              Icon={UserPlus}
+              className="mt-4"
             >
-              {
-                form.formState.isSubmitting
-                  ? <Loading />
-                  : (
-                      <>
-                        <UserPlus size={20} />
-                        Register
-                      </>
-                    )
-              }
-            </button>
+              Register
+            </Button>
+
             <div className="text-center mt-4">
               <span className="text-sm">
                 Already have an account?

@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router';
 
 import requestServer from '../utils/requestServer';
 
-import type { AdminLoginResponse, AdminMeResponse, AdminResetPasswordResponse, OrganizationMeResponse, OrganizationResetPasswordResponse, UserLoginResponse, VolunteerCreateResponse, VolunteerMeResponse, VolunteerResetPasswordResponse } from '../../../server/src/api/types';
+import type { AdminLoginResponse, AdminMeResponse, AdminResetPasswordResponse, OrganizationGetMeResponse, OrganizationResetPasswordResponse, UserLoginResponse, VolunteerCreateResponse, VolunteerMeResponse, VolunteerResetPasswordResponse } from '../../../server/src/api/types';
 import type { AdminAccountWithoutPassword, NewVolunteerAccount, OrganizationAccountWithoutPassword, VolunteerAccountWithoutPassword } from '../../../server/src/db/tables';
 import type { Role, UserJWT } from '../../../server/src/types';
 
@@ -25,7 +25,7 @@ const getCurrentUserAccount = async (currentRole?: Role) => {
       return response.admin;
     }
     if (currentRole === 'organization') {
-      const response = await requestServer<OrganizationMeResponse>('/organization/me', { includeJwt: true });
+      const response = await requestServer<OrganizationGetMeResponse>('/organization/me', { includeJwt: true });
       return response.organization;
     }
     if (currentRole === 'volunteer') {

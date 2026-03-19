@@ -2,6 +2,8 @@ import { CheckCheck, Download, RotateCcw, Save, Undo2, Users } from 'lucide-reac
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router';
 
+import Alert from '../../components/Alert';
+import Button from '../../components/Button';
 import PageHeader from '../../components/layout/PageHeader';
 import Loading from '../../components/Loading';
 import VolunteerInfoCollapse from '../../components/VolunteerInfoCollapse';
@@ -52,11 +54,12 @@ function OrganizationPostingAttendance() {
   }, [data, saving]);
 
   const setAllAttendanceDraft = useCallback((attended: boolean) => {
+    if (!data) return;
     if (saving) return;
     setError(null);
     setMessage(null);
     setDraftAttendance(
-      Object.fromEntries(data.enrollments.map(enrollment => [enrollment.enrollment_id, attended])),
+      Object.fromEntries(data!.enrollments.map(enrollment => [enrollment.enrollment_id, attended])),
     );
   }, [data, saving]);
 
@@ -227,12 +230,12 @@ function OrganizationPostingAttendance() {
     return (
       <div className="grow bg-base-200">
         <div className="p-6 md:container mx-auto">
-          <div role="alert" className="alert alert-error mb-4">
-            <span>{error}</span>
-          </div>
-          <button className="btn btn-outline" onClick={() => void loadAttendance()}>
+          <Alert color="error" className="mb-4">
+            {error}
+          </Alert>
+          <Button style="outline" onClick={() => void loadAttendance()} Icon={RotateCcw}>
             Retry
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -251,60 +254,68 @@ function OrganizationPostingAttendance() {
           defaultBackTo={`/posting/${data.posting.id}`}
           actions={(
             <>
-              <button
-                className="btn btn-outline"
+              <Button
+                style="outline"
+                color="neutral"
                 onClick={() => void exportAttendanceCsv()}
-                disabled={exportingCsv || data.enrollments.length === 0}
+                disabled={data.enrollments.length === 0}
+                loading={exportingCsv}
+                Icon={Download}
               >
-                <Download size={16} />
-                {exportingCsv ? 'Exporting...' : 'Export CSV'}
-              </button>
-              <button
-                className="btn btn-success btn-soft"
+                Export CSV
+              </Button>
+              <Button
+                style="soft"
+                color="success"
                 onClick={() => setAllAttendanceDraft(true)}
-                disabled={saving || data.enrollments.length === 0}
+                disabled={data.enrollments.length === 0}
+                loading={saving}
+                Icon={CheckCheck}
               >
-                <CheckCheck size={16} />
                 Mark All Present
-              </button>
-              <button
-                className="btn btn-warning btn-soft"
+              </Button>
+              <Button
+                color="warning"
+                style="soft"
                 onClick={() => setAllAttendanceDraft(false)}
-                disabled={saving || data.enrollments.length === 0}
+                disabled={data.enrollments.length === 0}
+                loading={saving}
+                Icon={RotateCcw}
               >
-                <RotateCcw size={16} />
                 Clear All
-              </button>
-              <button
-                className="btn btn-ghost"
+              </Button>
+              <Button
+                color="ghost"
                 onClick={undoAttendanceChanges}
-                disabled={saving || !hasUnsavedChanges}
+                disabled={!hasUnsavedChanges}
+                loading={saving}
+                Icon={Undo2}
               >
-                <Undo2 size={16} />
                 Undo Changes
-              </button>
-              <button
-                className="btn btn-primary"
+              </Button>
+              <Button
+                color="primary"
                 onClick={() => void submitAttendance()}
-                disabled={saving || !hasUnsavedChanges}
+                disabled={!hasUnsavedChanges}
+                loading={saving}
+                Icon={Save}
               >
-                <Save size={16} />
-                {saving ? 'Saving...' : 'Save Attendance'}
-              </button>
+                Save Attendance
+              </Button>
             </>
           )}
         />
 
         {error && (
-          <div role="alert" className="alert alert-error mt-4">
-            <span>{error}</span>
-          </div>
+          <Alert color="error" className="mt-4">
+            {error}
+          </Alert>
         )}
 
         {message && (
-          <div role="alert" className="alert alert-success mt-4">
-            <span>{message}</span>
-          </div>
+          <Alert color="success" className="mt-4">
+            {message}
+          </Alert>
         )}
 
         <div className="card bg-base-100 shadow-md mt-4">
@@ -335,15 +346,15 @@ function OrganizationPostingAttendance() {
             </div>
 
             {data.enrollments.length === 0 && (
-              <div className="alert">
-                <span className="text-sm">No enrolled volunteers to track yet.</span>
-              </div>
+              <Alert>
+                No enrolled volunteers to track yet.
+              </Alert>
             )}
 
             {data.enrollments.length > 0 && filteredAndSortedEnrollments.length === 0 && (
-              <div className="alert">
-                <span className="text-sm">No volunteers match this search.</span>
-              </div>
+              <Alert>
+                No volunteers match this search.
+              </Alert>
             )}
 
             {data.enrollments.length > 0 && filteredAndSortedEnrollments.length > 0 && (

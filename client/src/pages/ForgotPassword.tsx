@@ -2,9 +2,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { CheckCircle, LockKeyhole, Mail, Send, LogIn } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 
-import Loading from '../components/Loading';
+import Button from '../components/Button';
+import LinkButton from '../components/LinkButton';
 import {
   forgotPasswordRequestSchema,
   forgotPasswordResetSchema,
@@ -16,7 +17,6 @@ import requestServer from '../utils/requestServer';
 
 function ForgotPasswordPage() {
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
   const resetKey = (searchParams.get('key') ?? '').trim();
   const [requestSent, setRequestSent] = useState(false);
   const [resetComplete, setResetComplete] = useState(false);
@@ -64,10 +64,9 @@ function ForgotPasswordPage() {
               <p className="opacity-80">
                 If an account exists with that email, we've sent you a password reset link. Check your inbox and follow the link to reset your password.
               </p>
-              <button className="btn btn-primary mt-3" onClick={() => navigate('/login')}>
-                <LogIn size={18} />
+              <LinkButton color="primary" className="mt-3" to="/login" Icon={LogIn}>
                 Back to login
-              </button>
+              </LinkButton>
             </div>
           </div>
         </div>
@@ -85,10 +84,9 @@ function ForgotPasswordPage() {
               <p className="opacity-80">
                 Your password has been updated. You can now log in with your new password.
               </p>
-              <button className="btn btn-primary mt-3" onClick={() => navigate('/login')}>
-                <LogIn size={18} />
+              <LinkButton color="primary" className="mt-3" to="/login" Icon={LogIn}>
                 Go to login
-              </button>
+              </LinkButton>
             </div>
           </div>
         </div>
@@ -126,20 +124,14 @@ function ForgotPasswordPage() {
                     <Link to="/login" className="link link-hover">
                       Back to login
                     </Link>
-                    <button
-                      className="btn btn-primary"
+                    <Button
+                      color="primary"
                       type="submit"
-                      disabled={requestForm.formState.isSubmitting}
+                      loading={requestForm.formState.isSubmitting}
+                      Icon={Send}
                     >
-                      {requestForm.formState.isSubmitting
-                        ? <Loading />
-                        : (
-                            <>
-                              <Send size={18} />
-                              Send Link
-                            </>
-                          )}
-                    </button>
+                      Send Link
+                    </Button>
                   </div>
                 </form>
               )
@@ -167,13 +159,14 @@ function ForgotPasswordPage() {
                     <Link to="/login" className="link link-hover">
                       Back to login
                     </Link>
-                    <button
-                      className="btn btn-primary"
+                    <Button
+                      color="primary"
                       type="submit"
-                      disabled={resetForm.formState.isSubmitting}
+                      loading={resetForm.formState.isSubmitting}
+                      Icon={CheckCircle}
                     >
-                      {resetForm.formState.isSubmitting ? <Loading /> : 'Reset Password'}
-                    </button>
+                      Reset Password
+                    </Button>
                   </div>
                 </form>
               )}

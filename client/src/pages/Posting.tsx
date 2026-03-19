@@ -1,31 +1,41 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
+  Check,
   AlertTriangle,
   Building2,
   Calendar,
   Cake,
   Edit3,
   ExternalLink,
+  House,
   ListChecks,
   Lock,
   LockOpen,
   MapPin,
+  RefreshCcw,
+  Save,
+  Send,
   ShieldCheck,
   Tag,
   Trash2,
   Users,
+  SquareArrowRightExit,
+  X,
 } from 'lucide-react';
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import AuthContext from '../auth/AuthContext.tsx';
+import Alert from '../components/Alert.tsx';
+import Button from '../components/Button.tsx';
 import CalendarInfo from '../components/CalendarInfo.tsx';
+import CustomMessageModal from '../components/CustomMessageModal.tsx';
 import ColumnLayout from '../components/layout/ColumnLayout.tsx';
 import PageHeader from '../components/layout/PageHeader.tsx';
+import LinkButton from '../components/LinkButton.tsx';
 import Loading from '../components/Loading.tsx';
 import LocationPicker from '../components/LocationPicker.tsx';
-import PostingApplicationMessageModal from '../components/PostingApplicationMessageModal.tsx';
 import SkillsInput from '../components/skills/SkillsInput.tsx';
 import SkillsList from '../components/skills/SkillsList.tsx';
 import { ToggleButton } from '../components/ToggleButton.tsx';
@@ -650,10 +660,17 @@ function PostingPage() {
     return (
       <div className="grow bg-base-200">
         <div className="p-6 md:container mx-auto">
-          <div role="alert" className="alert alert-error">
-            <span>{fetchError}</span>
-          </div>
-          <button className="btn btn-outline mt-4" onClick={loadPosting}>Retry</button>
+          <Alert color="error">
+            {fetchError}
+          </Alert>
+          <Button
+            style="outline"
+            className="mt-4"
+            onClick={loadPosting}
+            Icon={RefreshCcw}
+          >
+            Retry
+          </Button>
         </div>
       </div>
     );
@@ -663,12 +680,12 @@ function PostingPage() {
     return (
       <div className="grow bg-base-200">
         <div className="p-6 md:container mx-auto">
-          <div role="alert" className="alert alert-warning">
-            <span>Posting not found.</span>
-          </div>
-          <button className="btn btn-outline mt-4" onClick={() => navigate('/organization')}>
+          <Alert color="warning">
+            Posting not found.
+          </Alert>
+          <LinkButton style="outline" className="mt-4" to="/organization" Icon={House}>
             Back to Home
-          </button>
+          </LinkButton>
         </div>
       </div>
     );
@@ -676,12 +693,13 @@ function PostingPage() {
 
   return (
     <div className="grow bg-base-200">
-      <PostingApplicationMessageModal
+      <CustomMessageModal
         open={isApplyModalOpen}
         submitting={applying}
         onClose={closeApplyModal}
         onSubmit={submitApplication}
         errorMessage={applyError}
+        placeholder="You can add an optional message to tell the organization why you're interested in this opportunity"
       />
       <div className="p-6 md:container mx-auto">
         <PageHeader
@@ -692,45 +710,50 @@ function PostingPage() {
           actions={!isVolunteerView && (isEditMode
             ? (
                 <>
-                  <button className="btn btn-outline" onClick={onCancelEdit} disabled={saving}>
+                  <Button style="outline" onClick={onCancelEdit} disabled={saving} Icon={X}>
                     Cancel
-                  </button>
-                  <button className="btn btn-primary" onClick={onSave} disabled={saving}>
-                    {saving ? 'Saving...' : 'Save Changes'}
-                  </button>
+                  </Button>
+                  <Button color="primary" onClick={onSave} loading={saving} Icon={Save}>
+                    Save Changes
+                  </Button>
                 </>
               )
             : (
                 <>
-                  <button
-                    className={`btn btn-outline ${posting?.is_closed ? 'btn-success' : 'btn-warning'}`}
-                    onClick={onToggleClosed}
-                    disabled={togglingClosed || !posting}
-                  >
-                    {posting?.is_closed ? <LockOpen size={16} /> : <Lock size={16} />}
-                    {togglingClosed ? '...' : posting?.is_closed ? 'Reopen' : 'Close'}
-                  </button>
-                  <button
-                    className="btn btn-outline"
-                    onClick={() => navigate(`/organization/posting/${posting.id}/attendance`)}
+                  <LinkButton
+                    to={`/organization/posting/${posting.id}/attendance`}
+                    color="info"
+                    style="outline"
                     disabled={!canOpenAttendancePage}
-                    title={canOpenAttendancePage ? 'Manage attendance' : 'Attendance opens when the posting starts'}
+                    Icon={ListChecks}
                   >
-                    <ListChecks size={16} />
                     Attendance
-                  </button>
-                  <button className="btn btn-outline" onClick={() => setIsEditMode(true)}>
-                    <Edit3 size={16} />
-                    Edit
-                  </button>
-                  <button
-                    className="btn btn-outline btn-error"
-                    onClick={onDelete}
-                    disabled={deleting}
+                  </LinkButton>
+                  <Button
+                    color="primary"
+                    onClick={() => setIsEditMode(true)}
+                    style="outline"
+                    Icon={Edit3}
                   >
-                    <Trash2 size={16} />
-                    {deleting ? 'Deleting...' : 'Delete'}
-                  </button>
+                    Edit
+                  </Button>
+                  <Button
+                    color={posting?.is_closed ? 'success' : 'warning'}
+                    onClick={onToggleClosed}
+                    disabled={!posting}
+                    loading={togglingClosed}
+                    Icon={posting?.is_closed ? LockOpen : Lock}
+                  >
+                    {posting?.is_closed ? 'Reopen' : 'Close'}
+                  </Button>
+                  <Button
+                    color="error"
+                    onClick={onDelete}
+                    loading={deleting}
+                    Icon={Trash2}
+                  >
+                    Delete
+                  </Button>
                 </>
               )
           )}
@@ -738,22 +761,22 @@ function PostingPage() {
 
         <div className="mt-6">
           {saveMessage && (
-            <div
-              role="alert"
-              className={`alert alert-success mb-4 transition-all duration-500 ${
+            <Alert
+              color="success"
+              className={`mb-4 transition-all duration-500 ${
                 isSaveMessageVisible
                   ? 'opacity-100 translate-y-0'
                   : 'opacity-0 -translate-y-1'
               }`}
             >
-              <span>{saveMessage}</span>
-            </div>
+              {saveMessage}
+            </Alert>
           )}
 
           {saveError && (
-            <div role="alert" className="alert alert-error mb-4">
-              <span>{saveError}</span>
-            </div>
+            <Alert color="error" className="mb-4">
+              {saveError}
+            </Alert>
           )}
 
           <ColumnLayout
@@ -1057,32 +1080,37 @@ function PostingPage() {
                   <div className="mt-3 flex justify-end">
                     {isEnrolled
                       ? (
-                          <button
-                            className="btn btn-error btn-outline"
+                          <Button
+                            color="error"
+                            style="outline"
                             onClick={withdrawApplication}
-                            disabled={withdrawing}
+                            loading={withdrawing}
+                            Icon={SquareArrowRightExit}
                           >
-                            {withdrawing ? 'Leaving...' : 'Leave Position'}
-                          </button>
+                            Leave Position
+                          </Button>
                         )
                       : hasPendingApplication
                         ? (
-                            <button
-                              className="btn btn-error btn-outline"
+                            <Button
+                              color="error"
+                              style="outline"
                               onClick={withdrawApplication}
-                              disabled={withdrawing}
+                              loading={withdrawing}
+                              Icon={SquareArrowRightExit}
                             >
-                              {withdrawing ? 'Withdrawing...' : 'Withdraw Application'}
-                            </button>
+                              Withdraw Application
+                            </Button>
                           )
                         : (
-                            <button
-                              className="btn btn-primary"
+                            <Button
+                              color="primary"
                               onClick={openApplyModal}
-                              disabled={applying}
+                              loading={applying}
+                              Icon={Send}
                             >
-                              {applying ? 'Applying...' : 'Apply'}
-                            </button>
+                              Apply
+                            </Button>
                           )}
                   </div>
                 </div>
@@ -1137,9 +1165,9 @@ function PostingPage() {
 
                   {applications.length === 0
                     ? (
-                        <div className="alert">
-                          <span className="text-sm">No pending applications.</span>
-                        </div>
+                        <Alert>
+                          No pending applications.
+                        </Alert>
                       )
                     : (
                         <div className="space-y-2">
@@ -1149,20 +1177,24 @@ function PostingPage() {
                               volunteer={app}
                               actions={(
                                 <>
-                                  <button
-                                    className="btn btn-success btn-soft"
+                                  <Button
+                                    color="success"
+                                    style="soft"
                                     onClick={() => acceptApplication(app.application_id)}
-                                    disabled={processingApplicationId === app.application_id}
+                                    loading={processingApplicationId === app.application_id}
+                                    Icon={Check}
                                   >
-                                    {processingApplicationId === app.application_id ? 'Processing...' : 'Accept'}
-                                  </button>
-                                  <button
-                                    className="btn btn-error btn-soft"
+                                    Accept
+                                  </Button>
+                                  <Button
+                                    color="error"
+                                    style="soft"
                                     onClick={() => rejectApplication(app.application_id)}
-                                    disabled={processingApplicationId === app.application_id}
+                                    loading={processingApplicationId === app.application_id}
+                                    Icon={X}
                                   >
-                                    {processingApplicationId === app.application_id ? 'Processing...' : 'Reject'}
-                                  </button>
+                                    Reject
+                                  </Button>
                                 </>
                               )}
                             />
@@ -1184,9 +1216,9 @@ function PostingPage() {
 
                   {enrollments.length === 0
                     ? (
-                        <div className="alert">
-                          <span className="text-sm">No volunteers have enrolled yet.</span>
-                        </div>
+                        <Alert>
+                          No volunteers have enrolled yet.
+                        </Alert>
                       )
                     : (
                         <div className="space-y-2">

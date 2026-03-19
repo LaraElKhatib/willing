@@ -1,7 +1,9 @@
-import { Search, TextSearch, type LucideIcon } from 'lucide-react';
+import { RotateCcw, Search, TextSearch, type LucideIcon } from 'lucide-react';
 import { type ReactNode, useEffect, useState } from 'react';
 
 import requestServer from '../../utils/requestServer.ts';
+import Alert from '../Alert.tsx';
+import Button from '../Button.tsx';
 import CalendarInfo from '../CalendarInfo.tsx';
 import PageHeader from '../layout/PageHeader.tsx';
 import Loading from '../Loading.tsx';
@@ -200,30 +202,32 @@ function PostingSearchView({
           </div>
 
           <div className="flex gap-3">
-            <button
+            <Button
+              color="primary"
               type="submit"
-              className="btn btn-sm btn-primary"
               disabled={!hasActiveFilters}
+              Icon={Search}
             >
               Apply Filters
-            </button>
+            </Button>
 
-            <button
+            <Button
               type="button"
-              className="btn btn-sm btn-ghost"
+              color="ghost"
               disabled={!hasActiveFilters}
               onClick={resetFilters}
+              Icon={RotateCcw}
             >
               Reset Filters
-            </button>
+            </Button>
           </div>
         </form>
       </div>
 
       {error && (
-        <div className="alert alert-error mb-4">
-          <span>{error}</span>
-        </div>
+        <Alert color="error" className="mb-4">
+          {error}
+        </Alert>
       )}
 
       {loading
@@ -234,9 +238,9 @@ function PostingSearchView({
           )
         : postings.length === 0
           ? (
-              <div className="alert bg-base-100 shadow-sm">
-                <span>{emptyMessage}</span>
-              </div>
+              <Alert>
+                {emptyMessage}
+              </Alert>
             )
           : (
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 2xl:grid-cols-3">
