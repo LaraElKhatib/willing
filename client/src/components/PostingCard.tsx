@@ -13,13 +13,26 @@ interface PostingCardProps {
 
 function PostingCard({ posting, applicationStatus = 'none', showCrisis = true }: PostingCardProps) {
   const postingDetailsPath = `/posting/${posting.id}`;
-  const startDt = posting.start_timestamp ? new Date(posting.start_timestamp) : null;
-  const endDt = posting.end_timestamp ? new Date(posting.end_timestamp) : null;
+  const normalizeTimestamp = (value: string | Date | undefined | null) => {
+    if (value == null) return null;
+    const date = value instanceof Date ? value : new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+  };
+
+  const startDateValue = posting.start_date || posting.start_timestamp;
+  const endDateValue = posting.end_date || posting.end_timestamp;
+
+  const startTimeValue = posting.start_time || (posting.start_timestamp ? new Date(posting.start_timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '');
+  const endTimeValue = posting.end_time || (posting.end_timestamp ? new Date(posting.end_timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '');
+
+  const startDt = normalizeTimestamp(startDateValue);
+  const endDt = normalizeTimestamp(endDateValue);
   const hasEndDate = Boolean(endDt);
+
   const startDateStr = startDt ? startDt.toLocaleDateString() : '';
   const endDateStr = endDt ? endDt.toLocaleDateString() : '';
-  const startTimeStr = startDt ? startDt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
-  const endTimeStr = endDt ? endDt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+  const startTimeStr = startTimeValue || (startDt ? startDt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '');
+  const endTimeStr = endTimeValue || (endDt ? endDt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '');
   const organizationInitials = posting.organization_name
     ? posting.organization_name
         .split(/\s+/)
