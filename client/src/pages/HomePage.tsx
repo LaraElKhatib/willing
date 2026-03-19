@@ -3,8 +3,10 @@ import { useContext, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import AuthContext from '../auth/AuthContext';
+import Button from '../components/Button';
 import Footer from '../components/layout/Footer';
 import UserNavbar from '../components/layout/navbars/UserNavbar';
+import LinkButton from '../components/LinkButton';
 import requestServer from '../utils/requestServer';
 
 import type { PublicHomeStatsResponse } from '../../../server/src/api/types';
@@ -71,23 +73,34 @@ function HomePage() {
 
             {auth.user?.role === 'admin'
               ? (
-                  <Link to="/admin" className="btn btn-primary btn-wide">
+                  <LinkButton
+                    to="/admin"
+                    layout="wide"
+                    color="primary"
+                    Icon={Users}
+                  >
                     Manage Volunteers
-                  </Link>
+                  </LinkButton>
                 )
               : auth.user?.role === 'organization'
                 ? (
-                    <button className="btn btn-disabled btn-wide">
+                    <Button
+                      disabled
+                      layout="wide"
+                      color="primary"
+                    >
                       Organization Account Active
-                    </button>
+                    </Button>
                   )
                 : (
-                    <Link
+                    <LinkButton
+                      color="primary"
                       to={auth.user?.role === 'volunteer' ? '/volunteer' : '/volunteer/create'}
-                      className="btn btn-primary btn-wide"
+                      layout="wide"
+                      Icon={Users}
                     >
                       {auth.user?.role === 'volunteer' ? 'Go to Dashboard' : 'Create Volunteer Account'}
-                    </Link>
+                    </LinkButton>
                   )}
           </div>
 
@@ -101,23 +114,29 @@ function HomePage() {
 
             {auth.user?.role === 'admin'
               ? (
-                  <Link to="/admin" className="btn btn-secondary btn-wide">
+                  <LinkButton to="/admin" color="secondary" layout="wide" Icon={Building2}>
                     Manage Organizations
-                  </Link>
+                  </LinkButton>
                 )
               : auth.user?.role === 'volunteer'
                 ? (
-                    <button className="btn btn-disabled btn-wide">
+                    <Button
+                      disabled
+                      layout="wide"
+                      color="primary"
+                    >
                       Volunteer Account Active
-                    </button>
+                    </Button>
                   )
                 : (
-                    <Link
+                    <LinkButton
                       to={auth.user?.role === 'organization' ? '/organization' : '/organization/request'}
-                      className="btn btn-secondary btn-wide"
+                      color="secondary"
+                      layout="wide"
+                      Icon={Building2}
                     >
                       {auth.user?.role === 'organization' ? 'Go to Dashboard' : 'Request Organization Account'}
-                    </Link>
+                    </LinkButton>
                   )}
           </div>
         </div>

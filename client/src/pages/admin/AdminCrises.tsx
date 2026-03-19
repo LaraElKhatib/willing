@@ -1,11 +1,12 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AlertCircle, Pencil, Pin, PinOff, PlusCircle, Trash2 } from 'lucide-react';
+import { AlertCircle, Pencil, Pin, PinOff, Plus, Save, Trash2, X } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import zod from 'zod';
 
 import { newCrisisSchema } from '../../../../server/src/db/tables';
 import Alert from '../../components/Alert';
+import Button from '../../components/Button';
 import ColumnLayout from '../../components/layout/ColumnLayout';
 import PageHeader from '../../components/layout/PageHeader';
 import { executeAndShowError, FormField, FormRootError } from '../../utils/formUtils';
@@ -217,14 +218,15 @@ function AdminCrises() {
                     type="textarea"
                   />
 
-                  <button
+                  <Button
+                    color="primary"
                     type="submit"
-                    className="btn btn-primary w-full"
-                    disabled={isCreatingCrisis}
+                    loading={isCreatingCrisis}
+                    Icon={Plus}
+                    layout="block"
                   >
-                    <PlusCircle size={16} />
-                    {isCreatingCrisis ? 'Adding...' : 'Add Crisis'}
-                  </button>
+                    Add Crisis
+                  </Button>
                 </form>
 
                 <FormRootError form={crisisForm} />
@@ -291,23 +293,25 @@ function AdminCrises() {
                                       placeholder="Description (optional)"
                                       rows={3}
                                     />
-                                    <div className="flex flex-wrap gap-2">
-                                      <button
+                                    <div className="flex flex-row-reverse flex-wrap gap-2">
+                                      <Button
+                                        color="primary"
                                         type="button"
-                                        className="btn btn-primary btn-sm"
                                         onClick={() => onSaveEdit(crisis.id)}
                                         disabled={actionBusyId === crisis.id}
+                                        Icon={Save}
                                       >
                                         Save
-                                      </button>
-                                      <button
+                                      </Button>
+                                      <Button
                                         type="button"
-                                        className="btn btn-ghost btn-sm"
+                                        color="ghost"
                                         onClick={onCancelEdit}
                                         disabled={actionBusyId === crisis.id}
+                                        Icon={X}
                                       >
                                         Cancel
-                                      </button>
+                                      </Button>
                                     </div>
                                   </div>
                                 )
@@ -317,35 +321,37 @@ function AdminCrises() {
                                       {crisis.description || 'No description set'}
                                     </p>
                                     <div className="card-actions justify-end mt-2">
-                                      <button
+                                      <Button
                                         type="button"
-                                        className="btn btn-outline btn-sm"
+                                        style="outline"
+                                        size="sm"
                                         onClick={() => onTogglePin(crisis.id, crisis.pinned)}
                                         disabled={actionBusyId === crisis.id}
+                                        Icon={crisis.pinned ? PinOff : Pin}
                                       >
-                                        {crisis.pinned
-                                          ? <PinOff size={14} />
-                                          : <Pin size={14} />}
                                         {crisis.pinned ? 'Unpin' : 'Pin'}
-                                      </button>
-                                      <button
+                                      </Button>
+                                      <Button
                                         type="button"
-                                        className="btn btn-outline btn-sm"
+                                        style="outline"
+                                        size="sm"
                                         onClick={() => onStartEdit(crisis.id, crisis.name, crisis.description)}
                                         disabled={actionBusyId === crisis.id}
+                                        Icon={Pencil}
                                       >
-                                        <Pencil size={14} />
                                         Edit
-                                      </button>
-                                      <button
+                                      </Button>
+                                      <Button
                                         type="button"
-                                        className="btn btn-error btn-outline btn-sm"
+                                        style="outline"
+                                        color="error"
+                                        size="sm"
                                         onClick={() => onDelete(crisis.id, crisis.name)}
                                         disabled={actionBusyId === crisis.id}
+                                        Icon={Trash2}
                                       >
-                                        <Trash2 size={14} />
                                         Delete
-                                      </button>
+                                      </Button>
                                     </div>
                                   </>
                                 )}

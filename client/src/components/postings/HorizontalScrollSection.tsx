@@ -1,6 +1,8 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 
+import IconButton from '../IconButton';
+
 type HorizontalScrollSectionProps = {
   title: string;
   subtitle?: string;
@@ -71,24 +73,22 @@ function HorizontalScrollSection({
 
         <div className="flex items-center gap-2 self-start">
           {action}
-          <button
+          <IconButton
             type="button"
-            className="btn btn-sm btn-circle btn-ghost"
             onClick={() => scrollByPage(-1)}
             disabled={!hasItems}
             aria-label={`Scroll ${title} left`}
+            Icon={ChevronLeft}
           >
-            <ChevronLeft size={18} />
-          </button>
-          <button
+          </IconButton>
+          <IconButton
             type="button"
-            className="btn btn-sm btn-circle btn-ghost"
             onClick={() => scrollByPage(1)}
             disabled={!hasItems}
             aria-label={`Scroll ${title} right`}
+            Icon={ChevronRight}
           >
-            <ChevronRight size={18} />
-          </button>
+          </IconButton>
         </div>
       </div>
 
