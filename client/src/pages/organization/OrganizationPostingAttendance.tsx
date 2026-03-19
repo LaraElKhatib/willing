@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router';
 
 import Alert from '../../components/Alert';
+import Button from '../../components/Button';
 import PageHeader from '../../components/layout/PageHeader';
 import Loading from '../../components/Loading';
 import VolunteerInfoCollapse from '../../components/VolunteerInfoCollapse';
@@ -58,7 +59,7 @@ function OrganizationPostingAttendance() {
     setError(null);
     setMessage(null);
     setDraftAttendance(
-      Object.fromEntries(data.enrollments.map(enrollment => [enrollment.enrollment_id, attended])),
+      Object.fromEntries(data!.enrollments.map(enrollment => [enrollment.enrollment_id, attended])),
     );
   }, [data, saving]);
 
@@ -232,9 +233,9 @@ function OrganizationPostingAttendance() {
           <Alert color="error" className="mb-4">
             {error}
           </Alert>
-          <button className="btn btn-outline" onClick={() => void loadAttendance()}>
+          <Button style="outline" onClick={() => void loadAttendance()} Icon={RotateCcw}>
             Retry
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -253,46 +254,54 @@ function OrganizationPostingAttendance() {
           defaultBackTo={`/posting/${data.posting.id}`}
           actions={(
             <>
-              <button
-                className="btn btn-outline"
+              <Button
+                style="outline"
+                color="neutral"
                 onClick={() => void exportAttendanceCsv()}
-                disabled={exportingCsv || data.enrollments.length === 0}
+                disabled={data.enrollments.length === 0}
+                loading={exportingCsv}
+                Icon={Download}
               >
-                <Download size={16} />
-                {exportingCsv ? 'Exporting...' : 'Export CSV'}
-              </button>
-              <button
-                className="btn btn-success btn-soft"
+                Export CSV
+              </Button>
+              <Button
+                style="soft"
+                color="success"
                 onClick={() => setAllAttendanceDraft(true)}
-                disabled={saving || data.enrollments.length === 0}
+                disabled={data.enrollments.length === 0}
+                loading={saving}
+                Icon={CheckCheck}
               >
-                <CheckCheck size={16} />
                 Mark All Present
-              </button>
-              <button
-                className="btn btn-warning btn-soft"
+              </Button>
+              <Button
+                color="warning"
+                style="soft"
                 onClick={() => setAllAttendanceDraft(false)}
-                disabled={saving || data.enrollments.length === 0}
+                disabled={data.enrollments.length === 0}
+                loading={saving}
+                Icon={RotateCcw}
               >
-                <RotateCcw size={16} />
                 Clear All
-              </button>
-              <button
-                className="btn btn-ghost"
+              </Button>
+              <Button
+                color="ghost"
                 onClick={undoAttendanceChanges}
-                disabled={saving || !hasUnsavedChanges}
+                disabled={!hasUnsavedChanges}
+                loading={saving}
+                Icon={Undo2}
               >
-                <Undo2 size={16} />
                 Undo Changes
-              </button>
-              <button
-                className="btn btn-primary"
+              </Button>
+              <Button
+                color="primary"
                 onClick={() => void submitAttendance()}
-                disabled={saving || !hasUnsavedChanges}
+                disabled={!hasUnsavedChanges}
+                loading={saving}
+                Icon={Save}
               >
-                <Save size={16} />
-                {saving ? 'Saving...' : 'Save Attendance'}
-              </button>
+                Save Attendance
+              </Button>
             </>
           )}
         />

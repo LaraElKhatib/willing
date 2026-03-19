@@ -1,8 +1,9 @@
-import { Search, TextSearch, type LucideIcon } from 'lucide-react';
+import { RotateCcw, Search, TextSearch, type LucideIcon } from 'lucide-react';
 import { type ReactNode, useEffect, useState } from 'react';
 
 import requestServer from '../../utils/requestServer.ts';
 import Alert from '../Alert.tsx';
+import Button from '../Button.tsx';
 import CalendarInfo from '../CalendarInfo.tsx';
 import PageHeader from '../layout/PageHeader.tsx';
 import Loading from '../Loading.tsx';
@@ -201,22 +202,24 @@ function PostingSearchView({
           </div>
 
           <div className="flex gap-3">
-            <button
+            <Button
+              color="primary"
               type="submit"
-              className="btn btn-sm btn-primary"
               disabled={!hasActiveFilters}
+              Icon={Search}
             >
               Apply Filters
-            </button>
+            </Button>
 
-            <button
+            <Button
               type="button"
-              className="btn btn-sm btn-ghost"
+              color="ghost"
               disabled={!hasActiveFilters}
               onClick={resetFilters}
+              Icon={RotateCcw}
             >
               Reset Filters
-            </button>
+            </Button>
           </div>
         </form>
       </div>

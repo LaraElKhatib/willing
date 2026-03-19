@@ -1,8 +1,8 @@
 import { Plus, ClipboardList } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 
 import Alert from '../../components/Alert';
 import PageHeader from '../../components/layout/PageHeader';
+import LinkButton from '../../components/LinkButton';
 import PostingCard from '../../components/PostingCard';
 import requestServer from '../../utils/requestServer';
 import useAsync from '../../utils/useAsync';
@@ -10,8 +10,6 @@ import useAsync from '../../utils/useAsync';
 import type { OrganizationPostingListResponse } from '../../../../server/src/api/types';
 
 function OrganizationHome() {
-  const navigate = useNavigate();
-
   const { data: postings, loading, error } = useAsync(
     async () => {
       const response = await requestServer<OrganizationPostingListResponse>(
@@ -41,13 +39,13 @@ function OrganizationHome() {
             )
           }
           actions={(
-            <button
-              className="btn btn-primary"
-              onClick={() => navigate('posting')}
+            <LinkButton
+              color="primary"
+              to="/organization/posting"
+              Icon={Plus}
             >
-              <Plus className="w-4 h-4" />
               Create New Posting
-            </button>
+            </LinkButton>
           )}
         />
 

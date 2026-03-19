@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { Link } from 'react-router-dom';
 
 import AuthContext from '../auth/AuthContext';
-import Loading from '../components/Loading';
+import Button from '../components/Button';
 import { loginFormSchema, type LoginFormData } from '../schemas/auth';
 import { executeAndShowError, FormField, FormRootError } from '../utils/formUtils';
 
@@ -62,22 +62,15 @@ function UserLoginPage() {
 
             <FormRootError form={form} />
 
-            <button
-              className="btn btn-primary mt-4"
+            <Button
+              color="primary"
+              className="mt-4"
               type="submit"
-              disabled={form.formState.isSubmitting}
+              loading={form.formState.isSubmitting}
+              Icon={LogIn}
             >
-              {
-                form.formState.isSubmitting
-                  ? <Loading />
-                  : (
-                      <>
-                        <LogIn size={20} />
-                        Login
-                      </>
-                    )
-              }
-            </button>
+              Login
+            </Button>
 
             <div className="text-center mt-4">
               <span className="text-sm">
