@@ -35,7 +35,7 @@ export const organizationRequestFormSchema = newOrganizationRequestSchema
 export type OrganizationRequestFormData = z.infer<typeof organizationRequestFormSchema>;
 
 export const organizationPostingFormSchema = newOrganizationPostingSchema
-  .omit({ latitude: true, longitude: true })
+  .omit({ latitude: true, longitude: true, is_closed: true })
   .extend({
     latitude: z.number().optional(),
     longitude: z.number().optional(),
@@ -65,7 +65,6 @@ export const organizationPostingFormSchema = newOrganizationPostingSchema
     max_volunteers: z.string().optional(),
     minimum_age: z.string().optional(),
     automatic_acceptance: z.boolean(),
-    is_closed: z.boolean(),
   });
 
 export type OrganizationPostingFormData = z.infer<typeof organizationPostingFormSchema>;
