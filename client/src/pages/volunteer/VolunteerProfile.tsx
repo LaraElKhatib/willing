@@ -27,8 +27,10 @@ import Loading from '../../components/Loading';
 import SkillsInput from '../../components/skills/SkillsInput';
 import SkillsList from '../../components/skills/SkillsList';
 import { ToggleButton } from '../../components/ToggleButton';
+import useNotifications from '../../notifications/useNotifications';
 import { FormField } from '../../utils/formUtils';
 import requestServer, { SERVER_BASE_URL } from '../../utils/requestServer';
+import useAsync from '../../utils/useAsync';
 
 import type { VolunteerProfileResponse } from '../../../../server/src/api/types';
 
@@ -60,15 +62,11 @@ const getDateInputValue = (value: string) => {
 function VolunteerProfile() {
   const [profile, setProfile] = useState<VolunteerProfileResponse | null>(null);
   const [skills, setSkills] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [fetchError, setFetchError] = useState<string | null>(null);
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const [saveMessage, setSaveMessage] = useState<string | null>(null);
-  const [isSaveMessageVisible, setIsSaveMessageVisible] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [cvBusy, setCvBusy] = useState(false);
+  const notifications = useNotifications();
 
   const form = useForm<ProfileFormData>({
     resolver: zodResolver(profileFormSchema),
@@ -83,52 +81,34 @@ function VolunteerProfile() {
     },
   });
 
-  const loadProfile = useCallback(async () => {
-    try {
-      setLoading(true);
-      setFetchError(null);
-      const response = await requestServer<VolunteerProfileResponse>(
-        '/volunteer/profile',
-        { includeJwt: true },
-      );
-      setProfile(response);
-      setSkills(response.skills);
-      form.reset({
-        first_name: response.volunteer.first_name,
-        last_name: response.volunteer.last_name,
-        date_of_birth: getDateInputValue(response.volunteer.date_of_birth),
-        gender: response.volunteer.gender,
-        description: response.volunteer.description ?? '',
-        privacy: response.volunteer.privacy === 'private' ? 'private' : 'public',
-      });
-    } catch (error) {
-      setFetchError(error instanceof Error ? error.message : 'Failed to load profile');
-    } finally {
-      setLoading(false);
-    }
+  const loadProfileRequest = useCallback(async () => {
+    const response = await requestServer<VolunteerProfileResponse>(
+      '/volunteer/profile',
+      { includeJwt: true },
+    );
+    setProfile(response);
+    setSkills(response.skills);
+    form.reset({
+      first_name: response.volunteer.first_name,
+      last_name: response.volunteer.last_name,
+      date_of_birth: getDateInputValue(response.volunteer.date_of_birth),
+      gender: response.volunteer.gender,
+      description: response.volunteer.description ?? '',
+      privacy: response.volunteer.privacy === 'private' ? 'private' : 'public',
+    });
   }, [form]);
 
+  const {
+    loading,
+    error: fetchError,
+    trigger: loadProfile,
+  } = useAsync<void, []>(loadProfileRequest, {
+    notifyOnError: true,
+  });
+
   useEffect(() => {
-    loadProfile();
+    void loadProfile();
   }, [loadProfile]);
-
-  useEffect(() => {
-    if (!saveMessage) return;
-    setIsSaveMessageVisible(true);
-
-    const fadeTimeout = setTimeout(() => {
-      setIsSaveMessageVisible(false);
-    }, 2400);
-
-    const removeTimeout = setTimeout(() => {
-      setSaveMessage(null);
-    }, 3000);
-
-    return () => {
-      clearTimeout(fadeTimeout);
-      clearTimeout(removeTimeout);
-    };
-  }, [saveMessage]);
 
   const formValues = form.watch();
 
@@ -175,8 +155,6 @@ function VolunteerProfile() {
 
     try {
       setSaving(true);
-      setSaveError(null);
-      setSaveMessage(null);
 
       const response = await requestServer<VolunteerProfileResponse>(
         '/volunteer/profile',
@@ -205,10 +183,16 @@ function VolunteerProfile() {
         description: response.volunteer.description ?? '',
         privacy: response.volunteer.privacy === 'private' ? 'private' : 'public',
       });
-      setSaveMessage('Profile changes saved.');
+      notifications.push({
+        type: 'success',
+        message: 'Profile changes saved.',
+      });
       setIsEditMode(false);
     } catch (error) {
-      setSaveError(error instanceof Error ? error.message : 'Failed to save profile');
+      notifications.push({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Failed to save profile',
+      });
     } finally {
       setSaving(false);
     }
@@ -226,8 +210,6 @@ function VolunteerProfile() {
     });
     setSkills(profile.skills);
     setIsEditMode(false);
-    setSaveError(null);
-    setSaveMessage(null);
   }, [form, profile]);
 
   const onUploadCv = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -237,15 +219,16 @@ function VolunteerProfile() {
     const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
 
     if (!isPdf) {
-      setSaveError('Only PDF files are allowed.');
+      notifications.push({
+        type: 'warning',
+        message: 'Only PDF files are allowed.',
+      });
       if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
 
     try {
       setCvBusy(true);
-      setSaveError(null);
-      setSaveMessage(null);
 
       const formData = new FormData();
       formData.append('cv', file);
@@ -260,9 +243,15 @@ function VolunteerProfile() {
       );
 
       setProfile(response);
-      setSaveMessage('CV uploaded successfully.');
+      notifications.push({
+        type: 'success',
+        message: 'CV uploaded successfully.',
+      });
     } catch (error) {
-      setSaveError(error instanceof Error ? error.message : 'Failed to upload CV');
+      notifications.push({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Failed to upload CV',
+      });
     } finally {
       setCvBusy(false);
       if (fileInputRef.current) {
@@ -274,8 +263,6 @@ function VolunteerProfile() {
   const onDeleteCv = async () => {
     try {
       setCvBusy(true);
-      setSaveError(null);
-      setSaveMessage(null);
 
       const response = await requestServer<VolunteerProfileResponse>(
         '/volunteer/profile/cv',
@@ -286,9 +273,15 @@ function VolunteerProfile() {
       );
 
       setProfile(response);
-      setSaveMessage('CV removed successfully.');
+      notifications.push({
+        type: 'success',
+        message: 'CV removed successfully.',
+      });
     } catch (error) {
-      setSaveError(error instanceof Error ? error.message : 'Failed to remove CV');
+      notifications.push({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Failed to remove CV',
+      });
     } finally {
       setCvBusy(false);
     }
@@ -297,7 +290,6 @@ function VolunteerProfile() {
   const onViewCv = async () => {
     try {
       setCvBusy(true);
-      setSaveError(null);
 
       const response = await fetch(`${SERVER_BASE_URL}/volunteer/profile/cv/preview`, {
         headers: {
@@ -323,7 +315,10 @@ function VolunteerProfile() {
       window.open(previewUrl, '_blank', 'noopener,noreferrer');
       setTimeout(() => URL.revokeObjectURL(previewUrl), 60_000);
     } catch (error) {
-      setSaveError(error instanceof Error ? error.message : 'Failed to load CV');
+      notifications.push({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Failed to load CV',
+      });
     } finally {
       setCvBusy(false);
     }
@@ -346,9 +341,9 @@ function VolunteerProfile() {
       <div className="grow bg-base-200">
         <div className="p-6 md:container mx-auto">
           <Alert color="error">
-            {fetchError}
+            {fetchError.message}
           </Alert>
-          <Button className="mt-4" style="outline" onClick={loadProfile} Icon={RefreshCcw}>
+          <Button className="mt-4" style="outline" onClick={() => void loadProfile()} Icon={RefreshCcw}>
             Retry
           </Button>
         </div>
@@ -397,25 +392,6 @@ function VolunteerProfile() {
             </>
           )}
         />
-
-        {saveMessage && (
-          <Alert
-            color="success"
-            className={`mt-4 transition-all duration-500 ${
-              isSaveMessageVisible
-                ? 'opacity-100 translate-y-0'
-                : 'opacity-0 -translate-y-1'
-            }`}
-          >
-            {saveMessage}
-          </Alert>
-        )}
-
-        {saveError && (
-          <Alert color="error" className="mt-4">
-            {saveError}
-          </Alert>
-        )}
 
         <div className="mt-4">
           <ColumnLayout

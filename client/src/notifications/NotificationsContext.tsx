@@ -1,5 +1,5 @@
 import { CircleAlertIcon, CircleCheckIcon, InfoIcon, TriangleAlertIcon, X } from 'lucide-react';
-import { createContext, useCallback, useRef, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
 
 // Tailwind safelists
 // alert-success
@@ -22,16 +22,14 @@ interface Notification {
   exiting: boolean;
 }
 
-const NOTIFICATION_TIMEOUT = 6000;
+const NOTIFICATION_TIMEOUT = 5000;
 const EXIT_ANIMATION_DURATION = 220;
 
 type NotificationsContextType = {
-  notifications: Notification[];
   push: (notification: NotificationInput) => void;
 };
 
 const NotificationsContext = createContext<NotificationsContextType>({
-  notifications: [],
   push: () => {},
 });
 
@@ -87,8 +85,10 @@ export const NotificationsProvider = ({ children }: { children: ReactNode }) => 
     setTimeout(() => dismiss(id), NOTIFICATION_TIMEOUT);
   }, [dismiss]);
 
+  const value = useMemo<NotificationsContextType>(() => ({ push }), [push]);
+
   return (
-    <NotificationsContext.Provider value={{ notifications, push }}>
+    <NotificationsContext.Provider value={value}>
       <div className="max-w-[90%] w-120 toast toast-bottom toast-center z-9999 pointer-events-none">
         {notifications.map(notification => (
           <div

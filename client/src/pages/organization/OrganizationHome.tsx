@@ -20,8 +20,10 @@ function OrganizationHome() {
       );
       return response.postings;
     },
-    true,
+    { immediate: true },
   );
+
+
 
   return (
     <div className="grow bg-base-200">
@@ -49,11 +51,7 @@ function OrganizationHome() {
           )}
         />
 
-        {error && (
-          <Alert color="error" className="mb-4">
-            {error.message}
-          </Alert>
-        )}
+        {error && <div className="mb-4 text-sm text-base-content/70">Unable to load postings.</div>}
 
         {loading && (
           <div className="flex justify-center py-8">

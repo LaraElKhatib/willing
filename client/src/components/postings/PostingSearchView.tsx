@@ -1,6 +1,7 @@
 import { RotateCcw, Search, TextSearch, type LucideIcon } from 'lucide-react';
 import { type ReactNode, useEffect, useState } from 'react';
 
+import useNotifications from '../../notifications/useNotifications';
 import requestServer from '../../utils/requestServer.ts';
 import Alert from '../Alert.tsx';
 import Button from '../Button.tsx';
@@ -102,6 +103,7 @@ function PostingSearchView({
   filterPostings,
   fetchUrl,
 }: PostingSearchViewProps) {
+  const notifications = useNotifications();
   const defaultFilters: PostingSearchFilters = {
     search: '',
     startDate: '',
@@ -142,7 +144,12 @@ function PostingSearchView({
       setPostings(finalPostings);
     } catch (fetchError) {
       setPostings([]);
-      setError(fetchError instanceof Error ? fetchError.message : 'Failed to load postings');
+      const message = fetchError instanceof Error ? fetchError.message : 'Failed to load postings';
+      setError(message);
+      notifications.push({
+        type: 'error',
+        message,
+      });
     } finally {
       setLoading(false);
     }
@@ -224,11 +231,7 @@ function PostingSearchView({
         </form>
       </div>
 
-      {error && (
-        <Alert color="error" className="mb-4">
-          {error}
-        </Alert>
-      )}
+      {error && <div className="mb-4 text-sm text-base-content/70">Unable to load postings.</div>}
 
       {loading
         ? (

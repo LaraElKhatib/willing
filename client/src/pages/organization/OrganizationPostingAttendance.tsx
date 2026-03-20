@@ -1,5 +1,5 @@
 import { CheckCheck, Download, RotateCcw, Save, Undo2, Users } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useParams } from 'react-router';
 
 import Alert from '../../components/Alert';
@@ -7,7 +7,9 @@ import Button from '../../components/Button';
 import PageHeader from '../../components/layout/PageHeader';
 import Loading from '../../components/Loading';
 import VolunteerInfoCollapse from '../../components/VolunteerInfoCollapse';
+import useNotifications from '../../notifications/useNotifications';
 import requestServer, { SERVER_BASE_URL } from '../../utils/requestServer';
+import useAsync from '../../utils/useAsync';
 
 import type { OrganizationPostingAttendanceResponse } from '../../../../server/src/api/types';
 import type { PostingEnrollment } from '../../../../server/src/types';
@@ -15,49 +17,44 @@ import type { PostingEnrollment } from '../../../../server/src/types';
 function OrganizationPostingAttendance() {
   const { id } = useParams<{ id: string }>();
 
-  const [data, setData] = useState<OrganizationPostingAttendanceResponse | null>(null);
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [exportingCsv, setExportingCsv] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
   const [draftAttendance, setDraftAttendance] = useState<Record<number, boolean>>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'name_asc' | 'name_desc' | 'attended_first' | 'absent_first'>('name_asc');
+  const notifications = useNotifications();
 
-  const loadAttendance = useCallback(async () => {
-    if (!id) return;
-
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await requestServer<OrganizationPostingAttendanceResponse>(`/organization/posting/${id}/attendance`, { includeJwt: true });
-      setData(response);
-      setDraftAttendance(
-        Object.fromEntries(response.enrollments.map(enrollment => [enrollment.enrollment_id, enrollment.attended])),
-      );
-    } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : 'Failed to load attendance');
-    } finally {
-      setLoading(false);
+  const {
+    data,
+    loading,
+    error,
+    trigger: loadAttendance,
+  } = useAsync<OrganizationPostingAttendanceResponse, []>(async () => {
+    if (!id) {
+      throw new Error('Posting ID is missing.');
     }
-  }, [id]);
+
+    const response = await requestServer<OrganizationPostingAttendanceResponse>(`/organization/posting/${id}/attendance`, { includeJwt: true });
+    setDraftAttendance(
+      Object.fromEntries(response.enrollments.map(enrollment => [enrollment.enrollment_id, enrollment.attended])),
+    );
+    return response;
+  }, {
+    immediate: true,
+    notifyOnError: true,
+  });
 
   const toggleAttendance = useCallback(async (enrollment: PostingEnrollment) => {
     if (saving) return;
-    setError(null);
-    setMessage(null);
     setDraftAttendance(current => ({
       ...current,
       [enrollment.enrollment_id]: !(current[enrollment.enrollment_id] ?? enrollment.attended),
     }));
-  }, [data, saving]);
+  }, [saving]);
 
   const setAllAttendanceDraft = useCallback((attended: boolean) => {
     if (!data) return;
     if (saving) return;
-    setError(null);
-    setMessage(null);
     setDraftAttendance(
       Object.fromEntries(data!.enrollments.map(enrollment => [enrollment.enrollment_id, attended])),
     );
@@ -72,14 +69,15 @@ function OrganizationPostingAttendance() {
     });
 
     if (changedEnrollments.length === 0) {
-      setMessage('No attendance changes to submit.');
+      notifications.push({
+        type: 'info',
+        message: 'No attendance changes to submit.',
+      });
       return;
     }
 
     try {
       setSaving(true);
-      setError(null);
-      setMessage(null);
 
       await Promise.all(changedEnrollments.map(enrollment => requestServer(
         `/organization/posting/${id}/enrollments/${enrollment.enrollment_id}/attendance`,
@@ -91,22 +89,26 @@ function OrganizationPostingAttendance() {
       )));
 
       await loadAttendance();
-      setMessage(`Attendance saved for ${changedEnrollments.length} volunteer${changedEnrollments.length > 1 ? 's' : ''}.`);
+      notifications.push({
+        type: 'success',
+        message: `Attendance saved for ${changedEnrollments.length} volunteer${changedEnrollments.length > 1 ? 's' : ''}.`,
+      });
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : 'Failed to submit attendance');
+      notifications.push({
+        type: 'error',
+        message: submitError instanceof Error ? submitError.message : 'Failed to submit attendance',
+      });
       await loadAttendance();
     } finally {
       setSaving(false);
     }
-  }, [data, draftAttendance, id, loadAttendance, saving]);
+  }, [data, draftAttendance, id, loadAttendance, notifications, saving]);
 
   const undoAttendanceChanges = useCallback(() => {
     if (!data || saving) return;
     setDraftAttendance(
       Object.fromEntries(data.enrollments.map(enrollment => [enrollment.enrollment_id, enrollment.attended])),
     );
-    setError(null);
-    setMessage(null);
   }, [data, saving]);
 
   const exportAttendanceCsv = useCallback(async () => {
@@ -114,7 +116,6 @@ function OrganizationPostingAttendance() {
 
     try {
       setExportingCsv(true);
-      setError(null);
       const token = localStorage.getItem('jwt');
       if (!token) {
         throw new Error('Not authenticated');
@@ -147,12 +148,19 @@ function OrganizationPostingAttendance() {
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(link.href);
+      notifications.push({
+        type: 'success',
+        message: 'Attendance CSV exported successfully.',
+      });
     } catch (csvError) {
-      setError(csvError instanceof Error ? csvError.message : 'Failed to export CSV');
+      notifications.push({
+        type: 'error',
+        message: csvError instanceof Error ? csvError.message : 'Failed to export CSV',
+      });
     } finally {
       setExportingCsv(false);
     }
-  }, [exportingCsv, id]);
+  }, [exportingCsv, id, notifications]);
 
   const hasUnsavedChanges = useMemo(() => {
     if (!data) return false;
@@ -204,17 +212,7 @@ function OrganizationPostingAttendance() {
     return result;
   }, [displayedEnrollments, searchTerm, sortBy]);
 
-  useEffect(() => {
-    void loadAttendance();
-  }, [loadAttendance]);
-
-  useEffect(() => {
-    if (!message) return;
-    const timer = setTimeout(() => setMessage(null), 2800);
-    return () => clearTimeout(timer);
-  }, [message]);
-
-  if (loading) {
+  if (loading && !data) {
     return (
       <div className="grow bg-base-200">
         <div className="p-6 md:container mx-auto">
@@ -230,9 +228,9 @@ function OrganizationPostingAttendance() {
     return (
       <div className="grow bg-base-200">
         <div className="p-6 md:container mx-auto">
-          <Alert color="error" className="mb-4">
-            {error}
-          </Alert>
+          <div className="mb-4 text-sm text-base-content/70">
+            Unable to load attendance details.
+          </div>
           <Button style="outline" onClick={() => void loadAttendance()} Icon={RotateCcw}>
             Retry
           </Button>
@@ -256,7 +254,6 @@ function OrganizationPostingAttendance() {
             <>
               <Button
                 style="outline"
-                color="neutral"
                 onClick={() => void exportAttendanceCsv()}
                 disabled={data.enrollments.length === 0}
                 loading={exportingCsv}
@@ -305,18 +302,6 @@ function OrganizationPostingAttendance() {
             </>
           )}
         />
-
-        {error && (
-          <Alert color="error" className="mt-4">
-            {error}
-          </Alert>
-        )}
-
-        {message && (
-          <Alert color="success" className="mt-4">
-            {message}
-          </Alert>
-        )}
 
         <div className="card bg-base-100 shadow-md mt-4">
           <div className="card-body">

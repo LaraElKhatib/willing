@@ -4,9 +4,9 @@ import { useEffect } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import zod from 'zod';
 
-import Alert from './Alert';
 import Button from './Button';
 import IconButton from './IconButton';
+import useNotifications from '../notifications/useNotifications';
 
 const applyMessageSchema = zod.object({
   message: zod.string().max(350, 'Message must be 350 characters or fewer').optional(),
@@ -31,6 +31,7 @@ function CustomMessageModal({
   errorMessage,
   placeholder,
 }: CustomMessageModalProps) {
+  const notifications = useNotifications();
   const form = useForm<CustomMessageFormData>({
     resolver: zodResolver(applyMessageSchema),
     defaultValues: { message: '' },
@@ -41,6 +42,14 @@ function CustomMessageModal({
       form.reset({ message: '' });
     }
   }, [open, form]);
+
+  useEffect(() => {
+    if (!errorMessage) return;
+    notifications.push({
+      type: 'error',
+      message: errorMessage,
+    });
+  }, [errorMessage, notifications]);
 
   const handleSubmit = form.handleSubmit(async (data) => {
     const trimmedMessage = data.message?.trim();
@@ -82,12 +91,6 @@ function CustomMessageModal({
               <span className="text-error">{form.formState.errors.message.message}</span>
             )}
           </div>
-
-          {errorMessage && (
-            <Alert color="error">
-              {errorMessage}
-            </Alert>
-          )}
 
           <div className="modal-action">
             <Button
