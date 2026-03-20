@@ -358,7 +358,6 @@ function PostingPage() {
 
       try {
         const payload = {
-          organization_id: account.id,
           title: data.title.trim(),
           description: data.description.trim(),
           location_name: data.location_name.trim(),
