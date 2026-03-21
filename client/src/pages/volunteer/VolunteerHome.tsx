@@ -93,8 +93,6 @@ function VolunteerHome() {
   const postingsByCrisisId = new Map<number, PostingWithContext[]>();
 
   allAvailablePostings.forEach((posting) => {
-    if (enrollmentPostingIds.has(posting.id)) return;
-
     const crisisId = getPostingCrisisId(posting);
     if (crisisId === undefined) return;
 
