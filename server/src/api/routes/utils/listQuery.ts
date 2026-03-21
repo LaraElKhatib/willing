@@ -1,5 +1,7 @@
 import zod from 'zod';
 
+import { getSingleQueryValue } from './queryValue.js';
+
 type SortDir = 'asc' | 'desc';
 
 type ParseListQueryOptions<SortBy extends string> = {
@@ -15,19 +17,6 @@ type ParsedListQuery<SortBy extends string> = {
 };
 
 const sortDirSchema = zod.enum(['asc', 'desc']);
-
-const getSingleQueryValue = (value: unknown): string | undefined => {
-  if (typeof value === 'string') {
-    return value;
-  }
-
-  if (Array.isArray(value)) {
-    const firstValue = value.at(0);
-    return typeof firstValue === 'string' ? firstValue : undefined;
-  }
-
-  return undefined;
-};
 
 export const parseListQuery = <SortBy extends string>(
   query: Record<string, unknown>,

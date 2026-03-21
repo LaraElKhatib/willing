@@ -1,5 +1,7 @@
 import { sql } from 'kysely';
 
+import { getSingleQueryValue } from './queryValue.js';
+
 export type PostingSortDir = 'asc' | 'desc';
 export type SharedPostingSortBy = 'start_date' | 'end_date' | 'created_at';
 
@@ -13,19 +15,6 @@ export type PostingDateTimeFilters = {
 type PostingQueryLike = {
   where: (...args: unknown[]) => PostingQueryLike;
   orderBy: (...args: unknown[]) => PostingQueryLike;
-};
-
-const getSingleQueryValue = (value: unknown): string | undefined => {
-  if (typeof value === 'string') {
-    return value;
-  }
-
-  if (Array.isArray(value)) {
-    const firstValue = value.at(0);
-    return typeof firstValue === 'string' ? firstValue : undefined;
-  }
-
-  return undefined;
 };
 
 const parseDateBoundary = (value: string | undefined): Date | undefined => {
