@@ -1,16 +1,18 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Building2, ImageUp, Mail, MapPin, Phone, ShieldCheck, Trash2 } from 'lucide-react';
+import { Building2, Globe, ImageUp, Mail, MapPin, Phone, ShieldCheck, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import { newOrganizationCertificateInfoSchema, organizationAccountSchema } from '../../../../server/src/db/tables';
 import { useOrganization } from '../../auth/useUsers';
+import Alert from '../../components/Alert';
 import ColumnLayout from '../../components/layout/ColumnLayout';
 import PageHeader from '../../components/layout/PageHeader';
 import Loading from '../../components/Loading';
 import LocationPicker from '../../components/LocationPicker';
 import { ToggleButton } from '../../components/ToggleButton';
+import useNotifications from '../../notifications/useNotifications';
 import { executeAndShowError, FormField, FormRootError } from '../../utils/formUtils';
 import requestServer, { SERVER_BASE_URL } from '../../utils/requestServer';
 
@@ -97,14 +99,12 @@ type CertificateFormData = z.infer<typeof certificateFormSchema>;
 
 function OrganizationProfile() {
   const organizationFromAuth = useOrganization();
+  const notifications = useNotifications();
   const [profile, setProfile] = useState<OrganizationMeResponse | null>(null);
   const [certificateInfo, setCertificateInfo] = useState<GetCertificateInfoResponse['certificateInfo']>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
-  const [saveMessage, setSaveMessage] = useState<string | null>(null);
-  const [isSaveMessageVisible, setIsSaveMessageVisible] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [position, setPosition] = useState<[number, number]>([33.90192863620578, 35.477959277880416]);
   const [logoBusy, setLogoBusy] = useState(false);
@@ -167,50 +167,26 @@ function OrganizationProfile() {
     try {
       setLoading(true);
       setFetchError(null);
-      setSaveError(null);
 
       const [organizationResponse, certificateResponse] = await Promise.all([
-        requestServer<OrganizationMeResponse>(
-          '/organization/me',
-          { includeJwt: true },
-        ),
-        requestServer<GetCertificateInfoResponse>(
-          '/organization/certificate-info',
-          { includeJwt: true },
-        ),
+        requestServer<OrganizationMeResponse>('/organization/me', { includeJwt: true }),
+        requestServer<GetCertificateInfoResponse>('/organization/certificate-info', { includeJwt: true }),
       ]);
 
       setProfile(organizationResponse);
       setCertificateInfo(certificateResponse.certificateInfo);
       resetFormsFromData(organizationResponse, certificateResponse.certificateInfo);
     } catch (error) {
-      setFetchError(error instanceof Error ? error.message : 'Failed to load organization profile');
+      const message = error instanceof Error ? error.message : 'Failed to load organization profile';
+      setFetchError(message);
     } finally {
       setLoading(false);
     }
   }, [resetFormsFromData]);
 
   useEffect(() => {
-    loadProfile();
+    void loadProfile();
   }, [loadProfile]);
-
-  useEffect(() => {
-    if (!saveMessage) return;
-    setIsSaveMessageVisible(true);
-
-    const fadeTimeout = setTimeout(() => {
-      setIsSaveMessageVisible(false);
-    }, 2400);
-
-    const removeTimeout = setTimeout(() => {
-      setSaveMessage(null);
-    }, 3000);
-
-    return () => {
-      clearTimeout(fadeTimeout);
-      clearTimeout(removeTimeout);
-    };
-  }, [saveMessage]);
 
   const formValues = form.watch();
   const certificateValues = certificateForm.watch();
@@ -241,9 +217,6 @@ function OrganizationProfile() {
 
     try {
       setLogoBusy(true);
-      setSaveError(null);
-      setSaveMessage(null);
-
       const formData = new FormData();
       formData.append('logo', file);
 
@@ -259,9 +232,12 @@ function OrganizationProfile() {
       setProfile(response);
       certificateForm.setValue('hasLogo', true, { shouldValidate: true });
       setLogoVersion(prev => prev + 1);
-      setSaveMessage('Profile picture uploaded.');
+      notifications.push({ type: 'success', message: 'Profile picture uploaded.' });
     } catch (error) {
-      setSaveError(error instanceof Error ? error.message : 'Failed to upload profile picture');
+      notifications.push({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Failed to upload profile picture',
+      });
     } finally {
       setLogoBusy(false);
       if (logoInputRef.current) logoInputRef.current.value = '';
@@ -271,9 +247,6 @@ function OrganizationProfile() {
   const onDeleteLogo = async () => {
     try {
       setLogoBusy(true);
-      setSaveError(null);
-      setSaveMessage(null);
-
       const response = await requestServer<OrganizationDeleteLogoResponse>(
         '/organization/logo',
         {
@@ -285,9 +258,12 @@ function OrganizationProfile() {
       setProfile(response);
       certificateForm.setValue('hasLogo', false, { shouldValidate: true });
       setLogoVersion(prev => prev + 1);
-      setSaveMessage('Profile picture removed.');
+      notifications.push({ type: 'success', message: 'Profile picture removed.' });
     } catch (error) {
-      setSaveError(error instanceof Error ? error.message : 'Failed to remove profile picture');
+      notifications.push({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Failed to remove profile picture',
+      });
     } finally {
       setLogoBusy(false);
     }
@@ -299,9 +275,6 @@ function OrganizationProfile() {
 
     try {
       setSignatureBusy(true);
-      setSaveError(null);
-      setSaveMessage(null);
-
       const formData = new FormData();
       formData.append('signature', file);
 
@@ -316,9 +289,12 @@ function OrganizationProfile() {
 
       setCertificateInfo(response.certificateInfo);
       certificateForm.setValue('hasSignature', true, { shouldValidate: true });
-      setSaveMessage('Certificate signature uploaded.');
+      notifications.push({ type: 'success', message: 'Certificate signature uploaded.' });
     } catch (error) {
-      setSaveError(error instanceof Error ? error.message : 'Failed to upload signature');
+      notifications.push({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Failed to upload signature',
+      });
     } finally {
       setSignatureBusy(false);
       if (signatureInputRef.current) signatureInputRef.current.value = '';
@@ -328,8 +304,6 @@ function OrganizationProfile() {
   const onDeleteSignature = async () => {
     try {
       setSignatureBusy(true);
-      setSaveError(null);
-      setSaveMessage(null);
 
       await requestServer<DeleteCertificateSignatureResponse>(
         '/organization/certificate-info/signature',
@@ -341,9 +315,12 @@ function OrganizationProfile() {
 
       setCertificateInfo(prev => prev ? { ...prev, signature_path: null } : prev);
       certificateForm.setValue('hasSignature', false, { shouldValidate: true });
-      setSaveMessage('Certificate signature removed.');
+      notifications.push({ type: 'success', message: 'Certificate signature removed.' });
     } catch (error) {
-      setSaveError(error instanceof Error ? error.message : 'Failed to remove signature');
+      notifications.push({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Failed to remove signature',
+      });
     } finally {
       setSignatureBusy(false);
     }
@@ -362,8 +339,6 @@ function OrganizationProfile() {
 
       try {
         setSaving(true);
-        setSaveError(null);
-        setSaveMessage(null);
 
         const [organizationResponse, certificateResponse] = await Promise.all([
           requestServer<OrganizationMeResponse>(
@@ -398,10 +373,13 @@ function OrganizationProfile() {
         setProfile(organizationResponse);
         setCertificateInfo(certificateResponse.certificateInfo);
         resetFormsFromData(organizationResponse, certificateResponse.certificateInfo);
-        setSaveMessage('Profile changes saved.');
         setIsEditMode(false);
+        notifications.push({ type: 'success', message: 'Profile changes saved.' });
       } catch (error) {
-        setSaveError(error instanceof Error ? error.message : 'Failed to save profile');
+        notifications.push({
+          type: 'error',
+          message: error instanceof Error ? error.message : 'Failed to save profile',
+        });
       } finally {
         setSaving(false);
       }
@@ -412,8 +390,6 @@ function OrganizationProfile() {
     if (!profile) return;
     resetFormsFromData(profile, certificateInfo);
     setIsEditMode(false);
-    setSaveError(null);
-    setSaveMessage(null);
     form.clearErrors();
     certificateForm.clearErrors();
   }, [certificateForm, certificateInfo, form, profile, resetFormsFromData]);
@@ -434,9 +410,9 @@ function OrganizationProfile() {
     return (
       <div className="grow bg-base-200">
         <div className="p-6 md:container mx-auto">
-          <div role="alert" className="alert alert-error">
-            <span>{fetchError}</span>
-          </div>
+          <Alert color="error">
+            {fetchError}
+          </Alert>
           <button className="btn btn-outline mt-4" onClick={loadProfile}>
             Retry
           </button>
@@ -449,9 +425,9 @@ function OrganizationProfile() {
     return (
       <div className="grow bg-base-200">
         <div className="p-6 md:container mx-auto">
-          <div role="alert" className="alert alert-warning">
-            <span>Profile not found.</span>
-          </div>
+          <Alert color="warning">
+            Profile not found.
+          </Alert>
         </div>
       </div>
     );
@@ -484,23 +460,6 @@ function OrganizationProfile() {
             </>
           )}
         />
-
-        {saveMessage && (
-          <div
-            role="alert"
-            className={`alert alert-success mt-4 transition-all duration-500 ${
-              isSaveMessageVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-1'
-            }`}
-          >
-            <span>{saveMessage}</span>
-          </div>
-        )}
-
-        {saveError && (
-          <div role="alert" className="alert alert-error mt-4">
-            <span>{saveError}</span>
-          </div>
-        )}
 
         <FormRootError form={form} />
         <FormRootError form={certificateForm} />
@@ -567,108 +526,86 @@ function OrganizationProfile() {
 
                   <div className="divider my-4" />
 
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="opacity-70 flex items-center gap-2">
-                        <Mail size={14} />
-                        Email
-                      </span>
-                      <span className="font-medium text-right break-all">{profile.organization.email}</span>
-                    </div>
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="opacity-70 flex items-center gap-2">
-                        <MapPin size={14} />
-                        Location
-                      </span>
-                      <span className="font-medium text-right">{formValues.location_name || '-'}</span>
-                    </div>
-                  </div>
+                  {isEditMode
+                    ? (
+                        <div className={`space-y-3 ${saving ? 'pointer-events-none opacity-70' : ''}`}>
+                          <div className="rounded-box border border-base-300 p-3">
+                            <p className="text-xs opacity-70">Organization Name</p>
+                            <p className="font-semibold mt-1">{profile.organization.name || '-'}</p>
+                          </div>
+                          <div className="rounded-box border border-base-300 p-3">
+                            <p className="text-xs opacity-70">Website</p>
+                            <a href={profile.organization.url} target="_blank" rel="noreferrer" className="font-semibold mt-1 inline-flex items-center gap-2 text-primary break-all">
+                              <Globe size={14} />
+                              {profile.organization.url}
+                            </a>
+                          </div>
+                          <FormField form={form} name="phone_number" label="Phone Number" Icon={Phone} />
+                          <FormField form={form} name="location_name" label="Location Name" Icon={MapPin} />
+                          <div>
+                            <label className="text-sm font-medium mb-2 block">Description</label>
+                            <textarea
+                              id="organization-description"
+                              className="textarea textarea-bordered w-full"
+                              {...form.register('description')}
+                              disabled={saving}
+                              rows={5}
+                              maxLength={ORG_DESCRIPTION_MAX_LENGTH}
+                              placeholder="Describe your organization and impact."
+                            />
+                            <p className="text-xs opacity-60 mt-1 text-right">
+                              {formValues.description?.length || 0}
+                              /
+                              {ORG_DESCRIPTION_MAX_LENGTH}
+                            </p>
+                          </div>
+                        </div>
+                      )
+                    : (
+                        <div className="space-y-3 text-sm">
+                          <div className="flex items-start justify-between gap-3">
+                            <span className="opacity-70 flex items-center gap-2"><Mail size={14} />Email</span>
+                            <span className="font-medium text-right break-all">{profile.organization.email}</span>
+                          </div>
+                          <div className="flex items-start justify-between gap-3">
+                            <span className="opacity-70 flex items-center gap-2"><Phone size={14} />Phone</span>
+                            <span className="font-medium text-right">{formValues.phone_number || '-'}</span>
+                          </div>
+                          <div className="flex items-start justify-between gap-3">
+                            <span className="opacity-70 flex items-center gap-2"><Globe size={14} />Website</span>
+                            <a href={profile.organization.url} target="_blank" rel="noreferrer" className="font-medium text-right text-primary break-all hover:underline">
+                              {profile.organization.url || '-'}
+                            </a>
+                          </div>
+                          <div className="flex items-start justify-between gap-3">
+                            <span className="opacity-70 flex items-center gap-2"><MapPin size={14} />Location</span>
+                            <span className="font-medium text-right">{formValues.location_name || '-'}</span>
+                          </div>
+                          <div className="pt-2">
+                            <p className="opacity-70 mb-1">Description</p>
+                            <p className="whitespace-pre-wrap break-words">{formValues.description?.trim() || 'No description added yet.'}</p>
+                          </div>
+                        </div>
+                      )}
                 </div>
               </div>
             )}
           >
             <div className="card bg-base-100 shadow-md mt-4">
               <div className="card-body">
-                <h5 className="font-bold text-lg">Organization Details</h5>
-                <p className="text-sm opacity-70 mt-1">Keep your information accurate for volunteers.</p>
-
-                {isEditMode
-                  ? (
-                      <div className={`mt-3 grid grid-cols-1 md:grid-cols-2 gap-4 ${saving ? 'pointer-events-none opacity-70' : ''}`}>
-                        <FormField form={form} name="phone_number" label="Phone Number" Icon={Phone} />
-                        <FormField form={form} name="location_name" label="Location Name" Icon={MapPin} />
-
-                        <div className="md:col-span-2">
-                          <label className="text-sm font-medium mb-2 block">Organization Description</label>
-                          <textarea
-                            id="organization-description"
-                            className="textarea textarea-bordered w-full"
-                            {...form.register('description')}
-                            disabled={saving}
-                            rows={5}
-                            maxLength={ORG_DESCRIPTION_MAX_LENGTH}
-                            placeholder="Describe your organization and impact."
-                          />
-                          <p
-                            className={`block min-h-5 text-xs mt-1 ${
-                              form.formState.errors.description ? 'text-error' : 'invisible'
-                            }`}
-                          >
-                            {form.formState.errors.description?.message || 'placeholder'}
-                          </p>
-                          <p className="text-xs opacity-60 mt-1 text-right">
-                            {formValues.description?.length || 0}
-                            /
-                            {ORG_DESCRIPTION_MAX_LENGTH}
-                          </p>
-                        </div>
-
-                        <div className="md:col-span-2">
-                          <label className="text-sm font-medium mb-2 block">Location on Map</label>
-                          <LocationPicker
-                            position={position}
-                            setPosition={onMapPositionPick}
-                            className="h-72"
-                          />
-                        </div>
-                      </div>
-                    )
-                  : (
-                      <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                        <div className="rounded-box border border-base-300 p-3">
-                          <p className="opacity-70">Organization Name</p>
-                          <p className="font-semibold mt-1">{profile.organization.name || '-'}</p>
-                        </div>
-                        <div className="rounded-box border border-base-300 p-3">
-                          <p className="opacity-70">Phone Number</p>
-                          <p className="font-semibold mt-1">{formValues.phone_number || '-'}</p>
-                        </div>
-                        <div className="rounded-box border border-base-300 p-3">
-                          <p className="opacity-70">Website URL</p>
-                          <a
-                            href={profile.organization.url || undefined}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="font-semibold mt-1 text-primary break-all inline-block"
-                          >
-                            {profile.organization.url || '-'}
-                          </a>
-                        </div>
-                        <div className="rounded-box border border-base-300 p-3">
-                          <p className="opacity-70">Location Name</p>
-                          <p className="font-semibold mt-1">{formValues.location_name || '-'}</p>
-                        </div>
-                        <div className="rounded-box border border-base-300 p-3 md:col-span-2">
-                          <p className="opacity-70 mb-2">Location on Map</p>
-                          <LocationPicker
-                            position={position}
-                            setPosition={() => {}}
-                            readOnly={true}
-                            className="h-72"
-                          />
-                        </div>
-                      </div>
-                    )}
+                <h5 className="font-bold text-lg flex items-center gap-2">
+                  <MapPin size={18} />
+                  Location on Map
+                </h5>
+                <p className="text-sm opacity-70 mt-1">Update your pinned location for volunteers.</p>
+                <div className={`mt-3 ${isEditMode && saving ? 'pointer-events-none opacity-70' : ''}`}>
+                  <LocationPicker
+                    position={position}
+                    setPosition={isEditMode ? onMapPositionPick : () => {}}
+                    readOnly={!isEditMode}
+                    className="h-72"
+                  />
+                </div>
               </div>
             </div>
 
@@ -696,10 +633,11 @@ function OrganizationProfile() {
                           ]}
                           disabled={saving}
                         />
+
                         {!profile.organization.logo_path && (
-                          <div role="alert" className="alert alert-warning">
-                            <span>Upload organization profile picture before enabling this feature.</span>
-                          </div>
+                          <Alert color="warning">
+                            Upload organization profile picture before enabling this feature.
+                          </Alert>
                         )}
 
                         {certificateValues.certificate_feature_enabled && (
@@ -794,3 +732,4 @@ function OrganizationProfile() {
 }
 
 export default OrganizationProfile;
+
