@@ -756,6 +756,7 @@ function PostingPage() {
         <PageHeader
           title="Posting Details"
           subtitle={isVolunteerView ? 'Review details before applying' : 'View and manage your posting'}
+          icon={ListChecks}
           showBack
           defaultBackTo={isVolunteerView ? '/volunteer' : '/organization'}
           actions={!isVolunteerView && (isEditMode
