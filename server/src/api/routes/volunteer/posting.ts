@@ -14,7 +14,11 @@ import database from '../../../db/index.js';
 import { Enrollment, EnrollmentApplication } from '../../../db/tables.js';
 import { recomputeVolunteerExperienceVector } from '../../../services/embeddings/updates.js';
 import { authorizeOnly } from '../../authorization.js';
-import { parseListQuery, parseOptionalBooleanQueryParam } from '../utils/listQuery.js';
+import {
+  parseListQuery,
+  parseOptionalBooleanQueryParam,
+  parseOptionalNumberQueryParam,
+} from '../utils/listQuery.js';
 import {
   applyPostingDateTimeFilters,
   applySharedPostingSort,
@@ -198,6 +202,7 @@ volunteerPostingRouter.get('/', async (req, res: Response<VolunteerPostingSearch
   const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
   const dateTimeFilters = parsePostingDateTimeFilters(req.query);
   const hideFull = parseOptionalBooleanQueryParam(req.query.hide_full) ?? false;
+  const crisisIdFilter = parseOptionalNumberQueryParam(req.query.crisis_id);
   const { sortBy, sortDir } = parseListQuery(req.query, {
     allowedSortBy: ['recommended', 'start_date', 'end_date', 'created_at'],
     defaultSortBy: 'recommended',
@@ -247,6 +252,10 @@ volunteerPostingRouter.get('/', async (req, res: Response<VolunteerPostingSearch
       'ilike',
       `%${location_name}%`,
     );
+  }
+
+  if (crisisIdFilter !== undefined) {
+    query = query.where('organization_posting.crisis_id', '=', crisisIdFilter);
   }
 
   if (search) {

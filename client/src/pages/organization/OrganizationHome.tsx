@@ -18,13 +18,17 @@ import {
 import requestServer from '../../utils/requestServer';
 import useAsync from '../../utils/useAsync';
 
-import type { OrganizationPostingListResponse } from '../../../../server/src/api/types';
+import type {
+  OrganizationCrisesResponse,
+  OrganizationPostingListResponse,
+} from '../../../../server/src/api/types';
 
 type OrganizationPostingFilters = SharedPostingFilterFields & {
   sortBy: OrganizationPostingSortBy;
   sortDir: PostingSortDir;
   isClosed: 'all' | 'open' | 'closed';
   postingType: 'all' | 'open' | 'review';
+  crisisId: 'all' | `${number}`;
 };
 
 const defaultFilters: OrganizationPostingFilters = {
@@ -33,6 +37,7 @@ const defaultFilters: OrganizationPostingFilters = {
   sortDir: 'asc',
   isClosed: 'all',
   postingType: 'all',
+  crisisId: 'all',
   startDateFrom: '',
   endDateTo: '',
   startTimeFrom: '',
@@ -56,6 +61,10 @@ function OrganizationHome() {
         query.automatic_acceptance = nextFilters.postingType === 'open' ? 'true' : 'false';
       }
 
+      if (nextFilters.crisisId !== 'all') {
+        query.crisis_id = nextFilters.crisisId;
+      }
+
       const response = await requestServer<OrganizationPostingListResponse>(
         '/organization/posting',
         {
@@ -74,6 +83,16 @@ function OrganizationHome() {
     error,
     trigger: fetchPostings,
   } = useAsync(fetchOrganizationPostings, { immediate: false });
+
+  const { data: crises } = useAsync(
+    async () => {
+      const response = await requestServer<OrganizationCrisesResponse>('/organization/crises', {
+        includeJwt: true,
+      });
+      return response.crises;
+    },
+    { immediate: true },
+  );
 
   useEffect(() => {
     void fetchPostings(activeFilters);
@@ -94,7 +113,8 @@ function OrganizationHome() {
 
   const hasAdvancedFiltersApplied = hasSharedAdvancedPostingFilters(filters)
     || filters.isClosed !== 'all'
-    || filters.postingType !== 'all';
+    || filters.postingType !== 'all'
+    || filters.crisisId !== 'all';
 
   const selectedSortOption = organizationPostingSortOptions.find(option => option.sortBy === filters.sortBy && option.sortDir === filters.sortDir)
     ?? organizationPostingSortOptions[0];
@@ -211,6 +231,20 @@ function OrganizationHome() {
                     <option value="all">Posting Type: All</option>
                     <option value="open">Posting Type: Open Posting</option>
                     <option value="review">Posting Type: Review-Based</option>
+                  </select>
+
+                  <select
+                    className="select select-bordered w-full"
+                    value={filters.crisisId}
+                    onChange={event => setFilters(prev => ({
+                      ...prev,
+                      crisisId: event.target.value as OrganizationPostingFilters['crisisId'],
+                    }))}
+                  >
+                    <option value="all">Crisis: All</option>
+                    {crises?.map(crisis => (
+                      <option key={crisis.id} value={String(crisis.id)}>{crisis.name}</option>
+                    ))}
                   </select>
 
                   <label className="form-control">

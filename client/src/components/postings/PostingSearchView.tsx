@@ -29,6 +29,12 @@ export type PostingSearchFilters = SharedPostingFilterFields & {
   startTimeFrom: string;
   endTimeTo: string;
   hideFull: boolean;
+  crisisId: 'all' | `${number}`;
+};
+
+type PostingCrisisOption = {
+  id: number;
+  name: string;
 };
 
 type PostingSearchViewProps = {
@@ -42,6 +48,8 @@ type PostingSearchViewProps = {
   emptyMessage?: string;
   filterPostings?: (postings: PostingWithContext[]) => PostingWithContext[];
   fetchUrl?: string;
+  enableCrisisFilter?: boolean;
+  crisisOptions?: PostingCrisisOption[];
 };
 
 function PostingSearchView({
@@ -55,6 +63,8 @@ function PostingSearchView({
   emptyMessage = 'No postings found yet',
   filterPostings,
   fetchUrl,
+  enableCrisisFilter = false,
+  crisisOptions = [],
 }: PostingSearchViewProps) {
   const defaultFilters = useMemo<PostingSearchFilters>(() => ({
     search: '',
@@ -65,6 +75,7 @@ function PostingSearchView({
     startTimeFrom: '',
     endTimeTo: '',
     hideFull: false,
+    crisisId: 'all',
     ...initialFilters,
   }), [initialFilters]);
 
@@ -83,6 +94,7 @@ function PostingSearchView({
     const baseUrl = fetchUrl ?? '/volunteer/posting';
     const query = new URLSearchParams(buildSharedPostingQuery(activeFilters));
     if (activeFilters.hideFull) query.append('hide_full', 'true');
+    if (activeFilters.crisisId !== 'all') query.append('crisis_id', activeFilters.crisisId);
 
     const url = query.size > 0 ? `${baseUrl}?${query.toString()}` : baseUrl;
 
@@ -121,7 +133,9 @@ function PostingSearchView({
 
   const hasActiveFilters = useMemo(() => JSON.stringify(filters) !== JSON.stringify(defaultFilters), [filters, defaultFilters]);
 
-  const hasAdvancedFiltersApplied = hasSharedAdvancedPostingFilters(filters) || filters.hideFull;
+  const hasAdvancedFiltersApplied = hasSharedAdvancedPostingFilters(filters)
+    || filters.hideFull
+    || filters.crisisId !== 'all';
 
   const selectedSortOption = volunteerPostingSortOptions.find(option => option.sortBy === filters.sortBy && option.sortDir === filters.sortDir)
     ?? volunteerPostingSortOptions[0];
@@ -251,6 +265,22 @@ function PostingSearchView({
                     onChange={event => setFilters(prev => ({ ...prev, endTimeTo: event.target.value }))}
                   />
                 </label>
+
+                {enableCrisisFilter && (
+                  <select
+                    className="select select-bordered w-full lg:col-span-2"
+                    value={filters.crisisId}
+                    onChange={event => setFilters(prev => ({
+                      ...prev,
+                      crisisId: event.target.value as PostingSearchFilters['crisisId'],
+                    }))}
+                  >
+                    <option value="all">Crisis: All</option>
+                    {crisisOptions.map(crisis => (
+                      <option key={crisis.id} value={String(crisis.id)}>{crisis.name}</option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               <label className="label mt-2 cursor-pointer justify-start gap-3">
