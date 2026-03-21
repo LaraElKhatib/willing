@@ -1,12 +1,13 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { CheckCircle, CheckCircle2, LockKeyhole } from 'lucide-react';
+import { CheckCircle, LockKeyhole, Save } from 'lucide-react';
 import { useContext } from 'react';
 import { useForm } from 'react-hook-form';
 import zod from 'zod';
 
-import Loading from './Loading';
+import Button from './Button';
 import { passwordSchema } from '../../../server/src/db/tables';
 import AuthContext from '../auth/AuthContext';
+import useNotifications from '../notifications/useNotifications';
 import { executeAndShowError, FormField, FormRootError } from '../utils/formUtils';
 
 const passwordResetSchema = zod.object({
@@ -22,6 +23,7 @@ type PasswordResetForm = zod.infer<typeof passwordResetSchema>;
 
 function PasswordResetCard() {
   const auth = useContext(AuthContext);
+  const notifications = useNotifications();
   const form = useForm({
     resolver: zodResolver(passwordResetSchema),
     mode: 'onTouched',
@@ -32,6 +34,10 @@ function PasswordResetCard() {
     await executeAndShowError(form, async () => {
       await auth.changePassword(data.currentPassword, data.newPassword);
       form.reset();
+      notifications.push({
+        type: 'success',
+        message: 'Your password was successfully updated.',
+      });
     });
   });
 
@@ -63,24 +69,18 @@ function PasswordResetCard() {
             Icon={CheckCircle}
           />
 
-          {form.formState.isSubmitSuccessful
-            && (
-              <div role="alert" className="alert alert-success alert-soft mt-2">
-                <CheckCircle2 size={20} />
-                <span>Your password was successfully updated</span>
-              </div>
-            )}
-
           <FormRootError form={form} />
 
           <div className="card-actions justify-end mt-6 gap-2">
-            <button type="submit" className="btn btn-primary">
-              {
-                form.formState.isSubmitting
-                  ? <Loading />
-                  : 'Update Password'
-              }
-            </button>
+            <Button
+              color="primary"
+              type="submit"
+              className="btn btn-primary"
+              loading={form.formState.isSubmitting}
+              Icon={Save}
+            >
+              Update Password
+            </Button>
           </div>
 
         </form>

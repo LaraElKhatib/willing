@@ -1,12 +1,15 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AlertCircle, Pencil, Pin, PinOff, PlusCircle, Trash2 } from 'lucide-react';
+import { AlertCircle, Pencil, Pin, PinOff, Plus, Save, Trash2, X } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import zod from 'zod';
 
 import { newCrisisSchema } from '../../../../server/src/db/tables';
+import Alert from '../../components/Alert';
+import Button from '../../components/Button';
 import ColumnLayout from '../../components/layout/ColumnLayout';
 import PageHeader from '../../components/layout/PageHeader';
+import useNotifications from '../../notifications/useNotifications';
 import { executeAndShowError, FormField, FormRootError } from '../../utils/formUtils';
 import requestServer from '../../utils/requestServer';
 import useAsync from '../../utils/useAsync';
@@ -32,8 +35,8 @@ function AdminCrises() {
   const [editingCrisisId, setEditingCrisisId] = useState<number | null>(null);
   const [editingName, setEditingName] = useState('');
   const [editingDescription, setEditingDescription] = useState('');
-  const [editingError, setEditingError] = useState<string | null>(null);
   const [actionBusyId, setActionBusyId] = useState<number | null>(null);
+  const notifications = useNotifications();
 
   const crisisForm = useForm<CreateCrisisFormData>({
     resolver: zodResolver(createCrisisFormSchema),
@@ -52,7 +55,41 @@ function AdminCrises() {
   const {
     data: crises,
     trigger: refreshCrises,
-  } = useAsync(getCrises, true);
+  } = useAsync(getCrises, { immediate: true });
+
+  const { trigger: updateCrisis } = useAsync(
+    async (
+      crisisId: number,
+      data: { name: string; description?: string },
+    ) => requestServer<AdminCrisisUpdateResponse>(`/admin/crises/${crisisId}`, {
+      method: 'PUT',
+      includeJwt: true,
+      body: {
+        name: data.name,
+        description: data.description?.trim() ? data.description.trim() : undefined,
+      },
+    }),
+    { notifyOnError: true },
+  );
+
+  const { trigger: deleteCrisis } = useAsync(
+    async (crisisId: number) => requestServer<AdminCrisisDeleteResponse>(`/admin/crises/${crisisId}`, {
+      method: 'DELETE',
+      includeJwt: true,
+    }),
+    { notifyOnError: true },
+  );
+
+  const { trigger: toggleCrisisPin } = useAsync(
+    async (crisisId: number, pinned: boolean) => requestServer<AdminCrisisPinResponse>(`/admin/crises/${crisisId}/pin`, {
+      method: 'PATCH',
+      includeJwt: true,
+      body: {
+        pinned: !pinned,
+      },
+    }),
+    { notifyOnError: true },
+  );
 
   const onCreateCrisis = crisisForm.handleSubmit(async (data) => {
     await executeAndShowError(crisisForm, async () => {
@@ -72,6 +109,10 @@ function AdminCrises() {
         description: '',
       });
       await refreshCrises();
+      notifications.push({
+        type: 'success',
+        message: 'Crisis created successfully.',
+      });
     });
 
     setIsCreatingCrisis(false);
@@ -81,14 +122,12 @@ function AdminCrises() {
     setEditingCrisisId(crisisId);
     setEditingName(name);
     setEditingDescription(description ?? '');
-    setEditingError(null);
   };
 
   const onCancelEdit = () => {
     setEditingCrisisId(null);
     setEditingName('');
     setEditingDescription('');
-    setEditingError(null);
   };
 
   const onSaveEdit = async (crisisId: number) => {
@@ -98,27 +137,24 @@ function AdminCrises() {
     });
 
     if (!parsed.success) {
-      setEditingError(parsed.error.issues[0]?.message ?? 'Invalid crisis details');
+      notifications.push({
+        type: 'warning',
+        message: parsed.error.issues[0]?.message ?? 'Invalid crisis details',
+      });
       return;
     }
 
     setActionBusyId(crisisId);
-    setEditingError(null);
 
     try {
-      await requestServer<AdminCrisisUpdateResponse>(`/admin/crises/${crisisId}`, {
-        method: 'PUT',
-        includeJwt: true,
-        body: {
-          name: parsed.data.name,
-          description: parsed.data.description?.trim() ? parsed.data.description.trim() : undefined,
-        },
-      });
+      await updateCrisis(crisisId, parsed.data);
 
       await refreshCrises();
+      notifications.push({
+        type: 'success',
+        message: 'Crisis updated successfully.',
+      });
       onCancelEdit();
-    } catch (error) {
-      setEditingError(error instanceof Error ? error.message : 'Failed to update crisis');
     } finally {
       setActionBusyId(null);
     }
@@ -129,21 +165,19 @@ function AdminCrises() {
     if (!confirmed) return;
 
     setActionBusyId(crisisId);
-    setEditingError(null);
 
     try {
-      await requestServer<AdminCrisisDeleteResponse>(`/admin/crises/${crisisId}`, {
-        method: 'DELETE',
-        includeJwt: true,
-      });
+      await deleteCrisis(crisisId);
 
       if (editingCrisisId === crisisId) {
         onCancelEdit();
       }
 
       await refreshCrises();
-    } catch (error) {
-      setEditingError(error instanceof Error ? error.message : 'Failed to delete crisis');
+      notifications.push({
+        type: 'success',
+        message: 'Crisis deleted successfully.',
+      });
     } finally {
       setActionBusyId(null);
     }
@@ -151,20 +185,15 @@ function AdminCrises() {
 
   const onTogglePin = async (crisisId: number, pinned: boolean) => {
     setActionBusyId(crisisId);
-    setEditingError(null);
 
     try {
-      await requestServer<AdminCrisisPinResponse>(`/admin/crises/${crisisId}/pin`, {
-        method: 'PATCH',
-        includeJwt: true,
-        body: {
-          pinned: !pinned,
-        },
-      });
+      await toggleCrisisPin(crisisId, pinned);
 
       await refreshCrises();
-    } catch (error) {
-      setEditingError(error instanceof Error ? error.message : 'Failed to update pin status');
+      notifications.push({
+        type: 'success',
+        message: pinned ? 'Crisis unpinned.' : 'Crisis pinned.',
+      });
     } finally {
       setActionBusyId(null);
     }
@@ -216,14 +245,15 @@ function AdminCrises() {
                     type="textarea"
                   />
 
-                  <button
+                  <Button
+                    color="primary"
                     type="submit"
-                    className="btn btn-primary w-full"
-                    disabled={isCreatingCrisis}
+                    loading={isCreatingCrisis}
+                    Icon={Plus}
+                    layout="block"
                   >
-                    <PlusCircle size={16} />
-                    {isCreatingCrisis ? 'Adding...' : 'Add Crisis'}
-                  </button>
+                    Add Crisis
+                  </Button>
                 </form>
 
                 <FormRootError form={crisisForm} />
@@ -237,12 +267,6 @@ function AdminCrises() {
               {crisisCountBadge}
             </div>
 
-            {editingError && (
-              <div role="alert" className="alert alert-error mb-3">
-                <span>{editingError}</span>
-              </div>
-            )}
-
             {!crises
               ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -252,9 +276,9 @@ function AdminCrises() {
                 )
               : crises.length === 0
                 ? (
-                    <div className="alert alert-soft">
-                      <span>No crises added yet.</span>
-                    </div>
+                    <Alert style="soft">
+                      No crises added yet.
+                    </Alert>
                   )
                 : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -290,23 +314,25 @@ function AdminCrises() {
                                       placeholder="Description (optional)"
                                       rows={3}
                                     />
-                                    <div className="flex flex-wrap gap-2">
-                                      <button
+                                    <div className="flex flex-row-reverse flex-wrap gap-2">
+                                      <Button
+                                        color="primary"
                                         type="button"
-                                        className="btn btn-primary btn-sm"
                                         onClick={() => onSaveEdit(crisis.id)}
                                         disabled={actionBusyId === crisis.id}
+                                        Icon={Save}
                                       >
                                         Save
-                                      </button>
-                                      <button
+                                      </Button>
+                                      <Button
                                         type="button"
-                                        className="btn btn-ghost btn-sm"
+                                        color="ghost"
                                         onClick={onCancelEdit}
                                         disabled={actionBusyId === crisis.id}
+                                        Icon={X}
                                       >
                                         Cancel
-                                      </button>
+                                      </Button>
                                     </div>
                                   </div>
                                 )
@@ -316,35 +342,37 @@ function AdminCrises() {
                                       {crisis.description || 'No description set'}
                                     </p>
                                     <div className="card-actions justify-end mt-2">
-                                      <button
+                                      <Button
                                         type="button"
-                                        className="btn btn-outline btn-sm"
+                                        style="outline"
+                                        size="sm"
                                         onClick={() => onTogglePin(crisis.id, crisis.pinned)}
                                         disabled={actionBusyId === crisis.id}
+                                        Icon={crisis.pinned ? PinOff : Pin}
                                       >
-                                        {crisis.pinned
-                                          ? <PinOff size={14} />
-                                          : <Pin size={14} />}
                                         {crisis.pinned ? 'Unpin' : 'Pin'}
-                                      </button>
-                                      <button
+                                      </Button>
+                                      <Button
                                         type="button"
-                                        className="btn btn-outline btn-sm"
+                                        style="outline"
+                                        size="sm"
                                         onClick={() => onStartEdit(crisis.id, crisis.name, crisis.description)}
                                         disabled={actionBusyId === crisis.id}
+                                        Icon={Pencil}
                                       >
-                                        <Pencil size={14} />
                                         Edit
-                                      </button>
-                                      <button
+                                      </Button>
+                                      <Button
                                         type="button"
-                                        className="btn btn-error btn-outline btn-sm"
+                                        style="outline"
+                                        color="error"
+                                        size="sm"
                                         onClick={() => onDelete(crisis.id, crisis.name)}
                                         disabled={actionBusyId === crisis.id}
+                                        Icon={Trash2}
                                       >
-                                        <Trash2 size={14} />
                                         Delete
-                                      </button>
+                                      </Button>
                                     </div>
                                   </>
                                 )}

@@ -2,16 +2,15 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Building2, Mail, Phone, Globe, MapPin, Send, Home } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { useNavigate } from 'react-router';
 
-import Loading from '../components/Loading';
+import Button from '../components/Button';
+import LinkButton from '../components/LinkButton';
 import LocationPicker from '../components/LocationPicker';
 import { organizationRequestFormSchema, type OrganizationRequestFormData } from '../schemas/auth';
 import { executeAndShowError, FormField, FormRootError } from '../utils/formUtils';
 import requestServer from '../utils/requestServer';
 
 export default function OrganizationRequestPage() {
-  const navigate = useNavigate();
   const form = useForm<OrganizationRequestFormData>({
     resolver: zodResolver(organizationRequestFormSchema),
     mode: 'onTouched',
@@ -61,10 +60,14 @@ export default function OrganizationRequestPage() {
               <p className="opacity-80">
                 Your organization request was sent successfully. Our team will review it and contact you.
               </p>
-              <button className="btn btn-primary mt-3" onClick={() => navigate('/')}>
-                <Home size={18} />
+              <LinkButton
+                color="primary"
+                className="mt-3"
+                to="/"
+                Icon={Home}
+              >
                 Go back home
-              </button>
+              </LinkButton>
             </div>
           </div>
         </div>
@@ -133,22 +136,15 @@ export default function OrganizationRequestPage() {
 
             <FormRootError form={form} />
 
-            <button
-              className="btn btn-primary mt-4"
+            <Button
+              color="primary"
+              className="mt-4"
               type="submit"
-              disabled={form.formState.isSubmitting}
+              loading={form.formState.isSubmitting}
+              Icon={Send}
             >
-              {
-                form.formState.isSubmitting
-                  ? <Loading />
-                  : (
-                      <>
-                        <Send size={20} />
-                        Request Account
-                      </>
-                    )
-              }
-            </button>
+              Request Account
+            </Button>
           </form>
         </div>
       </div>

@@ -2,6 +2,8 @@ import { ArrowLeft, type LucideIcon } from 'lucide-react';
 import { type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
+import IconButton from '../IconButton';
+
 type PageHeaderProps = {
   title: string;
   subtitle?: string;
@@ -45,12 +47,10 @@ export default function PageHeader({
     <div className={`flex items-start justify-between gap-4 flex-wrap ${wrapperClasses}`}>
       <div className="flex items-center gap-3">
         {showBack && (
-          <button
-            className="btn btn-ghost btn-sm"
+          <IconButton
             onClick={onBack}
-          >
-            <ArrowLeft size={20} />
-          </button>
+            Icon={ArrowLeft}
+          />
         )}
         <div className="flex gap-4">
           {Icon && <Icon className="text-primary mt-0.5 shrink-0" size={32} />}

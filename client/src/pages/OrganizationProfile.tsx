@@ -25,7 +25,7 @@ function OrganizationProfile() {
       );
       return response;
     },
-    !!id,
+    { immediate: !!id },
   );
 
   if (!id) {
@@ -33,9 +33,7 @@ function OrganizationProfile() {
       <div className="flex flex-col min-h-screen bg-base-200">
         <div className="grow">
           <div className="p-6 md:container mx-auto">
-            <div className="alert alert-error">
-              <span>Invalid organization ID</span>
-            </div>
+            <div className="text-sm text-base-content/70">Invalid organization ID</div>
           </div>
         </div>
       </div>
@@ -53,11 +51,7 @@ function OrganizationProfile() {
             defaultBackTo="/"
           />
 
-          {error && (
-            <div className="alert alert-error mb-4">
-              <span>{error.message}</span>
-            </div>
-          )}
+          {error && <div className="mb-4 text-sm text-base-content/70">Unable to load organization profile.</div>}
 
           {loading && (
             <div className="flex justify-center py-12">

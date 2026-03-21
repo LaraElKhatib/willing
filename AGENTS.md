@@ -142,6 +142,13 @@ Useful client scripts:
 6. Keep existing DaisyUI/Tailwind visual language unless explicitly asked to redesign.
 7. Handle loading, error, and success states explicitly.
 
+## Async Hook Conventions
+
+1. Prefer `useAsync` with an **inline async function** when the request logic is local to one component.
+2. Prefer the `trigger` returned by `useAsync` for manual refresh/retry flows instead of separate duplicate loader functions.
+3. Keep a request function outside `useAsync` only when that same function must be reused across multiple hooks or call sites.
+4. For request failures, prefer `useAsync` notification handling via `notifyOnError` instead of catching inside the function passed to `useAsync` only to push error notifications.
+
 ## Reusable Components
 
 All components are in `client/src/components/`. **Use these instead of recreating similar logic.**
@@ -160,6 +167,26 @@ All components are in `client/src/components/`. **Use these instead of recreatin
 - **`VolunteerNavbar`**: Navbar variant for volunteer dashboard pages.
 - **`OrganizationNavbar`**: Navbar variant for organization dashboard pages.
 - **`AdminNavbar`**: Navbar variant for admin dashboard pages.
+
+### Button Components (`client/src/components/`)
+
+- **`Button`**: Default action control for form submits and in-page actions. Supports optional `Icon`, `loading`, `size`, `color`, `style`, and `layout` (`wide`/`block`).
+- **`IconButton`**: Compact square icon-only action. Requires `Icon`; use for secondary utility actions (for example edit/delete/open details), not primary page CTAs.
+- **`LinkButton`**: Navigation action that routes with React Router (`to`, optional `state`) while keeping button styling. Use this for navigation, not imperative `navigate` calls on click where a link is sufficient.
+- Prefer these reusable components over raw `<button>`/`<Link>` when DaisyUI button styling is desired.
+- Use `loading` for async actions and keep controls disabled during submission (`Button`/`IconButton` already disable while loading).
+- Keep variants semantically consistent: use `color="primary"` for main actions, `ghost`/`outline` for secondary actions, and `error` only for destructive actions.
+- Keep button text action-oriented and short (e.g., "Apply", "Save", "Approve"), and use an icon only when it improves recognition.
+- For action-icon consistency, prefer these mappings when available:
+   - Save/update actions → `Save`
+   - Cancel/close actions → `X`
+   - Apply/submit/send actions → `Send`
+   - Create/add actions → `Plus`
+   - Edit actions → `Edit3` or `Pencil`
+   - Delete/remove actions → `Trash2`
+   - Retry/refresh/reset actions → `RotateCcw` or `RefreshCcw`
+   - Approve/accept actions → `Check` or `CheckCircle`
+   - Reject/decline actions → `X` or `XCircle`
 
 ### Skill Components (`client/src/components/skills/`)
 
@@ -212,14 +239,6 @@ All components are in `client/src/components/`. **Use these instead of recreatin
 3. **Reuse canonical schemas from `server/src/db/tables.ts`** in both server routes and client forms.
 4. Never recreate table schemas manually when schema composition works.
 
-## `server/src/db/tables.ts` Guidelines
-
-1. Treat `server/src/db/tables.ts` as the **single source of truth** for table shapes and request payload schemas.
-2. Any schema used for inserts/creates (typically `new*Schema`) must use `.strict()` so unknown keys are rejected.
-3. Build insert/update request schemas by composing table schemas (`omit`, `pick`, `extend`, `partial`) instead of redefining fields in routes.
-4. In route handlers, parse request bodies directly with the composed schema and use the parsed result; do not re-whitelist fields in router code when strict schemas already enforce the allowed keys.
-5. If a field is server-controlled (for example IDs from auth, timestamps, vectors), exclude it in `tables.ts` composed request schema and inject it explicitly in route DB writes.
-
 ## Embeddings Scope (Current)
 
 1. Implement embeddings only for currently-backed DB fields and tables.
@@ -260,5 +279,11 @@ Before finishing code changes:
 4. If DB-dependent checks fail due to DB down, state it explicitly and include the exact command needed.
 
 ## Notes for Agents
+
+## Documentation Maintenance
+
+1. When reusable components change (new props, behavior, moved location, deprecation), update this file’s component sections in the same task.
+2. When hooks or utilities are added or edited (new options, return shape, conventions), update the related guidance in this file in the same task.
+3. Treat `AGENTS.md` updates as part of the definition of done for changes that affect shared developer workflows.
 
 AGENTS.md files may exist at multiple levels. The most specific one in the directory tree takes precedence for files under its scope.

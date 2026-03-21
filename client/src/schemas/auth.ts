@@ -29,7 +29,7 @@ export type VolunteerSignupFormData = z.infer<typeof volunteerSignupSchema>;
 export const organizationRequestFormSchema = newOrganizationRequestSchema
   .omit({ latitude: true, longitude: true })
   .extend({
-    email: z.string().min(1, 'Email is required').email('Invalid email'),
+    email: z.email('Invalid email'),
   });
 
 export type OrganizationRequestFormData = z.infer<typeof organizationRequestFormSchema>;
@@ -42,38 +42,38 @@ export const organizationPostingFormSchema = newOrganizationPostingSchema
     start_time: true,
     end_date: true,
     end_time: true,
+    is_closed: true,
   })
   .extend({
     latitude: z.number().optional(),
     longitude: z.number().optional(),
-    start_timestamp: z
-      .string()
-      .min(1, 'Start date is required')
-      .refine(
-        (val) => {
-          const yearMatch = val.match(/^(\d+)-/);
-          if (!yearMatch) return true;
-          return yearMatch[1].length <= 4;
-        },
-        { message: 'Year must be 4 digits or less' },
-      ),
-    end_timestamp: z
-      .string()
-      .optional()
-      .refine(
-        (val) => {
-          if (!val) return true;
-          const yearMatch = val.match(/^(\d+)-/);
-          if (!yearMatch) return true;
-          return yearMatch[1].length <= 4;
-        },
-        { message: 'Year must be 4 digits or less' },
-      ),
+    start_timestamp: z.string().min(1, 'Start date is required'),
+    end_timestamp: z.string().optional(),
+    max_volunteers: z.string().optional(),
+    minimum_age: z.string().optional(),
+    automatic_acceptance: z.boolean(),
+  });
+
+export const organizationPostingEditFormSchema = newOrganizationPostingSchema
+  .omit({
+    latitude: true,
+    longitude: true,
+    start_date: true,
+    start_time: true,
+    end_date: true,
+    end_time: true,
+  })
+  .extend({
+    latitude: z.number().optional(),
+    longitude: z.number().optional(),
+    start_timestamp: z.string().min(1, 'Start date is required'),
+    end_timestamp: z.string().optional(),
     max_volunteers: z.string().optional(),
     minimum_age: z.string().optional(),
     automatic_acceptance: z.boolean(),
     is_closed: z.boolean(),
   });
+export type OrganizationPostingEditFormData = z.infer<typeof organizationPostingEditFormSchema>;
 
 export type OrganizationPostingFormData = z.infer<typeof organizationPostingFormSchema>;
 

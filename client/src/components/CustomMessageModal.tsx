@@ -4,6 +4,9 @@ import { useEffect } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import zod from 'zod';
 
+import Button from './Button';
+import IconButton from './IconButton';
+
 const applyMessageSchema = zod.object({
   message: zod.string().max(350, 'Message must be 350 characters or fewer').optional(),
 });
@@ -15,10 +18,16 @@ type CustomMessageModalProps = {
   submitting?: boolean;
   onClose: () => void;
   onSubmit: (message?: string) => Promise<void> | void;
-  errorMessage?: string | null;
+  placeholder: string;
 };
 
-function CustomMessageModal({ open, submitting = false, onClose, onSubmit, errorMessage }: CustomMessageModalProps) {
+function CustomMessageModal({
+  open,
+  submitting = false,
+  onClose,
+  onSubmit,
+  placeholder,
+}: CustomMessageModalProps) {
   const form = useForm<CustomMessageFormData>({
     resolver: zodResolver(applyMessageSchema),
     defaultValues: { message: '' },
@@ -43,21 +52,18 @@ function CustomMessageModal({ open, submitting = false, onClose, onSubmit, error
       <div className="modal-box">
         <div className="flex items-center justify-between mb-2">
           <h3 className="font-bold text-lg">Add a message</h3>
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm"
+          <IconButton
             onClick={onClose}
-            disabled={submitting}
-          >
-            <X size={16} />
-          </button>
+            loading={submitting}
+            Icon={X}
+          />
+
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3">
           <textarea
             className="textarea textarea-bordered w-full"
-            placeholder="You can add an optional message to tell the organization why you're interested in this opportunity"
-
+            placeholder={placeholder}
             maxLength={350}
             rows={4}
             {...form.register('message')}
@@ -74,31 +80,24 @@ function CustomMessageModal({ open, submitting = false, onClose, onSubmit, error
             )}
           </div>
 
-          {errorMessage && (
-            <div role="alert" className="alert alert-error">
-              <span className="text-sm">{errorMessage}</span>
-            </div>
-          )}
-
           <div className="modal-action">
-            <button
+            <Button
               type="button"
-              className="btn btn-ghost"
+              color="ghost"
               onClick={onClose}
               disabled={submitting}
+              Icon={X}
             >
               Cancel
-            </button>
-            <button type="submit" className="btn btn-primary" disabled={submitting}>
-              {submitting
-                ? 'Submitting...'
-                : (
-                    <span className="flex items-center gap-2">
-                      <Send size={16} />
-                      Submit application
-                    </span>
-                  )}
-            </button>
+            </Button>
+            <Button
+              color="primary"
+              onClick={onClose}
+              loading={submitting}
+              Icon={Send}
+            >
+              Submit Application
+            </Button>
           </div>
         </form>
       </div>

@@ -4,8 +4,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { useNavigate } from 'react-router';
 
+import Button from '../../components/Button.tsx';
 import PageHeader from '../../components/layout/PageHeader';
-import Loading from '../../components/Loading';
 import LocationPicker from '../../components/LocationPicker';
 import SkillsInput from '../../components/skills/SkillsInput';
 import { ToggleButton } from '../../components/ToggleButton';
@@ -329,7 +329,7 @@ export default function OrganizationPostingCreate() {
                     <label className="label">
                       <span className="label-text font-medium">Pin Location on Map</span>
                     </label>
-                    <div className="grow min-h-[32rem]">
+                    <div className="grow min-h-128">
                       <LocationPicker
                         position={position}
                         setPosition={onMapPositionPick}
@@ -343,20 +343,15 @@ export default function OrganizationPostingCreate() {
 
             <FormRootError form={form} />
 
-            <button
+            <Button
+              color="primary"
               type="submit"
-              className="btn btn-primary flex items-center gap-2 mt-6"
-              disabled={form.formState.isSubmitting}
+              className="mt-6"
+              loading={form.formState.isSubmitting}
+              Icon={Send}
             >
-              {form.formState.isSubmitting
-                ? <Loading />
-                : (
-                    <>
-                      <Send size={18} />
-                      Create Posting
-                    </>
-                  )}
-            </button>
+              Create Posting
+            </Button>
           </form>
         </div>
       </div>

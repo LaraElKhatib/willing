@@ -1,37 +1,49 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
+  Check,
   AlertTriangle,
   Building2,
   Calendar,
   Cake,
   Edit3,
   ExternalLink,
+  House,
   ListChecks,
   Lock,
   LockOpen,
   MapPin,
+  RefreshCcw,
+  Save,
+  Send,
   ShieldCheck,
   Tag,
   Trash2,
   Users,
+  SquareArrowRight,
+  X,
 } from 'lucide-react';
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import AuthContext from '../auth/AuthContext.tsx';
+import Alert from '../components/Alert.tsx';
+import Button from '../components/Button.tsx';
+import CustomMessageModal from '../components/CustomMessageModal.tsx';
 import ColumnLayout from '../components/layout/ColumnLayout.tsx';
 import PageHeader from '../components/layout/PageHeader.tsx';
+import LinkButton from '../components/LinkButton.tsx';
 import Loading from '../components/Loading.tsx';
 import LocationPicker from '../components/LocationPicker.tsx';
-import PostingApplicationMessageModal from '../components/PostingApplicationMessageModal.tsx';
 import SkillsInput from '../components/skills/SkillsInput.tsx';
 import SkillsList from '../components/skills/SkillsList.tsx';
 import { ToggleButton } from '../components/ToggleButton.tsx';
 import VolunteerInfoCollapse from '../components/VolunteerInfoCollapse.tsx';
-import { organizationPostingFormSchema, type OrganizationPostingFormData } from '../schemas/auth.ts';
+import useNotifications from '../notifications/useNotifications';
+import { organizationPostingEditFormSchema, type OrganizationPostingEditFormData } from '../schemas/auth';
 import { executeAndShowError, FormField } from '../utils/formUtils.tsx';
 import requestServer from '../utils/requestServer.ts';
+import useAsync from '../utils/useAsync';
 import { useOrganization } from '../utils/useUsers.ts';
 
 import type {
@@ -110,11 +122,8 @@ function PostingPage() {
   const [selectedCrisisId, setSelectedCrisisId] = useState<number | undefined>(undefined);
   const [availableCrises, setAvailableCrises] = useState<OrganizationCrisesResponse['crises']>([]);
   const [currentPostingCrisis, setCurrentPostingCrisis] = useState<Crisis | undefined>(undefined);
-  const [loadingCrises, setLoadingCrises] = useState(false);
-  const [crisesError, setCrisesError] = useState<string | null>(null);
   const [position, setPosition] = useState<[number, number]>([33.90192863620578, 35.477959277880416]);
 
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [togglingClosed, setTogglingClosed] = useState(false);
@@ -122,17 +131,13 @@ function PostingPage() {
   const [withdrawing, setWithdrawing] = useState(false);
   const [processingApplicationId, setProcessingApplicationId] = useState<number | null>(null);
   const [isApplyModalOpen, setIsApplyModalOpen] = useState(false);
-  const [applyError, setApplyError] = useState<string | null>(null);
-  const [fetchError, setFetchError] = useState<string | null>(null);
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const [saveMessage, setSaveMessage] = useState<string | null>(null);
-  const [isSaveMessageVisible, setIsSaveMessageVisible] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [postingIsFull, setPostingIsFull] = useState(false);
   const [postingOrganization, setPostingOrganization] = useState<{ id: number; name: string } | null>(null);
+  const notifications = useNotifications();
 
-  const form = useForm<OrganizationPostingFormData>({
-    resolver: zodResolver(organizationPostingFormSchema),
+  const form = useForm<OrganizationPostingEditFormData>({
+    resolver: zodResolver(organizationPostingEditFormSchema),
     mode: 'onTouched',
     reValidateMode: 'onChange',
     defaultValues: {
@@ -163,26 +168,30 @@ function PostingPage() {
       ?? (currentPostingCrisis?.id === selectedCrisisId ? currentPostingCrisis : null);
   }, [availableCrises, currentPostingCrisis, selectedCrisisId]);
 
+  const loadCrisesRequest = useCallback(async () => {
+    const response = await requestServer<OrganizationCrisesResponse>('/organization/crises', {
+      includeJwt: true,
+    });
+    setAvailableCrises(response.crises);
+    return response.crises;
+  }, []);
+
+  const {
+    loading: loadingCrises,
+    error: crisesError,
+    trigger: loadCrises,
+  } = useAsync<OrganizationCrisesResponse['crises'], []>(loadCrisesRequest, {
+    notifyOnError: false,
+  });
+
   useEffect(() => {
-    if (isVolunteerView) return;
+    if (isVolunteerView) {
+      setAvailableCrises([]);
+      return;
+    }
 
-    const loadCrises = async () => {
-      try {
-        setLoadingCrises(true);
-        setCrisesError(null);
-        const response = await requestServer<OrganizationCrisesResponse>('/organization/crises', {
-          includeJwt: true,
-        });
-        setAvailableCrises(response.crises);
-      } catch (error) {
-        setCrisesError(error instanceof Error ? error.message : 'Failed to load crisis tags');
-      } finally {
-        setLoadingCrises(false);
-      }
-    };
-
-    loadCrises();
-  }, [isVolunteerView]);
+    void loadCrises();
+  }, [isVolunteerView, loadCrises]);
 
   useEffect(() => {
     if (selectedCrisisId == null) {
@@ -229,79 +238,14 @@ function PostingPage() {
     };
   }, [availableCrises, currentPostingCrisis?.id, isVolunteerView, selectedCrisisId]);
 
-  const loadPosting = useCallback(async () => {
+  const loadPostingRequest = useCallback(async () => {
     if (!id) return;
 
-    try {
-      setLoading(true);
-      setFetchError(null);
-
-      if (isVolunteerView) {
-        const postingResponse = await requestServer<VolunteerPostingResponse>(
-          `/volunteer/posting/${id}`,
-          { includeJwt: true },
-        );
-
-        const postingWithSkills = {
-          ...postingResponse.posting,
-          skills: postingResponse.skills,
-        };
-
-        setPosting(postingWithSkills);
-        setCurrentPostingCrisis(undefined);
-        setEnrollments([]);
-        setHasPendingApplication(postingResponse.hasPendingApplication);
-        setIsEnrolled(postingResponse.isEnrolled);
-        setPostingIsFull(postingResponse.is_full);
-        setSkills(postingResponse.skills.map(s => s.name));
-        setSelectedCrisisId(postingResponse.posting.crisis_id ?? undefined);
-        setPosition([
-          postingResponse.posting.latitude ?? 33.90192863620578,
-          postingResponse.posting.longitude ?? 35.477959277880416,
-        ]);
-
-        try {
-          const organizationResponse = await requestServer<OrganizationProfileResponse>(
-            `/organization/${postingResponse.posting.organization_id}`,
-            { includeJwt: true },
-          );
-
-          setPostingOrganization({
-            id: organizationResponse.organization.id,
-            name: organizationResponse.organization.name,
-          });
-        } catch {
-          setPostingOrganization({
-            id: postingResponse.posting.organization_id,
-            name: 'Organization',
-          });
-        }
-
-        form.reset({
-          title: postingResponse.posting.title,
-          description: postingResponse.posting.description,
-          location_name: postingResponse.posting.location_name,
-          start_timestamp: getPreferredDateTimeInputValue(
-            postingResponse.posting.start_date,
-            postingResponse.posting.start_time,
-          ),
-          end_timestamp: getPreferredDateTimeInputValue(
-            postingResponse.posting.end_date,
-            postingResponse.posting.end_time,
-          ) || undefined,
-          max_volunteers: postingResponse.posting.max_volunteers?.toString() ?? undefined,
-          minimum_age: postingResponse.posting.minimum_age?.toString() ?? undefined,
-          automatic_acceptance: postingResponse.posting.automatic_acceptance,
-          is_closed: postingResponse.posting.is_closed,
-        });
-
-        return;
-      }
-
-      const [postingResponse, enrollmentsResponse] = await Promise.all([
-        requestServer<OrganizationPostingResponse>(`/organization/posting/${id}`, { includeJwt: true }),
-        requestServer<OrganizationPostingEnrollmentsResponse>(`/organization/posting/${id}/enrollments`, { includeJwt: true }),
-      ]);
+    if (isVolunteerView) {
+      const postingResponse = await requestServer<VolunteerPostingResponse>(
+        `/volunteer/posting/${id}`,
+        { includeJwt: true },
+      );
 
       const postingWithSkills = {
         ...postingResponse.posting,
@@ -309,20 +253,11 @@ function PostingPage() {
       };
 
       setPosting(postingWithSkills);
-      setCurrentPostingCrisis(postingResponse.crisis);
-      setEnrollments(enrollmentsResponse.enrollments);
+      setCurrentPostingCrisis(undefined);
+      setEnrollments([]);
+      setHasPendingApplication(postingResponse.hasPendingApplication);
+      setIsEnrolled(postingResponse.isEnrolled);
       setPostingIsFull(postingResponse.is_full);
-
-      if (!postingResponse.posting.automatic_acceptance) {
-        const applicationsResponse = await requestServer<OrganizationPostingApplicationsReponse>(
-          `/organization/posting/${id}/applications`,
-          { includeJwt: true },
-        );
-        setApplications(applicationsResponse.applications);
-      }
-
-      setIsEnrolled(false);
-      setHasPendingApplication(false);
       setSkills(postingResponse.skills.map(s => s.name));
       setSelectedCrisisId(postingResponse.posting.crisis_id ?? undefined);
       setPosition([
@@ -330,15 +265,22 @@ function PostingPage() {
         postingResponse.posting.longitude ?? 35.477959277880416,
       ]);
 
-      setPostingOrganization(account
-        ? {
-            id: account.id,
-            name: account.name,
-          }
-        : {
-            id: postingResponse.posting.organization_id,
-            name: 'Organization',
-          });
+      try {
+        const organizationResponse = await requestServer<OrganizationProfileResponse>(
+          `/organization/${postingResponse.posting.organization_id}`,
+          { includeJwt: true },
+        );
+
+        setPostingOrganization({
+          id: organizationResponse.organization.id,
+          name: organizationResponse.organization.name,
+        });
+      } catch {
+        setPostingOrganization({
+          id: postingResponse.posting.organization_id,
+          name: 'Organization',
+        });
+      }
 
       form.reset({
         title: postingResponse.posting.title,
@@ -357,42 +299,151 @@ function PostingPage() {
         automatic_acceptance: postingResponse.posting.automatic_acceptance,
         is_closed: postingResponse.posting.is_closed,
       });
-    } catch (error) {
-      setFetchError(error instanceof Error ? error.message : 'Failed to load posting');
-    } finally {
-      setLoading(false);
+
+      return;
     }
+
+    const [postingResponse, enrollmentsResponse] = await Promise.all([
+      requestServer<OrganizationPostingResponse>(`/organization/posting/${id}`, { includeJwt: true }),
+      requestServer<OrganizationPostingEnrollmentsResponse>(`/organization/posting/${id}/enrollments`, { includeJwt: true }),
+    ]);
+
+    const postingWithSkills = {
+      ...postingResponse.posting,
+      skills: postingResponse.skills,
+    };
+
+    setPosting(postingWithSkills);
+    setCurrentPostingCrisis(postingResponse.crisis);
+    setEnrollments(enrollmentsResponse.enrollments);
+    setPostingIsFull(postingResponse.is_full);
+
+    if (!postingResponse.posting.automatic_acceptance) {
+      const applicationsResponse = await requestServer<OrganizationPostingApplicationsReponse>(
+        `/organization/posting/${id}/applications`,
+        { includeJwt: true },
+      );
+      setApplications(applicationsResponse.applications);
+    }
+
+    setIsEnrolled(false);
+    setHasPendingApplication(false);
+    setSkills(postingResponse.skills.map(s => s.name));
+    setSelectedCrisisId(postingResponse.posting.crisis_id ?? undefined);
+    setPosition([
+      postingResponse.posting.latitude ?? 33.90192863620578,
+      postingResponse.posting.longitude ?? 35.477959277880416,
+    ]);
+
+    setPostingOrganization(account
+      ? {
+          id: account.id,
+          name: account.name,
+        }
+      : {
+          id: postingResponse.posting.organization_id,
+          name: 'Organization',
+        });
+
+    form.reset({
+      title: postingResponse.posting.title,
+      description: postingResponse.posting.description,
+      location_name: postingResponse.posting.location_name,
+      start_timestamp: getPreferredDateTimeInputValue(
+        postingResponse.posting.start_date,
+        postingResponse.posting.start_time,
+      ),
+      end_timestamp: getPreferredDateTimeInputValue(
+        postingResponse.posting.end_date,
+        postingResponse.posting.end_time,
+      ) || undefined,
+      max_volunteers: postingResponse.posting.max_volunteers?.toString() ?? undefined,
+      minimum_age: postingResponse.posting.minimum_age?.toString() ?? undefined,
+      automatic_acceptance: postingResponse.posting.automatic_acceptance,
+      is_closed: postingResponse.posting.is_closed,
+    });
   }, [id, form, isVolunteerView, account]);
 
+  const {
+    loading,
+    error: fetchError,
+    trigger: loadPosting,
+  } = useAsync<void, []>(loadPostingRequest, {
+    notifyOnError: true,
+  });
+
   useEffect(() => {
-    loadPosting();
+    void loadPosting();
   }, [loadPosting]);
 
-  useEffect(() => {
-    if (!saveMessage) return;
-    setIsSaveMessageVisible(true);
+  const { trigger: updatePosting } = useAsync(
+    async (postingId: string, payload: Record<string, unknown>) => requestServer<OrganizationPostingResponse>(
+      `/organization/posting/${postingId}`,
+      {
+        method: 'PUT',
+        body: payload,
+        includeJwt: true,
+      },
+    ),
+    { notifyOnError: true },
+  );
 
-    const fadeTimeout = setTimeout(() => {
-      setIsSaveMessageVisible(false);
-    }, 2400);
+  const { trigger: deletePosting } = useAsync(
+    async (postingId: string) => requestServer(`/organization/posting/${postingId}`, {
+      method: 'DELETE',
+      includeJwt: true,
+    }),
+    { notifyOnError: true },
+  );
 
-    const removeTimeout = setTimeout(() => {
-      setSaveMessage(null);
-    }, 3000);
+  const { trigger: applyToPosting } = useAsync(
+    async (postingId: string, message?: string) => requestServer(`/volunteer/posting/${postingId}/enroll`, {
+      method: 'POST',
+      body: {
+        message,
+      },
+      includeJwt: true,
+    }),
+    { notifyOnError: true },
+  );
 
-    return () => {
-      clearTimeout(fadeTimeout);
-      clearTimeout(removeTimeout);
-    };
-  }, [saveMessage]);
+  const { trigger: withdrawFromPosting } = useAsync(
+    async (postingId: string) => requestServer(`/volunteer/posting/${postingId}/enroll`, {
+      method: 'DELETE',
+      includeJwt: true,
+    }),
+    { notifyOnError: true },
+  );
+
+  const { trigger: acceptPostingApplication } = useAsync(
+    async (postingId: string, applicationId: number) => requestServer(
+      `/organization/posting/${postingId}/applications/${applicationId}/accept`,
+      { method: 'POST', includeJwt: true },
+    ),
+    { notifyOnError: true },
+  );
+
+  const { trigger: loadPostingEnrollments } = useAsync(
+    async (postingId: string) => requestServer<OrganizationPostingEnrollmentsResponse>(
+      `/organization/posting/${postingId}/enrollments`,
+      { includeJwt: true },
+    ),
+    { notifyOnError: true },
+  );
+
+  const { trigger: rejectPostingApplication } = useAsync(
+    async (postingId: string, applicationId: number) => requestServer(
+      `/organization/posting/${postingId}/applications/${applicationId}`,
+      { method: 'DELETE', includeJwt: true },
+    ),
+    { notifyOnError: true },
+  );
 
   const onSave = form.handleSubmit(async (data) => {
     if (!isEditMode || !posting || !id || !account?.id) return;
 
     await executeAndShowError(form, async () => {
       setSaving(true);
-      setSaveError(null);
-      setSaveMessage(null);
 
       try {
         const payload = {
@@ -413,14 +464,7 @@ function PostingPage() {
           end_time: data.end_timestamp ? data.end_timestamp.split('T')[1] : undefined,
         };
 
-        const response = await requestServer<OrganizationPostingResponse>(
-          `/organization/posting/${id}`,
-          {
-            method: 'PUT',
-            body: payload,
-            includeJwt: true,
-          },
-        );
+        const response = await updatePosting(id, payload);
 
         const updatedPosting = {
           ...response.posting,
@@ -431,10 +475,11 @@ function PostingPage() {
         setCurrentPostingCrisis(response.crisis);
         setSkills(response.skills.map(s => s.name));
         setSelectedCrisisId(response.posting.crisis_id ?? undefined);
-        setSaveMessage('Posting updated successfully.');
+        notifications.push({
+          type: 'success',
+          message: 'Posting updated successfully.',
+        });
         setIsEditMode(false);
-      } catch (error) {
-        setSaveError(error instanceof Error ? error.message : 'Failed to update posting');
       } finally {
         setSaving(false);
       }
@@ -461,8 +506,6 @@ function PostingPage() {
       posting.longitude ?? 35.477959277880416,
     ]);
     setIsEditMode(false);
-    setSaveError(null);
-    setSaveMessage(null);
   }, [form, posting]);
 
   const onDelete = async () => {
@@ -471,10 +514,12 @@ function PostingPage() {
 
     try {
       setDeleting(true);
-      await requestServer(`/organization/posting/${id}`, { method: 'DELETE', includeJwt: true });
+      await deletePosting(id);
+      notifications.push({
+        type: 'success',
+        message: 'Posting deleted successfully.',
+      });
       navigate('/organization');
-    } catch (error) {
-      alert(error instanceof Error ? error.message : 'Failed to delete posting');
     } finally {
       setDeleting(false);
     }
@@ -484,22 +529,14 @@ function PostingPage() {
     if (!id || !posting) return;
     try {
       setTogglingClosed(true);
-      setSaveError(null);
-      setSaveMessage(null);
-      const response = await requestServer<OrganizationPostingResponse>(
-        `/organization/posting/${id}`,
-        {
-          method: 'PUT',
-          body: { is_closed: !posting.is_closed },
-          includeJwt: true,
-        },
-      );
+      const response = await updatePosting(id, { is_closed: !posting.is_closed });
       const updatedPosting = { ...response.posting, skills: response.skills };
       setPosting(updatedPosting);
       form.setValue('is_closed', response.posting.is_closed);
-      setSaveMessage(response.posting.is_closed ? 'Posting closed successfully.' : 'Posting reopened successfully.');
-    } catch (error) {
-      setSaveError(error instanceof Error ? error.message : 'Failed to update posting');
+      notifications.push({
+        type: 'success',
+        message: response.posting.is_closed ? 'Posting closed successfully.' : 'Posting reopened successfully.',
+      });
     } finally {
       setTogglingClosed(false);
     }
@@ -507,14 +544,10 @@ function PostingPage() {
 
   const closeApplyModal = useCallback(() => {
     setIsApplyModalOpen(false);
-    setApplyError(null);
   }, []);
 
   const openApplyModal = useCallback(() => {
     if (!id || hasPendingApplication || isEnrolled) return;
-    setSaveMessage(null);
-    setSaveError(null);
-    setApplyError(null);
     setIsApplyModalOpen(true);
   }, [id, hasPendingApplication, isEnrolled]);
 
@@ -523,29 +556,19 @@ function PostingPage() {
 
     try {
       setApplying(true);
-      setApplyError(null);
-      setSaveMessage(null);
-      setSaveError(null);
 
-      await requestServer(`/volunteer/posting/${id}/enroll`, {
-        method: 'POST',
-        body: {
-          message,
-        },
-        includeJwt: true,
-      });
+      await applyToPosting(id, message);
 
       setHasPendingApplication(true);
       setIsApplyModalOpen(false);
-      setSaveMessage('Application submitted successfully.');
-    } catch (error) {
-      const messageText = error instanceof Error ? error.message : 'Failed to apply to posting';
-      setApplyError(messageText);
-      setSaveError(messageText);
+      notifications.push({
+        type: 'success',
+        message: 'Application submitted successfully.',
+      });
     } finally {
       setApplying(false);
     }
-  }, [id, hasPendingApplication, isEnrolled]);
+  }, [applyToPosting, id, hasPendingApplication, isEnrolled, notifications]);
 
   const withdrawApplication = useCallback(async () => {
     if (!id || (!hasPendingApplication && !isEnrolled)) return;
@@ -553,50 +576,40 @@ function PostingPage() {
 
     try {
       setWithdrawing(true);
-      setSaveError(null);
-      setSaveMessage(null);
 
-      await requestServer(`/volunteer/posting/${id}/enroll`, { method: 'DELETE', includeJwt: true });
+      await withdrawFromPosting(id);
 
       setHasPendingApplication(false);
       setIsEnrolled(false);
-      setSaveMessage(isEnrolled ? 'Left volunteering position.' : 'Application withdrawn successfully.');
-    } catch (error) {
-      const messageText = error instanceof Error ? error.message : 'Failed to withdraw';
-      setSaveError(messageText);
+      notifications.push({
+        type: 'success',
+        message: isEnrolled ? 'Left volunteering position.' : 'Application withdrawn successfully.',
+      });
     } finally {
       setWithdrawing(false);
     }
-  }, [id, hasPendingApplication, isEnrolled]);
+  }, [id, hasPendingApplication, isEnrolled, notifications, withdrawFromPosting]);
 
   const acceptApplication = useCallback(async (applicationId: number) => {
     if (!id) return;
 
     try {
       setProcessingApplicationId(applicationId);
-      setSaveError(null);
-      setSaveMessage(null);
 
-      await requestServer(
-        `/organization/posting/${id}/applications/${applicationId}/accept`,
-        { method: 'POST', includeJwt: true },
-      );
+      await acceptPostingApplication(id, applicationId);
 
-      const enrollmentsResponse = await requestServer<OrganizationPostingEnrollmentsResponse>(
-        `/organization/posting/${id}/enrollments`,
-        { includeJwt: true },
-      );
+      const enrollmentsResponse = await loadPostingEnrollments(id);
       setEnrollments(enrollmentsResponse.enrollments);
 
       setApplications(prev => prev.filter(app => app.application_id !== applicationId));
-      setSaveMessage('Application accepted successfully.');
-    } catch (error) {
-      const messageText = error instanceof Error ? error.message : 'Failed to accept application';
-      setSaveError(messageText);
+      notifications.push({
+        type: 'success',
+        message: 'Application accepted successfully.',
+      });
     } finally {
       setProcessingApplicationId(null);
     }
-  }, [id]);
+  }, [acceptPostingApplication, id, loadPostingEnrollments, notifications]);
 
   const rejectApplication = useCallback(async (applicationId: number) => {
     if (!id) return;
@@ -604,17 +617,17 @@ function PostingPage() {
 
     try {
       setProcessingApplicationId(applicationId);
-      await requestServer(`/organization/posting/${id}/applications/${applicationId}`, { method: 'DELETE', includeJwt: true });
+      await rejectPostingApplication(id, applicationId);
 
       setApplications(prev => prev.filter(app => app.application_id !== applicationId));
-      setSaveMessage('Application rejected.');
-    } catch (error) {
-      const messageText = error instanceof Error ? error.message : 'Failed to reject application';
-      setSaveError(messageText);
+      notifications.push({
+        type: 'success',
+        message: 'Application rejected.',
+      });
     } finally {
       setProcessingApplicationId(null);
     }
-  }, [id]);
+  }, [id, notifications, rejectPostingApplication]);
 
   const onMapPositionPick = useCallback((coords: [number, number]) => {
     setPosition(coords);
@@ -699,10 +712,17 @@ function PostingPage() {
     return (
       <div className="grow bg-base-200">
         <div className="p-6 md:container mx-auto">
-          <div role="alert" className="alert alert-error">
-            <span>{fetchError}</span>
-          </div>
-          <button className="btn btn-outline mt-4" onClick={loadPosting}>Retry</button>
+          <Alert color="error">
+            {fetchError.message}
+          </Alert>
+          <Button
+            style="outline"
+            className="mt-4"
+            onClick={() => void loadPosting()}
+            Icon={RefreshCcw}
+          >
+            Retry
+          </Button>
         </div>
       </div>
     );
@@ -712,12 +732,12 @@ function PostingPage() {
     return (
       <div className="grow bg-base-200">
         <div className="p-6 md:container mx-auto">
-          <div role="alert" className="alert alert-warning">
-            <span>Posting not found.</span>
-          </div>
-          <button className="btn btn-outline mt-4" onClick={() => navigate('/organization')}>
+          <Alert color="warning">
+            Posting not found.
+          </Alert>
+          <LinkButton style="outline" className="mt-4" to="/organization" Icon={House}>
             Back to Home
-          </button>
+          </LinkButton>
         </div>
       </div>
     );
@@ -725,12 +745,12 @@ function PostingPage() {
 
   return (
     <div className="grow bg-base-200">
-      <PostingApplicationMessageModal
+      <CustomMessageModal
         open={isApplyModalOpen}
         submitting={applying}
         onClose={closeApplyModal}
         onSubmit={submitApplication}
-        errorMessage={applyError}
+        placeholder="You can add an optional message to tell the organization why you're interested in this opportunity"
       />
       <div className="p-6 md:container mx-auto">
         <PageHeader
@@ -741,70 +761,56 @@ function PostingPage() {
           actions={!isVolunteerView && (isEditMode
             ? (
                 <>
-                  <button className="btn btn-outline" onClick={onCancelEdit} disabled={saving}>
+                  <Button style="outline" onClick={onCancelEdit} disabled={saving} Icon={X}>
                     Cancel
-                  </button>
-                  <button className="btn btn-primary" onClick={onSave} disabled={saving}>
-                    {saving ? 'Saving...' : 'Save Changes'}
-                  </button>
+                  </Button>
+                  <Button color="primary" onClick={onSave} loading={saving} Icon={Save}>
+                    Save Changes
+                  </Button>
                 </>
               )
             : (
                 <>
-                  <button
-                    className={`btn btn-outline ${posting?.is_closed ? 'btn-success' : 'btn-warning'}`}
-                    onClick={onToggleClosed}
-                    disabled={togglingClosed || !posting}
-                  >
-                    {posting?.is_closed ? <LockOpen size={16} /> : <Lock size={16} />}
-                    {togglingClosed ? '...' : posting?.is_closed ? 'Reopen' : 'Close'}
-                  </button>
-                  <button
-                    className="btn btn-outline"
-                    onClick={() => navigate(`/organization/posting/${posting.id}/attendance`)}
+                  <LinkButton
+                    to={`/organization/posting/${posting.id}/attendance`}
+                    color="info"
+                    style="outline"
                     disabled={!canOpenAttendancePage}
-                    title={canOpenAttendancePage ? 'Manage attendance' : 'Attendance opens when the posting starts'}
+                    Icon={ListChecks}
                   >
-                    <ListChecks size={16} />
                     Attendance
-                  </button>
-                  <button className="btn btn-outline" onClick={() => setIsEditMode(true)}>
-                    <Edit3 size={16} />
-                    Edit
-                  </button>
-                  <button
-                    className="btn btn-outline btn-error"
-                    onClick={onDelete}
-                    disabled={deleting}
+                  </LinkButton>
+                  <Button
+                    color="primary"
+                    onClick={() => setIsEditMode(true)}
+                    style="outline"
+                    Icon={Edit3}
                   >
-                    <Trash2 size={16} />
-                    {deleting ? 'Deleting...' : 'Delete'}
-                  </button>
+                    Edit
+                  </Button>
+                  <Button
+                    color={posting?.is_closed ? 'success' : 'warning'}
+                    onClick={onToggleClosed}
+                    disabled={!posting}
+                    loading={togglingClosed}
+                    Icon={posting?.is_closed ? LockOpen : Lock}
+                  >
+                    {posting?.is_closed ? 'Reopen' : 'Close'}
+                  </Button>
+                  <Button
+                    color="error"
+                    onClick={onDelete}
+                    loading={deleting}
+                    Icon={Trash2}
+                  >
+                    Delete
+                  </Button>
                 </>
               )
           )}
         />
 
         <div className="mt-6">
-          {saveMessage && (
-            <div
-              role="alert"
-              className={`alert alert-success mb-4 transition-all duration-500 ${
-                isSaveMessageVisible
-                  ? 'opacity-100 translate-y-0'
-                  : 'opacity-0 -translate-y-1'
-              }`}
-            >
-              <span>{saveMessage}</span>
-            </div>
-          )}
-
-          {saveError && (
-            <div role="alert" className="alert alert-error mb-4">
-              <span>{saveError}</span>
-            </div>
-          )}
-
           <ColumnLayout
             sidebar={(
               <>
@@ -1043,7 +1049,7 @@ function PostingPage() {
                                 ))}
                               </select>
                               {loadingCrises && <span className="label-text-alt opacity-70">Loading crisis tags...</span>}
-                              {crisesError && <span className="label-text-alt text-error">{crisesError}</span>}
+                              {crisesError && <span className="label-text-alt text-error">{crisesError.message}</span>}
                             </fieldset>
                           </>
                         )
@@ -1181,32 +1187,37 @@ function PostingPage() {
                   <div className="mt-3 flex justify-end">
                     {isEnrolled
                       ? (
-                          <button
-                            className="btn btn-error btn-outline"
+                          <Button
+                            color="error"
+                            style="outline"
                             onClick={withdrawApplication}
-                            disabled={withdrawing}
+                            loading={withdrawing}
+                            Icon={SquareArrowRight}
                           >
-                            {withdrawing ? 'Leaving...' : 'Leave Position'}
-                          </button>
+                            Leave Position
+                          </Button>
                         )
                       : hasPendingApplication
                         ? (
-                            <button
-                              className="btn btn-error btn-outline"
+                            <Button
+                              color="error"
+                              style="outline"
                               onClick={withdrawApplication}
-                              disabled={withdrawing}
+                              loading={withdrawing}
+                              Icon={SquareArrowRight}
                             >
-                              {withdrawing ? 'Withdrawing...' : 'Withdraw Application'}
-                            </button>
+                              Withdraw Application
+                            </Button>
                           )
                         : (
-                            <button
-                              className="btn btn-primary"
+                            <Button
+                              color="primary"
                               onClick={openApplyModal}
-                              disabled={applying}
+                              loading={applying}
+                              Icon={Send}
                             >
-                              {applying ? 'Applying...' : 'Apply'}
-                            </button>
+                              Apply
+                            </Button>
                           )}
                   </div>
                 </div>
@@ -1261,9 +1272,9 @@ function PostingPage() {
 
                   {applications.length === 0
                     ? (
-                        <div className="alert">
-                          <span className="text-sm">No pending applications.</span>
-                        </div>
+                        <Alert>
+                          No pending applications.
+                        </Alert>
                       )
                     : (
                         <div className="space-y-2">
@@ -1273,20 +1284,24 @@ function PostingPage() {
                               volunteer={app}
                               actions={(
                                 <>
-                                  <button
-                                    className="btn btn-success btn-soft"
+                                  <Button
+                                    color="success"
+                                    style="soft"
                                     onClick={() => acceptApplication(app.application_id)}
-                                    disabled={processingApplicationId === app.application_id}
+                                    loading={processingApplicationId === app.application_id}
+                                    Icon={Check}
                                   >
-                                    {processingApplicationId === app.application_id ? 'Processing...' : 'Accept'}
-                                  </button>
-                                  <button
-                                    className="btn btn-error btn-soft"
+                                    Accept
+                                  </Button>
+                                  <Button
+                                    color="error"
+                                    style="soft"
                                     onClick={() => rejectApplication(app.application_id)}
-                                    disabled={processingApplicationId === app.application_id}
+                                    loading={processingApplicationId === app.application_id}
+                                    Icon={X}
                                   >
-                                    {processingApplicationId === app.application_id ? 'Processing...' : 'Reject'}
-                                  </button>
+                                    Reject
+                                  </Button>
                                 </>
                               )}
                             />
@@ -1308,9 +1323,9 @@ function PostingPage() {
 
                   {enrollments.length === 0
                     ? (
-                        <div className="alert">
-                          <span className="text-sm">No volunteers have enrolled yet.</span>
-                        </div>
+                        <Alert>
+                          No volunteers have enrolled yet.
+                        </Alert>
                       )
                     : (
                         <div className="space-y-2">

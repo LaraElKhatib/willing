@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useState } from 'react';
 
+import Button from './Button';
 import LocationPicker from './LocationPicker';
 import requestServer from '../utils/requestServer';
 
@@ -100,23 +101,24 @@ function OrganizationRequestReviewCard({ request, refreshOrganizationRequests }:
               placeholder="Reason"
               onChange={handleReasonChange}
             />
-            <button
-              className="btn btn-error join-item gap-2"
+            <Button
+              color="error"
+              className="join-item"
               onClick={rejectRequest}
+              Icon={XCircle}
             >
-              <XCircle size={18} />
               Reject
-            </button>
+            </Button>
           </div>
 
-          <button
-            className="btn btn-primary w-full gap-2"
+          <Button
+            color="primary"
             onClick={approveRequest}
+            layout="block"
+            Icon={CheckCircle}
           >
-            <CheckCircle size={18} />
-            {' '}
             Approve Organization
-          </button>
+          </Button>
         </div>
       </div>
     </div>
