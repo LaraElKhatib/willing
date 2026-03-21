@@ -1,3 +1,5 @@
+import { Lock } from 'lucide-react';
+
 import PageHeader from '../../components/layout/PageHeader';
 import PasswordResetCard from '../../components/PasswordResetCard';
 
@@ -8,6 +10,7 @@ function VolunteerSettings() {
         <PageHeader
           title="Change Password"
           subtitle="Update your credentials to maintain account security."
+          icon={Lock}
         />
 
         <div className="max-w-xl mx-auto">

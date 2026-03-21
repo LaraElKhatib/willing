@@ -2,17 +2,12 @@ import { Router, Response } from 'express';
 import { sql } from 'kysely';
 import zod from 'zod';
 
-import {
-  VolunteerEnrollmentEntry,
-  VolunteerEnrollmentsResponse,
-  VolunteerPostingEnrollResponse,
-  VolunteerPostingResponse,
-  VolunteerPostingSearchResponse,
-  VolunteerPostingWithdrawResponse,
-} from './posting.types.js';
+import { VolunteerEnrollmentsResponse, VolunteerPostingEnrollResponse, VolunteerPostingResponse, VolunteerPostingSearchResponse, VolunteerPostingWithdrawResponse } from './posting.types.js';
+import { buildPostingsWithContext, postingWithContextSelectColumns } from './postingWithContext.js';
 import database from '../../../db/index.js';
 import { Enrollment, EnrollmentApplication } from '../../../db/tables.js';
 import { recomputeVolunteerExperienceVector } from '../../../services/embeddings/updates.js';
+import { PostingWithContext } from '../../../types.js';
 import { authorizeOnly } from '../../authorization.js';
 import {
   parseListQuery,
@@ -22,32 +17,13 @@ import {
 import {
   applyPostingDateTimeFilters,
   applySharedPostingSort,
+  matchesPostingDateTimeFilters,
+  matchesPostingSearch,
   parsePostingDateTimeFilters,
-  type PostingDateTimeFilters,
+  sortPostingsBySharedSort,
 } from '../utils/postingList.js';
 
 const volunteerPostingRouter = Router();
-const organizationPostingResponseColumns = [
-  'organization_posting.id',
-  'organization_posting.organization_id',
-  'organization_posting.crisis_id',
-  'organization_posting.title',
-  'organization_posting.description',
-  'organization_posting.latitude',
-  'organization_posting.longitude',
-  'organization_posting.max_volunteers',
-  'organization_posting.start_date',
-  'organization_posting.start_time',
-  'organization_posting.end_date',
-  'organization_posting.end_time',
-  'organization_posting.minimum_age',
-  'organization_posting.automatic_acceptance',
-  'organization_posting.is_closed',
-  'organization_posting.location_name',
-  'organization_posting.created_at',
-  'organization_posting.updated_at',
-  'crisis.name as crisis_name',
-] as const;
 
 const postingIdParamsSchema = zod.object({
   id: zod.coerce.number().int().positive('ID must be a positive number'),
@@ -73,127 +49,6 @@ function calculateAge(dateOfBirth: string, at: Date = new Date()): number | null
 
   return age;
 }
-
-function isPostingFull(maxVolunteers: number | undefined, enrollmentCount: number): boolean {
-  return maxVolunteers !== undefined && maxVolunteers !== null && enrollmentCount >= maxVolunteers;
-}
-
-const normalizeDateKey = (value: Date | string | null | undefined): string | null => {
-  if (!value) return null;
-
-  if (typeof value === 'string') {
-    return value.slice(0, 10);
-  }
-
-  const dateKey = value.toISOString().slice(0, 10);
-  return dateKey || null;
-};
-
-const normalizeTimeKey = (value: string | null | undefined): string | null => {
-  if (!value) return null;
-  return value.slice(0, 8);
-};
-
-const sortWithDirection = (a: string, b: string, sortDir: 'asc' | 'desc'): number => {
-  const result = a.localeCompare(b);
-  return sortDir === 'asc' ? result : -result;
-};
-
-const compareByDateThenTime = (
-  leftDate: Date | string | null | undefined,
-  leftTime: string | null | undefined,
-  rightDate: Date | string | null | undefined,
-  rightTime: string | null | undefined,
-  sortDir: 'asc' | 'desc',
-): number => {
-  const leftDateKey = normalizeDateKey(leftDate);
-  const rightDateKey = normalizeDateKey(rightDate);
-
-  if (!leftDateKey && !rightDateKey) return 0;
-  if (!leftDateKey) return 1;
-  if (!rightDateKey) return -1;
-
-  const dateCompare = sortWithDirection(leftDateKey, rightDateKey, sortDir);
-  if (dateCompare !== 0) return dateCompare;
-
-  const leftTimeKey = normalizeTimeKey(leftTime);
-  const rightTimeKey = normalizeTimeKey(rightTime);
-
-  if (!leftTimeKey && !rightTimeKey) return 0;
-  if (!leftTimeKey) return 1;
-  if (!rightTimeKey) return -1;
-
-  return sortWithDirection(leftTimeKey, rightTimeKey, sortDir);
-};
-
-const matchesDateTimeFilters = (posting: VolunteerEnrollmentEntry, filters: PostingDateTimeFilters): boolean => {
-  const postingStartDateKey = normalizeDateKey(posting.start_date);
-  const postingEndDateKey = normalizeDateKey(posting.end_date ?? null);
-  const startDateFilterKey = normalizeDateKey(filters.startDateFrom ?? null);
-  const endDateFilterKey = normalizeDateKey(filters.endDateTo ?? null);
-  const postingStartTimeKey = normalizeTimeKey(posting.start_time ?? null);
-  const postingEndTimeKey = normalizeTimeKey(posting.end_time ?? null);
-  const startTimeFilterKey = normalizeTimeKey(filters.startTimeFrom ?? null);
-  const endTimeFilterKey = normalizeTimeKey(filters.endTimeTo ?? null);
-
-  if (startDateFilterKey && (!postingStartDateKey || postingStartDateKey < startDateFilterKey)) {
-    return false;
-  }
-
-  if (endDateFilterKey && (!postingEndDateKey || postingEndDateKey > endDateFilterKey)) {
-    return false;
-  }
-
-  if (startTimeFilterKey && (!postingStartTimeKey || postingStartTimeKey < startTimeFilterKey)) {
-    return false;
-  }
-
-  if (endTimeFilterKey && (!postingEndTimeKey || postingEndTimeKey > endTimeFilterKey)) {
-    return false;
-  }
-
-  return true;
-};
-
-const matchesSearchFilter = (posting: VolunteerEnrollmentEntry, search: string): boolean => {
-  if (!search) return true;
-
-  const normalizedSearch = search.toLowerCase();
-  const searchableSkillNames = posting.skills.map(skill => skill.name.toLowerCase());
-
-  return posting.title.toLowerCase().includes(normalizedSearch)
-    || posting.description.toLowerCase().includes(normalizedSearch)
-    || posting.location_name.toLowerCase().includes(normalizedSearch)
-    || posting.organization_name.toLowerCase().includes(normalizedSearch)
-    || searchableSkillNames.some(skillName => skillName.includes(normalizedSearch));
-};
-
-const sortEnrollmentEntries = (
-  postings: VolunteerEnrollmentEntry[],
-  sortBy: 'recommended' | 'start_date' | 'end_date' | 'created_at',
-  sortDir: 'asc' | 'desc',
-): VolunteerEnrollmentEntry[] => {
-  const sorted = [...postings];
-
-  sorted.sort((left, right) => {
-    if (sortBy === 'recommended') {
-      return compareByDateThenTime(left.start_date, left.start_time, right.start_date, right.start_time, 'asc');
-    }
-
-    if (sortBy === 'created_at') {
-      return compareByDateThenTime(left.created_at, null, right.created_at, null, sortDir);
-    }
-
-    if (sortBy === 'end_date') {
-      return compareByDateThenTime(left.end_date ?? null, left.end_time ?? null, right.end_date ?? null, right.end_time ?? null, sortDir);
-    }
-
-    return compareByDateThenTime(left.start_date, left.start_time, right.start_date, right.start_time, sortDir);
-  });
-
-  return sorted;
-};
-
 volunteerPostingRouter.use(authorizeOnly('volunteer'));
 
 volunteerPostingRouter.get('/', async (req, res: Response<VolunteerPostingSearchResponse>) => {
@@ -233,8 +88,7 @@ volunteerPostingRouter.get('/', async (req, res: Response<VolunteerPostingSearch
       'crisis.id',
       'organization_posting.crisis_id',
     )
-    .select(organizationPostingResponseColumns)
-    .select(['organization_account.name as organization_name'])
+    .select(postingWithContextSelectColumns)
     .where('organization_posting.is_closed', '=', false);
 
   if (skillFilter) {
@@ -309,57 +163,14 @@ volunteerPostingRouter.get('/', async (req, res: Response<VolunteerPostingSearch
   }
 
   const postings = await query.execute();
-
-  const postingIds = postings.map(p => p.id);
-
-  const skills = postingIds.length > 0
-    ? await database
-        .selectFrom('posting_skill')
-        .selectAll()
-        .where('posting_id', 'in', postingIds)
-        .execute()
-    : [];
-
-  const skillsByPostingId = new Map<number, typeof skills>();
-
-  skills.forEach((skillRow) => {
-    if (!skillsByPostingId.has(skillRow.posting_id)) {
-      skillsByPostingId.set(skillRow.posting_id, []);
-    }
-    skillsByPostingId.get(skillRow.posting_id)!.push(skillRow);
-  });
-
-  const enrollmentCounts = postingIds.length > 0
-    ? await database
-        .selectFrom('enrollment')
-        .select([
-          'posting_id',
-          sql<number>`count(enrollment.id)`.as('count'),
-        ])
-        .where('posting_id', 'in', postingIds)
-        .groupBy('posting_id')
-        .execute()
-    : [];
-
-  const countsByPostingId = new Map<number, number>();
-  enrollmentCounts.forEach((r) => {
-    countsByPostingId.set(r.posting_id, Number(r.count ?? 0));
-  });
-
-  const postingWithSkills = postings.map((posting) => {
-    const enrollmentCount = countsByPostingId.get(posting.id) ?? 0;
-
-    return {
-      ...posting,
-      skills: skillsByPostingId.get(posting.id) || [],
-      enrollment_count: enrollmentCount,
-      is_full: isPostingFull(posting.max_volunteers, enrollmentCount),
-    };
+  const postingsWithContext = await buildPostingsWithContext({
+    volunteerId,
+    postings,
   });
 
   const visiblePostings = hideFull
-    ? postingWithSkills.filter(posting => !posting.is_full)
-    : postingWithSkills;
+    ? postingsWithContext.filter(posting => posting.max_volunteers == null || posting.enrollment_count < posting.max_volunteers)
+    : postingsWithContext;
 
   res.json({ postings: visiblePostings });
 });
@@ -380,8 +191,7 @@ volunteerPostingRouter.get('/enrollments', async (req, res: Response<VolunteerEn
       .innerJoin('organization_posting', 'organization_posting.id', 'enrollment.posting_id')
       .innerJoin('organization_account', 'organization_account.id', 'organization_posting.organization_id')
       .leftJoin('crisis', 'crisis.id', 'organization_posting.crisis_id')
-      .select(organizationPostingResponseColumns)
-      .select(['organization_account.name as organization_name'])
+      .select(postingWithContextSelectColumns)
       .where('enrollment.volunteer_id', '=', volunteerId)
       .execute(),
     database
@@ -389,80 +199,38 @@ volunteerPostingRouter.get('/enrollments', async (req, res: Response<VolunteerEn
       .innerJoin('organization_posting', 'organization_posting.id', 'enrollment_application.posting_id')
       .innerJoin('organization_account', 'organization_account.id', 'organization_posting.organization_id')
       .leftJoin('crisis', 'crisis.id', 'organization_posting.crisis_id')
-      .select(organizationPostingResponseColumns)
-      .select(['organization_account.name as organization_name'])
+      .select(postingWithContextSelectColumns)
       .where('enrollment_application.volunteer_id', '=', volunteerId)
       .execute(),
   ]);
 
   // Merge: enrolled takes priority over pending for the same posting
-  const statusMap = new Map<number, 'enrolled' | 'pending'>();
+  const applicationStatusMap = new Map<number, 'registered' | 'pending'>();
   const postingsMap = new Map<number, typeof enrolledPostings[0]>();
 
   for (const posting of pendingPostings) {
-    statusMap.set(posting.id, 'pending');
+    applicationStatusMap.set(posting.id, 'pending');
     postingsMap.set(posting.id, posting);
   }
   for (const posting of enrolledPostings) {
-    statusMap.set(posting.id, 'enrolled');
+    applicationStatusMap.set(posting.id, 'registered');
     postingsMap.set(posting.id, posting);
   }
 
-  const allPostingIds = Array.from(postingsMap.keys());
-
-  const skills = allPostingIds.length > 0
-    ? await database
-        .selectFrom('posting_skill')
-        .selectAll()
-        .where('posting_id', 'in', allPostingIds)
-        .execute()
-    : [];
-
-  const skillsByPostingId = new Map<number, typeof skills>();
-  skills.forEach((skill) => {
-    if (!skillsByPostingId.has(skill.posting_id)) {
-      skillsByPostingId.set(skill.posting_id, []);
-    }
-    skillsByPostingId.get(skill.posting_id)!.push(skill);
+  const postings = await buildPostingsWithContext({
+    volunteerId,
+    postings: Array.from(postingsMap.values()),
+    applicationStatusByPostingId: applicationStatusMap,
   });
-
-  const enrollmentCounts = allPostingIds.length > 0
-    ? await database
-        .selectFrom('enrollment')
-        .select([
-          'posting_id',
-          sql<number>`count(enrollment.id)`.as('count'),
-        ])
-        .where('posting_id', 'in', allPostingIds)
-        .groupBy('posting_id')
-        .execute()
-    : [];
-
-  const countsByPostingId = new Map<number, number>();
-  enrollmentCounts.forEach((r) => {
-    countsByPostingId.set(r.posting_id, Number(r.count ?? 0));
-  });
-
-  const postings = Array.from(postingsMap.values())
-    .map((posting) => {
-      const enrollmentCount = countsByPostingId.get(posting.id) ?? 0;
-
-      return {
-        ...posting,
-        skills: skillsByPostingId.get(posting.id) ?? [],
-        status: statusMap.get(posting.id) as 'enrolled' | 'pending',
-        enrollment_count: enrollmentCount,
-        is_full: isPostingFull(posting.max_volunteers, enrollmentCount),
-        crisis_name: posting.crisis_name ?? null,
-      };
-    });
 
   const filteredPostings = postings
-    .filter(posting => matchesSearchFilter(posting, search))
-    .filter(posting => matchesDateTimeFilters(posting, dateTimeFilters))
-    .filter(posting => (hideFull ? !posting.is_full : true));
+    .filter(posting => matchesPostingSearch(posting, search))
+    .filter(posting => matchesPostingDateTimeFilters<PostingWithContext>(posting, dateTimeFilters))
+    .filter(posting => (hideFull ? posting.max_volunteers == null || posting.enrollment_count < posting.max_volunteers : true));
 
-  const sortedPostings = sortEnrollmentEntries(filteredPostings, sortBy, sortDir);
+  const sortedPostings = sortBy === 'recommended'
+    ? sortPostingsBySharedSort<PostingWithContext>(filteredPostings, 'start_date', 'asc')
+    : sortPostingsBySharedSort<PostingWithContext>(filteredPostings, sortBy, sortDir);
 
   res.json({ postings: sortedPostings });
 });
@@ -473,12 +241,17 @@ volunteerPostingRouter.get('/:id', async (req, res: Response<VolunteerPostingRes
 
   const posting = await database
     .selectFrom('organization_posting')
+    .innerJoin(
+      'organization_account',
+      'organization_account.id',
+      'organization_posting.organization_id',
+    )
     .leftJoin(
       'crisis',
       'crisis.id',
       'organization_posting.crisis_id',
     )
-    .select(organizationPostingResponseColumns)
+    .select(postingWithContextSelectColumns)
     .where('organization_posting.id', '=', id)
     .executeTakeFirst();
 
@@ -487,39 +260,18 @@ volunteerPostingRouter.get('/:id', async (req, res: Response<VolunteerPostingRes
     throw new Error('Posting not found');
   }
 
-  const [skills, pendingApplication, existingEnrollment, enrollmentCountRow] = await Promise.all([
-    database
-      .selectFrom('posting_skill')
-      .selectAll()
-      .where('posting_id', '=', id)
-      .execute(),
-    database
-      .selectFrom('enrollment_application')
-      .selectAll()
-      .where(eb => eb('volunteer_id', '=', volunteerId))
-      .where(eb => eb('posting_id', '=', id))
-      .executeTakeFirst(),
-    database
-      .selectFrom('enrollment')
-      .select('id')
-      .where('posting_id', '=', id)
-      .where('volunteer_id', '=', volunteerId)
-      .executeTakeFirst(),
-    database
-      .selectFrom('enrollment')
-      .select(sql<number>`count(enrollment.id)`.as('count'))
-      .where('posting_id', '=', id)
-      .executeTakeFirst(),
-  ]);
+  const [postingWithContext] = await buildPostingsWithContext({
+    volunteerId,
+    postings: [posting],
+  });
 
-  const enrollmentCount = Number(enrollmentCountRow?.count ?? 0);
+  if (!postingWithContext) {
+    res.status(404);
+    throw new Error('Posting not found');
+  }
 
   res.json({
-    posting,
-    skills,
-    hasPendingApplication: Boolean(pendingApplication),
-    isEnrolled: Boolean(existingEnrollment),
-    is_full: isPostingFull(posting.max_volunteers, enrollmentCount),
+    posting: postingWithContext,
   });
 });
 

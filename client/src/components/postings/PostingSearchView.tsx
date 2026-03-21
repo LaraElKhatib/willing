@@ -1,24 +1,27 @@
-import { RotateCcw, Search, SlidersHorizontal, TextSearch, type LucideIcon } from 'lucide-react';
-import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
+import { TextSearch, type LucideIcon } from 'lucide-react';
+import { type ReactNode, useCallback, useMemo, useState } from 'react';
 
-import requestServer from '../../utils/requestServer.ts';
-import useAsync from '../../utils/useAsync';
-import Alert from '../Alert.tsx';
-import Button from '../Button.tsx';
-import PageHeader from '../layout/PageHeader.tsx';
-import Loading from '../Loading.tsx';
-import PostingCard from '../PostingCard.tsx';
 import {
   buildSharedPostingQuery,
   hasSharedAdvancedPostingFilters,
+  resolveVolunteerPostingSortOption,
+  toVolunteerPostingSortOptionValue,
   volunteerPostingSortOptions,
   type PostingSortDir,
   type SharedPostingFilterFields,
   type VolunteerPostingSortBy,
   type VolunteerPostingSortOptionValue,
 } from './postingFilterConfig.ts';
+import { FormField } from '../../utils/formUtils.tsx';
+import requestServer from '../../utils/requestServer.ts';
+import useAsync from '../../utils/useAsync';
+import Alert from '../Alert.tsx';
+import PageHeader from '../layout/PageHeader.tsx';
+import Loading from '../Loading.tsx';
+import PostingCard from '../PostingCard.tsx';
+import PostingFiltersCard from './PostingFiltersCard.tsx';
 
-import type { VolunteerPostingSearchResponse } from '../../../../server/src/api/types.ts';
+import type { VolunteerPostingSearchResponse, VolunteerEnrollmentsResponse } from '../../../../server/src/api/types.ts';
 import type { PostingWithContext } from '../../../../server/src/types.ts';
 
 export type PostingSearchFilters = SharedPostingFilterFields & {
@@ -37,6 +40,10 @@ type PostingCrisisOption = {
   name: string;
 };
 
+type PostingSearchFormValues = Omit<PostingSearchFilters, 'sortBy' | 'sortDir'> & {
+  sortOption: VolunteerPostingSortOptionValue;
+};
+
 type PostingSearchViewProps = {
   title: string;
   subtitle: string;
@@ -50,6 +57,33 @@ type PostingSearchViewProps = {
   fetchUrl?: string;
   enableCrisisFilter?: boolean;
   crisisOptions?: PostingCrisisOption[];
+};
+
+const toPostingSearchFormValues = (filters: PostingSearchFilters): PostingSearchFormValues => ({
+  search: filters.search,
+  sortOption: toVolunteerPostingSortOptionValue(filters.sortBy, filters.sortDir),
+  startDateFrom: filters.startDateFrom,
+  endDateTo: filters.endDateTo,
+  startTimeFrom: filters.startTimeFrom,
+  endTimeTo: filters.endTimeTo,
+  hideFull: filters.hideFull,
+  crisisId: filters.crisisId,
+});
+
+const fromPostingSearchFormValues = (values: PostingSearchFormValues): PostingSearchFilters => {
+  const selectedSortOption = resolveVolunteerPostingSortOption(values.sortOption);
+
+  return {
+    search: values.search,
+    sortBy: selectedSortOption.sortBy,
+    sortDir: selectedSortOption.sortDir,
+    startDateFrom: values.startDateFrom,
+    endDateTo: values.endDateTo,
+    startTimeFrom: values.startTimeFrom,
+    endTimeTo: values.endTimeTo,
+    hideFull: values.hideFull,
+    crisisId: values.crisisId,
+  };
 };
 
 function PostingSearchView({
@@ -78,15 +112,14 @@ function PostingSearchView({
     crisisId: 'all',
     ...initialFilters,
   }), [initialFilters]);
+  const defaultFormValues = useMemo(() => toPostingSearchFormValues(defaultFilters), [defaultFilters]);
 
   const [postings, setPostings] = useState<PostingWithContext[]>([]);
-  const [filters, setFilters] = useState<PostingSearchFilters>(defaultFilters);
-  const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const { trigger: fetchPostingsRequest } = useAsync(
-    async (url: string) => requestServer<VolunteerPostingSearchResponse>(url, { includeJwt: true }),
+    async (url: string) => requestServer<VolunteerPostingSearchResponse | VolunteerEnrollmentsResponse>(url, { includeJwt: true }),
     { notifyOnError: true },
   );
 
@@ -121,35 +154,9 @@ function PostingSearchView({
     }
   }, [fetchPostingsRequest, fetchUrl, filterPostings]);
 
-  useEffect(() => {
-    void fetchPostings(defaultFilters);
-  }, [defaultFilters]);
-
-  const resetFilters = () => {
-    setFilters(defaultFilters);
-    setShowAdvancedSearch(false);
-    void fetchPostings(defaultFilters);
-  };
-
-  const hasActiveFilters = useMemo(() => JSON.stringify(filters) !== JSON.stringify(defaultFilters), [filters, defaultFilters]);
-
-  const hasAdvancedFiltersApplied = hasSharedAdvancedPostingFilters(filters)
-    || filters.hideFull
-    || filters.crisisId !== 'all';
-
-  const selectedSortOption = volunteerPostingSortOptions.find(option => option.sortBy === filters.sortBy && option.sortDir === filters.sortDir)
-    ?? volunteerPostingSortOptions[0];
-
-  const onSortChange = (value: VolunteerPostingSortOptionValue) => {
-    const nextOption = volunteerPostingSortOptions.find(option => option.value === value);
-    if (!nextOption) return;
-
-    setFilters(prev => ({
-      ...prev,
-      sortBy: nextOption.sortBy,
-      sortDir: nextOption.sortDir,
-    }));
-  };
+  const applyFilters = useCallback(async (formValues: PostingSearchFormValues) => {
+    await fetchPostings(fromPostingSearchFormValues(formValues));
+  }, [fetchPostings]);
 
   return (
     <div className="p-6 md:container mx-auto">
@@ -162,140 +169,77 @@ function PostingSearchView({
         defaultBackTo={defaultBackTo}
       />
 
-      <div className="mb-6 rounded-box border border-base-300 bg-base-100 p-4 shadow-sm">
-        <h4 className="mb-3 text-lg font-semibold">Filter</h4>
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            void fetchPostings(filters);
-          }}
-        >
-          <div className="grid grid-cols-1 gap-3 lg:grid-cols-4">
-            <label className="input input-bordered flex w-full items-center gap-2 lg:col-span-2">
-              <Search className="h-4 w-4 opacity-70" />
-              <input
-                type="text"
-                className="grow"
-                placeholder="Search title, description, location, organization, skills"
-                value={filters.search}
-                onChange={event => setFilters({ ...filters, search: event.target.value })}
-              />
-            </label>
+      <PostingFiltersCard
+        defaultValues={defaultFormValues}
+        onApply={applyFilters}
+        searchFieldName="search"
+        searchPlaceholder="Search title, description, location, organization, or skills"
+        sortFieldName="sortOption"
+        sortOptions={volunteerPostingSortOptions.map(option => ({
+          label: option.label,
+          value: option.value,
+        }))}
+        getHasAdvancedFiltersApplied={values => hasSharedAdvancedPostingFilters(values) || values.hideFull || values.crisisId !== 'all'}
+        renderAdvancedFields={form => (
+          <>
+            <FormField
+              form={form}
+              name="startDateFrom"
+              label="Start After (Inclusive)"
+              type="date"
+            />
 
-            <select
-              className="select select-bordered w-full"
-              value={selectedSortOption.value}
-              onChange={event => onSortChange(event.target.value as VolunteerPostingSortOptionValue)}
-            >
-              {volunteerPostingSortOptions.map(option => (
-                <option key={option.value} value={option.value}>{option.label}</option>
-              ))}
-            </select>
+            <FormField
+              form={form}
+              name="endDateTo"
+              label="End By (Inclusive)"
+              type="date"
+            />
 
-            <Button
-              color="primary"
-              type="submit"
-              disabled={!hasActiveFilters}
-              Icon={Search}
-            >
-              Search
-            </Button>
-          </div>
+            <FormField
+              form={form}
+              name="startTimeFrom"
+              label="Start Time After"
+              type="time"
+            />
 
-          <div className="mt-3 flex gap-3">
-            <Button
-              type="button"
-              color={hasAdvancedFiltersApplied || showAdvancedSearch ? 'secondary' : 'ghost'}
-              onClick={() => setShowAdvancedSearch(prev => !prev)}
-              Icon={SlidersHorizontal}
-            >
-              Advanced Search
-            </Button>
+            <FormField
+              form={form}
+              name="endTimeTo"
+              label="End Time By"
+              type="time"
+            />
 
-            <Button
-              type="button"
-              color="ghost"
-              disabled={!hasActiveFilters}
-              onClick={resetFilters}
-              Icon={RotateCcw}
-            >
-              Reset
-            </Button>
-          </div>
-
-          {showAdvancedSearch && (
-            <div className="mt-4 rounded-box border border-base-300 bg-base-200/40 p-4">
-              <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-                <label className="form-control">
-                  <span className="label-text mb-1">Start After (Inclusive)</span>
-                  <input
-                    type="date"
-                    className="input input-bordered w-full"
-                    value={filters.startDateFrom}
-                    onChange={event => setFilters(prev => ({ ...prev, startDateFrom: event.target.value }))}
-                  />
-                </label>
-
-                <label className="form-control">
-                  <span className="label-text mb-1">End By (Inclusive)</span>
-                  <input
-                    type="date"
-                    className="input input-bordered w-full"
-                    value={filters.endDateTo}
-                    onChange={event => setFilters(prev => ({ ...prev, endDateTo: event.target.value }))}
-                  />
-                </label>
-
-                <label className="form-control">
-                  <span className="label-text mb-1">Start Time After</span>
-                  <input
-                    type="time"
-                    className="input input-bordered w-full"
-                    value={filters.startTimeFrom}
-                    onChange={event => setFilters(prev => ({ ...prev, startTimeFrom: event.target.value }))}
-                  />
-                </label>
-
-                <label className="form-control">
-                  <span className="label-text mb-1">End Time By</span>
-                  <input
-                    type="time"
-                    className="input input-bordered w-full"
-                    value={filters.endTimeTo}
-                    onChange={event => setFilters(prev => ({ ...prev, endTimeTo: event.target.value }))}
-                  />
-                </label>
-
-                {enableCrisisFilter && (
-                  <select
-                    className="select select-bordered w-full lg:col-span-2"
-                    value={filters.crisisId}
-                    onChange={event => setFilters(prev => ({
-                      ...prev,
-                      crisisId: event.target.value as PostingSearchFilters['crisisId'],
-                    }))}
-                  >
-                    <option value="all">Crisis: All</option>
-                    {crisisOptions.map(crisis => (
-                      <option key={crisis.id} value={String(crisis.id)}>{crisis.name}</option>
-                    ))}
-                  </select>
-                )}
+            {enableCrisisFilter && (
+              <div className="lg:col-span-2">
+                <FormField
+                  form={form}
+                  name="crisisId"
+                  label="Crisis"
+                  selectOptions={[
+                    { label: 'All Postings', value: 'all' },
+                    ...crisisOptions.map(crisis => ({
+                      label: crisis.name,
+                      value: String(crisis.id),
+                    })),
+                  ]}
+                />
               </div>
+            )}
 
-              <label className="label mt-2 cursor-pointer justify-start gap-3">
+            <div className="lg:col-span-2 flex items-end">
+              <label className="label cursor-pointer justify-start gap-3 py-0">
                 <input
                   type="checkbox"
                   className="checkbox checkbox-sm"
-                  checked={filters.hideFull}
-                  onChange={event => setFilters(prev => ({ ...prev, hideFull: event.target.checked }))}
+                  {...form.register('hideFull')}
                 />
                 <span className="label-text">Hide full postings</span>
               </label>
             </div>
-          )}
-        </form>
-      </div>
+          </>
+        )}
+      />
 
       {error && <div className="mb-4 text-sm text-base-content/70">Unable to load postings.</div>}
 

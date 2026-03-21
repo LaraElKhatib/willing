@@ -58,6 +58,32 @@ export const volunteerPostingSortOptions: VolunteerPostingSortOption[] = [
   { value: 'end_date_desc', label: 'End Date (Newest First)', sortBy: 'end_date', sortDir: 'desc' },
 ];
 
+const getSortOptionByFields = <
+  TOption extends { sortBy: string; sortDir: PostingSortDir },
+>(
+  options: TOption[],
+  sortBy: string,
+  sortDir: PostingSortDir,
+): TOption => options.find(option => option.sortBy === sortBy && option.sortDir === sortDir) ?? options[0];
+
+export const toOrganizationPostingSortOptionValue = (
+  sortBy: OrganizationPostingSortBy,
+  sortDir: PostingSortDir,
+): OrganizationPostingSortOptionValue => getSortOptionByFields(organizationPostingSortOptions, sortBy, sortDir).value;
+
+export const resolveOrganizationPostingSortOption = (
+  value: OrganizationPostingSortOptionValue,
+): OrganizationPostingSortOption => organizationPostingSortOptions.find(option => option.value === value) ?? organizationPostingSortOptions[0];
+
+export const toVolunteerPostingSortOptionValue = (
+  sortBy: VolunteerPostingSortBy,
+  sortDir: PostingSortDir,
+): VolunteerPostingSortOptionValue => getSortOptionByFields(volunteerPostingSortOptions, sortBy, sortDir).value;
+
+export const resolveVolunteerPostingSortOption = (
+  value: VolunteerPostingSortOptionValue,
+): VolunteerPostingSortOption => volunteerPostingSortOptions.find(option => option.value === value) ?? volunteerPostingSortOptions[0];
+
 export const buildSharedPostingQuery = (filters: SharedPostingFilterFields): Record<string, string> => {
   const query: Record<string, string> = {
     sortBy: filters.sortBy,
@@ -73,7 +99,7 @@ export const buildSharedPostingQuery = (filters: SharedPostingFilterFields): Rec
   return query;
 };
 
-export const hasSharedAdvancedPostingFilters = (filters: SharedPostingFilterFields): boolean => Boolean(
+export const hasSharedAdvancedPostingFilters = (filters: Pick<SharedPostingFilterFields, 'startDateFrom' | 'endDateTo' | 'startTimeFrom' | 'endTimeTo'>): boolean => Boolean(
   filters.startDateFrom
   || filters.endDateTo
   || filters.startTimeFrom

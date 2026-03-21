@@ -25,7 +25,7 @@ function OrganizationNavbar() {
   return (
     <Navbar
       center={organization && (
-        <div className="flex gap-2">
+        <>
           <NavLink to="/organization" end className={softTabStyle}>
             <Home size={20} />
             Home
@@ -34,7 +34,7 @@ function OrganizationNavbar() {
             <Settings size={20} />
             Settings
           </NavLink>
-        </div>
+        </>
       )}
       right={organization && (
         <div className="dropdown dropdown-bottom dropdown-end">

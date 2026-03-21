@@ -5,15 +5,14 @@ import SkillsList from './skills/SkillsList';
 
 import type { PostingWithContext, PostingWithSkills } from '../../../server/src/types';
 
-type PostingCardData = PostingWithSkills & Partial<Pick<PostingWithContext, 'organization_name' | 'crisis_name' | 'enrollment_count'>>;
+type PostingCardData = PostingWithSkills & Partial<Pick<PostingWithContext, 'organization_name' | 'crisis_name' | 'enrollment_count' | 'application_status'>>;
 
 interface PostingCardProps {
   posting: PostingCardData;
-  applicationStatus?: 'none' | 'pending' | 'registered';
   showCrisis?: boolean;
 }
 
-function PostingCard({ posting, applicationStatus = 'none', showCrisis = true }: PostingCardProps) {
+function PostingCard({ posting, showCrisis = true }: PostingCardProps) {
   const postingDetailsPath = `/posting/${posting.id}`;
   const normalizeTimestamp = (value: string | Date | undefined | null) => {
     if (value == null) return null;
@@ -126,14 +125,14 @@ function PostingCard({ posting, applicationStatus = 'none', showCrisis = true }:
                     Closed
                   </span>
                 )
-              : applicationStatus === 'pending'
+              : posting.application_status === 'pending'
                 ? (
                     <span className="badge badge-warning inline-flex items-center gap-2">
                       <Clock size={14} />
                       Pending
                     </span>
                   )
-                : applicationStatus === 'registered'
+                : posting.application_status === 'registered'
                   ? (
                       <span className="badge badge-success inline-flex items-center gap-2">
                         <Users size={14} />
@@ -155,8 +154,8 @@ function PostingCard({ posting, applicationStatus = 'none', showCrisis = true }:
                           </span>
                         )
                       : (
-                          <span className="badge badge-secondary inline-flex items-center gap-2">
-                            <Clock size={14} />
+                          <span className="badge badge-secondary inline-flex items-center gap-2 px-3 min-w-[120px] h-7 items-center" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: '120px', maxWidth: '100%', display: 'inline-flex', alignItems: 'center' }}>
+                            <Clock size={16} style={{ marginBottom: '-2px' }} />
                             Review based
                           </span>
                         )
@@ -166,9 +165,9 @@ function PostingCard({ posting, applicationStatus = 'none', showCrisis = true }:
 
       <div className="pt-1 pb-3 border-t border-base-200">
         <div className="px-4 md:px-5 flex justify-between items-start text-sm text-muted gap-6 pt-2">
-          <div className="flex items-center gap-3 grow">
+          <div className="flex items-center gap-3 grow h-22">
             <div className="flex items-start gap-3">
-              <div className="flex flex-col items-start shrink-0 mt-1">
+              <div className="flex flex-col items-center shrink-0 mt-1">
                 <Calendar size={16} className="text-primary" />
                 {(hasEndDate && startDateStr !== endDateStr) && <div className="w-0.5 h-6 bg-primary my-1" />}
                 {(hasEndDate && startDateStr !== endDateStr) && <Calendar size={16} className="text-primary" />}

@@ -372,6 +372,7 @@ function VolunteerProfile() {
         <PageHeader
           title="Profile"
           subtitle="Manage your details, availability, and focus areas."
+          icon={FileText}
           actions={(
             <>
               {isEditMode

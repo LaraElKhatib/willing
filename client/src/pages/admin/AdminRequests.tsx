@@ -114,6 +114,7 @@ function AdminRequests() {
       <div className="p-6 md:container mx-auto">
         <PageHeader
           title="Organization Requests"
+          subtitle="Review pending onboarding submissions from organizations."
           icon={ClipboardCheck}
           badge={
             organizationRequests

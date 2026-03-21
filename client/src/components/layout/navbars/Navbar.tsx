@@ -1,20 +1,57 @@
-import type { ReactNode } from 'react';
+import { Menu, X } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
 
 function Navbar({ center, right }: { center?: ReactNode; right?: ReactNode }) {
+  const [isCenterOpen, setIsCenterOpen] = useState(false);
+
   return (
-    <div className="navbar bg-base-100 shadow-md shrink-0 sticky top-0 z-9999">
-      <div className="navbar-start">
-        <a className="btn btn-ghost text-xl" href="/">
-          <img src="/willing.svg" className="h-6" alt="Willing Logo" />
-          Willing
-        </a>
+    <div className="shrink-0 sticky top-0 z-9999">
+      <div className="navbar bg-base-100 shadow-md relative">
+        <div className="navbar-start">
+          {center && (
+            <button
+              type="button"
+              className="btn btn-ghost btn-square sm:hidden mr-1"
+              onClick={() => setIsCenterOpen(value => !value)}
+              aria-label="Toggle navigation menu"
+              aria-expanded={isCenterOpen}
+            >
+              {isCenterOpen ? <X size={22} /> : <Menu size={22} />}
+            </button>
+          )}
+
+          <a className="btn btn-ghost text-xl px-2" href="/">
+            <img src="/willing.svg" className="h-6" alt="Willing Logo" />
+            Willing
+          </a>
+        </div>
+        <div className="navbar-center">
+          {center && (
+            <>
+              <div className="hidden sm:flex items-center gap-2">
+                {center}
+              </div>
+            </>
+          )}
+        </div>
+        <div className="navbar-end">
+          { right }
+        </div>
       </div>
-      <div className="navbar-center">
-        { center }
-      </div>
-      <div className="navbar-end">
-        { right }
-      </div>
+
+      {center && (
+        <div
+          className={`${isCenterOpen ? 'flex' : 'hidden'} sm:hidden absolute top-full left-0 right-0 z-50 flex-col items-stretch gap-2 border-t border-base-200 bg-base-100 px-4 py-3 shadow-md`}
+          onClick={(event) => {
+            const target = event.target as HTMLElement;
+            if (target.closest('a, button')) {
+              setIsCenterOpen(false);
+            }
+          }}
+        >
+          {center}
+        </div>
+      )}
     </div>
   );
 }

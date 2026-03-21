@@ -196,6 +196,7 @@ All components are in `client/src/components/`. **Use these instead of recreatin
 ### Posting Components (`client/src/components/postings/` + shared posting cards)
 
 - **`PostingCard`**: Standard volunteer opportunity card (title, description, location, dates, constraints, skills). Required prop: `posting`. Optional prop: `organization`.
+- **`PostingFiltersCard`**: Shared posting filter shell for search/manage pages. Use it for posting list filters instead of duplicating search/sort/advanced filter card markup.
 - **`PostingSearchView`**: Reusable posting discovery shell with page header, search, date filters, and result states. Required props: `title`, `subtitle`. Optional props: `icon`, `badge`, `showBack`, `defaultBackTo`, `initialFilters`, `emptyMessage`, `filterPostings`, `fetchUrl`.
 - **`HorizontalScrollSection`**: Horizontal carousel-style section with scroll controls, edge fades, and empty state. Required props: `title`, `hasItems`. Optional props: `subtitle`, `action`, `emptyState`, `children`.
 

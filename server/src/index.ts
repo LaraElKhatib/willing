@@ -8,8 +8,6 @@ import config from './config.js';
 import { migrateToLatest } from './db/migrate.js';
 
 const app = express();
-const DEV_MIGRATION_RETRY_DELAY_MS = 2000;
-const DEV_MIGRATION_MAX_ATTEMPTS = 10;
 
 app.use(morgan('dev'));
 app.use(express.json());
@@ -50,39 +48,11 @@ app.use(((err, _req, res, _next) => {
   });
 }) as ErrorRequestHandler);
 
-const sleep = (ms: number) => new Promise((resolve) => {
-  setTimeout(resolve, ms);
-});
-
-async function runDevelopmentMigrationsWithRetry() {
-  let lastError: unknown;
-
-  for (let attempt = 1; attempt <= DEV_MIGRATION_MAX_ATTEMPTS; attempt += 1) {
-    try {
-      await migrateToLatest();
-      console.log('Database migrations completed');
-      return;
-    } catch (error) {
-      lastError = error;
-
-      if (attempt === DEV_MIGRATION_MAX_ATTEMPTS) {
-        break;
-      }
-
-      console.warn(
-        `Migration attempt ${attempt}/${DEV_MIGRATION_MAX_ATTEMPTS} failed. Retrying in ${DEV_MIGRATION_RETRY_DELAY_MS}ms...`,
-      );
-      await sleep(DEV_MIGRATION_RETRY_DELAY_MS);
-    }
-  }
-
-  throw lastError;
-}
-
 async function startServer() {
   try {
     if (config.NODE_ENV === 'development') {
-      await runDevelopmentMigrationsWithRetry();
+      await migrateToLatest();
+      console.log('Database migrations completed');
     }
   } catch (error) {
     console.error('Failed to run migrations:', error);

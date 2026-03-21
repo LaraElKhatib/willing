@@ -23,7 +23,8 @@ async function seed() {
     organization_request,
     volunteer_account,
     organization_account,
-    admin_account
+    admin_account,
+    crisis
   RESTART IDENTITY CASCADE
 `.execute(database);
 
@@ -184,8 +185,8 @@ async function seed() {
   const crises = await database.insertInto('crisis')
     .values([
       {
-        name: 'Lebanon Flood Relief',
-        description: 'Coordinated response for families impacted by severe flooding. Focuses on distribution of supplies and shelter setup.',
+        name: 'Lebanon 2026 War',
+        description: 'Emergency response and humanitarian aid for those affected by the Lebanon 2026 War. Includes medical, shelter, food, and evacuation support.',
         pinned: true,
       },
       {
@@ -253,6 +254,50 @@ async function seed() {
 
   const postings = await database.insertInto('organization_posting')
     .values([
+      // --- Lebanon 2026 War Postings ---
+      {
+        organization_id: orgByName.get('Org One')!,
+        crisis_id: crisisByName.get('Lebanon 2026 War')!,
+        title: 'Emergency Medical Aid',
+        description: 'Assist medical teams treating war casualties and providing first aid in affected areas.',
+        latitude: 33.8938,
+        longitude: 35.5018,
+        location_name: 'Beirut Field Hospital',
+        max_volunteers: 20,
+        ...buildTemporalFields(`${nowYear}-02-01T08:00:00Z`, `${nowYear}-02-01T20:00:00Z`),
+        minimum_age: 18,
+        automatic_acceptance: false,
+        is_closed: false,
+      },
+      {
+        organization_id: orgByName.get('Org Two')!,
+        crisis_id: crisisByName.get('Lebanon 2026 War')!,
+        title: 'Food & Water Distribution',
+        description: 'Distribute food and water to displaced families and those in shelters due to the conflict.',
+        latitude: 33.9,
+        longitude: 35.5,
+        location_name: 'Beirut Central Shelter',
+        max_volunteers: 15,
+        ...buildTemporalFields(`${nowYear}-02-02T09:00:00Z`, `${nowYear}-02-02T18:00:00Z`),
+        minimum_age: 16,
+        automatic_acceptance: true,
+        is_closed: false,
+      },
+      {
+        organization_id: orgByName.get('Org Three')!,
+        crisis_id: crisisByName.get('Lebanon 2026 War')!,
+        title: 'Child Support Activities',
+        description: 'Organize and run safe play and learning activities for children displaced by the conflict.',
+        latitude: 34.4367,
+        longitude: 35.8333,
+        location_name: 'Tripoli Community Center',
+        max_volunteers: 12,
+        ...buildTemporalFields(`${nowYear}-02-03T10:00:00Z`, `${nowYear}-02-03T16:00:00Z`),
+        minimum_age: 16,
+        automatic_acceptance: true,
+        is_closed: false,
+      },
+      // --- Existing Postings ---
       {
         organization_id: orgByName.get('Org One')!,
         crisis_id: crisisByName.get('Lebanon Flood Relief')!,
@@ -298,7 +343,7 @@ async function seed() {
       {
         organization_id: orgByName.get('Org One')!,
         crisis_id: crisisByName.get('Lebanon Flood Relief')!,
-        title: 'Relief Kit Assembly (Full)',
+        title: 'Relief Kit Assembly',
         description: 'Assemble flood relief kits. Seeded as full for Org One testing.',
         latitude: 33.892,
         longitude: 35.503,
@@ -338,7 +383,7 @@ async function seed() {
       {
         organization_id: orgByName.get('Org Two')!,
         crisis_id: crisisByName.get('Medical Emergency Response')!,
-        title: 'Warehouse Shift (Full)',
+        title: 'Warehouse Shift',
         description: 'Move, sort, and stage emergency kits for dispatch. Seeded as full for testing.',
         latitude: 33.352,
         longitude: 35.493,
@@ -420,6 +465,21 @@ async function seed() {
 
   const postingByTitle = new Map(postings.map(p => [p.title, p.id]));
   await database.insertInto('posting_skill').values([
+    // Lebanon 2026 War Postings
+    { posting_id: postingByTitle.get('Emergency Medical Aid')!, name: 'First Aid' },
+    { posting_id: postingByTitle.get('Emergency Medical Aid')!, name: 'Medical Assistance' },
+    { posting_id: postingByTitle.get('Emergency Medical Aid')!, name: 'Crisis Response' },
+    { posting_id: postingByTitle.get('Emergency Medical Aid')!, name: 'Teamwork' },
+
+    { posting_id: postingByTitle.get('Food & Water Distribution')!, name: 'Logistics' },
+    { posting_id: postingByTitle.get('Food & Water Distribution')!, name: 'Distribution' },
+    { posting_id: postingByTitle.get('Food & Water Distribution')!, name: 'Communication' },
+    { posting_id: postingByTitle.get('Food & Water Distribution')!, name: 'Organization' },
+
+    { posting_id: postingByTitle.get('Child Support Activities')!, name: 'Child Engagement' },
+    { posting_id: postingByTitle.get('Child Support Activities')!, name: 'Creativity' },
+    { posting_id: postingByTitle.get('Child Support Activities')!, name: 'Patience' },
+    { posting_id: postingByTitle.get('Child Support Activities')!, name: 'Safety Awareness' },
     { posting_id: postingByTitle.get('Food Packing')!, name: 'Packing' },
     { posting_id: postingByTitle.get('Food Packing')!, name: 'Teamwork' },
     { posting_id: postingByTitle.get('Food Packing')!, name: 'Attention to Detail' },
@@ -439,10 +499,10 @@ async function seed() {
     { posting_id: postingByTitle.get('Winter Clothes Drive')!, name: 'Inventory Handling' },
     { posting_id: postingByTitle.get('Winter Clothes Drive')!, name: 'Attention to Detail' },
 
-    { posting_id: postingByTitle.get('Relief Kit Assembly (Full)')!, name: 'Packing' },
-    { posting_id: postingByTitle.get('Relief Kit Assembly (Full)')!, name: 'Organization' },
-    { posting_id: postingByTitle.get('Relief Kit Assembly (Full)')!, name: 'Teamwork' },
-    { posting_id: postingByTitle.get('Relief Kit Assembly (Full)')!, name: 'Attention to Detail' },
+    { posting_id: postingByTitle.get('Relief Kit Assembly')!, name: 'Packing' },
+    { posting_id: postingByTitle.get('Relief Kit Assembly')!, name: 'Organization' },
+    { posting_id: postingByTitle.get('Relief Kit Assembly')!, name: 'Teamwork' },
+    { posting_id: postingByTitle.get('Relief Kit Assembly')!, name: 'Attention to Detail' },
 
     { posting_id: postingByTitle.get('Tutor Kids')!, name: 'Teaching' },
     { posting_id: postingByTitle.get('Tutor Kids')!, name: 'Patience' },
@@ -459,10 +519,10 @@ async function seed() {
     { posting_id: postingByTitle.get('Community Kitchen')!, name: 'Serving' },
     { posting_id: postingByTitle.get('Community Kitchen')!, name: 'Cleanliness' },
 
-    { posting_id: postingByTitle.get('Warehouse Shift (Full)')!, name: 'Sorting' },
-    { posting_id: postingByTitle.get('Warehouse Shift (Full)')!, name: 'Inventory Handling' },
-    { posting_id: postingByTitle.get('Warehouse Shift (Full)')!, name: 'Teamwork' },
-    { posting_id: postingByTitle.get('Warehouse Shift (Full)')!, name: 'Coordination' },
+    { posting_id: postingByTitle.get('Warehouse Shift')!, name: 'Sorting' },
+    { posting_id: postingByTitle.get('Warehouse Shift')!, name: 'Inventory Handling' },
+    { posting_id: postingByTitle.get('Warehouse Shift')!, name: 'Teamwork' },
+    { posting_id: postingByTitle.get('Warehouse Shift')!, name: 'Coordination' },
 
     { posting_id: postingByTitle.get('Homework Hotline')!, name: 'Teaching' },
     { posting_id: postingByTitle.get('Homework Hotline')!, name: 'Communication' },
@@ -667,25 +727,25 @@ async function seed() {
     },
     {
       volunteer_id: volByEmail.get('vol1@willing.com')!,
-      posting_id: postingByTitle.get('Relief Kit Assembly (Full)')!,
+      posting_id: postingByTitle.get('Relief Kit Assembly')!,
       message: 'Can assemble and package kits quickly with attention to detail.',
       attended: false,
     },
     {
       volunteer_id: volByEmail.get('vol2@willing.com')!,
-      posting_id: postingByTitle.get('Relief Kit Assembly (Full)')!,
+      posting_id: postingByTitle.get('Relief Kit Assembly')!,
       message: 'Comfortable working in fast-paced kit assembly tasks.',
       attended: false,
     },
     {
       volunteer_id: volByEmail.get('vol5@willing.com')!,
-      posting_id: postingByTitle.get('Warehouse Shift (Full)')!,
+      posting_id: postingByTitle.get('Warehouse Shift')!,
       message: 'Can help sort and stage emergency kits quickly.',
       attended: false,
     },
     {
       volunteer_id: volByEmail.get('vol7@willing.com')!,
-      posting_id: postingByTitle.get('Warehouse Shift (Full)')!,
+      posting_id: postingByTitle.get('Warehouse Shift')!,
       message: 'Comfortable with warehouse coordination and sorting tasks.',
       attended: false,
     },
