@@ -1,4 +1,4 @@
-import { MapPin, Globe, Mail, Phone } from 'lucide-react';
+import { Building2, MapPin, Globe, Mail, Phone } from 'lucide-react';
 import { useParams } from 'react-router-dom';
 
 import ColumnLayout from '../components/layout/ColumnLayout';
@@ -47,6 +47,7 @@ function OrganizationProfile() {
           <PageHeader
             title="Organization Profile"
             subtitle="View organization details and available opportunities"
+            icon={Building2}
             showBack
             defaultBackTo="/"
           />

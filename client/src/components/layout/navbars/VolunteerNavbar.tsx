@@ -25,7 +25,7 @@ function VolunteerNavbar() {
   return (
     <Navbar
       center={volunteer && (
-        <div className="flex gap-2">
+        <>
           <NavLink to="/volunteer" end className={softTabStyle}>
             <Home size={20} />
             Home
@@ -42,7 +42,7 @@ function VolunteerNavbar() {
             <Settings size={20} />
             Settings
           </NavLink>
-        </div>
+        </>
       )}
       right={volunteer && (
         <div className="dropdown dropdown-bottom dropdown-end">

@@ -12,7 +12,6 @@ type PageHeaderProps = {
   actions?: ReactNode;
   icon?: LucideIcon;
   badge?: ReactNode;
-  variant?: 'default' | 'gradient';
 };
 
 export default function PageHeader({
@@ -23,7 +22,6 @@ export default function PageHeader({
   actions,
   icon: Icon,
   badge,
-  variant = 'gradient',
 }: PageHeaderProps) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -39,12 +37,10 @@ export default function PageHeader({
     }
   };
 
-  const wrapperClasses = variant === 'gradient'
-    ? 'mb-6 rounded-2xl border border-base-300/80 bg-gradient-to-r from-primary/10 to-secondary/10 shadow-sm px-5 py-5 md:px-6'
-    : 'mb-6 bg-base-200 -mx-6 px-6 py-4';
+  const wrapperClasses = 'mb-6 rounded-2xl bg-base-100 shadow-sm px-5 py-5 md:px-6';
 
   return (
-    <div className={`flex items-start justify-between gap-4 flex-wrap ${wrapperClasses}`}>
+    <div className={`flex items-center justify-between gap-4 flex-wrap ${wrapperClasses}`}>
       <div className="flex items-center gap-3">
         {showBack && (
           <IconButton

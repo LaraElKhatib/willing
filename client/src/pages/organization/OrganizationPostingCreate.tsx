@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Send, MapPin, Edit3, Users, ShieldCheck, LockOpen, Lock, Tag } from 'lucide-react';
+import { Send, MapPin, Edit3, Users, ShieldCheck, LockOpen, Lock, Tag, Plus } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { useNavigate } from 'react-router';
@@ -123,6 +123,8 @@ export default function OrganizationPostingCreate() {
       <div className="p-6 md:container mx-auto">
         <PageHeader
           title="Create Posting"
+          subtitle="Set up a new volunteer opportunity with all required details."
+          icon={Plus}
           showBack
           defaultBackTo="/organization"
         />

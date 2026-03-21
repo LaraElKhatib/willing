@@ -28,6 +28,7 @@ function OrganizationHome() {
       <div className="p-6 md:container mx-auto">
         <PageHeader
           title="My Postings"
+          subtitle="Track, manage, and update your organization opportunities."
           icon={ClipboardList}
           badge={
             postings && (
