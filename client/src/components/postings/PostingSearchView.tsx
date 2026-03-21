@@ -1,22 +1,34 @@
-import { RotateCcw, Search, TextSearch, type LucideIcon } from 'lucide-react';
+import { RotateCcw, Search, SlidersHorizontal, TextSearch, type LucideIcon } from 'lucide-react';
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 
 import requestServer from '../../utils/requestServer.ts';
 import useAsync from '../../utils/useAsync';
 import Alert from '../Alert.tsx';
 import Button from '../Button.tsx';
-import CalendarInfo from '../CalendarInfo.tsx';
 import PageHeader from '../layout/PageHeader.tsx';
 import Loading from '../Loading.tsx';
 import PostingCard from '../PostingCard.tsx';
+import {
+  buildSharedPostingQuery,
+  hasSharedAdvancedPostingFilters,
+  volunteerPostingSortOptions,
+  type PostingSortDir,
+  type SharedPostingFilterFields,
+  type VolunteerPostingSortBy,
+  type VolunteerPostingSortOptionValue,
+} from './postingFilterConfig.ts';
 
 import type { VolunteerPostingSearchResponse } from '../../../../server/src/api/types.ts';
 import type { PostingWithContext } from '../../../../server/src/types.ts';
 
-export type PostingSearchFilters = {
-  search: string;
-  startDate: string;
-  endDate: string;
+export type PostingSearchFilters = SharedPostingFilterFields & {
+  sortBy: VolunteerPostingSortBy;
+  sortDir: PostingSortDir;
+  startDateFrom: string;
+  endDateTo: string;
+  startTimeFrom: string;
+  endTimeTo: string;
+  hideFull: boolean;
 };
 
 type PostingSearchViewProps = {
@@ -30,65 +42,6 @@ type PostingSearchViewProps = {
   emptyMessage?: string;
   filterPostings?: (postings: PostingWithContext[]) => PostingWithContext[];
   fetchUrl?: string;
-};
-
-const applyDateFilter = (
-  postings: PostingWithContext[],
-  startDate: string,
-  endDate: string,
-) => {
-  return postings.filter((posting) => {
-    if (startDate && posting.start_timestamp) {
-      const postingStart = new Date(posting.start_timestamp).toISOString().split('T')[0];
-      if (postingStart < startDate) return false;
-    }
-    if (endDate && posting.end_timestamp) {
-      const postingEnd = new Date(posting.end_timestamp).toISOString().split('T')[0];
-      if (postingEnd > endDate) return false;
-    }
-    return true;
-  });
-};
-
-const applyTextSearch = (
-  postings: PostingWithContext[],
-  normalizedSearch: string,
-) => {
-  if (!normalizedSearch) {
-    return postings;
-  }
-
-  const andParts = normalizedSearch
-    .split(/\s+and\s+/i)
-    .map(part => part.trim())
-    .filter(Boolean);
-  const orParts = normalizedSearch
-    .split(/\s+or\s+/i)
-    .map(part => part.trim())
-    .filter(Boolean);
-
-  const terms = andParts.length > 1
-    ? andParts
-    : orParts.length > 1
-      ? orParts
-      : [normalizedSearch];
-
-  const useAndMode = andParts.length > 1;
-
-  return postings.filter((posting) => {
-    const locationText = posting.location_name.toLowerCase();
-    const skillTexts = posting.skills.map(skill => skill.name.toLowerCase());
-
-    const matchesTerm = (term: string) => {
-      const locationMatch = locationText.includes(term);
-      const skillMatch = skillTexts.some(skill => skill.includes(term));
-      return locationMatch || skillMatch;
-    };
-
-    return useAndMode
-      ? terms.every(matchesTerm)
-      : terms.some(matchesTerm);
-  });
 };
 
 function PostingSearchView({
@@ -105,13 +58,19 @@ function PostingSearchView({
 }: PostingSearchViewProps) {
   const defaultFilters = useMemo<PostingSearchFilters>(() => ({
     search: '',
-    startDate: '',
-    endDate: '',
+    sortBy: 'recommended',
+    sortDir: 'desc',
+    startDateFrom: '',
+    endDateTo: '',
+    startTimeFrom: '',
+    endTimeTo: '',
+    hideFull: false,
     ...initialFilters,
   }), [initialFilters]);
 
   const [postings, setPostings] = useState<PostingWithContext[]>([]);
   const [filters, setFilters] = useState<PostingSearchFilters>(defaultFilters);
+  const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -122,12 +81,8 @@ function PostingSearchView({
 
   const fetchPostings = useCallback(async (activeFilters: PostingSearchFilters) => {
     const baseUrl = fetchUrl ?? '/volunteer/posting';
-    const query = new URLSearchParams();
-
-    if (!fetchUrl) {
-      if (activeFilters.startDate) query.append('start_timestamp', activeFilters.startDate);
-      if (activeFilters.endDate) query.append('end_timestamp', activeFilters.endDate);
-    }
+    const query = new URLSearchParams(buildSharedPostingQuery(activeFilters));
+    if (activeFilters.hideFull) query.append('hide_full', 'true');
 
     const url = query.size > 0 ? `${baseUrl}?${query.toString()}` : baseUrl;
 
@@ -136,13 +91,13 @@ function PostingSearchView({
 
     try {
       const response = await fetchPostingsRequest(url);
-      const normalizedSearch = activeFilters.search.trim().toLowerCase();
-
-      let result = applyTextSearch(response.postings, normalizedSearch);
-      if (fetchUrl) {
-        result = applyDateFilter(result, activeFilters.startDate, activeFilters.endDate);
-      }
-      const finalPostings = filterPostings ? filterPostings(result) : result;
+      const postProcessFilteredPostings = filterPostings ? filterPostings(response.postings) : response.postings;
+      const finalPostings = activeFilters.hideFull
+        ? postProcessFilteredPostings.filter((posting) => {
+            if (posting.max_volunteers === undefined || posting.max_volunteers === null) return true;
+            return (posting.enrollment_count ?? 0) < posting.max_volunteers;
+          })
+        : postProcessFilteredPostings;
 
       setPostings(finalPostings);
     } catch (fetchError) {
@@ -160,10 +115,27 @@ function PostingSearchView({
 
   const resetFilters = () => {
     setFilters(defaultFilters);
+    setShowAdvancedSearch(false);
     void fetchPostings(defaultFilters);
   };
 
-  const hasActiveFilters = Boolean(filters.search || filters.startDate || filters.endDate);
+  const hasActiveFilters = useMemo(() => JSON.stringify(filters) !== JSON.stringify(defaultFilters), [filters, defaultFilters]);
+
+  const hasAdvancedFiltersApplied = hasSharedAdvancedPostingFilters(filters) || filters.hideFull;
+
+  const selectedSortOption = volunteerPostingSortOptions.find(option => option.sortBy === filters.sortBy && option.sortDir === filters.sortDir)
+    ?? volunteerPostingSortOptions[0];
+
+  const onSortChange = (value: VolunteerPostingSortOptionValue) => {
+    const nextOption = volunteerPostingSortOptions.find(option => option.value === value);
+    if (!nextOption) return;
+
+    setFilters(prev => ({
+      ...prev,
+      sortBy: nextOption.sortBy,
+      sortDir: nextOption.sortDir,
+    }));
+  };
 
   return (
     <div className="p-6 md:container mx-auto">
@@ -184,37 +156,46 @@ function PostingSearchView({
             void fetchPostings(filters);
           }}
         >
-          <div className="mb-3 flex flex-wrap gap-4">
-            <label className="input input-bordered flex w-full items-center gap-2 md:w-96">
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-4">
+            <label className="input input-bordered flex w-full items-center gap-2 lg:col-span-2">
               <Search className="h-4 w-4 opacity-70" />
               <input
                 type="text"
                 className="grow"
-                placeholder="Search by location or skill (use AND / OR)"
+                placeholder="Search title, description, location, organization, skills"
                 value={filters.search}
                 onChange={event => setFilters({ ...filters, search: event.target.value })}
               />
             </label>
 
-            <CalendarInfo
-              startValue={filters.startDate}
-              endValue={filters.endDate}
-              onStartChange={(value: string) => setFilters({ ...filters, startDate: value })}
-              onEndChange={(value: string) => setFilters({ ...filters, endDate: value })}
-              inputType="date"
-              startPlaceholder="Start Date"
-              endPlaceholder="End Date"
-            />
-          </div>
+            <select
+              className="select select-bordered w-full"
+              value={selectedSortOption.value}
+              onChange={event => onSortChange(event.target.value as VolunteerPostingSortOptionValue)}
+            >
+              {volunteerPostingSortOptions.map(option => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
 
-          <div className="flex gap-3">
             <Button
               color="primary"
               type="submit"
               disabled={!hasActiveFilters}
               Icon={Search}
             >
-              Apply Filters
+              Search
+            </Button>
+          </div>
+
+          <div className="mt-3 flex gap-3">
+            <Button
+              type="button"
+              color={hasAdvancedFiltersApplied || showAdvancedSearch ? 'secondary' : 'ghost'}
+              onClick={() => setShowAdvancedSearch(prev => !prev)}
+              Icon={SlidersHorizontal}
+            >
+              Advanced Search
             </Button>
 
             <Button
@@ -224,9 +205,65 @@ function PostingSearchView({
               onClick={resetFilters}
               Icon={RotateCcw}
             >
-              Reset Filters
+              Reset
             </Button>
           </div>
+
+          {showAdvancedSearch && (
+            <div className="mt-4 rounded-box border border-base-300 bg-base-200/40 p-4">
+              <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+                <label className="form-control">
+                  <span className="label-text mb-1">Start After (Inclusive)</span>
+                  <input
+                    type="date"
+                    className="input input-bordered w-full"
+                    value={filters.startDateFrom}
+                    onChange={event => setFilters(prev => ({ ...prev, startDateFrom: event.target.value }))}
+                  />
+                </label>
+
+                <label className="form-control">
+                  <span className="label-text mb-1">End By (Inclusive)</span>
+                  <input
+                    type="date"
+                    className="input input-bordered w-full"
+                    value={filters.endDateTo}
+                    onChange={event => setFilters(prev => ({ ...prev, endDateTo: event.target.value }))}
+                  />
+                </label>
+
+                <label className="form-control">
+                  <span className="label-text mb-1">Start Time After</span>
+                  <input
+                    type="time"
+                    className="input input-bordered w-full"
+                    value={filters.startTimeFrom}
+                    onChange={event => setFilters(prev => ({ ...prev, startTimeFrom: event.target.value }))}
+                  />
+                </label>
+
+                <label className="form-control">
+                  <span className="label-text mb-1">End Time By</span>
+                  <input
+                    type="time"
+                    className="input input-bordered w-full"
+                    value={filters.endTimeTo}
+                    onChange={event => setFilters(prev => ({ ...prev, endTimeTo: event.target.value }))}
+                  />
+                </label>
+              </div>
+
+              <label className="label mt-2 cursor-pointer justify-start gap-3">
+                <input
+                  type="checkbox"
+                  className="checkbox checkbox-sm"
+                  checked={filters.hideFull}
+                  onChange={event => setFilters(prev => ({ ...prev, hideFull: event.target.checked }))}
+                />
+                <span className="label-text">Hide full postings</span>
+              </label>
+            </div>
+          )}
         </form>
       </div>
 

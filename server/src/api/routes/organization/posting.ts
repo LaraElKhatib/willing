@@ -29,6 +29,17 @@ import {
   sendVolunteerApplicationAcceptedEmail,
   sendVolunteerApplicationRejectedEmail,
 } from '../../../services/smtp/emails.js';
+import {
+  parseListQuery,
+  parseOptionalBooleanQueryParam,
+  parseOptionalNumberQueryParam,
+} from '../utils/listQuery.js';
+import {
+  applyPostingDateTimeFilters,
+  applySharedPostingSort,
+  parsePostingDateTimeFilters,
+  type SharedPostingSortBy,
+} from '../utils/postingList.js';
 
 const postingRouter = Router();
 const organizationPostingUpdateSchema = newOrganizationPostingSchema.partial().extend({
@@ -153,13 +164,51 @@ postingRouter.post('/', async (req, res: Response<OrganizationPostingCreateRespo
 postingRouter.get('/', async (req, res: Response<OrganizationPostingListResponse>) => {
   const orgId = req.userJWT!.id;
 
-  const postings = await database
+  const { search, sortBy, sortDir } = parseListQuery(req.query, {
+    allowedSortBy: ['start_date', 'end_date', 'created_at', 'title'],
+    defaultSortBy: 'start_date',
+    defaultSortDir: 'asc',
+  });
+  const isClosedFilter = parseOptionalBooleanQueryParam(req.query.is_closed);
+  const automaticAcceptanceFilter = parseOptionalBooleanQueryParam(req.query.automatic_acceptance);
+  const crisisIdFilter = parseOptionalNumberQueryParam(req.query.crisis_id);
+  const dateTimeFilters = parsePostingDateTimeFilters(req.query);
+
+  let postingsQuery = database
     .selectFrom('organization_posting')
     .select(organizationPostingResponseColumns)
-    .where('organization_id', '=', orgId)
-    .orderBy('organization_posting.start_date', 'asc')
-    .orderBy('organization_posting.start_time', 'asc')
-    .execute();
+    .where('organization_id', '=', orgId);
+
+  if (search) {
+    const searchPattern = `%${search}%`;
+    postingsQuery = postingsQuery.where(eb => eb.or([
+      eb('organization_posting.title', 'ilike', searchPattern),
+      eb('organization_posting.description', 'ilike', searchPattern),
+      eb('organization_posting.location_name', 'ilike', searchPattern),
+    ]));
+  }
+
+  if (isClosedFilter !== undefined) {
+    postingsQuery = postingsQuery.where('organization_posting.is_closed', '=', isClosedFilter);
+  }
+
+  if (automaticAcceptanceFilter !== undefined) {
+    postingsQuery = postingsQuery.where('organization_posting.automatic_acceptance', '=', automaticAcceptanceFilter);
+  }
+
+  if (crisisIdFilter !== undefined) {
+    postingsQuery = postingsQuery.where('organization_posting.crisis_id', '=', crisisIdFilter);
+  }
+
+  postingsQuery = applyPostingDateTimeFilters(postingsQuery, dateTimeFilters);
+
+  if (sortBy === 'title') {
+    postingsQuery = postingsQuery.orderBy('organization_posting.title', sortDir);
+  } else {
+    postingsQuery = applySharedPostingSort(postingsQuery, sortBy as SharedPostingSortBy, sortDir);
+  }
+
+  const postings = await postingsQuery.execute();
 
   const postingIds = postings.map(p => p.id);
   const skills = postingIds.length > 0

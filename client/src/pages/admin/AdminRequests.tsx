@@ -1,6 +1,7 @@
-import { ClipboardCheck, Inbox } from 'lucide-react';
-import { useCallback } from 'react';
+import { ClipboardCheck, Inbox, RotateCcw, Search } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 
+import Button from '../../components/Button';
 import PageHeader from '../../components/layout/PageHeader';
 import OrganizationRequestReviewCard from '../../components/OrganizationRequestReviewCard';
 import requestServer from '../../utils/requestServer';
@@ -8,16 +9,105 @@ import useAsync from '../../utils/useAsync';
 
 import type { AdminOrganizationRequestsResponse } from '../../../../server/src/api/types';
 
+type OrganizationRequestSortBy = 'created_at' | 'name' | 'email';
+type OrganizationRequestSortDir = 'asc' | 'desc';
+
+type OrganizationRequestFilters = {
+  search: string;
+  sortBy: OrganizationRequestSortBy;
+  sortDir: OrganizationRequestSortDir;
+};
+
+type OrganizationRequestSortOptionValue
+  = | 'created_at_desc'
+    | 'created_at_asc'
+    | 'name_asc'
+    | 'name_desc'
+    | 'email_asc'
+    | 'email_desc';
+
+type OrganizationRequestSortOption = {
+  value: OrganizationRequestSortOptionValue;
+  label: string;
+  sortBy: OrganizationRequestSortBy;
+  sortDir: OrganizationRequestSortDir;
+};
+
+const organizationRequestSortOptions: OrganizationRequestSortOption[] = [
+  { value: 'created_at_desc', label: 'Newest requests', sortBy: 'created_at', sortDir: 'desc' },
+  { value: 'created_at_asc', label: 'Oldest requests', sortBy: 'created_at', sortDir: 'asc' },
+  { value: 'name_asc', label: 'Name (A-Z)', sortBy: 'name', sortDir: 'asc' },
+  { value: 'name_desc', label: 'Name (Z-A)', sortBy: 'name', sortDir: 'desc' },
+  { value: 'email_asc', label: 'Email (A-Z)', sortBy: 'email', sortDir: 'asc' },
+  { value: 'email_desc', label: 'Email (Z-A)', sortBy: 'email', sortDir: 'desc' },
+];
+
+const defaultFilters: OrganizationRequestFilters = {
+  search: '',
+  sortBy: 'created_at',
+  sortDir: 'desc',
+};
+
 function AdminRequests() {
-  const getOrganizationRequests = useCallback(async () => {
-    const res = await requestServer<AdminOrganizationRequestsResponse>('/admin/getOrganizationRequests', { includeJwt: true });
+  const [filters, setFilters] = useState<OrganizationRequestFilters>(defaultFilters);
+  const [activeFilters, setActiveFilters] = useState<OrganizationRequestFilters>(defaultFilters);
+
+  const getOrganizationRequests = useCallback(async (nextFilters: OrganizationRequestFilters) => {
+    const query: Record<string, string> = {
+      sortBy: nextFilters.sortBy,
+      sortDir: nextFilters.sortDir,
+    };
+
+    if (nextFilters.search.trim()) {
+      query.search = nextFilters.search.trim();
+    }
+
+    const res = await requestServer<AdminOrganizationRequestsResponse>('/admin/getOrganizationRequests', {
+      includeJwt: true,
+      query,
+    });
     return res.organizationRequests;
   }, []);
 
   const {
     data: organizationRequests,
     trigger: refreshOrganizationRequests,
-  } = useAsync(getOrganizationRequests, { immediate: true });
+  } = useAsync(getOrganizationRequests, { immediate: false });
+
+  useEffect(() => {
+    void refreshOrganizationRequests(activeFilters);
+  }, [activeFilters, refreshOrganizationRequests]);
+
+  const hasPendingChanges = useMemo(() => JSON.stringify(filters) !== JSON.stringify(activeFilters), [filters, activeFilters]);
+
+  const applyFilters = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setActiveFilters(filters);
+  };
+
+  const resetFilters = () => {
+    setFilters(defaultFilters);
+    setActiveFilters(defaultFilters);
+  };
+
+  const refreshCurrentRequests = useCallback(
+    async () => refreshOrganizationRequests(activeFilters),
+    [activeFilters, refreshOrganizationRequests],
+  );
+
+  const selectedSortOption = organizationRequestSortOptions.find(option => option.sortBy === filters.sortBy && option.sortDir === filters.sortDir)
+    ?? organizationRequestSortOptions[0];
+
+  const onSortChange = (value: OrganizationRequestSortOptionValue) => {
+    const nextOption = organizationRequestSortOptions.find(option => option.value === value);
+    if (!nextOption) return;
+
+    setFilters(prev => ({
+      ...prev,
+      sortBy: nextOption.sortBy,
+      sortDir: nextOption.sortDir,
+    }));
+  };
 
   return (
     <div className="grow bg-base-200">
@@ -40,6 +130,38 @@ function AdminRequests() {
           }
         />
 
+        <div className="mb-6 rounded-box border border-base-300 bg-base-100 p-4 shadow-sm">
+          <form className="space-y-3" onSubmit={applyFilters}>
+            <div className="grid grid-cols-1 gap-3 lg:grid-cols-4">
+              <label className="input input-bordered flex items-center gap-2 lg:col-span-2">
+                <Search className="h-4 w-4 opacity-70" />
+                <input
+                  type="text"
+                  className="grow"
+                  placeholder="Search name, email, location"
+                  value={filters.search}
+                  onChange={event => setFilters(prev => ({ ...prev, search: event.target.value }))}
+                />
+              </label>
+
+              <select
+                className="select select-bordered w-full"
+                value={selectedSortOption.value}
+                onChange={event => onSortChange(event.target.value as OrganizationRequestSortOptionValue)}
+              >
+                {organizationRequestSortOptions.map(option => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex gap-3">
+              <Button color="primary" type="submit" disabled={!hasPendingChanges}>Apply</Button>
+              <Button type="button" color="ghost" onClick={resetFilters} disabled={!hasPendingChanges} Icon={RotateCcw}>Reset</Button>
+            </div>
+          </form>
+        </div>
+
         {organizationRequests
           ? (organizationRequests.length > 0
               ? (
@@ -47,7 +169,7 @@ function AdminRequests() {
                     {organizationRequests.map(request => (
                       <OrganizationRequestReviewCard
                         request={request}
-                        refreshOrganizationRequests={refreshOrganizationRequests}
+                        refreshOrganizationRequests={refreshCurrentRequests}
                         key={request.id}
                       />
                     ))}

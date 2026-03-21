@@ -2,11 +2,25 @@ import { Router, Response } from 'express';
 import { sql } from 'kysely';
 import zod from 'zod';
 
-import { VolunteerEnrollmentsResponse, VolunteerPostingEnrollResponse, VolunteerPostingResponse, VolunteerPostingSearchResponse, VolunteerPostingWithdrawResponse } from './posting.types.js';
+import {
+  VolunteerEnrollmentEntry,
+  VolunteerEnrollmentsResponse,
+  VolunteerPostingEnrollResponse,
+  VolunteerPostingResponse,
+  VolunteerPostingSearchResponse,
+  VolunteerPostingWithdrawResponse,
+} from './posting.types.js';
 import database from '../../../db/index.js';
 import { Enrollment, EnrollmentApplication } from '../../../db/tables.js';
 import { recomputeVolunteerExperienceVector } from '../../../services/embeddings/updates.js';
 import { authorizeOnly } from '../../authorization.js';
+import { parseListQuery, parseOptionalBooleanQueryParam } from '../utils/listQuery.js';
+import {
+  applyPostingDateTimeFilters,
+  applySharedPostingSort,
+  parsePostingDateTimeFilters,
+  type PostingDateTimeFilters,
+} from '../utils/postingList.js';
 
 const volunteerPostingRouter = Router();
 const organizationPostingResponseColumns = [
@@ -60,11 +74,135 @@ function isPostingFull(maxVolunteers: number | undefined, enrollmentCount: numbe
   return maxVolunteers !== undefined && maxVolunteers !== null && enrollmentCount >= maxVolunteers;
 }
 
+const normalizeDateKey = (value: Date | string | null | undefined): string | null => {
+  if (!value) return null;
+
+  if (typeof value === 'string') {
+    return value.slice(0, 10);
+  }
+
+  const dateKey = value.toISOString().slice(0, 10);
+  return dateKey || null;
+};
+
+const normalizeTimeKey = (value: string | null | undefined): string | null => {
+  if (!value) return null;
+  return value.slice(0, 8);
+};
+
+const sortWithDirection = (a: string, b: string, sortDir: 'asc' | 'desc'): number => {
+  const result = a.localeCompare(b);
+  return sortDir === 'asc' ? result : -result;
+};
+
+const compareByDateThenTime = (
+  leftDate: Date | string | null | undefined,
+  leftTime: string | null | undefined,
+  rightDate: Date | string | null | undefined,
+  rightTime: string | null | undefined,
+  sortDir: 'asc' | 'desc',
+): number => {
+  const leftDateKey = normalizeDateKey(leftDate);
+  const rightDateKey = normalizeDateKey(rightDate);
+
+  if (!leftDateKey && !rightDateKey) return 0;
+  if (!leftDateKey) return 1;
+  if (!rightDateKey) return -1;
+
+  const dateCompare = sortWithDirection(leftDateKey, rightDateKey, sortDir);
+  if (dateCompare !== 0) return dateCompare;
+
+  const leftTimeKey = normalizeTimeKey(leftTime);
+  const rightTimeKey = normalizeTimeKey(rightTime);
+
+  if (!leftTimeKey && !rightTimeKey) return 0;
+  if (!leftTimeKey) return 1;
+  if (!rightTimeKey) return -1;
+
+  return sortWithDirection(leftTimeKey, rightTimeKey, sortDir);
+};
+
+const matchesDateTimeFilters = (posting: VolunteerEnrollmentEntry, filters: PostingDateTimeFilters): boolean => {
+  const postingStartDateKey = normalizeDateKey(posting.start_date);
+  const postingEndDateKey = normalizeDateKey(posting.end_date ?? null);
+  const startDateFilterKey = normalizeDateKey(filters.startDateFrom ?? null);
+  const endDateFilterKey = normalizeDateKey(filters.endDateTo ?? null);
+  const postingStartTimeKey = normalizeTimeKey(posting.start_time ?? null);
+  const postingEndTimeKey = normalizeTimeKey(posting.end_time ?? null);
+  const startTimeFilterKey = normalizeTimeKey(filters.startTimeFrom ?? null);
+  const endTimeFilterKey = normalizeTimeKey(filters.endTimeTo ?? null);
+
+  if (startDateFilterKey && (!postingStartDateKey || postingStartDateKey < startDateFilterKey)) {
+    return false;
+  }
+
+  if (endDateFilterKey && (!postingEndDateKey || postingEndDateKey > endDateFilterKey)) {
+    return false;
+  }
+
+  if (startTimeFilterKey && (!postingStartTimeKey || postingStartTimeKey < startTimeFilterKey)) {
+    return false;
+  }
+
+  if (endTimeFilterKey && (!postingEndTimeKey || postingEndTimeKey > endTimeFilterKey)) {
+    return false;
+  }
+
+  return true;
+};
+
+const matchesSearchFilter = (posting: VolunteerEnrollmentEntry, search: string): boolean => {
+  if (!search) return true;
+
+  const normalizedSearch = search.toLowerCase();
+  const searchableSkillNames = posting.skills.map(skill => skill.name.toLowerCase());
+
+  return posting.title.toLowerCase().includes(normalizedSearch)
+    || posting.description.toLowerCase().includes(normalizedSearch)
+    || posting.location_name.toLowerCase().includes(normalizedSearch)
+    || posting.organization_name.toLowerCase().includes(normalizedSearch)
+    || searchableSkillNames.some(skillName => skillName.includes(normalizedSearch));
+};
+
+const sortEnrollmentEntries = (
+  postings: VolunteerEnrollmentEntry[],
+  sortBy: 'recommended' | 'start_date' | 'end_date' | 'created_at',
+  sortDir: 'asc' | 'desc',
+): VolunteerEnrollmentEntry[] => {
+  const sorted = [...postings];
+
+  sorted.sort((left, right) => {
+    if (sortBy === 'recommended') {
+      return compareByDateThenTime(left.start_date, left.start_time, right.start_date, right.start_time, 'asc');
+    }
+
+    if (sortBy === 'created_at') {
+      return compareByDateThenTime(left.created_at, null, right.created_at, null, sortDir);
+    }
+
+    if (sortBy === 'end_date') {
+      return compareByDateThenTime(left.end_date ?? null, left.end_time ?? null, right.end_date ?? null, right.end_time ?? null, sortDir);
+    }
+
+    return compareByDateThenTime(left.start_date, left.start_time, right.start_date, right.start_time, sortDir);
+  });
+
+  return sorted;
+};
+
 volunteerPostingRouter.use(authorizeOnly('volunteer'));
 
 volunteerPostingRouter.get('/', async (req, res: Response<VolunteerPostingSearchResponse>) => {
   const volunteerId = req.userJWT!.id;
-  const { location_name, start_timestamp, end_timestamp, skill } = req.query;
+  const { location_name, skill } = req.query;
+  const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
+  const dateTimeFilters = parsePostingDateTimeFilters(req.query);
+  const hideFull = parseOptionalBooleanQueryParam(req.query.hide_full) ?? false;
+  const { sortBy, sortDir } = parseListQuery(req.query, {
+    allowedSortBy: ['recommended', 'start_date', 'end_date', 'created_at'],
+    defaultSortBy: 'recommended',
+    defaultSortDir: 'desc',
+  });
   const skillFilter = typeof skill === 'string' ? skill.trim() : '';
 
   const volunteerVectors = await database
@@ -111,60 +249,25 @@ volunteerPostingRouter.get('/', async (req, res: Response<VolunteerPostingSearch
     );
   }
 
-  let parsedStart: Date | undefined;
-  let parsedEnd: Date | undefined;
-
-  if (start_timestamp) {
-    const s = start_timestamp as string;
-    parsedStart = /^\d{4}-\d{2}-\d{2}$/.test(s)
-      ? new Date(`${s}T00:00:00`)
-      : new Date(s);
+  if (search) {
+    const searchPattern = `%${search}%`;
+    query = query.where(({ exists, selectFrom, or, eb }) => or([
+      eb('organization_posting.title', 'ilike', searchPattern),
+      eb('organization_posting.description', 'ilike', searchPattern),
+      eb('organization_posting.location_name', 'ilike', searchPattern),
+      eb('organization_account.name', 'ilike', searchPattern),
+      exists(
+        selectFrom('posting_skill')
+          .select('posting_skill.id')
+          .whereRef('posting_skill.posting_id', '=', 'organization_posting.id')
+          .where('posting_skill.name', 'ilike', searchPattern),
+      ),
+    ]));
   }
 
-  if (end_timestamp) {
-    const e = end_timestamp as string;
-    parsedEnd = /^\d{4}-\d{2}-\d{2}$/.test(e)
-      ? new Date(`${e}T23:59:59.999`)
-      : new Date(e);
-  }
+  query = applyPostingDateTimeFilters(query, dateTimeFilters);
 
-  if (parsedStart && parsedEnd) {
-    const startTs = sql`organization_posting.start_date + organization_posting.start_time`;
-    const endTs = sql`
-      CASE 
-        WHEN organization_posting.end_date IS NULL OR organization_posting.end_time IS NULL
-        THEN NULL
-        ELSE organization_posting.end_date + organization_posting.end_time
-      END
-    `;
-    query = query.where(qu =>
-      qu.and([
-        qu(startTs, '<=', parsedEnd),
-        qu.or([
-          qu(endTs, '>=', parsedStart),
-          qu('organization_posting.end_date', 'is', null),
-        ]),
-      ]),
-    );
-  } else {
-    if (parsedStart) {
-      const startTs = sql`organization_posting.start_date + organization_posting.start_time`;
-      query = query.where(startTs, '>=', parsedStart);
-    }
-
-    if (parsedEnd) {
-      const endTs = sql`
-        CASE 
-          WHEN organization_posting.end_date IS NULL OR organization_posting.end_time IS NULL
-          THEN NULL
-          ELSE organization_posting.end_date + organization_posting.end_time
-        END
-      `;
-      query = query.where(endTs, '<=', parsedEnd);
-    }
-  }
-
-  if (hasProfileVector && profileVectorLiteral) {
+  if (sortBy === 'recommended' && hasProfileVector && profileVectorLiteral) {
     const profileSimilarity = sql<number>`
       1 - (organization_posting.opportunity_vector <=> ${profileVectorLiteral}::vector)
     `;
@@ -183,13 +286,17 @@ volunteerPostingRouter.get('/', async (req, res: Response<VolunteerPostingSearch
 
     query = query.orderBy('organization_posting.start_date', 'asc').orderBy('organization_posting.start_time', 'asc');
   } else {
-    if (!hasProfileVector && hasExperienceVector) {
+    if (sortBy === 'recommended' && !hasProfileVector && hasExperienceVector) {
       console.info('[recommendation] Volunteer has experience_vector but no valid profile_vector. Using default opportunity ordering.');
-    } else if (!hasProfileVector && !hasExperienceVector) {
+    } else if (sortBy === 'recommended' && !hasProfileVector && !hasExperienceVector) {
       console.info('[recommendation] Volunteer vectors unavailable. Using default opportunity ordering.');
     }
 
-    query = query.orderBy('organization_posting.start_date', 'asc').orderBy('organization_posting.start_time', 'asc');
+    if (sortBy === 'recommended') {
+      query = query.orderBy('organization_posting.start_date', 'asc').orderBy('organization_posting.start_time', 'asc');
+    } else {
+      query = applySharedPostingSort(query, sortBy, sortDir);
+    }
   }
 
   const postings = await query.execute();
@@ -241,11 +348,22 @@ volunteerPostingRouter.get('/', async (req, res: Response<VolunteerPostingSearch
     };
   });
 
-  res.json({ postings: postingWithSkills });
+  const visiblePostings = hideFull
+    ? postingWithSkills.filter(posting => !posting.is_full)
+    : postingWithSkills;
+
+  res.json({ postings: visiblePostings });
 });
 
 volunteerPostingRouter.get('/enrollments', async (req, res: Response<VolunteerEnrollmentsResponse>) => {
   const volunteerId = req.userJWT!.id;
+  const { search, sortBy, sortDir } = parseListQuery(req.query, {
+    allowedSortBy: ['recommended', 'start_date', 'end_date', 'created_at'],
+    defaultSortBy: 'recommended',
+    defaultSortDir: 'desc',
+  });
+  const hideFull = parseOptionalBooleanQueryParam(req.query.hide_full) ?? false;
+  const dateTimeFilters = parsePostingDateTimeFilters(req.query);
 
   const [enrolledPostings, pendingPostings] = await Promise.all([
     database
@@ -317,15 +435,6 @@ volunteerPostingRouter.get('/enrollments', async (req, res: Response<VolunteerEn
   });
 
   const postings = Array.from(postingsMap.values())
-    .sort((a, b) => {
-      const aStart = a.start_date && a.start_time
-        ? new Date(`${a.start_date}T${a.start_time}`).getTime()
-        : Infinity;
-      const bStart = b.start_date && b.start_time
-        ? new Date(`${b.start_date}T${b.start_time}`).getTime()
-        : Infinity;
-      return aStart - bStart;
-    })
     .map((posting) => {
       const enrollmentCount = countsByPostingId.get(posting.id) ?? 0;
 
@@ -339,7 +448,14 @@ volunteerPostingRouter.get('/enrollments', async (req, res: Response<VolunteerEn
       };
     });
 
-  res.json({ postings });
+  const filteredPostings = postings
+    .filter(posting => matchesSearchFilter(posting, search))
+    .filter(posting => matchesDateTimeFilters(posting, dateTimeFilters))
+    .filter(posting => (hideFull ? !posting.is_full : true));
+
+  const sortedPostings = sortEnrollmentEntries(filteredPostings, sortBy, sortDir);
+
+  res.json({ postings: sortedPostings });
 });
 
 volunteerPostingRouter.get('/:id', async (req, res: Response<VolunteerPostingResponse>) => {
