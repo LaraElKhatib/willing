@@ -1,4 +1,4 @@
-import { Building2, LogOut, ChevronDown, Home, Settings } from 'lucide-react';
+import { Building2, LogOut, ChevronDown, Home, Settings, User } from 'lucide-react';
 import { useCallback, useContext } from 'react';
 import { NavLink } from 'react-router';
 
@@ -29,6 +29,10 @@ function OrganizationNavbar() {
           <NavLink to="/organization" end className={softTabStyle}>
             <Home size={20} />
             Home
+          </NavLink>
+          <NavLink to="/organization/profile" className={softTabStyle}>
+            <User size={20} />
+            Profile
           </NavLink>
           <NavLink to="/organization/settings" className={softTabStyle}>
             <Settings size={20} />

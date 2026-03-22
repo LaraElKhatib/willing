@@ -37,6 +37,7 @@ const organizationProfileResponseColumns = [
   'email',
   'phone_number',
   'url',
+  'description',
   'latitude',
   'longitude',
   'location_name',
@@ -50,6 +51,7 @@ const organizationPrivateResponseColumns = [
   'email',
   'phone_number',
   'url',
+  'description',
   'latitude',
   'longitude',
   'location_name',
@@ -82,6 +84,8 @@ const organizationProfileUpdateSchema = organizationAccountSchema.omit({
   id: true,
   password: true,
   email: true,
+  name: true,
+  url: true,
   org_vector: true,
   created_at: true,
   updated_at: true,
@@ -276,8 +280,7 @@ organizationRouter.put('/profile', async (req, res: Response<OrganizationUpdateP
   const existingOrganization = await database
     .selectFrom('organization_account')
     .select([
-      'name',
-      'url',
+      'description',
       'location_name',
       'latitude',
       'longitude',
@@ -286,8 +289,7 @@ organizationRouter.put('/profile', async (req, res: Response<OrganizationUpdateP
     .executeTakeFirstOrThrow();
 
   const shouldRecomputeOrganizationVector = (
-    (body.name !== undefined && body.name !== existingOrganization.name)
-    || (body.url !== undefined && body.url !== existingOrganization.url)
+    (body.description !== undefined && body.description !== existingOrganization.description)
     || (body.location_name !== undefined && body.location_name !== existingOrganization.location_name)
     || (body.latitude !== undefined && !isSameNullableNumber(body.latitude, existingOrganization.latitude))
     || (body.longitude !== undefined && !isSameNullableNumber(body.longitude, existingOrganization.longitude))
@@ -354,9 +356,22 @@ organizationRouter.delete('/logo', async (req, res: Response<OrganizationDeleteL
   const organizationId = req.userJWT!.id;
   const existingOrganization = await database
     .selectFrom('organization_account')
-    .select(['logo_path'])
+    .select(['logo_path', 'certificate_info_id'])
     .where('id', '=', organizationId)
     .executeTakeFirstOrThrow();
+
+  if (existingOrganization.certificate_info_id) {
+    const certificateInfo = await database
+      .selectFrom('organization_certificate_info')
+      .select(['certificate_feature_enabled'])
+      .where('id', '=', existingOrganization.certificate_info_id)
+      .executeTakeFirst();
+
+    if (certificateInfo?.certificate_feature_enabled) {
+      res.status(400);
+      throw new Error('Disable certificates before removing organization profile picture.');
+    }
+  }
 
   if (existingOrganization.logo_path) {
     try {
