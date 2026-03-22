@@ -43,8 +43,10 @@ const organizationPostingResponseColumns = [
   'organization_posting.latitude',
   'organization_posting.longitude',
   'organization_posting.max_volunteers',
-  'organization_posting.start_timestamp',
-  'organization_posting.end_timestamp',
+  'organization_posting.start_date',
+  'organization_posting.start_time',
+  'organization_posting.end_date',
+  'organization_posting.end_time',
   'organization_posting.minimum_age',
   'organization_posting.automatic_acceptance',
   'organization_posting.is_closed',
@@ -59,6 +61,7 @@ const areSkillListsEqual = (left: string[], right: string[]) => {
   return left.every((value, index) => value === right[index]);
 };
 const areDatesEqual = (left: Date | undefined, right: Date | undefined) => (left?.getTime() ?? null) === (right?.getTime() ?? null);
+const areTimeValuesEqual = (left: string | undefined, right: string | undefined) => (left ?? null) === (right ?? null);
 const isPostingFull = (maxVolunteers: number | undefined, enrollmentCount: number) => maxVolunteers !== undefined
   && maxVolunteers !== null
   && enrollmentCount >= maxVolunteers;
@@ -93,16 +96,24 @@ const getPostingCrisis = async (crisisId: number | undefined | null) => {
 postingRouter.post('/', async (req, res: Response<OrganizationPostingCreateResponse>) => {
   const body: NewOrganizationPosting = newOrganizationPostingSchema.parse(req.body);
   const orgId = req.userJWT!.id;
-  const { skills, ...postingBody } = body;
+  const {
+    skills,
+    ...postingBody
+  } = body;
 
   if (body.crisis_id !== undefined) {
     await assertCrisisExists(body.crisis_id, res);
   }
 
   const result = await database.transaction().execute(async (trx) => {
+    const postingInsertValues = {
+      organization_id: orgId,
+      ...postingBody,
+    };
+
     const newPosting = await trx
       .insertInto('organization_posting')
-      .values({ organization_id: orgId, ...postingBody })
+      .values(postingInsertValues as never)
       .returning('id')
       .executeTakeFirst();
 
@@ -146,7 +157,8 @@ postingRouter.get('/', async (req, res: Response<OrganizationPostingListResponse
     .selectFrom('organization_posting')
     .select(organizationPostingResponseColumns)
     .where('organization_id', '=', orgId)
-    .orderBy('start_timestamp', 'asc')
+    .orderBy('organization_posting.start_date', 'asc')
+    .orderBy('organization_posting.start_time', 'asc')
     .execute();
 
   const postingIds = postings.map(p => p.id);
@@ -243,7 +255,7 @@ postingRouter.get('/:id/enrollments', async (req, res: Response<OrganizationPost
 
   const posting = await database
     .selectFrom('organization_posting')
-    .select(['id', 'start_timestamp', 'end_timestamp'])
+    .select(['id'])
     .where('organization_posting.id', '=', postingId)
     .where('organization_posting.organization_id', '=', orgId)
     .executeTakeFirst();
@@ -269,8 +281,10 @@ postingRouter.put('/:id', async (req, res: Response<OrganizationPostingUpdateRes
       'title',
       'description',
       'location_name',
-      'start_timestamp',
-      'end_timestamp',
+      'start_date',
+      'start_time',
+      'end_date',
+      'end_time',
       'minimum_age',
       'max_volunteers',
     ])
@@ -303,8 +317,10 @@ postingRouter.put('/:id', async (req, res: Response<OrganizationPostingUpdateRes
     (body.title !== undefined && body.title !== posting.title)
     || (body.description !== undefined && body.description !== posting.description)
     || (body.location_name !== undefined && body.location_name !== posting.location_name)
-    || (body.start_timestamp !== undefined && !areDatesEqual(body.start_timestamp, posting.start_timestamp))
-    || (body.end_timestamp !== undefined && !areDatesEqual(body.end_timestamp, posting.end_timestamp))
+    || (body.start_date !== undefined && !areDatesEqual(body.start_date, posting.start_date))
+    || (body.end_date !== undefined && !areDatesEqual(body.end_date, posting.end_date))
+    || (body.start_time !== undefined && !areTimeValuesEqual(body.start_time, posting.start_time))
+    || (body.end_time !== undefined && !areTimeValuesEqual(body.end_time, posting.end_time))
     || (body.minimum_age !== undefined && (body.minimum_age ?? null) !== (posting.minimum_age ?? null))
     || (body.max_volunteers !== undefined && (body.max_volunteers ?? null) !== (posting.max_volunteers ?? null))
     || didSkillsChange
@@ -318,8 +334,10 @@ postingRouter.put('/:id', async (req, res: Response<OrganizationPostingUpdateRes
     if (body.latitude !== undefined) postingFields.latitude = body.latitude;
     if (body.longitude !== undefined) postingFields.longitude = body.longitude;
     if (body.max_volunteers !== undefined) postingFields.max_volunteers = body.max_volunteers;
-    if (body.start_timestamp !== undefined) postingFields.start_timestamp = body.start_timestamp;
-    if (body.end_timestamp !== undefined) postingFields.end_timestamp = body.end_timestamp;
+    if (body.start_date !== undefined) postingFields.start_date = body.start_date;
+    if (body.start_time !== undefined) postingFields.start_time = body.start_time;
+    if (body.end_date !== undefined) postingFields.end_date = body.end_date;
+    if (body.end_time !== undefined) postingFields.end_time = body.end_time;
     if (body.minimum_age !== undefined) postingFields.minimum_age = body.minimum_age;
     if (body.automatic_acceptance !== undefined) postingFields.automatic_acceptance = body.automatic_acceptance;
     if (body.is_closed !== undefined) postingFields.is_closed = body.is_closed;

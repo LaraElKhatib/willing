@@ -19,7 +19,7 @@ export const volunteerSignupSchema = newVolunteerAccountSchema
   .extend({
     confirmPassword: z.string().min(1, 'Confirm password is required'),
   })
-  .refine(data => data.password === data.confirmPassword, {
+  .refine((data: { password: string; confirmPassword: string }) => data.password === data.confirmPassword, {
     message: 'Passwords do not match',
     path: ['confirmPassword'],
   });
@@ -35,67 +35,39 @@ export const organizationRequestFormSchema = newOrganizationRequestSchema
 export type OrganizationRequestFormData = z.infer<typeof organizationRequestFormSchema>;
 
 export const organizationPostingFormSchema = newOrganizationPostingSchema
-  .omit({ latitude: true, longitude: true, is_closed: true })
+  .omit({
+    latitude: true,
+    longitude: true,
+    start_date: true,
+    start_time: true,
+    end_date: true,
+    end_time: true,
+    is_closed: true,
+  })
   .extend({
     latitude: z.number().optional(),
     longitude: z.number().optional(),
-    start_timestamp: z
-      .string()
-      .min(1, 'Start time is required')
-      .refine(
-        (val) => {
-          const yearMatch = val.match(/^(\d+)-/);
-          if (!yearMatch) return true;
-          return yearMatch[1].length <= 4;
-        },
-        { message: 'Year must be 4 digits or less' },
-      ),
-    end_timestamp: z
-      .string()
-      .optional()
-      .refine(
-        (val) => {
-          if (!val) return true;
-          const yearMatch = val.match(/^(\d+)-/);
-          if (!yearMatch) return true;
-          return yearMatch[1].length <= 4;
-        },
-        { message: 'Year must be 4 digits or less' },
-      ),
+    start_timestamp: z.string().min(1, 'Start date is required'),
+    end_timestamp: z.string().optional(),
     max_volunteers: z.string().optional(),
     minimum_age: z.string().optional(),
     automatic_acceptance: z.boolean(),
   });
 
-// Edit schema for posting (includes is_closed)
 export const organizationPostingEditFormSchema = newOrganizationPostingSchema
-  .omit({ latitude: true, longitude: true })
+  .omit({
+    latitude: true,
+    longitude: true,
+    start_date: true,
+    start_time: true,
+    end_date: true,
+    end_time: true,
+  })
   .extend({
     latitude: z.number().optional(),
     longitude: z.number().optional(),
-    start_timestamp: z
-      .string()
-      .min(1, 'Start time is required')
-      .refine(
-        (val) => {
-          const yearMatch = val.match(/^(\d+)-/);
-          if (!yearMatch) return true;
-          return yearMatch[1].length <= 4;
-        },
-        { message: 'Year must be 4 digits or less' },
-      ),
-    end_timestamp: z
-      .string()
-      .optional()
-      .refine(
-        (val) => {
-          if (!val) return true;
-          const yearMatch = val.match(/^(\d+)-/);
-          if (!yearMatch) return true;
-          return yearMatch[1].length <= 4;
-        },
-        { message: 'Year must be 4 digits or less' },
-      ),
+    start_timestamp: z.string().min(1, 'Start date is required'),
+    end_timestamp: z.string().optional(),
     max_volunteers: z.string().optional(),
     minimum_age: z.string().optional(),
     automatic_acceptance: z.boolean(),

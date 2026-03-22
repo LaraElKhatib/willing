@@ -19,7 +19,7 @@ import {
   Tag,
   Trash2,
   Users,
-  SquareArrowRightExit,
+  SquareArrowRight,
   X,
 } from 'lucide-react';
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
@@ -29,7 +29,6 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import AuthContext from '../auth/AuthContext.tsx';
 import Alert from '../components/Alert.tsx';
 import Button from '../components/Button.tsx';
-import CalendarInfo from '../components/CalendarInfo.tsx';
 import CustomMessageModal from '../components/CustomMessageModal.tsx';
 import ColumnLayout from '../components/layout/ColumnLayout.tsx';
 import PageHeader from '../components/layout/PageHeader.tsx';
@@ -60,12 +59,49 @@ import type {
 import type { Crisis } from '../../../server/src/db/tables.ts';
 import type { PostingApplication, PostingEnrollment, PostingWithSkills } from '../../../server/src/types.ts';
 
-const getDateTimeInputValue = (value: Date | string) => {
+const getDateInputValue = (value: Date | string) => {
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return '';
-  const offset = parsed.getTimezoneOffset();
-  const localDate = new Date(parsed.getTime() - offset * 60 * 1000);
-  return localDate.toISOString().slice(0, 16);
+  const year = parsed.getUTCFullYear();
+  const month = `${parsed.getUTCMonth() + 1}`.padStart(2, '0');
+  const day = `${parsed.getUTCDate()}`.padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const getPreferredDateTimeInputValue = (
+  dateValue: Date | string | undefined,
+  timeValue: string | undefined,
+) => {
+  if (dateValue) {
+    const datePart = getDateInputValue(dateValue);
+    if (datePart) {
+      const timePart = (timeValue ?? '').slice(0, 5) || '00:00';
+      return `${datePart}T${timePart}`;
+    }
+  }
+
+  return '';
+};
+
+const getPostingStartDateTime = (posting: PostingWithSkills) => {
+  const datePart = getDateInputValue(posting.start_date);
+  const timePart = (posting.start_time ?? '').slice(0, 5) || '00:00';
+  return new Date(`${datePart}T${timePart}`);
+};
+
+const splitDateTimeInput = (value?: string) => {
+  if (!value) return { date: '', time: '' };
+
+  const [datePart, timePart] = value.split('T');
+  return {
+    date: datePart ?? '',
+    time: (timePart ?? '').slice(0, 5),
+  };
+};
+
+const combineDateAndTime = (date: string, time: string) => {
+  if (!date) return '';
+  return `${date}T${time || '00:00'}`;
 };
 
 function PostingPage() {
@@ -115,6 +151,10 @@ function PostingPage() {
     name: 'automatic_acceptance',
     defaultValue: true,
   });
+  const startTimestamp = useWatch({ control: form.control, name: 'start_timestamp' }) ?? '';
+  const endTimestamp = useWatch({ control: form.control, name: 'end_timestamp' }) ?? '';
+  const startDateTimeParts = splitDateTimeInput(startTimestamp);
+  const endDateTimeParts = splitDateTimeInput(endTimestamp);
 
   const selectedCrisisName = useMemo(() => {
     if (selectedCrisisId == null) return null;
@@ -246,10 +286,14 @@ function PostingPage() {
         title: postingResponse.posting.title,
         description: postingResponse.posting.description,
         location_name: postingResponse.posting.location_name,
-        start_timestamp: getDateTimeInputValue(postingResponse.posting.start_timestamp),
-        end_timestamp: postingResponse.posting.end_timestamp
-          ? getDateTimeInputValue(postingResponse.posting.end_timestamp)
-          : undefined,
+        start_timestamp: getPreferredDateTimeInputValue(
+          postingResponse.posting.start_date,
+          postingResponse.posting.start_time,
+        ),
+        end_timestamp: getPreferredDateTimeInputValue(
+          postingResponse.posting.end_date,
+          postingResponse.posting.end_time,
+        ) || undefined,
         max_volunteers: postingResponse.posting.max_volunteers?.toString() ?? undefined,
         minimum_age: postingResponse.posting.minimum_age?.toString() ?? undefined,
         automatic_acceptance: postingResponse.posting.automatic_acceptance,
@@ -305,10 +349,14 @@ function PostingPage() {
       title: postingResponse.posting.title,
       description: postingResponse.posting.description,
       location_name: postingResponse.posting.location_name,
-      start_timestamp: getDateTimeInputValue(postingResponse.posting.start_timestamp),
-      end_timestamp: postingResponse.posting.end_timestamp
-        ? getDateTimeInputValue(postingResponse.posting.end_timestamp)
-        : undefined,
+      start_timestamp: getPreferredDateTimeInputValue(
+        postingResponse.posting.start_date,
+        postingResponse.posting.start_time,
+      ),
+      end_timestamp: getPreferredDateTimeInputValue(
+        postingResponse.posting.end_date,
+        postingResponse.posting.end_time,
+      ) || undefined,
       max_volunteers: postingResponse.posting.max_volunteers?.toString() ?? undefined,
       minimum_age: postingResponse.posting.minimum_age?.toString() ?? undefined,
       automatic_acceptance: postingResponse.posting.automatic_acceptance,
@@ -404,14 +452,16 @@ function PostingPage() {
           location_name: data.location_name.trim(),
           latitude: position[0],
           longitude: position[1],
-          start_timestamp: new Date(data.start_timestamp).toISOString(),
-          end_timestamp: data.end_timestamp ? new Date(data.end_timestamp).toISOString() : undefined,
           max_volunteers: data.max_volunteers ? Number(data.max_volunteers) : undefined,
           minimum_age: data.minimum_age ? Number(data.minimum_age) : undefined,
           automatic_acceptance: data.automatic_acceptance,
           is_closed: data.is_closed,
           skills: skills.length > 0 ? skills : undefined,
           crisis_id: selectedCrisisId ?? null,
+          start_date: data.start_timestamp ? data.start_timestamp.split('T')[0] : undefined,
+          start_time: data.start_timestamp ? data.start_timestamp.split('T')[1] : undefined,
+          end_date: data.end_timestamp ? data.end_timestamp.split('T')[0] : undefined,
+          end_time: data.end_timestamp ? data.end_timestamp.split('T')[1] : undefined,
         };
 
         const response = await updatePosting(id, payload);
@@ -442,14 +492,14 @@ function PostingPage() {
       title: posting.title,
       description: posting.description,
       location_name: posting.location_name,
-      start_timestamp: getDateTimeInputValue(posting.start_timestamp),
-      end_timestamp: posting.end_timestamp ? getDateTimeInputValue(posting.end_timestamp) : undefined,
+      start_timestamp: getPreferredDateTimeInputValue(posting.start_date, posting.start_time),
+      end_timestamp: getPreferredDateTimeInputValue(posting.end_date, posting.end_time) || undefined,
       max_volunteers: posting.max_volunteers?.toString() ?? undefined,
       minimum_age: posting.minimum_age?.toString() ?? undefined,
       automatic_acceptance: posting.automatic_acceptance,
       is_closed: posting.is_closed,
     });
-    setSkills(posting.skills.map(s => s.name));
+    setSkills(posting.skills.map((s: { name: string }) => s.name));
     setSelectedCrisisId(posting.crisis_id ?? undefined);
     setPosition([
       posting.latitude ?? 33.90192863620578,
@@ -637,7 +687,7 @@ function PostingPage() {
 
   const canOpenAttendancePage = useMemo(() => {
     if (isVolunteerView || !posting) return false;
-    return new Date() >= new Date(posting.start_timestamp);
+    return new Date() >= getPostingStartDateTime(posting);
   }, [isVolunteerView, posting]);
 
   const isPostingFull = useMemo(() => {
@@ -821,11 +871,86 @@ function PostingPage() {
                               placeholder="Optional"
                               Icon={ShieldCheck}
                             />
-                            <CalendarInfo
-                              form={form}
-                              startName="start_timestamp"
-                              endName="end_timestamp"
-                            />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <fieldset className="fieldset w-full">
+                                <label className="label">
+                                  <span className="label-text font-medium">Start Date</span>
+                                </label>
+                                <input
+                                  type="date"
+                                  className={`input input-bordered w-full focus:input-primary ${form.formState.errors.start_timestamp ? 'input-error' : ''}`}
+                                  value={startDateTimeParts.date}
+                                  onChange={(event) => {
+                                    const nextValue = combineDateAndTime(event.target.value, startDateTimeParts.time);
+                                    form.setValue('start_timestamp', nextValue, {
+                                      shouldDirty: true,
+                                      shouldTouch: true,
+                                      shouldValidate: true,
+                                    });
+                                  }}
+                                />
+                                {form.formState.errors.start_timestamp?.message && (
+                                  <p className="text-error text-sm mt-1">{form.formState.errors.start_timestamp.message as string}</p>
+                                )}
+                              </fieldset>
+
+                              <fieldset className="fieldset w-full">
+                                <label className="label">
+                                  <span className="label-text font-medium">Start Time</span>
+                                </label>
+                                <input
+                                  type="time"
+                                  className="input input-bordered w-full focus:input-primary"
+                                  value={startDateTimeParts.time}
+                                  onChange={(event) => {
+                                    const nextValue = combineDateAndTime(startDateTimeParts.date, event.target.value);
+                                    form.setValue('start_timestamp', nextValue, {
+                                      shouldDirty: true,
+                                      shouldTouch: true,
+                                      shouldValidate: true,
+                                    });
+                                  }}
+                                />
+                              </fieldset>
+
+                              <fieldset className="fieldset w-full">
+                                <label className="label">
+                                  <span className="label-text font-medium">End Date</span>
+                                </label>
+                                <input
+                                  type="date"
+                                  className="input input-bordered w-full focus:input-primary"
+                                  value={endDateTimeParts.date}
+                                  onChange={(event) => {
+                                    const nextValue = combineDateAndTime(event.target.value, endDateTimeParts.time);
+                                    form.setValue('end_timestamp', nextValue || undefined, {
+                                      shouldDirty: true,
+                                      shouldTouch: true,
+                                      shouldValidate: true,
+                                    });
+                                  }}
+                                />
+                              </fieldset>
+
+                              <fieldset className="fieldset w-full">
+                                <label className="label">
+                                  <span className="label-text font-medium">End Time</span>
+                                </label>
+                                <input
+                                  type="time"
+                                  className="input input-bordered w-full focus:input-primary"
+                                  value={endDateTimeParts.time}
+                                  onChange={(event) => {
+                                    const nextValue = combineDateAndTime(endDateTimeParts.date, event.target.value);
+                                    form.setValue('end_timestamp', nextValue || undefined, {
+                                      shouldDirty: true,
+                                      shouldTouch: true,
+                                      shouldValidate: true,
+                                    });
+                                  }}
+                                />
+                              </fieldset>
+                            </div>
                           </div>
                         )
                       : (
@@ -1067,7 +1192,7 @@ function PostingPage() {
                             style="outline"
                             onClick={withdrawApplication}
                             loading={withdrawing}
-                            Icon={SquareArrowRightExit}
+                            Icon={SquareArrowRight}
                           >
                             Leave Position
                           </Button>
@@ -1079,7 +1204,7 @@ function PostingPage() {
                               style="outline"
                               onClick={withdrawApplication}
                               loading={withdrawing}
-                              Icon={SquareArrowRightExit}
+                              Icon={SquareArrowRight}
                             >
                               Withdraw Application
                             </Button>

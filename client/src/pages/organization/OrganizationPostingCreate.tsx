@@ -5,7 +5,6 @@ import { useForm, useWatch } from 'react-hook-form';
 import { useNavigate } from 'react-router';
 
 import Button from '../../components/Button.tsx';
-import CalendarInfo from '../../components/CalendarInfo.tsx';
 import PageHeader from '../../components/layout/PageHeader';
 import LocationPicker from '../../components/LocationPicker';
 import SkillsInput from '../../components/skills/SkillsInput';
@@ -16,6 +15,21 @@ import requestServer from '../../utils/requestServer';
 import { useOrganization } from '../../utils/useUsers';
 
 import type { OrganizationCrisesResponse, OrganizationPostingCreateResponse } from '../../../../server/src/api/types';
+
+const splitDateTimeInput = (value?: string) => {
+  if (!value) return { date: '', time: '' };
+
+  const [datePart, timePart] = value.split('T');
+  return {
+    date: datePart ?? '',
+    time: (timePart ?? '').slice(0, 5),
+  };
+};
+
+const combineDateAndTime = (date: string, time: string) => {
+  if (!date) return '';
+  return `${date}T${time || '00:00'}`;
+};
 
 export default function OrganizationPostingCreate() {
   const account = useOrganization();
@@ -38,6 +52,8 @@ export default function OrganizationPostingCreate() {
   const [position, setPosition] = useState<[number, number]>([33.90192863620578, 35.477959277880416]);
   const startTimestamp = useWatch({ control: form.control, name: 'start_timestamp' }) ?? '';
   const endTimestamp = useWatch({ control: form.control, name: 'end_timestamp' }) ?? '';
+  const startDateTimeParts = splitDateTimeInput(startTimestamp);
+  const endDateTimeParts = splitDateTimeInput(endTimestamp);
 
   useEffect(() => {
     const loadCrises = async () => {
@@ -59,6 +75,7 @@ export default function OrganizationPostingCreate() {
   }, []);
 
   const submit = form.handleSubmit(async (data) => {
+    console.log('Form submitted with data:', data);
     await executeAndShowError(form, async () => {
       if (!account?.id) {
         throw new Error('Organization account not found. Please log in again.');
@@ -70,8 +87,10 @@ export default function OrganizationPostingCreate() {
         location_name: data.location_name.trim(),
         latitude: position[0],
         longitude: position[1],
-        start_timestamp: new Date(data.start_timestamp).toISOString(),
-        end_timestamp: data.end_timestamp ? new Date(data.end_timestamp).toISOString() : undefined,
+        start_date: data.start_timestamp.split('T')[0],
+        start_time: data.start_timestamp.split('T')[1],
+        end_date: data.end_timestamp ? data.end_timestamp.split('T')[0] : undefined,
+        end_time: data.end_timestamp ? data.end_timestamp.split('T')[1] : undefined,
         max_volunteers: data.max_volunteers ? Number(data.max_volunteers) : undefined,
         minimum_age: data.minimum_age ? Number(data.minimum_age) : undefined,
         automatic_acceptance: data.automatic_acceptance,
@@ -109,7 +128,13 @@ export default function OrganizationPostingCreate() {
         />
 
         <div className="card bg-base-100 w-full shadow-2xl">
-          <form className="card-body space-y-6" onSubmit={submit}>
+          <form
+            className="card-body space-y-6"
+            onSubmit={(e) => {
+              console.log('Form onSubmit event fired, form errors:', form.formState.errors);
+              submit(e);
+            }}
+          >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 form={form}
@@ -162,28 +187,86 @@ export default function OrganizationPostingCreate() {
                     />
                   </div>
 
-                  <CalendarInfo
-                    startValue={startTimestamp}
-                    endValue={endTimestamp}
-                    onStartChange={(value: string) => {
-                      form.setValue('start_timestamp', value, {
-                        shouldDirty: true,
-                        shouldTouch: true,
-                        shouldValidate: true,
-                      });
-                    }}
-                    onEndChange={(value: string) => {
-                      form.setValue('end_timestamp', value, {
-                        shouldDirty: true,
-                        shouldTouch: true,
-                        shouldValidate: true,
-                      });
-                    }}
-                    inputType="datetime-local"
-                    className="grid grid-cols-2 gap-3"
-                    startPlaceholder="Start Date & Time"
-                    endPlaceholder="End Date & Time"
-                  />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <fieldset className="fieldset w-full">
+                      <label className="label">
+                        <span className="label-text font-medium">Start Date</span>
+                      </label>
+                      <input
+                        type="date"
+                        className={`input input-bordered w-full focus:input-primary ${form.formState.errors.start_timestamp ? 'input-error' : ''}`}
+                        value={startDateTimeParts.date}
+                        onChange={(event) => {
+                          const nextValue = combineDateAndTime(event.target.value, startDateTimeParts.time);
+                          form.setValue('start_timestamp', nextValue, {
+                            shouldDirty: true,
+                            shouldTouch: true,
+                            shouldValidate: true,
+                          });
+                        }}
+                      />
+                      {form.formState.errors.start_timestamp?.message && (
+                        <p className="text-error text-sm mt-1">{form.formState.errors.start_timestamp.message as string}</p>
+                      )}
+                    </fieldset>
+
+                    <fieldset className="fieldset w-full">
+                      <label className="label">
+                        <span className="label-text font-medium">Start Time</span>
+                      </label>
+                      <input
+                        type="time"
+                        className="input input-bordered w-full focus:input-primary"
+                        value={startDateTimeParts.time}
+                        onChange={(event) => {
+                          const nextValue = combineDateAndTime(startDateTimeParts.date, event.target.value);
+                          form.setValue('start_timestamp', nextValue, {
+                            shouldDirty: true,
+                            shouldTouch: true,
+                            shouldValidate: true,
+                          });
+                        }}
+                      />
+                    </fieldset>
+
+                    <fieldset className="fieldset w-full">
+                      <label className="label">
+                        <span className="label-text font-medium">End Date</span>
+                      </label>
+                      <input
+                        type="date"
+                        className="input input-bordered w-full focus:input-primary"
+                        value={endDateTimeParts.date}
+                        onChange={(event) => {
+                          const nextValue = combineDateAndTime(event.target.value, endDateTimeParts.time);
+                          form.setValue('end_timestamp', nextValue || undefined, {
+                            shouldDirty: true,
+                            shouldTouch: true,
+                            shouldValidate: true,
+                          });
+                        }}
+                      />
+                    </fieldset>
+
+                    <fieldset className="fieldset w-full">
+                      <label className="label">
+                        <span className="label-text font-medium">End Time</span>
+                      </label>
+                      <input
+                        type="time"
+                        className="input input-bordered w-full focus:input-primary"
+                        value={endDateTimeParts.time}
+                        onChange={(event) => {
+                          const nextValue = combineDateAndTime(endDateTimeParts.date, event.target.value);
+                          form.setValue('end_timestamp', nextValue || undefined, {
+                            shouldDirty: true,
+                            shouldTouch: true,
+                            shouldValidate: true,
+                          });
+                        }}
+                      />
+                    </fieldset>
+                  </div>
 
                   <SkillsInput skills={skills} setSkills={setSkills} />
 
