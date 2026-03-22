@@ -32,6 +32,15 @@ function PostingCard({ posting, showCrisis = true }: PostingCardProps) {
     return `${hour12}:${String(minutes).padStart(2, '0')} ${suffix}`;
   };
 
+  const formatCardDate = (dateValue: Date | null) => {
+    if (!dateValue) return '';
+    return new Intl.DateTimeFormat('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    }).format(dateValue);
+  };
+
   const startDateValue = posting.start_date;
   const endDateValue = posting.end_date;
 
@@ -42,8 +51,8 @@ function PostingCard({ posting, showCrisis = true }: PostingCardProps) {
   const endDt = normalizeTimestamp(endDateValue);
   const hasEndDate = Boolean(endDt);
 
-  const startDateStr = startDt ? startDt.toLocaleDateString() : '';
-  const endDateStr = endDt ? endDt.toLocaleDateString() : '';
+  const startDateStr = formatCardDate(startDt);
+  const endDateStr = formatCardDate(endDt);
   const startTimeStr = formatTime12Hour(startTimeValue) || (startDt ? startDt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true }) : '');
   const endTimeStr = formatTime12Hour(endTimeValue) || (endDt ? endDt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true }) : '');
   const organizationInitials = posting.organization_name
