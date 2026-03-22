@@ -662,9 +662,9 @@ function VolunteerProfile() {
                     <p className="mt-1 text-2xl font-bold">{profile.experience_stats.total_skills_used}</p>
                   </div>
                   <div className="rounded-lg border border-base-300 bg-base-200/30 p-3">
-                    <p className="text-xs uppercase tracking-wide opacity-70">Most Used Skill</p>
+                    <p className="text-xs uppercase tracking-wide opacity-70">Most Volunteered For Crisis</p>
                     <p className="mt-1 text-lg font-bold truncate">
-                      {profile.experience_stats.most_used_skill ?? 'N/A'}
+                      {profile.experience_stats.most_volunteered_crisis ?? 'N/A'}
                     </p>
                   </div>
                 </div>

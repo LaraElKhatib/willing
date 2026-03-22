@@ -22,8 +22,7 @@ export type VolunteerExperienceStats = {
   crisis_related_experiences: number;
   total_hours_completed: number;
   total_skills_used: number;
-  most_used_skill: string | null;
-  most_used_skill_frequency: number;
+  most_volunteered_crisis: string | null;
 };
 
 export type VolunteerProfileData = {
@@ -109,19 +108,27 @@ export const getVolunteerProfile = async (volunteerId: number): Promise<Voluntee
 
   const totalHoursCompleted = Math.round(totalHoursCompletedRaw * 10) / 10;
 
-  const skillUsageByName = new Map<string, number>();
-  usedPostingSkills.forEach((skill) => {
-    const previousCount = skillUsageByName.get(skill.skill_name) ?? 0;
-    skillUsageByName.set(skill.skill_name, previousCount + 1);
+  const crisisCountByName = new Map<string, number>();
+  completedExperiences.forEach((experience) => {
+    if (experience.crisis_name) {
+      const previousCount = crisisCountByName.get(experience.crisis_name) ?? 0;
+      crisisCountByName.set(experience.crisis_name, previousCount + 1);
+    }
   });
 
-  const sortedSkillUsage = Array.from(skillUsageByName.entries())
+  const sortedCrisisCounts = Array.from(crisisCountByName.entries())
     .sort((left, right) => {
       if (right[1] !== left[1]) return right[1] - left[1];
       return left[0].localeCompare(right[0]);
     });
 
-  const mostUsedSkillEntry = sortedSkillUsage[0];
+  const mostVolunteeredCrisisEntry = sortedCrisisCounts[0];
+
+  const skillUsageByName = new Map<string, number>();
+  usedPostingSkills.forEach((skill) => {
+    const previousCount = skillUsageByName.get(skill.skill_name) ?? 0;
+    skillUsageByName.set(skill.skill_name, previousCount + 1);
+  });
 
   const experienceStats: VolunteerExperienceStats = {
     total_completed_experiences: completedExperiences.length,
@@ -129,8 +136,7 @@ export const getVolunteerProfile = async (volunteerId: number): Promise<Voluntee
     crisis_related_experiences: completedExperiences.filter(experience => experience.crisis_name !== null).length,
     total_hours_completed: totalHoursCompleted,
     total_skills_used: skillUsageByName.size,
-    most_used_skill: mostUsedSkillEntry?.[0] ?? null,
-    most_used_skill_frequency: mostUsedSkillEntry?.[1] ?? 0,
+    most_volunteered_crisis: mostVolunteeredCrisisEntry?.[0] ?? null,
   };
 
   return {
