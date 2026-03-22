@@ -1,7 +1,8 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Building2, Globe, ImageUp, Mail, MapPin, Phone, ShieldCheck, Trash2 } from 'lucide-react';
+import { Building2, Globe, ImageUp, Mail, MapPin, Phone, RotateCcw, Save, ShieldCheck, Signature, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { useForm } from 'react-hook-form';
+import SignatureCanvas from 'react-signature-canvas';
 import { z } from 'zod';
 
 import { newOrganizationCertificateInfoSchema, organizationAccountSchema } from '../../../../server/src/db/tables';
@@ -110,8 +111,12 @@ function OrganizationProfile() {
   const [logoBusy, setLogoBusy] = useState(false);
   const [signatureBusy, setSignatureBusy] = useState(false);
   const [logoVersion, setLogoVersion] = useState(0);
+  const [signatureVersion, setSignatureVersion] = useState(0);
+  const [isDrawingSignature, setIsDrawingSignature] = useState(false);
+  const [hasDrawnSignature, setHasDrawnSignature] = useState(false);
   const logoInputRef = useRef<HTMLInputElement | null>(null);
   const signatureInputRef = useRef<HTMLInputElement | null>(null);
+  const signatureCanvasRef = useRef<SignatureCanvas | null>(null);
 
   const form = useForm<ProfileFormData>({
     resolver: zodResolver(profileFormSchema),
@@ -201,6 +206,11 @@ function OrganizationProfile() {
     return `${SERVER_BASE_URL}/organization/${profile.organization.id}/logo?v=${logoVersion}`;
   }, [logoVersion, profile]);
 
+  const signatureUrl = useMemo(() => {
+    if (!profile || !certificateInfo?.signature_path) return '';
+    return `${SERVER_BASE_URL}/organization/${profile.organization.id}/signature?v=${signatureVersion}`;
+  }, [certificateInfo?.signature_path, profile, signatureVersion]);
+
   const onMapPositionPick = useCallback((coords: [number, number], name?: string) => {
     setPosition(coords);
     form.setValue('latitude', coords[0]);
@@ -269,10 +279,7 @@ function OrganizationProfile() {
     }
   };
 
-  const onUploadSignature = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
+  const uploadSignatureFile = async (file: File) => {
     try {
       setSignatureBusy(true);
       const formData = new FormData();
@@ -289,6 +296,7 @@ function OrganizationProfile() {
 
       setCertificateInfo(response.certificateInfo);
       certificateForm.setValue('hasSignature', true, { shouldValidate: true });
+      setSignatureVersion(prev => prev + 1);
       notifications.push({ type: 'success', message: 'Certificate signature uploaded.' });
     } catch (error) {
       notifications.push({
@@ -297,8 +305,58 @@ function OrganizationProfile() {
       });
     } finally {
       setSignatureBusy(false);
-      if (signatureInputRef.current) signatureInputRef.current.value = '';
     }
+  };
+
+  const onUploadSignature = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    await uploadSignatureFile(file);
+    if (signatureInputRef.current) signatureInputRef.current.value = '';
+  };
+
+  const onClearDrawnSignature = () => {
+    signatureCanvasRef.current?.clear();
+    setHasDrawnSignature(false);
+  };
+
+  const onSaveDrawnSignature = async () => {
+    const sourceCanvas = signatureCanvasRef.current?.getCanvas();
+    if (!sourceCanvas || signatureCanvasRef.current?.isEmpty()) {
+      notifications.push({ type: 'error', message: 'Please draw a signature first.' });
+      return;
+    }
+
+    const exportCanvas = document.createElement('canvas');
+    exportCanvas.width = sourceCanvas.width;
+    exportCanvas.height = sourceCanvas.height;
+    const exportContext = exportCanvas.getContext('2d');
+    if (!exportContext) {
+      notifications.push({ type: 'error', message: 'Failed to prepare drawn signature.' });
+      return;
+    }
+
+    exportContext.fillStyle = '#ffffff';
+    exportContext.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+    exportContext.drawImage(sourceCanvas, 0, 0);
+
+    const signatureBlob = await new Promise<Blob | null>((resolve) => {
+      exportCanvas.toBlob(blob => resolve(blob), 'image/png');
+    });
+
+    if (!signatureBlob) {
+      notifications.push({ type: 'error', message: 'Failed to capture drawn signature.' });
+      return;
+    }
+
+    const signatureFile = new File([signatureBlob], `signature-drawn-${Date.now()}.png`, {
+      type: 'image/png',
+    });
+
+    await uploadSignatureFile(signatureFile);
+    onClearDrawnSignature();
+    setIsDrawingSignature(false);
   };
 
   const onDeleteSignature = async () => {
@@ -315,6 +373,7 @@ function OrganizationProfile() {
 
       setCertificateInfo(prev => prev ? { ...prev, signature_path: null } : prev);
       certificateForm.setValue('hasSignature', false, { shouldValidate: true });
+      setSignatureVersion(prev => prev + 1);
       notifications.push({ type: 'success', message: 'Certificate signature removed.' });
     } catch (error) {
       notifications.push({
@@ -564,21 +623,33 @@ function OrganizationProfile() {
                     : (
                         <div className="space-y-3 text-sm">
                           <div className="flex items-start justify-between gap-3">
-                            <span className="opacity-70 flex items-center gap-2"><Mail size={14} />Email</span>
+                            <span className="opacity-70 flex items-center gap-2">
+                              <Mail size={14} />
+                              Email
+                            </span>
                             <span className="font-medium text-right break-all">{profile.organization.email}</span>
                           </div>
                           <div className="flex items-start justify-between gap-3">
-                            <span className="opacity-70 flex items-center gap-2"><Phone size={14} />Phone</span>
+                            <span className="opacity-70 flex items-center gap-2">
+                              <Phone size={14} />
+                              Phone
+                            </span>
                             <span className="font-medium text-right">{formValues.phone_number || '-'}</span>
                           </div>
                           <div className="flex items-start justify-between gap-3">
-                            <span className="opacity-70 flex items-center gap-2"><Globe size={14} />Website</span>
+                            <span className="opacity-70 flex items-center gap-2">
+                              <Globe size={14} />
+                              Website
+                            </span>
                             <a href={profile.organization.url} target="_blank" rel="noreferrer" className="font-medium text-right text-primary break-all hover:underline">
                               {profile.organization.url || '-'}
                             </a>
                           </div>
                           <div className="flex items-start justify-between gap-3">
-                            <span className="opacity-70 flex items-center gap-2"><MapPin size={14} />Location</span>
+                            <span className="opacity-70 flex items-center gap-2">
+                              <MapPin size={14} />
+                              Location
+                            </span>
                             <span className="font-medium text-right">{formValues.location_name || '-'}</span>
                           </div>
                           <div className="pt-2">
@@ -663,7 +734,7 @@ function OrganizationProfile() {
                               <input
                                 ref={signatureInputRef}
                                 type="file"
-                                accept="image/png,image/jpeg,image/jpg"
+                                accept="image/png,image/jpeg,image/jpg,image/svg+xml,.svg"
                                 className="hidden"
                                 onChange={onUploadSignature}
                               />
@@ -677,6 +748,15 @@ function OrganizationProfile() {
                                   <ImageUp size={14} />
                                   {signatureBusy ? 'Uploading...' : 'Upload Signature'}
                                 </button>
+                                <button
+                                  type="button"
+                                  className="btn btn-outline btn-sm gap-2"
+                                  onClick={() => setIsDrawingSignature(value => !value)}
+                                  disabled={signatureBusy || saving}
+                                >
+                                  <Signature size={14} />
+                                  {isDrawingSignature ? 'Hide Draw Pad' : 'Draw Signature'}
+                                </button>
                                 {certificateInfo?.signature_path && (
                                   <button
                                     type="button"
@@ -689,8 +769,52 @@ function OrganizationProfile() {
                                   </button>
                                 )}
                               </div>
+                              {isDrawingSignature && (
+                                <div className="space-y-2 rounded-box border border-base-300 p-3">
+                                  <div className="rounded-box border border-base-300 bg-white overflow-hidden">
+                                    <SignatureCanvas
+                                      ref={signatureCanvasRef}
+                                      penColor="#111827"
+                                      canvasProps={{
+                                        className: 'w-full h-40',
+                                        style: { touchAction: 'none' },
+                                      }}
+                                      onBegin={() => setHasDrawnSignature(true)}
+                                    />
+                                  </div>
+                                  <div className="flex flex-wrap gap-2">
+                                    <button
+                                      type="button"
+                                      className="btn btn-outline btn-sm gap-2"
+                                      onClick={onClearDrawnSignature}
+                                      disabled={signatureBusy || saving || !hasDrawnSignature}
+                                    >
+                                      <RotateCcw size={14} />
+                                      Clear
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="btn btn-primary btn-sm gap-2"
+                                      onClick={() => { void onSaveDrawnSignature(); }}
+                                      disabled={signatureBusy || saving || !hasDrawnSignature}
+                                    >
+                                      <Save size={14} />
+                                      Save Drawn Signature
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
                               {!certificateInfo?.signature_path && (
                                 <p className="text-xs text-warning">No signature uploaded yet.</p>
+                              )}
+                              {signatureUrl && (
+                                <div className="rounded-box border border-base-300 p-2 bg-base-100">
+                                  <img
+                                    src={signatureUrl}
+                                    alt="Organization signature preview"
+                                    className="h-14 w-auto object-contain"
+                                  />
+                                </div>
                               )}
                               {certificateForm.formState.errors.hasSignature?.message && (
                                 <p className="text-xs text-error">{certificateForm.formState.errors.hasSignature.message}</p>
@@ -720,6 +844,18 @@ function OrganizationProfile() {
                           <p className="opacity-70">Signatory Position</p>
                           <p className="font-semibold mt-1">{certificateInfo?.signatory_position || '-'}</p>
                         </div>
+                        <div className="rounded-box border border-base-300 p-3 md:col-span-2">
+                          <p className="opacity-70">Signature</p>
+                          {signatureUrl
+                            ? (
+                                <img
+                                  src={signatureUrl}
+                                  alt="Organization signature"
+                                  className="mt-2 h-14 w-auto object-contain"
+                                />
+                              )
+                            : <p className="font-semibold mt-1">No signature uploaded</p>}
+                        </div>
                       </div>
                     )}
               </div>
@@ -732,4 +868,3 @@ function OrganizationProfile() {
 }
 
 export default OrganizationProfile;
-

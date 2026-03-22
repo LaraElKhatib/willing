@@ -8,6 +8,7 @@ import zod from 'zod';
 import certificateInfoRouter from './certificateInfo.js';
 import {
   OrganizationGetLogoFileResponse,
+  OrganizationGetSignatureFileResponse,
   OrganizationDeleteLogoResponse,
   OrganizationCrisisResponse,
   OrganizationCrisesResponse,
@@ -26,7 +27,7 @@ import { newOrganizationRequestSchema, organizationAccountSchema, PostingSkill }
 import { recomputeOrganizationVector } from '../../../services/embeddings/updates.js';
 import { sendAdminOrganizationRequestEmail } from '../../../services/smtp/emails.js';
 import { orgLogoMulter } from '../../../services/uploads/orgLogo.js';
-import { ORG_LOGO_UPLOAD_DIR } from '../../../services/uploads/paths.js';
+import { ORG_LOGO_UPLOAD_DIR, ORG_SIGNATURE_UPLOAD_DIR } from '../../../services/uploads/paths.js';
 import uploadSingle from '../../../services/uploads/uploadSingle.js';
 import { authorizeOnly } from '../../authorization.js';
 
@@ -158,6 +159,39 @@ organizationRouter.get('/:id/logo', async (req, res: Response<OrganizationGetLog
   res.setHeader('Content-Disposition', 'inline; filename="organization-logo"');
 
   res.sendFile(organization.logo_path, { root: ORG_LOGO_UPLOAD_DIR }, (error) => {
+    if (!error) return;
+    next(error);
+  });
+});
+
+organizationRouter.get('/:id/signature', async (req, res: Response<OrganizationGetSignatureFileResponse>, next) => {
+  const { id } = zod.object({
+    id: zod.coerce.number().int().positive('ID must be a positive number'),
+  }).parse(req.params);
+
+  const organization = await database
+    .selectFrom('organization_account')
+    .leftJoin('organization_certificate_info', 'organization_certificate_info.id', 'organization_account.certificate_info_id')
+    .select(['organization_certificate_info.signature_path'])
+    .where('organization_account.id', '=', id)
+    .executeTakeFirst();
+
+  if (!organization?.signature_path) {
+    res.status(404);
+    throw new Error('Organization signature not found');
+  }
+
+  const ext = path.extname(organization.signature_path).toLowerCase();
+  if (ext === '.png') {
+    res.setHeader('Content-Type', 'image/png');
+  } else if (ext === '.svg') {
+    res.setHeader('Content-Type', 'image/svg+xml');
+  } else {
+    res.setHeader('Content-Type', 'image/jpeg');
+  }
+  res.setHeader('Content-Disposition', 'inline; filename="organization-signature"');
+
+  res.sendFile(organization.signature_path, { root: ORG_SIGNATURE_UPLOAD_DIR }, (error) => {
     if (!error) return;
     next(error);
   });

@@ -1,7 +1,7 @@
 import fs from 'fs';
-import path from 'path';
 
 import { Router, Response } from 'express';
+import sharp from 'sharp';
 
 import {
   GetCertificateInfoResponse,
@@ -14,8 +14,7 @@ import {
   organizationCertificateInfoSchema,
   newOrganizationCertificateInfoSchema,
 } from '../../../db/tables.js';
-import { orgSignatureMulter } from '../../../services/uploads/orgSignature.js';
-import { ORG_SIGNATURE_UPLOAD_DIR } from '../../../services/uploads/paths.js';
+import { getAbsoluteSignaturePath, orgSignatureMulter } from '../../../services/uploads/orgSignature.js';
 import uploadSingle from '../../../services/uploads/uploadSingle.js';
 
 const certificateInfoRouter = Router();
@@ -182,7 +181,22 @@ certificateInfoRouter.post(
     }
 
     const organizationId = req.userJWT!.id;
-    const signaturePath = req.file.filename;
+    const uploadedSignaturePath = req.file.filename;
+    const uploadedAbsolutePath = getAbsoluteSignaturePath(uploadedSignaturePath);
+    const normalizedSignaturePath = `org-signature-${organizationId}-${Date.now()}-normalized.png`;
+    const normalizedAbsolutePath = getAbsoluteSignaturePath(normalizedSignaturePath);
+
+    try {
+      await sharp(uploadedAbsolutePath)
+        .flatten({ background: '#ffffff' })
+        .png()
+        .toFile(normalizedAbsolutePath);
+      await fs.promises.unlink(uploadedAbsolutePath).catch(() => {});
+    } catch (_error) {
+      await fs.promises.unlink(uploadedAbsolutePath).catch(() => {});
+      res.status(400);
+      throw new Error('Failed to process signature image. Please upload a valid PNG, JPG, or SVG file.');
+    }
 
     const organization = await database
       .selectFrom('organization_account')
@@ -201,7 +215,7 @@ certificateInfoRouter.post(
         .executeTakeFirstOrThrow();
 
       if (existing.signature_path) {
-        const oldPath = path.join(ORG_SIGNATURE_UPLOAD_DIR, existing.signature_path);
+        const oldPath = getAbsoluteSignaturePath(existing.signature_path);
         try {
           await fs.promises.unlink(oldPath);
         } catch (error) {
@@ -212,7 +226,7 @@ certificateInfoRouter.post(
       // Update certificate info with new signature
       certificateInfo = await database
         .updateTable('organization_certificate_info')
-        .set({ signature_path: signaturePath })
+        .set({ signature_path: normalizedSignaturePath })
         .where('id', '=', organization.certificate_info_id)
         .returningAll()
         .executeTakeFirstOrThrow();
@@ -221,7 +235,7 @@ certificateInfoRouter.post(
       certificateInfo = await database
         .insertInto('organization_certificate_info')
         .values({
-          signature_path: signaturePath,
+          signature_path: normalizedSignaturePath,
           certificate_feature_enabled: false,
         })
         .returningAll()
@@ -268,7 +282,7 @@ certificateInfoRouter.delete(
     }
 
     if (certificateInfo.signature_path) {
-      const oldPath = path.join(ORG_SIGNATURE_UPLOAD_DIR, certificateInfo.signature_path);
+      const oldPath = getAbsoluteSignaturePath(certificateInfo.signature_path);
       try {
         await fs.promises.unlink(oldPath);
       } catch (error) {

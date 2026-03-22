@@ -24,12 +24,12 @@ export const orgSignatureMulter = multer({
   storage: orgSignatureStorage,
   limits: { fileSize: 2 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    const allowedMimes = ['image/png', 'image/jpeg', 'image/jpg'];
-    const allowedExts = ['.png', '.jpg', '.jpeg'];
+    const allowedMimes = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml'];
+    const allowedExts = ['.png', '.jpg', '.jpeg', '.svg'];
     const ext = path.extname(file.originalname).toLowerCase();
 
     if (!allowedMimes.includes(file.mimetype) || !allowedExts.includes(ext)) {
-      return cb(new Error('Only PNG, JPG, and JPEG image files are allowed.'));
+      return cb(new Error('Only PNG, JPG, JPEG, and SVG image files are allowed.'));
     }
 
     cb(null, true);

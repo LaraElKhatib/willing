@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { useForm } from 'react-hook-form';
+import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 
 import { volunteerAccountSchema } from '../../../../server/src/db/tables';
@@ -60,6 +61,7 @@ const getDateInputValue = (value: string) => {
 };
 
 function VolunteerProfile() {
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<VolunteerProfileResponse | null>(null);
   const [skills, setSkills] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
@@ -375,6 +377,10 @@ function VolunteerProfile() {
           icon={FileText}
           actions={(
             <>
+              <button className="btn btn-outline" onClick={() => navigate('/volunteer/certificate')}>
+                <FileText size={16} />
+                Generate Certificate
+              </button>
               {isEditMode
                 ? (
                     <Button color="primary" style="outline" onClick={onCancelEdit} loading={saving} Icon={X}>

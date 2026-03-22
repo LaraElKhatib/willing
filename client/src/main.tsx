@@ -26,6 +26,7 @@ import OrganizationProfile from './pages/OrganizationProfile';
 import OrganizationRequest from './pages/OrganizationRequest';
 import Posting from './pages/Posting';
 import UserLogin from './pages/UserLogin';
+import VolunteerCertificateRequest from './pages/volunteer/VolunteerCertificateRequest';
 import VolunteerCrisisPostings from './pages/volunteer/VolunteerCrisisPostings';
 import VolunteerEnrollments from './pages/volunteer/VolunteerEnrollments';
 import VolunteerHome from './pages/volunteer/VolunteerHome';
@@ -60,19 +61,20 @@ createRoot(document.getElementById('root')!).render(
               <Route path="settings" element={<AdminSettings />} />
             </Route>
 
-          <Route path="organization" element={<OrganizationPage />}>
-            <Route index element={<OrganizationHome />} />
-            <Route path="profile" element={<OrganizationProfilePage />} />
-            <Route path="posting" element={<OrganizationPostingCreate />} />
-            <Route path="posting/:id/attendance" element={<OrganizationPostingAttendance />} />
-            <Route path="settings" element={<OrganizationSettings />} />
-          </Route>
+            <Route path="organization" element={<OrganizationPage />}>
+              <Route index element={<OrganizationHome />} />
+              <Route path="profile" element={<OrganizationProfilePage />} />
+              <Route path="posting" element={<OrganizationPostingCreate />} />
+              <Route path="posting/:id/attendance" element={<OrganizationPostingAttendance />} />
+              <Route path="settings" element={<OrganizationSettings />} />
+            </Route>
 
             <Route path="volunteer" element={<VolunteerPage />}>
               <Route index element={<VolunteerHome />} />
               <Route path="enrollments" element={<VolunteerEnrollments />} />
               <Route path="crises/:crisisId/postings" element={<VolunteerCrisisPostings />} />
               <Route path="profile" element={<VolunteerProfile />} />
+              <Route path="certificate" element={<VolunteerCertificateRequest />} />
               <Route path="search" element={<VolunteerSearch />} />
               <Route path="settings" element={<VolunteerSettings />} />
             </Route>

@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-import { Building2, MapPin, Globe, Mail, Phone } from 'lucide-react';
-=======
 import { MapPin, Globe, Mail, Phone, Building2 } from 'lucide-react';
->>>>>>> 65394499c2df409d713d482d70e7684e6242052f
 import { useParams } from 'react-router-dom';
 
 import ColumnLayout from '../components/layout/ColumnLayout';
