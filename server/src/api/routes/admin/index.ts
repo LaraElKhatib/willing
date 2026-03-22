@@ -3,6 +3,7 @@ import { Router, Response } from 'express';
 import * as jose from 'jose';
 import zod from 'zod';
 
+import certificateSettingsRouter from './certificateSettings.js';
 import adminCrisesRouter from './crises.js';
 import {
   AdminLoginResponse,
@@ -157,5 +158,6 @@ adminRouter.post('/reviewOrganizationRequest', async (req, res: Response<AdminOr
 adminRouter.post('/reset-password', resetPassword);
 
 adminRouter.use('/crises', adminCrisesRouter);
+adminRouter.use('/certificate-settings', certificateSettingsRouter);
 
 export default adminRouter;

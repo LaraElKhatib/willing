@@ -186,6 +186,12 @@ volunteerRouter.get('/certificate', async (req, res: Response<VolunteerCertifica
     .orderBy('organization_account.name', 'asc')
     .execute();
 
+  const platformCertificate = await database
+    .selectFrom('platform_certificate_settings')
+    .select(['signatory_name', 'signatory_position', 'signature_path'])
+    .orderBy('id', 'desc')
+    .executeTakeFirst();
+
   res.json({
     volunteer,
     total_hours: Number(totalHoursRow.total_hours ?? 0),
@@ -216,6 +222,13 @@ volunteerRouter.get('/certificate', async (req, res: Response<VolunteerCertifica
         signature_path: organization.signature_path ?? null,
       };
     }),
+    platform_certificate: platformCertificate
+      ? {
+          signatory_name: platformCertificate.signatory_name ?? null,
+          signatory_position: platformCertificate.signatory_position ?? null,
+          signature_path: platformCertificate.signature_path ?? null,
+        }
+      : null,
   });
 });
 

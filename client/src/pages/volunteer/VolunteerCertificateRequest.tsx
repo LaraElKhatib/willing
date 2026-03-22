@@ -67,6 +67,11 @@ function VolunteerCertificateRequest() {
     return `${firstName} ${lastName}`.trim() || 'Volunteer';
   }, [data?.volunteer.first_name, data?.volunteer.last_name, volunteer?.first_name, volunteer?.last_name]);
 
+  const platformSignatureUrl = useMemo(() => {
+    if (!data?.platform_certificate?.signature_path) return null;
+    return `${SERVER_BASE_URL}/public/certificate-signature?v=${encodeURIComponent(data.platform_certificate.signature_path)}`;
+  }, [data?.platform_certificate?.signature_path]);
+
   const toggleOrganization = (organizationId: number, eligible: boolean) => {
     if (!eligible) return;
 
@@ -422,8 +427,14 @@ function VolunteerCertificateRequest() {
                     <div className="certificate-footer mt-4 flex items-end">
                       <div className="w-72">
                         <p className="text-base uppercase tracking-wide opacity-60">Willing Admin Signature</p>
-                        <div className="certificate-sign-line h-8 border-b border-neutral-300 mt-2" />
-                        <p className="text-base opacity-70 mt-1">Name & title</p>
+                        {platformSignatureUrl
+                          ? <img src={platformSignatureUrl} alt="Willing admin signature" className="h-8 w-auto object-contain mt-2" />
+                          : <div className="mt-2 h-8" />}
+                        <div className="certificate-sign-line h-8 border-b border-neutral-300 mt-1" />
+                        <p className="text-base opacity-70 mt-1">{data?.platform_certificate?.signatory_name || 'Name'}</p>
+                        <p className="text-sm opacity-60">
+                          {data?.platform_certificate?.signatory_position || 'Title'}
+                        </p>
                       </div>
                     </div>
                   </div>
