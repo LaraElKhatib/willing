@@ -22,4 +22,23 @@ export type VolunteerCrisisResponse = {
   crisis: Crisis;
 };
 
+export type VolunteerCertificateOrganization = {
+  id: number;
+  name: string;
+  hours: number;
+  hours_threshold: number | null;
+  certificate_feature_enabled: boolean;
+  eligible: boolean;
+  logo_path: string | null;
+  signatory_name: string | null;
+  signatory_position: string | null;
+  signature_path: string | null;
+};
+
+export type VolunteerCertificateResponse = {
+  volunteer: Pick<VolunteerAccountWithoutPassword, 'id' | 'first_name' | 'last_name'>;
+  total_hours: number;
+  organizations: VolunteerCertificateOrganization[];
+};
+
 export type VolunteerResetPasswordResponse = ResetPasswordResponse;

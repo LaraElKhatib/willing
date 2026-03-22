@@ -1,12 +1,14 @@
 import bcrypt from 'bcrypt';
 import { Router, Response } from 'express';
 import * as jose from 'jose';
+import { sql } from 'kysely';
 import zod from 'zod';
 
 import volunteerCvRouter from './cv.js';
 import {
   VolunteerCrisisResponse,
   VolunteerCreateResponse,
+  VolunteerCertificateResponse,
   VolunteerMeResponse,
   VolunteerPinnedCrisesResponse,
   VolunteerProfileResponse,
@@ -117,6 +119,104 @@ volunteerRouter.get('/me', async (req, res: Response<VolunteerMeResponse>) => {
 volunteerRouter.get('/profile', async (req, res: Response<VolunteerProfileResponse>) => {
   const profile = await getVolunteerProfile(req.userJWT!.id);
   res.json(profile);
+});
+
+volunteerRouter.get('/certificate', async (req, res: Response<VolunteerCertificateResponse>) => {
+  const volunteerId = req.userJWT!.id;
+
+  const volunteer = await database
+    .selectFrom('volunteer_account')
+    .select(['id', 'first_name', 'last_name'])
+    .where('id', '=', volunteerId)
+    .executeTakeFirstOrThrow();
+
+  const hoursPerPostingExpr = sql<number>`CASE
+    WHEN organization_posting.end_date IS NULL OR organization_posting.end_time IS NULL
+      THEN 0
+    ELSE GREATEST(
+      0,
+      EXTRACT(EPOCH FROM (
+        (organization_posting.end_date + organization_posting.end_time)
+        - (organization_posting.start_date + organization_posting.start_time)
+      )) / 3600.0
+    )
+  END`;
+
+  const totalHoursRow = await database
+    .selectFrom('enrollment')
+    .innerJoin('organization_posting', 'organization_posting.id', 'enrollment.posting_id')
+    .select(sql<number>`COALESCE(SUM(${hoursPerPostingExpr}), 0)`.as('total_hours'))
+    .where('enrollment.volunteer_id', '=', volunteerId)
+    .where('enrollment.attended', '=', true)
+    .executeTakeFirstOrThrow();
+
+  const organizations = await database
+    .selectFrom('enrollment')
+    .innerJoin('organization_posting', 'organization_posting.id', 'enrollment.posting_id')
+    .innerJoin('organization_account', 'organization_account.id', 'organization_posting.organization_id')
+    .leftJoin(
+      'organization_certificate_info',
+      'organization_certificate_info.id',
+      'organization_account.certificate_info_id',
+    )
+    .select([
+      'organization_account.id',
+      'organization_account.name',
+      'organization_account.logo_path',
+      'organization_certificate_info.hours_threshold',
+      'organization_certificate_info.certificate_feature_enabled',
+      'organization_certificate_info.signatory_name',
+      'organization_certificate_info.signatory_position',
+      'organization_certificate_info.signature_path',
+      sql<number>`SUM(${hoursPerPostingExpr})`.as('hours'),
+    ])
+    .where('enrollment.volunteer_id', '=', volunteerId)
+    .where('enrollment.attended', '=', true)
+    .groupBy([
+      'organization_account.id',
+      'organization_account.name',
+      'organization_account.logo_path',
+      'organization_certificate_info.hours_threshold',
+      'organization_certificate_info.certificate_feature_enabled',
+      'organization_certificate_info.signatory_name',
+      'organization_certificate_info.signatory_position',
+      'organization_certificate_info.signature_path',
+    ])
+    .orderBy('hours', 'desc')
+    .orderBy('organization_account.name', 'asc')
+    .execute();
+
+  res.json({
+    volunteer,
+    total_hours: Number(totalHoursRow.total_hours ?? 0),
+    organizations: organizations.map((organization) => {
+      const hours = Number(organization.hours ?? 0);
+      const threshold = organization.hours_threshold ?? null;
+      const featureEnabled = Boolean(organization.certificate_feature_enabled);
+      const hasSignatoryInfo = Boolean(
+        organization.signatory_name?.trim()
+        && organization.signatory_position?.trim()
+        && organization.signature_path?.trim(),
+      );
+      const eligible = featureEnabled
+        && threshold !== null
+        && hasSignatoryInfo
+        && hours >= threshold;
+
+      return {
+        id: organization.id,
+        name: organization.name,
+        hours,
+        hours_threshold: threshold,
+        certificate_feature_enabled: featureEnabled,
+        eligible,
+        logo_path: organization.logo_path ?? null,
+        signatory_name: organization.signatory_name ?? null,
+        signatory_position: organization.signatory_position ?? null,
+        signature_path: organization.signature_path ?? null,
+      };
+    }),
+  });
 });
 
 volunteerRouter.get('/crises/pinned', async (_req, res: Response<VolunteerPinnedCrisesResponse>) => {
