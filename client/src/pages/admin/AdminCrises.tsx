@@ -269,6 +269,10 @@ function AdminCrises() {
   }, [crises]);
 
   const hasPendingChanges = useMemo(() => JSON.stringify(filters) !== JSON.stringify(activeFilters), [filters, activeFilters]);
+  const hasAnyChangesFromDefault = useMemo(() => (
+    JSON.stringify(filters) !== JSON.stringify(defaultFilters)
+    || JSON.stringify(activeFilters) !== JSON.stringify(defaultFilters)
+  ), [filters, activeFilters]);
 
   const applyFilters = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -353,31 +357,51 @@ function AdminCrises() {
             </div>
 
             <div className="mb-4 rounded-box border border-base-300 bg-base-100 p-4 shadow-sm">
-              <form className="space-y-3" onSubmit={applyFilters}>
-                <div className="grid grid-cols-1 gap-3 lg:grid-cols-4">
-                  <label className="input input-bordered flex items-center gap-2 lg:col-span-2">
-                    <Search className="h-4 w-4 opacity-70" />
-                    <input
-                      type="text"
-                      className="grow"
-                      placeholder="Search crisis name or description"
-                      value={filters.search}
-                      onChange={event => setFilters(prev => ({ ...prev, search: event.target.value }))}
-                    />
-                  </label>
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold">Filters</h3>
+              </div>
 
-                  <select
-                    className="select select-bordered w-full"
-                    value={selectedSortOption.value}
-                    onChange={event => onSortChange(event.target.value as CrisisSortOptionValue)}
-                  >
-                    {crisisSortOptions.map(option => (
-                      <option key={option.value} value={option.value}>{option.label}</option>
-                    ))}
-                  </select>
+              <form className="space-y-4" onSubmit={applyFilters}>
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
+                  <div className="lg:min-w-0 lg:flex-1">
+                    <label className="label" htmlFor="admin-crises-search">
+                      <span className="label-text">Search</span>
+                    </label>
+                    <label className="input input-bordered flex w-full items-center gap-2">
+                      <Search className="h-4 w-4 opacity-70" />
+                      <input
+                        id="admin-crises-search"
+                        type="text"
+                        className="w-full min-w-0"
+                        placeholder="Search crisis name or description"
+                        value={filters.search}
+                        onChange={event => setFilters(prev => ({ ...prev, search: event.target.value }))}
+                      />
+                    </label>
+                  </div>
 
-                  <Button color="primary" type="submit" disabled={!hasPendingChanges}>Search</Button>
+                  <div className="lg:w-64">
+                    <label className="label" htmlFor="admin-crises-sort">
+                      <span className="label-text">Sort By</span>
+                    </label>
+                    <select
+                      id="admin-crises-sort"
+                      className="select select-bordered w-full"
+                      value={selectedSortOption.value}
+                      onChange={event => onSortChange(event.target.value as CrisisSortOptionValue)}
+                    >
+                      {crisisSortOptions.map(option => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
+                    </select>
+                  </div>
 
+                  <div className="lg:w-40">
+                    <Button color="primary" type="submit" disabled={!hasPendingChanges} layout="block">Search</Button>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-3">
                   <Button
                     type="button"
                     color={hasAdvancedFiltersApplied || showAdvancedSearch ? 'secondary' : 'ghost'}
@@ -386,18 +410,12 @@ function AdminCrises() {
                   >
                     Advanced Search
                   </Button>
+
+                  <Button type="button" color="ghost" onClick={resetFilters} disabled={!hasAnyChangesFromDefault} Icon={RotateCcw}>Reset</Button>
                 </div>
 
                 {showAdvancedSearch && (
                   <div className="rounded-box border border-base-300 bg-base-200/40 p-4">
-                    <div className="mb-3 flex items-center justify-between gap-3">
-                      <div>
-                        <h4 className="font-semibold">Advanced Search</h4>
-                        <p className="text-sm opacity-70">Use these extra filters when you want tighter control over the results.</p>
-                      </div>
-                      <Button type="button" color="ghost" onClick={resetFilters} disabled={!hasPendingChanges} Icon={RotateCcw}>Reset</Button>
-                    </div>
-
                     <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                       <select
                         className="select select-bordered w-full"

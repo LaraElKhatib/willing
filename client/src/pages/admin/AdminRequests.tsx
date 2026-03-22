@@ -9,7 +9,7 @@ import useAsync from '../../utils/useAsync';
 
 import type { AdminOrganizationRequestsResponse } from '../../../../server/src/api/types';
 
-type OrganizationRequestSortBy = 'created_at' | 'name' | 'email';
+type OrganizationRequestSortBy = 'created_at' | 'name';
 type OrganizationRequestSortDir = 'asc' | 'desc';
 
 type OrganizationRequestFilters = {
@@ -22,9 +22,7 @@ type OrganizationRequestSortOptionValue
   = | 'created_at_desc'
     | 'created_at_asc'
     | 'name_asc'
-    | 'name_desc'
-    | 'email_asc'
-    | 'email_desc';
+    | 'name_desc';
 
 type OrganizationRequestSortOption = {
   value: OrganizationRequestSortOptionValue;
@@ -38,8 +36,6 @@ const organizationRequestSortOptions: OrganizationRequestSortOption[] = [
   { value: 'created_at_asc', label: 'Oldest requests', sortBy: 'created_at', sortDir: 'asc' },
   { value: 'name_asc', label: 'Name (A-Z)', sortBy: 'name', sortDir: 'asc' },
   { value: 'name_desc', label: 'Name (Z-A)', sortBy: 'name', sortDir: 'desc' },
-  { value: 'email_asc', label: 'Email (A-Z)', sortBy: 'email', sortDir: 'asc' },
-  { value: 'email_desc', label: 'Email (Z-A)', sortBy: 'email', sortDir: 'desc' },
 ];
 
 const defaultFilters: OrganizationRequestFilters = {
@@ -79,6 +75,10 @@ function AdminRequests() {
   }, [activeFilters, refreshOrganizationRequests]);
 
   const hasPendingChanges = useMemo(() => JSON.stringify(filters) !== JSON.stringify(activeFilters), [filters, activeFilters]);
+  const hasAnyChangesFromDefault = useMemo(() => (
+    JSON.stringify(filters) !== JSON.stringify(defaultFilters)
+    || JSON.stringify(activeFilters) !== JSON.stringify(defaultFilters)
+  ), [filters, activeFilters]);
 
   const applyFilters = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -132,33 +132,52 @@ function AdminRequests() {
         />
 
         <div className="mb-6 rounded-box border border-base-300 bg-base-100 p-4 shadow-sm">
-          <form className="space-y-3" onSubmit={applyFilters}>
-            <div className="grid grid-cols-1 gap-3 lg:grid-cols-4">
-              <label className="input input-bordered flex items-center gap-2 lg:col-span-2">
-                <Search className="h-4 w-4 opacity-70" />
-                <input
-                  type="text"
-                  className="grow"
-                  placeholder="Search name, email, location"
-                  value={filters.search}
-                  onChange={event => setFilters(prev => ({ ...prev, search: event.target.value }))}
-                />
-              </label>
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold">Filters</h3>
+          </div>
 
-              <select
-                className="select select-bordered w-full"
-                value={selectedSortOption.value}
-                onChange={event => onSortChange(event.target.value as OrganizationRequestSortOptionValue)}
-              >
-                {organizationRequestSortOptions.map(option => (
-                  <option key={option.value} value={option.value}>{option.label}</option>
-                ))}
-              </select>
+          <form className="space-y-4" onSubmit={applyFilters}>
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
+              <div className="lg:min-w-0 lg:flex-1">
+                <label className="label" htmlFor="organization-requests-search">
+                  <span className="label-text">Search</span>
+                </label>
+                <label className="input input-bordered flex w-full items-center gap-2">
+                  <Search className="h-4 w-4 opacity-70" />
+                  <input
+                    id="organization-requests-search"
+                    type="text"
+                    className="w-full min-w-0"
+                    placeholder="Search name, email, location"
+                    value={filters.search}
+                    onChange={event => setFilters(prev => ({ ...prev, search: event.target.value }))}
+                  />
+                </label>
+              </div>
+
+              <div className="lg:w-64">
+                <label className="label" htmlFor="organization-requests-sort">
+                  <span className="label-text">Sort By</span>
+                </label>
+                <select
+                  id="organization-requests-sort"
+                  className="select select-bordered w-full"
+                  value={selectedSortOption.value}
+                  onChange={event => onSortChange(event.target.value as OrganizationRequestSortOptionValue)}
+                >
+                  {organizationRequestSortOptions.map(option => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="lg:w-40">
+                <Button color="primary" type="submit" disabled={!hasPendingChanges} layout="block">Search</Button>
+              </div>
             </div>
 
-            <div className="flex gap-3">
-              <Button color="primary" type="submit" disabled={!hasPendingChanges}>Apply</Button>
-              <Button type="button" color="ghost" onClick={resetFilters} disabled={!hasPendingChanges} Icon={RotateCcw}>Reset</Button>
+            <div className="flex flex-wrap gap-3">
+              <Button type="button" color="ghost" onClick={resetFilters} disabled={!hasAnyChangesFromDefault} Icon={RotateCcw}>Reset</Button>
             </div>
           </form>
         </div>

@@ -1,9 +1,7 @@
-import { sql } from 'kysely';
-
 import { getSingleQueryValue } from './queryValue.js';
 
 export type PostingSortDir = 'asc' | 'desc';
-export type SharedPostingSortBy = 'start_date' | 'end_date' | 'created_at';
+export type SharedPostingSortBy = 'start_date' | 'created_at';
 
 export type PostingDateTimeFilters = {
   startDateFrom?: Date;
@@ -183,23 +181,6 @@ export const sortPostingsBySharedSort = <T extends PostingSortLike>(
           normalizeTimestampKey(right.created_at),
           sortDir,
         );
-      case 'end_date': {
-        const dateCompare = compareNullableKeys(
-          normalizeDateKey(left.end_date ?? left.start_date),
-          normalizeDateKey(right.end_date ?? right.start_date),
-          sortDir,
-        );
-
-        if (dateCompare !== 0) {
-          return dateCompare;
-        }
-
-        return compareNullableKeys(
-          normalizeTimeKey(left.end_time ?? left.start_time),
-          normalizeTimeKey(right.end_time ?? right.start_time),
-          sortDir,
-        );
-      }
       case 'start_date':
       default: {
         const dateCompare = compareNullableKeys(
@@ -230,10 +211,6 @@ export const applySharedPostingSort = <Q extends PostingQueryLike>(
   switch (sortBy) {
     case 'created_at':
       return query.orderBy('organization_posting.created_at', sortDir) as Q;
-    case 'end_date':
-      return query
-        .orderBy(sql`coalesce(organization_posting.end_date, organization_posting.start_date)`, sortDir)
-        .orderBy(sql`coalesce(organization_posting.end_time, organization_posting.start_time)`, sortDir) as Q;
     case 'start_date':
     default:
       return query

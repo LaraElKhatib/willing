@@ -165,7 +165,7 @@ postingRouter.get('/', async (req, res: Response<OrganizationPostingListResponse
   const orgId = req.userJWT!.id;
 
   const { search, sortBy, sortDir } = parseListQuery(req.query, {
-    allowedSortBy: ['start_date', 'end_date', 'created_at', 'title'],
+    allowedSortBy: ['start_date', 'created_at', 'title'],
     defaultSortBy: 'start_date',
     defaultSortDir: 'asc',
   });

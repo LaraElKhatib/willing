@@ -59,7 +59,7 @@ volunteerPostingRouter.get('/', async (req, res: Response<VolunteerPostingSearch
   const hideFull = parseOptionalBooleanQueryParam(req.query.hide_full) ?? false;
   const crisisIdFilter = parseOptionalNumberQueryParam(req.query.crisis_id);
   const { sortBy, sortDir } = parseListQuery(req.query, {
-    allowedSortBy: ['recommended', 'start_date', 'end_date', 'created_at'],
+    allowedSortBy: ['recommended', 'start_date', 'created_at'],
     defaultSortBy: 'recommended',
     defaultSortDir: 'desc',
   });
@@ -178,7 +178,7 @@ volunteerPostingRouter.get('/', async (req, res: Response<VolunteerPostingSearch
 volunteerPostingRouter.get('/enrollments', async (req, res: Response<VolunteerEnrollmentsResponse>) => {
   const volunteerId = req.userJWT!.id;
   const { search, sortBy, sortDir } = parseListQuery(req.query, {
-    allowedSortBy: ['recommended', 'start_date', 'end_date', 'created_at'],
+    allowedSortBy: ['recommended', 'start_date', 'created_at'],
     defaultSortBy: 'recommended',
     defaultSortDir: 'desc',
   });

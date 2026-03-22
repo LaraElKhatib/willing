@@ -81,7 +81,7 @@ adminRouter.get('/me', async (req, res: Response<AdminMeResponse>) => {
 
 adminRouter.get('/getOrganizationRequests', async (req, res: Response<AdminOrganizationRequestsResponse>) => {
   const { search, sortBy, sortDir } = parseListQuery(req.query, {
-    allowedSortBy: ['created_at', 'name', 'email'],
+    allowedSortBy: ['created_at', 'name'],
     defaultSortBy: 'created_at',
   });
 
@@ -101,9 +101,6 @@ adminRouter.get('/getOrganizationRequests', async (req, res: Response<AdminOrgan
   switch (sortBy) {
     case 'name':
       organizationRequestsQuery = organizationRequestsQuery.orderBy('organization_request.name', sortDir);
-      break;
-    case 'email':
-      organizationRequestsQuery = organizationRequestsQuery.orderBy('organization_request.email', sortDir);
       break;
     case 'created_at':
     default:

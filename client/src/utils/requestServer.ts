@@ -12,6 +12,7 @@ export default async function requestServer<ReturnType>(path: string, { body, me
   const options: RequestInit = {
     method,
     headers,
+    cache: 'no-store',
   };
 
   if (includeJwt) {
@@ -33,10 +34,12 @@ export default async function requestServer<ReturnType>(path: string, { body, me
   }
 
   const response = await fetch(url, options);
-  const json = await response.json();
+  const text = await response.text();
+  const json = text ? JSON.parse(text) as Record<string, unknown> : {};
 
   if (response.status >= 400) {
-    throw new Error(json.message, { cause: response });
+    const message = typeof json.message === 'string' ? json.message : response.statusText;
+    throw new Error(message, { cause: response });
   }
 
   return json as ReturnType;

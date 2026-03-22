@@ -1,12 +1,10 @@
 export type PostingSortDir = 'asc' | 'desc';
 
-export type SharedPostingSortBy = 'start_date' | 'end_date' | 'created_at';
+export type SharedPostingSortBy = 'start_date' | 'created_at';
 
 type SharedPostingSortOptionValue
   = | 'start_date_asc'
     | 'start_date_desc'
-    | 'end_date_asc'
-    | 'end_date_desc'
     | 'created_at_desc';
 
 export type SharedPostingFilterFields = {
@@ -31,10 +29,8 @@ export type OrganizationPostingSortOption = {
 
 export const organizationPostingSortOptions: OrganizationPostingSortOption[] = [
   { value: 'created_at_desc', label: 'Most Recent', sortBy: 'created_at', sortDir: 'desc' },
-  { value: 'start_date_asc', label: 'Start Date (Oldest First)', sortBy: 'start_date', sortDir: 'asc' },
-  { value: 'start_date_desc', label: 'Start Date (Newest First)', sortBy: 'start_date', sortDir: 'desc' },
-  { value: 'end_date_asc', label: 'End Date (Oldest First)', sortBy: 'end_date', sortDir: 'asc' },
-  { value: 'end_date_desc', label: 'End Date (Newest First)', sortBy: 'end_date', sortDir: 'desc' },
+  { value: 'start_date_asc', label: 'Start Date (Oldest)', sortBy: 'start_date', sortDir: 'asc' },
+  { value: 'start_date_desc', label: 'Start Date (Newest)', sortBy: 'start_date', sortDir: 'desc' },
   { value: 'title_asc', label: 'Title (A-Z)', sortBy: 'title', sortDir: 'asc' },
   { value: 'title_desc', label: 'Title (Z-A)', sortBy: 'title', sortDir: 'desc' },
 ];
@@ -52,10 +48,8 @@ export type VolunteerPostingSortOption = {
 export const volunteerPostingSortOptions: VolunteerPostingSortOption[] = [
   { value: 'created_at_desc', label: 'Most Recent', sortBy: 'created_at', sortDir: 'desc' },
   { value: 'recommended_desc', label: 'Recommended (Best Match)', sortBy: 'recommended', sortDir: 'desc' },
-  { value: 'start_date_asc', label: 'Start Date (Oldest First)', sortBy: 'start_date', sortDir: 'asc' },
-  { value: 'start_date_desc', label: 'Start Date (Newest First)', sortBy: 'start_date', sortDir: 'desc' },
-  { value: 'end_date_asc', label: 'End Date (Oldest First)', sortBy: 'end_date', sortDir: 'asc' },
-  { value: 'end_date_desc', label: 'End Date (Newest First)', sortBy: 'end_date', sortDir: 'desc' },
+  { value: 'start_date_asc', label: 'Start Date (Oldest)', sortBy: 'start_date', sortDir: 'asc' },
+  { value: 'start_date_desc', label: 'Start Date (Newest)', sortBy: 'start_date', sortDir: 'desc' },
 ];
 
 const getSortOptionByFields = <

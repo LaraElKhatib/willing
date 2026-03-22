@@ -10,7 +10,6 @@ import {
 import { useCallback, useState } from 'react';
 
 import Button from './Button';
-import LocationPicker from './LocationPicker';
 import requestServer from '../utils/requestServer';
 
 import type { OrganizationRequest } from '../../../server/src/db/tables';
@@ -20,7 +19,6 @@ function OrganizationRequestReviewCard({ request, refreshOrganizationRequests }:
   refreshOrganizationRequests: (...args: unknown[]) => unknown;
 }) {
   const [reason, setReason] = useState('');
-  const location: [number, number] = [request.latitude ?? 0, request.longitude ?? 0];
 
   const handleReasonChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setReason(e.target.value);
@@ -64,8 +62,6 @@ function OrganizationRequestReviewCard({ request, refreshOrganizationRequests }:
           <MapPin size={16} />
           {request.location_name}
         </div>
-
-        <LocationPicker position={location} setPosition={() => {}} readOnly={true} />
 
         <div className="space-y-1 my-4 text-sm">
           <p className="flex justify-between">
