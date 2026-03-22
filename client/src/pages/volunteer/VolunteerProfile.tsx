@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { useForm } from 'react-hook-form';
+import { Link } from 'react-router-dom';
 import { z } from 'zod';
 
 import { volunteerAccountSchema } from '../../../../server/src/db/tables';
@@ -679,7 +680,9 @@ function VolunteerProfile() {
                         {visibleCompletedExperiences.map(experience => (
                           <div key={experience.enrollment_id} className="rounded-lg border border-base-300 p-4">
                             <div className="flex flex-wrap items-center justify-between gap-2">
-                              <h6 className="font-semibold text-base">{experience.posting_title}</h6>
+                              <Link to={`/posting/${experience.posting_id}`} className="font-semibold text-base text-primary hover:underline">
+                                {experience.posting_title}
+                              </Link>
                               <span className="badge badge-success">Present</span>
                             </div>
 
