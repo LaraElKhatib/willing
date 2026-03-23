@@ -29,6 +29,15 @@ const formatTime12Hour = (timeValue: string | undefined) => {
   return `${hour12}:${String(minutes).padStart(2, '0')} ${suffix}`;
 };
 
+const formatCardDate = (dateValue: Date | null) => {
+  if (!dateValue) return '';
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(dateValue);
+};
+
 function PostingList({ posting, showCrisis = true, variant = 'volunteer' }: PostingListProps) {
   const postingDetailsPath = `/posting/${posting.id}`;
 
@@ -36,8 +45,8 @@ function PostingList({ posting, showCrisis = true, variant = 'volunteer' }: Post
   const endDt = normalizeTimestamp(posting.end_date);
   const hasEndDate = Boolean(endDt);
 
-  const startDateStr = startDt ? startDt.toLocaleDateString() : 'TBA';
-  const endDateStr = endDt ? endDt.toLocaleDateString() : 'TBA';
+  const startDateStr = formatCardDate(startDt) || 'TBA';
+  const endDateStr = formatCardDate(endDt) || 'TBA';
   const startTimeStr = formatTime12Hour(posting.start_time || '')
     || (startDt
       ? startDt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })
