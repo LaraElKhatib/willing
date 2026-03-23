@@ -231,9 +231,8 @@ volunteerPostingRouter.get('/enrollments', async (req, res: Response<VolunteerEn
     : filteredPostings;
     .filter(posting => (hideFull ? posting.max_volunteers == null || posting.enrollment_count < posting.max_volunteers : true));
 
-  const effectiveSortBy = sortBy === 'recommended' ? 'start_date' : sortBy;
-  const effectiveSortDir = sortDir;
-  const sortedPostings = sortPostingsBySharedSort<PostingWithContext>(filteredPostings, effectiveSortBy, effectiveSortDir);
+  const sortByForList = sortBy === 'recommended' ? 'start_date' : sortBy;
+  const sortedPostings = sortPostingsBySharedSort<PostingWithContext>(visiblePostings, sortByForList, sortDir);
 
   res.json({ postings: sortedPostings });
 });
