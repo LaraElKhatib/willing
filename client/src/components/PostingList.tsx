@@ -40,6 +40,7 @@ const formatCardDate = (dateValue: Date | null) => {
 
 function PostingList({ posting, showCrisis = true, variant = 'volunteer' }: PostingListProps) {
   const postingDetailsPath = `/posting/${posting.id}`;
+  const hasOrganizationName = Boolean(posting.organization_name);
 
   const startDt = normalizeTimestamp(posting.start_date);
   const endDt = normalizeTimestamp(posting.end_date);
@@ -142,18 +143,32 @@ function PostingList({ posting, showCrisis = true, variant = 'volunteer' }: Post
           </div>
 
           <div className="min-w-0 flex-1 relative">
-            <div className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]">
-              <div className="flex min-w-0 items-center gap-2">
-                <Link
-                  to={postingDetailsPath}
-                  onClick={event => event.stopPropagation()}
-                  className="link link-primary link-hover no-underline hover:underline inline-flex min-w-0 items-center gap-2 pointer-events-auto"
-                >
-                  <span className="truncate text-lg font-semibold leading-tight text-primary">{posting.title}</span>
-                  <ExternalLink size={14} />
-                </Link>
+            <div className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] lg:grid-rows-2">
+              <div
+                className={`min-w-0 lg:row-span-2 lg:flex lg:self-stretch lg:flex-col ${variant === 'volunteer' && hasOrganizationName ? 'lg:justify-start' : 'lg:justify-center'}`}
+              >
+                <div className="flex min-w-0 items-center gap-2">
+                  <Link
+                    to={postingDetailsPath}
+                    onClick={event => event.stopPropagation()}
+                    className="link link-primary link-hover no-underline hover:underline inline-flex min-w-0 items-center gap-2 pointer-events-auto"
+                  >
+                    <span className="truncate text-lg font-semibold leading-tight text-primary">{posting.title}</span>
+                    <ExternalLink size={14} />
+                  </Link>
 
-                <div className="shrink-0 opacity-100">{statusTag}</div>
+                  <div className="shrink-0 opacity-100">{statusTag}</div>
+                </div>
+
+                {variant === 'volunteer' && posting.organization_name && (
+                  <Link
+                    to={`/organization/${posting.organization_id}`}
+                    onClick={event => event.stopPropagation()}
+                    className="pointer-events-auto text-primary link link-hover no-underline hover:underline text-xs mt-1 self-start"
+                  >
+                    {posting.organization_name}
+                  </Link>
+                )}
               </div>
 
               <span className="-ml-8 hidden items-center gap-1.5 justify-self-start text-sm opacity-70 lg:inline-flex">
@@ -170,39 +185,13 @@ function PostingList({ posting, showCrisis = true, variant = 'volunteer' }: Post
                 <MapPin size={14} className="shrink-0 text-primary" />
                 Location
               </span>
+
+              <span className="-ml-8 hidden min-w-0 truncate justify-self-start pr-1 text-xs font-medium text-base-content lg:block">{hasEndDate ? `${startDateStr} - ${endDateStr}` : startDateStr}</span>
+
+              <span className="-ml-8 hidden min-w-0 truncate justify-self-start pr-1 text-xs font-medium text-base-content lg:block">{hasEndDate ? `${startTimeStr} - ${endTimeStr}` : startTimeStr}</span>
+
+              <span className="-ml-8 hidden min-w-0 truncate justify-self-start text-xs font-medium text-base-content lg:block">{locationText}</span>
             </div>
-
-            {variant === 'volunteer' && (
-              <div className="mt-1 grid w-full grid-cols-1 items-center gap-x-3 gap-y-1 text-xs text-base-content lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]">
-                {posting.organization_name && (
-                  <Link
-                    to={`/organization/${posting.organization_id}`}
-                    onClick={event => event.stopPropagation()}
-                    className="pointer-events-auto text-primary link link-hover no-underline hover:underline text-xs justify-self-start"
-                  >
-                    {posting.organization_name}
-                  </Link>
-                )}
-
-                <span className="-ml-8 hidden min-w-0 truncate justify-self-start pr-1 font-medium lg:block">{hasEndDate ? `${startDateStr} - ${endDateStr}` : startDateStr}</span>
-
-                <span className="-ml-8 hidden min-w-0 truncate justify-self-start pr-1 font-medium lg:block">{hasEndDate ? `${startTimeStr} - ${endTimeStr}` : startTimeStr}</span>
-
-                <span className="-ml-8 hidden min-w-0 truncate justify-self-start font-medium lg:block">{locationText}</span>
-              </div>
-            )}
-
-            {variant === 'organization' && (
-              <div className="mt-1 hidden w-full grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] items-center gap-x-3 gap-y-1 text-xs text-base-content lg:grid">
-                <span aria-hidden="true"></span>
-
-                <span className="-ml-8 min-w-0 truncate justify-self-start pr-1 font-medium">{hasEndDate ? `${startDateStr} - ${endDateStr}` : startDateStr}</span>
-
-                <span className="-ml-8 min-w-0 truncate justify-self-start pr-1 font-medium">{hasEndDate ? `${startTimeStr} - ${endTimeStr}` : startTimeStr}</span>
-
-                <span className="-ml-8 min-w-0 truncate justify-self-start font-medium">{locationText}</span>
-              </div>
-            )}
           </div>
         </div>
 
