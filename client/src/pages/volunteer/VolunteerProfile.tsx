@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { useForm } from 'react-hook-form';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { z } from 'zod';
 
 import { volunteerAccountSchema } from '../../../../server/src/db/tables';
@@ -30,6 +30,7 @@ import Alert from '../../components/Alert';
 import Button from '../../components/Button';
 import ColumnLayout from '../../components/layout/ColumnLayout';
 import PageHeader from '../../components/layout/PageHeader';
+import LinkButton from '../../components/LinkButton';
 import Loading from '../../components/Loading';
 import SkillsInput from '../../components/skills/SkillsInput';
 import SkillsList from '../../components/skills/SkillsList';
@@ -456,6 +457,10 @@ function VolunteerProfile() {
           icon={FileText}
           actions={(
             <>
+              <LinkButton to="/volunteer/certificate" color="secondary" className="btn btn-outline">
+                <FileText size={16} />
+                Generate Certificate
+              </LinkButton>
               {isEditMode
                 ? (
                     <Button color="primary" style="outline" onClick={onCancelEdit} loading={saving} Icon={X}>

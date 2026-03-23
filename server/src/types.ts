@@ -34,6 +34,7 @@ export type PostingApplicationStatus = 'none' | 'pending' | 'registered';
 
 export type PostingWithContext = PostingWithSkills & {
   organization_name: string;
+  organization_logo_path: string | undefined;
   crisis_name: string | null;
   enrollment_count: number;
   application_status: PostingApplicationStatus;

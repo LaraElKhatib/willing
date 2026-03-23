@@ -19,7 +19,7 @@ const EXPERIENCE_VECTOR_DECAY_LAMBDA = 0.35;
 
 const getRecencyRankWeight = (rank: number) => Math.exp(-EXPERIENCE_VECTOR_DECAY_LAMBDA * rank);
 
-type OrganizationEmbeddingSource = Pick<OrganizationAccount, 'name' | 'url' | 'location_name' | 'latitude' | 'longitude'>;
+type OrganizationEmbeddingSource = Pick<OrganizationAccount, 'name' | 'description' | 'location_name'>;
 type PostingEmbeddingSource = Pick<OrganizationPosting, 'title' | 'description' | 'location_name' | 'start_date' | 'start_time' | 'end_date' | 'end_time' | 'minimum_age' | 'max_volunteers'>;
 type VolunteerProfileEmbeddingSource = Pick<VolunteerAccountWithoutPassword, 'first_name' | 'last_name' | 'description' | 'gender'>;
 
@@ -97,9 +97,8 @@ const updateVolunteerExperienceVector = async (volunteerId: number, experienceVe
 const buildOrganizationText = (organization: OrganizationEmbeddingSource) => {
   return [
     `Organization: ${organization.name}`,
-    `Website: ${organization.url}`,
+    `Description: ${organization.description ?? ''}`,
     `Location: ${organization.location_name}`,
-    `Coordinates: ${organization.latitude ?? ''}, ${organization.longitude ?? ''}`,
   ].join('\n');
 };
 
@@ -145,7 +144,7 @@ export const recomputeOrganizationVector = async (organizationId: number, execut
   const run = async () => {
     const organization = await executor
       .selectFrom('organization_account')
-      .select(['id', 'name', 'url', 'location_name', 'latitude', 'longitude'])
+      .select(['id', 'name', 'description', 'location_name'])
       .where('id', '=', organizationId)
       .executeTakeFirstOrThrow();
 

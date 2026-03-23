@@ -5,6 +5,7 @@ import { SuccessResponse } from '../../../types.js';
 export type OrganizationRequestResponse = SuccessResponse;
 
 export type OrganizationGetLogoFileResponse = never;
+export type OrganizationGetSignatureFileResponse = never;
 
 export type OrganizationProfileResponse = {
   organization: OrganizationAccountWithoutPasswordAndVector;

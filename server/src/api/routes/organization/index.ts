@@ -8,6 +8,7 @@ import zod from 'zod';
 import certificateInfoRouter from './certificateInfo.js';
 import {
   OrganizationGetLogoFileResponse,
+  OrganizationGetSignatureFileResponse,
   OrganizationDeleteLogoResponse,
   OrganizationCrisisResponse,
   OrganizationCrisesResponse,
@@ -26,7 +27,7 @@ import { newOrganizationRequestSchema, organizationAccountSchema, PostingSkill }
 import { recomputeOrganizationVector } from '../../../services/embeddings/updates.js';
 import { sendAdminOrganizationRequestEmail } from '../../../services/smtp/emails.js';
 import { orgLogoMulter } from '../../../services/uploads/orgLogo.js';
-import { ORG_LOGO_UPLOAD_DIR } from '../../../services/uploads/paths.js';
+import { ORG_LOGO_UPLOAD_DIR, ORG_SIGNATURE_UPLOAD_DIR } from '../../../services/uploads/paths.js';
 import uploadSingle from '../../../services/uploads/uploadSingle.js';
 import { authorizeOnly } from '../../authorization.js';
 
@@ -37,9 +38,11 @@ const organizationProfileResponseColumns = [
   'email',
   'phone_number',
   'url',
+  'description',
   'latitude',
   'longitude',
   'location_name',
+  'logo_path',
   'created_at',
   'updated_at',
 ] as const;
@@ -50,6 +53,7 @@ const organizationPrivateResponseColumns = [
   'email',
   'phone_number',
   'url',
+  'description',
   'latitude',
   'longitude',
   'location_name',
@@ -82,6 +86,8 @@ const organizationProfileUpdateSchema = organizationAccountSchema.omit({
   id: true,
   password: true,
   email: true,
+  name: true,
+  url: true,
   org_vector: true,
   created_at: true,
   updated_at: true,
@@ -154,6 +160,39 @@ organizationRouter.get('/:id/logo', async (req, res: Response<OrganizationGetLog
   res.setHeader('Content-Disposition', 'inline; filename="organization-logo"');
 
   res.sendFile(organization.logo_path, { root: ORG_LOGO_UPLOAD_DIR }, (error) => {
+    if (!error) return;
+    next(error);
+  });
+});
+
+organizationRouter.get('/:id/signature', async (req, res: Response<OrganizationGetSignatureFileResponse>, next) => {
+  const { id } = zod.object({
+    id: zod.coerce.number().int().positive('ID must be a positive number'),
+  }).parse(req.params);
+
+  const organization = await database
+    .selectFrom('organization_account')
+    .leftJoin('organization_certificate_info', 'organization_certificate_info.id', 'organization_account.certificate_info_id')
+    .select(['organization_certificate_info.signature_path'])
+    .where('organization_account.id', '=', id)
+    .executeTakeFirst();
+
+  if (!organization?.signature_path) {
+    res.status(404);
+    throw new Error('Organization signature not found');
+  }
+
+  const ext = path.extname(organization.signature_path).toLowerCase();
+  if (ext === '.png') {
+    res.setHeader('Content-Type', 'image/png');
+  } else if (ext === '.svg') {
+    res.setHeader('Content-Type', 'image/svg+xml');
+  } else {
+    res.setHeader('Content-Type', 'image/jpeg');
+  }
+  res.setHeader('Content-Disposition', 'inline; filename="organization-signature"');
+
+  res.sendFile(organization.signature_path, { root: ORG_SIGNATURE_UPLOAD_DIR }, (error) => {
     if (!error) return;
     next(error);
   });
@@ -276,8 +315,7 @@ organizationRouter.put('/profile', async (req, res: Response<OrganizationUpdateP
   const existingOrganization = await database
     .selectFrom('organization_account')
     .select([
-      'name',
-      'url',
+      'description',
       'location_name',
       'latitude',
       'longitude',
@@ -286,8 +324,7 @@ organizationRouter.put('/profile', async (req, res: Response<OrganizationUpdateP
     .executeTakeFirstOrThrow();
 
   const shouldRecomputeOrganizationVector = (
-    (body.name !== undefined && body.name !== existingOrganization.name)
-    || (body.url !== undefined && body.url !== existingOrganization.url)
+    (body.description !== undefined && body.description !== existingOrganization.description)
     || (body.location_name !== undefined && body.location_name !== existingOrganization.location_name)
     || (body.latitude !== undefined && !isSameNullableNumber(body.latitude, existingOrganization.latitude))
     || (body.longitude !== undefined && !isSameNullableNumber(body.longitude, existingOrganization.longitude))
@@ -354,9 +391,22 @@ organizationRouter.delete('/logo', async (req, res: Response<OrganizationDeleteL
   const organizationId = req.userJWT!.id;
   const existingOrganization = await database
     .selectFrom('organization_account')
-    .select(['logo_path'])
+    .select(['logo_path', 'certificate_info_id'])
     .where('id', '=', organizationId)
     .executeTakeFirstOrThrow();
+
+  if (existingOrganization.certificate_info_id) {
+    const certificateInfo = await database
+      .selectFrom('organization_certificate_info')
+      .select(['certificate_feature_enabled'])
+      .where('id', '=', existingOrganization.certificate_info_id)
+      .executeTakeFirst();
+
+    if (certificateInfo?.certificate_feature_enabled) {
+      res.status(400);
+      throw new Error('Disable certificates before removing organization profile picture.');
+    }
+  }
 
   if (existingOrganization.logo_path) {
     try {

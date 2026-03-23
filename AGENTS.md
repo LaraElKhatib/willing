@@ -207,6 +207,7 @@ All components are in `client/src/components/`. **Use these instead of recreatin
 - **`PasswordResetCard`**: Self-contained password reset form integrated with auth context and validation/error handling.
 - **`ToggleButton`**: React-hook-form-friendly toggle group. Required props: `form`, `name`, `label`, `options`. Optional props: `disabled` (default `false`), `compact` (default `false`). Option-level optional fields: `description`, `Icon`, `btnColor`.
 - **`CalendarInfo`**: Shared date/date-time input abstraction supporting form mode and controlled mode. Optional common props: `startLabel`, `endLabel`, `className`, `inputType`.
+- **`SignatureUploadField`**: Shared signature upload + draw control (file upload, draw pad, clear/save drawn signature, preview, remove). Use this for both organization and admin signature management to avoid duplicating signature canvas logic.
 
 ### Interaction and Workflow Components
 

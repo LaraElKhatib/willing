@@ -24,6 +24,7 @@ export const postingWithContextSelectColumns = [
   'organization_posting.updated_at',
   'crisis.name as crisis_name',
   'organization_account.name as organization_name',
+  'organization_account.logo_path as organization_logo_path',
 ] as const;
 
 type PostingWithContextBase = Omit<PostingWithContext, 'skills' | 'enrollment_count' | 'application_status'>;
