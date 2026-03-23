@@ -7,6 +7,7 @@ import type { OrganizationCertificateInfoTable } from './organizationCertificate
 import type { OrganizationPostingTable } from './organizationPosting.js';
 import type { OrganizationRequestTable } from './organizationRequest.js';
 import type { PasswordResetTokenTable } from './passwordResetToken.js';
+import type { PlatformCertificateSettingsTable } from './platformCertificateSettings.js';
 import type { PostingSkillTable } from './postingSkill.js';
 import type { VolunteerAccountTable } from './volunteerAccount.js';
 import type { VolunteerSkillTable } from './volunteerSkill.js';
@@ -21,8 +22,8 @@ export * from './organizationPosting.js';
 export * from './organizationRequest.js';
 export * from './passwordResetToken.js';
 export * from './postingSkill.js';
-export * from './shared.js';
 export * from './volunteerAccount.js';
+export * from './platformCertificateSettings.js';
 export * from './volunteerSkill.js';
 
 export interface Database {
@@ -38,4 +39,5 @@ export interface Database {
   enrollment: EnrollmentTable;
   enrollment_application: EnrollmentApplicationTable;
   organization_certificate_info: OrganizationCertificateInfoTable;
+  platform_certificate_settings: PlatformCertificateSettingsTable;
 }

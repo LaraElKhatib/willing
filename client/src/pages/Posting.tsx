@@ -56,7 +56,7 @@ import type {
   VolunteerCrisisResponse,
   VolunteerPostingResponse,
 } from '../../../server/src/api/types.ts';
-import type { Crisis } from '../../../server/src/db/tables.ts';
+import type { Crisis } from '../../../server/src/db/tables/index.ts';
 import type { PostingApplication, PostingEnrollment, PostingWithSkills } from '../../../server/src/types.ts';
 
 const getDateInputValue = (value: Date | string) => {

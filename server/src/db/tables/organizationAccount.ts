@@ -10,6 +10,7 @@ export const organizationAccountSchema = zod.object({
   email: emailSchema,
   phone_number: zod.e164('Phone number is invalid'),
   url: websiteSchema,
+  description: zod.string().max(300, 'Description must be less than 300 characters').optional(),
   latitude: latitudeSchema.optional(),
   longitude: longitudeSchema.optional(),
   location_name: zod.string().min(2, 'Location must be longer than 2 characters'),

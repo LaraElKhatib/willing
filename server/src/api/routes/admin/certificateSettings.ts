@@ -10,7 +10,7 @@ import {
   AdminCertificateSettingsUploadSignatureResponse,
 } from './certificateSettings.types.js';
 import database from '../../../db/index.js';
-import { newPlatformCertificateSettingsSchema } from '../../../db/tables.js';
+import { newPlatformCertificateSettingsSchema } from '../../../db/tables/index.js';
 import { getAbsolutePlatformSignaturePath, platformSignatureMulter } from '../../../services/uploads/platformSignature.js';
 import uploadSingle from '../../../services/uploads/uploadSingle.js';
 

@@ -1,4 +1,4 @@
-import { PlatformCertificateSettings } from '../../../db/tables.js';
+import { PlatformCertificateSettings } from '../../../db/tables/index.js';
 import { SuccessResponse } from '../../../types.js';
 
 export type AdminCertificateSettingsGetResponse = {
