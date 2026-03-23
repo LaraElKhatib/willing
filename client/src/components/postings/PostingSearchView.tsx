@@ -1,4 +1,4 @@
-import { RotateCcw, Search, TextSearch, type LucideIcon } from 'lucide-react';
+import { LayoutGrid, List, RotateCcw, Search, TextSearch, type LucideIcon } from 'lucide-react';
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 
 import requestServer from '../../utils/requestServer.ts';
@@ -9,6 +9,7 @@ import CalendarInfo from '../CalendarInfo.tsx';
 import PageHeader from '../layout/PageHeader.tsx';
 import Loading from '../Loading.tsx';
 import PostingCard from '../PostingCard.tsx';
+import PostingList from '../PostingList.tsx';
 
 import type { VolunteerPostingSearchResponse, VolunteerEnrollmentsResponse } from '../../../../server/src/api/types.ts';
 import type { PostingWithContext } from '../../../../server/src/types.ts';
@@ -18,6 +19,9 @@ export type PostingSearchFilters = {
   startDate: string;
   endDate: string;
 };
+
+type PostingViewMode = 'cards' | 'list';
+const POSTING_VIEW_MODE_STORAGE_KEY = 'posting-view-mode';
 
 type PostingSearchViewProps = {
   title: string;
@@ -114,6 +118,17 @@ function PostingSearchView({
   const [filters, setFilters] = useState<PostingSearchFilters>(defaultFilters);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<PostingViewMode>(() => {
+    if (typeof window === 'undefined') return 'cards';
+    return window.localStorage.getItem(POSTING_VIEW_MODE_STORAGE_KEY) === 'list' ? 'list' : 'cards';
+  });
+
+  const onViewModeChange = (mode: PostingViewMode) => {
+    setViewMode(mode);
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(POSTING_VIEW_MODE_STORAGE_KEY, mode);
+    }
+  };
 
   const { trigger: fetchPostingsRequest } = useAsync(
     async (url: string) => requestServer<VolunteerPostingSearchResponse | VolunteerEnrollmentsResponse>(url, { includeJwt: true }),
@@ -207,7 +222,7 @@ function PostingSearchView({
             />
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <Button
               color="primary"
               type="submit"
@@ -226,6 +241,27 @@ function PostingSearchView({
             >
               Reset Filters
             </Button>
+
+            <div className="join ml-auto">
+              <button
+                type="button"
+                className={`join-item btn btn-sm ${viewMode === 'cards' ? 'btn-primary' : 'btn-outline'}`}
+                onClick={() => onViewModeChange('cards')}
+                aria-pressed={viewMode === 'cards'}
+              >
+                <LayoutGrid size={14} />
+                Cards
+              </button>
+              <button
+                type="button"
+                className={`join-item btn btn-sm ${viewMode === 'list' ? 'btn-primary' : 'btn-outline'}`}
+                onClick={() => onViewModeChange('list')}
+                aria-pressed={viewMode === 'list'}
+              >
+                <List size={14} />
+                List
+              </button>
+            </div>
           </div>
         </form>
       </div>
@@ -245,12 +281,21 @@ function PostingSearchView({
               </Alert>
             )
           : (
-              <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 2xl:grid-cols-3">
+              <div className={viewMode === 'cards' ? 'grid grid-cols-1 gap-6 lg:grid-cols-2 2xl:grid-cols-3' : 'space-y-4'}>
                 {postings.map(posting => (
-                  <PostingCard
-                    key={posting.id}
-                    posting={posting}
-                  />
+                  viewMode === 'cards'
+                    ? (
+                        <PostingCard
+                          key={posting.id}
+                          posting={posting}
+                        />
+                      )
+                    : (
+                        <PostingList
+                          key={posting.id}
+                          posting={posting}
+                        />
+                      )
                 ))}
               </div>
             )}

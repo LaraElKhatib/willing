@@ -1,10 +1,12 @@
-import { House } from 'lucide-react';
+import { House, LayoutGrid, List } from 'lucide-react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import Alert from '../../components/Alert';
 import PageHeader from '../../components/layout/PageHeader.tsx';
 import Loading from '../../components/Loading.tsx';
 import PostingCard from '../../components/PostingCard';
+import PostingList from '../../components/PostingList';
 import HorizontalScrollSection from '../../components/postings/HorizontalScrollSection.tsx';
 import requestServer from '../../utils/requestServer';
 import useAsync from '../../utils/useAsync';
@@ -16,19 +18,33 @@ import type {
 } from '../../../../server/src/api/types';
 import type { PostingWithContext } from '../../../../server/src/types';
 
+type PostingViewMode = 'cards' | 'list';
+const POSTING_VIEW_MODE_STORAGE_KEY = 'posting-view-mode';
+
 const PostingRailCard = ({
   posting,
   showCrisis,
+  viewMode,
 }: {
   posting: PostingWithContext;
   showCrisis: boolean;
+  viewMode: PostingViewMode;
 }) => {
   return (
-    <div className="shrink-0 snap-start md:w-md w-sm">
-      <PostingCard
-        posting={posting}
-        showCrisis={showCrisis}
-      />
+    <div className={`shrink-0 snap-start ${viewMode === 'cards' ? 'md:w-md w-sm' : 'w-[min(42rem,92vw)]'}`}>
+      {viewMode === 'cards'
+        ? (
+            <PostingCard
+              posting={posting}
+              showCrisis={showCrisis}
+            />
+          )
+        : (
+            <PostingList
+              posting={posting}
+              showCrisis={showCrisis}
+            />
+          )}
     </div>
   );
 };
@@ -45,6 +61,18 @@ const getPostingCrisisId = (posting: PostingWithContext): number | undefined => 
 };
 
 function VolunteerHome() {
+  const [viewMode, setViewMode] = useState<PostingViewMode>(() => {
+    if (typeof window === 'undefined') return 'cards';
+    return window.localStorage.getItem(POSTING_VIEW_MODE_STORAGE_KEY) === 'list' ? 'list' : 'cards';
+  });
+
+  const onViewModeChange = (mode: PostingViewMode) => {
+    setViewMode(mode);
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(POSTING_VIEW_MODE_STORAGE_KEY, mode);
+    }
+  };
+
   const {
     data: enrolledPostings,
     loading: enrolledLoading,
@@ -131,6 +159,28 @@ function VolunteerHome() {
           title="Home"
           subtitle="Your enrollments, pinned crises, and personalised picks - all in one place."
           icon={House}
+          actions={(
+            <div className="join">
+              <button
+                type="button"
+                className={`join-item btn btn-sm ${viewMode === 'cards' ? 'btn-primary' : 'btn-outline'}`}
+                onClick={() => onViewModeChange('cards')}
+                aria-pressed={viewMode === 'cards'}
+              >
+                <LayoutGrid size={14} />
+                Cards
+              </button>
+              <button
+                type="button"
+                className={`join-item btn btn-sm ${viewMode === 'list' ? 'btn-primary' : 'btn-outline'}`}
+                onClick={() => onViewModeChange('list')}
+                aria-pressed={viewMode === 'list'}
+              >
+                <List size={14} />
+                List
+              </button>
+            </div>
+          )}
         />
 
         <div className="space-y-10">
@@ -160,6 +210,7 @@ function VolunteerHome() {
                   key={posting.id}
                   posting={posting}
                   showCrisis
+                  viewMode={viewMode}
                 />
               ))}
             </HorizontalScrollSection>
@@ -195,6 +246,7 @@ function VolunteerHome() {
                   key={posting.id}
                   posting={posting}
                   showCrisis
+                  viewMode={viewMode}
                 />
               ))}
             </HorizontalScrollSection>
@@ -228,6 +280,7 @@ function VolunteerHome() {
                 key={posting.id}
                 posting={posting}
                 showCrisis
+                viewMode={viewMode}
               />
             ))}
           </HorizontalScrollSection>

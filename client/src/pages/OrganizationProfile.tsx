@@ -1,16 +1,34 @@
-import { Building2, MapPin, Globe, Mail, Phone } from 'lucide-react';
+import { Building2, Globe, LayoutGrid, List, Mail, MapPin, Phone } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 
 import ColumnLayout from '../components/layout/ColumnLayout';
 import PageHeader from '../components/layout/PageHeader';
 import LocationPicker from '../components/LocationPicker';
 import PostingCard from '../components/PostingCard';
+import PostingList from '../components/PostingList';
 import requestServer from '../utils/requestServer';
 import useAsync from '../utils/useAsync';
 
 import type { OrganizationProfileResponse } from '../../../server/src/api/types';
+import type { PostingWithContext } from '../../../server/src/types';
+
+type PostingViewMode = 'cards' | 'list';
+const POSTING_VIEW_MODE_STORAGE_KEY = 'posting-view-mode';
 
 function OrganizationProfile() {
+  const [viewMode, setViewMode] = useState<PostingViewMode>(() => {
+    if (typeof window === 'undefined') return 'cards';
+    return window.localStorage.getItem(POSTING_VIEW_MODE_STORAGE_KEY) === 'list' ? 'list' : 'cards';
+  });
+
+  const onViewModeChange = (mode: PostingViewMode) => {
+    setViewMode(mode);
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(POSTING_VIEW_MODE_STORAGE_KEY, mode);
+    }
+  };
+
   const { id } = useParams<{ id: string }>();
 
   const { data, loading, error } = useAsync(
@@ -27,6 +45,18 @@ function OrganizationProfile() {
     },
     { immediate: !!id },
   );
+
+  const postingsWithContext = useMemo<PostingWithContext[]>(() => {
+    if (!data) return [];
+
+    return data.postings.map(posting => ({
+      ...posting,
+      organization_name: data.organization.name,
+      crisis_name: null,
+      enrollment_count: 0,
+      application_status: 'none',
+    }));
+  }, [data]);
 
   if (!id) {
     return (
@@ -184,16 +214,37 @@ function OrganizationProfile() {
               )}
             >
               <div>
-                <div className="flex items-center gap-2 mb-6">
+                <div className="flex flex-wrap items-center gap-2 mb-6">
                   <h3 className="text-2xl font-bold tracking-tight">
                     Postings
                   </h3>
                   <span className="badge badge-lg badge-primary">
-                    {data.postings.length}
+                    {postingsWithContext.length}
                   </span>
+
+                  <div className="join ml-auto">
+                    <button
+                      type="button"
+                      className={`join-item btn btn-sm ${viewMode === 'cards' ? 'btn-primary' : 'btn-outline'}`}
+                      onClick={() => onViewModeChange('cards')}
+                      aria-pressed={viewMode === 'cards'}
+                    >
+                      <LayoutGrid size={14} />
+                      Cards
+                    </button>
+                    <button
+                      type="button"
+                      className={`join-item btn btn-sm ${viewMode === 'list' ? 'btn-primary' : 'btn-outline'}`}
+                      onClick={() => onViewModeChange('list')}
+                      aria-pressed={viewMode === 'list'}
+                    >
+                      <List size={14} />
+                      List
+                    </button>
+                  </div>
                 </div>
 
-                {data.postings.length === 0
+                {postingsWithContext.length === 0
                   ? (
                       <div className="card bg-base-100 shadow-md border border-base-200">
                         <div className="card-body flex flex-col items-center justify-center py-12">
@@ -204,12 +255,22 @@ function OrganizationProfile() {
                       </div>
                     )
                   : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {data.postings.map(posting => (
-                          <PostingCard
-                            key={posting.id}
-                            posting={posting}
-                          />
+                      <div className={viewMode === 'cards' ? 'grid grid-cols-1 md:grid-cols-2 gap-6' : 'space-y-4'}>
+                        {postingsWithContext.map(posting => (
+                          viewMode === 'cards'
+                            ? (
+                                <PostingCard
+                                  key={posting.id}
+                                  posting={posting}
+                                />
+                              )
+                            : (
+                                <PostingList
+                                  key={posting.id}
+                                  posting={posting}
+                                  variant="organization"
+                                />
+                              )
                         ))}
                       </div>
                     )}
