@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { useForm } from 'react-hook-form';
-import { Link, useNavigate } from 'react-router';
+import { Link } from 'react-router';
 import { z } from 'zod';
 
 import { volunteerAccountSchema } from '../../../../server/src/db/tables';
@@ -30,6 +30,7 @@ import Alert from '../../components/Alert';
 import Button from '../../components/Button';
 import ColumnLayout from '../../components/layout/ColumnLayout';
 import PageHeader from '../../components/layout/PageHeader';
+import LinkButton from '../../components/LinkButton';
 import Loading from '../../components/Loading';
 import SkillsInput from '../../components/skills/SkillsInput';
 import SkillsList from '../../components/skills/SkillsList';
@@ -120,7 +121,6 @@ const getExperienceDurationInHours = (startValue: Date | string, endValue?: Date
 };
 
 function VolunteerProfile() {
-  const navigate = useNavigate();
   const [profile, setProfile] = useState<VolunteerProfileResponse | null>(null);
   const [skills, setSkills] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
@@ -461,9 +461,6 @@ function VolunteerProfile() {
                 <FileText size={16} />
                 Generate Certificate
               </LinkButton>
-                <FileText size={16} />
-                Generate Certificate
-              </button>
               {isEditMode
                 ? (
                     <Button color="primary" style="outline" onClick={onCancelEdit} loading={saving} Icon={X}>
