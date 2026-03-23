@@ -1,6 +1,6 @@
 ## Sprint 5: Planned Features and Schema Changes
 
-This section describes the planned scope for Sprint 5. **Do not assume any item is already implemented or not implemented—use this as a reference for what may be in progress, completed, or pending.**
+This section describes the planned scope for Sprint 5.
 
 ### Planned Features
 

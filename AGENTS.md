@@ -291,5 +291,5 @@ AGENTS.md files may exist at multiple levels. The most specific one in the direc
 
 Sprint 5 introduces features such as reporting, partial attendance, admin controls, and email verification.
 
-See full details for clarification about databases, features, and roles:
+always see full details for clarification about databases, features, and roles:
 docs/sprints/sprint-5.md
