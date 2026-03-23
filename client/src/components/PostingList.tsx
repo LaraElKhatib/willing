@@ -204,7 +204,7 @@ function PostingList({ posting, showCrisis = true, variant = 'volunteer' }: Post
         </div>
       </div>
 
-      <div className="collapse-content pt-0">
+      <div className="collapse-content overflow-hidden pt-0">
         <div className="mb-3 space-y-1 text-sm lg:hidden">
           <div className="inline-flex items-center gap-2">
             <Calendar size={14} className="text-primary" />
