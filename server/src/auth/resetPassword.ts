@@ -5,7 +5,8 @@ import zod from 'zod';
 
 import config from '../config.js';
 import database from '../db/index.js';
-import { Database, passwordSchema } from '../db/tables.js';
+import { Database } from '../db/tables.js';
+import { passwordSchema } from '../schemas/index.js';
 
 export interface ResetPasswordResponse {
   token: string;
