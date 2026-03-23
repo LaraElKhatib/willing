@@ -137,14 +137,7 @@ function PostingSearchView({
     try {
       const response = await fetchPostingsRequest(url);
       const postProcessFilteredPostings = filterPostings ? filterPostings(response.postings) : response.postings;
-      const finalPostings = activeFilters.hideFull
-        ? postProcessFilteredPostings.filter((posting) => {
-            if (posting.max_volunteers === undefined || posting.max_volunteers === null) return true;
-            return (posting.enrollment_count ?? 0) < posting.max_volunteers;
-          })
-        : postProcessFilteredPostings;
-
-      setPostings(finalPostings);
+      setPostings(postProcessFilteredPostings);
     } catch (fetchError) {
       setPostings([]);
       const message = fetchError instanceof Error ? fetchError.message : 'Failed to load postings';

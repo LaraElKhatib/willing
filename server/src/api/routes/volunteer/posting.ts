@@ -147,7 +147,7 @@ volunteerPostingRouter.get('/', async (req, res: Response<VolunteerPostingSearch
       query = query.orderBy(sql`${profileOnlyScore} desc nulls last`);
     }
 
-    query = query.orderBy('organization_posting.start_date', 'asc').orderBy('organization_posting.start_time', 'asc');
+    query = query.orderBy('organization_posting.start_date', sortDir).orderBy('organization_posting.start_time', sortDir);
   } else {
     if (sortBy === 'recommended' && !hasProfileVector && hasExperienceVector) {
       console.info('[recommendation] Volunteer has experience_vector but no valid profile_vector. Using default opportunity ordering.');
@@ -156,7 +156,7 @@ volunteerPostingRouter.get('/', async (req, res: Response<VolunteerPostingSearch
     }
 
     if (sortBy === 'recommended') {
-      query = query.orderBy('organization_posting.start_date', 'asc').orderBy('organization_posting.start_time', 'asc');
+      query = query.orderBy('organization_posting.start_date', sortDir).orderBy('organization_posting.start_time', sortDir);
     } else {
       query = applySharedPostingSort(query, sortBy, sortDir);
     }
@@ -228,9 +228,9 @@ volunteerPostingRouter.get('/enrollments', async (req, res: Response<VolunteerEn
     .filter(posting => matchesPostingDateTimeFilters<PostingWithContext>(posting, dateTimeFilters))
     .filter(posting => (hideFull ? posting.max_volunteers == null || posting.enrollment_count < posting.max_volunteers : true));
 
-  const sortedPostings = sortBy === 'recommended'
-    ? sortPostingsBySharedSort<PostingWithContext>(filteredPostings, 'start_date', 'asc')
-    : sortPostingsBySharedSort<PostingWithContext>(filteredPostings, sortBy, sortDir);
+  const effectiveSortBy = sortBy === 'recommended' ? 'start_date' : sortBy;
+  const effectiveSortDir = sortDir;
+  const sortedPostings = sortPostingsBySharedSort<PostingWithContext>(filteredPostings, effectiveSortBy, effectiveSortDir);
 
   res.json({ postings: sortedPostings });
 });

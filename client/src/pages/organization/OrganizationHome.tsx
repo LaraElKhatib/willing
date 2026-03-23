@@ -40,8 +40,8 @@ type OrganizationPostingFilterFormValues = Omit<OrganizationPostingFilters, 'sor
 
 const defaultFilters: OrganizationPostingFilters = {
   search: '',
-  sortBy: 'start_date',
-  sortDir: 'asc',
+  sortBy: 'created_at',
+  sortDir: 'desc',
   isClosed: 'all',
   postingType: 'all',
   crisisId: 'all',

@@ -1,7 +1,12 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
+  AlertTriangle,
+  Brain,
+  Building2,
   Calendar,
+  Clock3,
   Edit3,
+  MapPin,
   Globe,
   Lock,
   Mail,
@@ -13,9 +18,11 @@ import {
   Trash2,
   Upload,
   X,
+  Users,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { useForm } from 'react-hook-form';
+import { Link } from 'react-router-dom';
 import { z } from 'zod';
 
 import { volunteerAccountSchema } from '../../../../server/src/db/tables';
@@ -59,11 +66,65 @@ const getDateInputValue = (value: string) => {
   return parsed.toISOString().slice(0, 10);
 };
 
+const formatExperienceDateRange = (startValue: Date | string, endValue?: Date | string) => {
+  const startDate = new Date(startValue);
+  const endDate = endValue ? new Date(endValue) : null;
+
+  const startText = Number.isNaN(startDate.getTime())
+    ? 'Date unavailable'
+    : startDate.toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      });
+
+  if (!endDate || Number.isNaN(endDate.getTime())) {
+    return startText;
+  }
+
+  const endText = endDate.toLocaleDateString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+
+  return `${startText} - ${endText}`;
+};
+
+const DEFAULT_SINGLE_DAY_HOURS = 5;
+
+const getExperienceDurationInHours = (startValue: Date | string, endValue?: Date | string) => {
+  const startDate = new Date(startValue);
+  if (Number.isNaN(startDate.getTime())) return 0;
+
+  const endDate = endValue ? new Date(endValue) : null;
+  if (!endDate || Number.isNaN(endDate.getTime())) return DEFAULT_SINGLE_DAY_HOURS;
+
+  const startDay = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+  const endDay = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+
+  const diffInMs = endDay.getTime() - startDay.getTime();
+  const dayCount = diffInMs < 0 ? 1 : Math.floor(diffInMs / (24 * 60 * 60 * 1000)) + 1;
+
+  const startHourOfDay = startDate.getHours()
+    + (startDate.getMinutes() / 60)
+    + (startDate.getSeconds() / 3600);
+  const endHourOfDay = endDate.getHours()
+    + (endDate.getMinutes() / 60)
+    + (endDate.getSeconds() / 3600);
+
+  const dailyHours = endHourOfDay - startHourOfDay;
+  const safeDailyHours = dailyHours > 0 ? dailyHours : DEFAULT_SINGLE_DAY_HOURS;
+
+  return safeDailyHours * dayCount;
+};
+
 function VolunteerProfile() {
   const [profile, setProfile] = useState<VolunteerProfileResponse | null>(null);
   const [skills, setSkills] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [showAllExperiences, setShowAllExperiences] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [cvBusy, setCvBusy] = useState(false);
   const notifications = useNotifications();
@@ -87,6 +148,7 @@ function VolunteerProfile() {
       { includeJwt: true },
     );
     setProfile(response);
+    setShowAllExperiences(false);
     setSkills(response.skills);
     form.reset({
       first_name: response.volunteer.first_name,
@@ -209,6 +271,25 @@ function VolunteerProfile() {
     if (formValues.gender === 'female') return 'badge-secondary';
     return 'badge-accent';
   }, [formValues.gender]);
+
+  const visibleCompletedExperiences = useMemo(() => {
+    if (!profile) return [];
+    if (showAllExperiences) return profile.completed_experiences;
+    return profile.completed_experiences.slice(0, 2);
+  }, [profile, showAllExperiences]);
+
+  const hasHiddenCompletedExperiences = useMemo(() => {
+    if (!profile) return false;
+    return profile.completed_experiences.length >= 3;
+  }, [profile]);
+
+  const totalCompletedHours = useMemo(() => {
+    if (!profile) return 0;
+
+    return profile.completed_experiences.reduce((total, experience) => (
+      total + getExperienceDurationInHours(experience.start_timestamp, experience.end_timestamp)
+    ), 0);
+  }, [profile]);
 
   const onSave = form.handleSubmit(async (data) => {
     if (!isEditMode || !profile) return;
@@ -528,6 +609,53 @@ function VolunteerProfile() {
               </div>
             )}
           >
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-0 gap-y-3">
+              <div className="stat place-items-center bg-base-100 shadow-md rounded-2xl sm:rounded-l-2xl sm:rounded-r-none">
+                <div className="stat-title text-base">Completed Postings</div>
+                <div className="stat-value text-2xl text-primary/80 inline-flex w-full items-center justify-center gap-2">
+                  <Users className="h-6 w-6 shrink-0 stroke-current" />
+                  <span>{profile.experience_stats.total_completed_experiences}</span>
+                </div>
+              </div>
+              <div className="stat place-items-center bg-base-100 shadow-md rounded-2xl sm:rounded-none">
+                <div className="stat-title text-base">Hours Completed</div>
+                <div className="stat-value text-2xl text-primary/80 inline-flex w-full items-center justify-center gap-2">
+                  <Clock3 className="h-6 w-6 shrink-0 stroke-current" />
+                  <span>{totalCompletedHours.toFixed(1)}</span>
+                </div>
+              </div>
+              <div className="stat place-items-center bg-base-100 shadow-md rounded-2xl sm:rounded-r-2xl sm:rounded-l-none">
+                <div className="stat-title text-base">Organizations</div>
+                <div className="stat-value text-2xl text-primary/80 inline-flex w-full items-center justify-center gap-2">
+                  <Building2 className="h-6 w-6 shrink-0 stroke-current" />
+                  <span>{profile.experience_stats.organizations_supported}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-0 gap-y-3">
+              <div className="stat place-items-center bg-base-100 shadow-md rounded-2xl sm:rounded-l-2xl sm:rounded-r-none">
+                <div className="stat-title text-base">Crisis-Related</div>
+                <div className="stat-value text-2xl text-primary/80 inline-flex w-full items-center justify-center gap-2">
+                  <AlertTriangle className="h-6 w-6 shrink-0 stroke-current" />
+                  <span>{profile.experience_stats.crisis_related_experiences}</span>
+                </div>
+              </div>
+              <div className="stat place-items-center bg-base-100 shadow-md rounded-2xl sm:rounded-none">
+                <div className="stat-title text-base">Total Skills Used</div>
+                <div className="stat-value text-2xl text-primary/80 inline-flex w-full items-center justify-center gap-2">
+                  <Brain className="h-6 w-6 shrink-0 stroke-current" />
+                  <span>{profile.experience_stats.total_skills_used}</span>
+                </div>
+              </div>
+              <div className="stat place-items-center bg-base-100 shadow-md rounded-2xl sm:rounded-r-2xl sm:rounded-l-none">
+                <div className="stat-title text-base">Most Volunteered Crisis</div>
+                <div className="stat-value text-lg text-primary/80 inline-flex w-full items-center justify-center gap-2 px-2">
+                  <span className="max-w-full truncate text-center">{profile.experience_stats.most_volunteered_crisis ?? 'N/A'}</span>
+                </div>
+              </div>
+            </div>
+
             <div className="card bg-base-100 shadow-md mt-4">
               <div className="card-body">
                 <h5 className="font-bold text-lg">Skills</h5>
@@ -547,11 +675,64 @@ function VolunteerProfile() {
               <div className="card-body">
                 <h5 className="font-bold text-lg">Previous Experiences</h5>
                 <p className="text-sm opacity-70 mt-1">
-                  This section will show your past volunteering experiences completed through the platform.
+                  Past volunteering experiences completed through the platform.
                 </p>
-                <Alert style="soft" className="mt-4">
-                  No experiences to show yet.
-                </Alert>
+
+                {profile.completed_experiences.length === 0
+                  ? (
+                      <div className="alert alert-soft mt-4">
+                        <span className="text-sm">No completed experiences to show yet.</span>
+                      </div>
+                    )
+                  : (
+                      <div className="mt-4 space-y-3">
+                        {visibleCompletedExperiences.map(experience => (
+                          <div key={experience.enrollment_id} className="rounded-lg border border-base-300 p-4">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <Link to={`/posting/${experience.posting_id}`} className="font-semibold text-base text-primary hover:underline">
+                                {experience.posting_title}
+                              </Link>
+                              <span className="badge badge-success">Present</span>
+                            </div>
+
+                            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm opacity-80">
+                              <span className="inline-flex items-center gap-1">
+                                <Building2 size={14} />
+                                {experience.organization_name}
+                              </span>
+                              <span className="inline-flex items-center gap-1">
+                                <MapPin size={14} />
+                                {experience.location_name}
+                              </span>
+                              <span className="inline-flex items-center gap-1">
+                                <Calendar size={14} />
+                                {formatExperienceDateRange(experience.start_timestamp, experience.end_timestamp)}
+                              </span>
+                            </div>
+
+                            {experience.crisis_name && (
+                              <span className="badge badge-accent badge-outline mt-3">
+                                {experience.crisis_name}
+                              </span>
+                            )}
+                          </div>
+                        ))}
+
+                        {hasHiddenCompletedExperiences && (
+                          <div className="flex justify-center pt-1">
+                            <button
+                              type="button"
+                              className="badge badge-outline badge-primary px-4 py-3"
+                              onClick={() => setShowAllExperiences(current => !current)}
+                            >
+                              {showAllExperiences
+                                ? 'Show less'
+                                : `Show more (${profile.completed_experiences.length - 2} more)`}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
               </div>
             </div>
 
