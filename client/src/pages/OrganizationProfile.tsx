@@ -1,14 +1,17 @@
-import { Building2, MapPin, Globe, Mail, Phone } from 'lucide-react';
+import { Building2, Globe, Mail, MapPin, Phone } from 'lucide-react';
+import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 
 import ColumnLayout from '../components/layout/ColumnLayout';
 import PageHeader from '../components/layout/PageHeader';
 import LocationPicker from '../components/LocationPicker';
-import PostingCard from '../components/PostingCard';
+import PostingCollection from '../components/postings/PostingCollection';
+import PostingViewModeToggle from '../components/postings/PostingViewModeToggle';
 import requestServer from '../utils/requestServer';
 import useAsync from '../utils/useAsync';
 
 import type { OrganizationProfileResponse } from '../../../server/src/api/types';
+import type { PostingWithContext } from '../../../server/src/types';
 
 function OrganizationProfile() {
   const { id } = useParams<{ id: string }>();
@@ -27,6 +30,18 @@ function OrganizationProfile() {
     },
     { immediate: !!id },
   );
+
+  const postingsWithContext = useMemo<PostingWithContext[]>(() => {
+    if (!data) return [];
+
+    return data.postings.map(posting => ({
+      ...posting,
+      organization_name: data.organization.name,
+      crisis_name: null,
+      enrollment_count: 0,
+      application_status: 'none',
+    }));
+  }, [data]);
 
   if (!id) {
     return (
@@ -67,20 +82,10 @@ function OrganizationProfile() {
                   <div className="card bg-base-100 shadow-md border border-base-200">
                     <div className="card-body">
                       <div className="flex flex-col items-center text-center">
-                        <div className={`${data.organization.logo_path ? 'bg-white border border-base-300' : 'bg-linear-to-br from-primary to-primary/70 text-primary-content'} rounded-full w-24 h-24 flex items-center justify-center mb-4 overflow-hidden`}>
-                          {data.organization.logo_path
-                            ? (
-                                <img
-                                  src={`${SERVER_BASE_URL}/organization/${data.organization.id}/logo`}
-                                  alt={`${data.organization.name} logo`}
-                                  className="w-24 h-24 rounded-full object-cover"
-                                />
-                              )
-                            : (
-                                <span className="text-4xl font-bold">
-                                  {data.organization.name.charAt(0).toUpperCase()}
-                                </span>
-                              )}
+                        <div className="bg-linear-to-br from-primary to-primary/70 text-primary-content rounded-full w-24 h-24 flex items-center justify-center mb-4">
+                          <span className="text-4xl font-bold">
+                            {data.organization.name.charAt(0).toUpperCase()}
+                          </span>
                         </div>
                         <h2 className="text-2xl font-bold">
                           {data.organization.name}
@@ -90,23 +95,6 @@ function OrganizationProfile() {
                       <div className="divider my-4" />
 
                       <div className="space-y-4">
-                        {data.organization.description && (
-                          <div className="flex gap-3">
-                            <Building2
-                              size={20}
-                              className="text-primary shrink-0 mt-0.5"
-                            />
-                            <div className="flex-1">
-                              <p className="text-xs opacity-70 font-semibold mb-0.5">
-                                DESCRIPTION
-                              </p>
-                              <p className="text-sm whitespace-pre-wrap break-words">
-                                {data.organization.description}
-                              </p>
-                            </div>
-                          </div>
-                        )}
-
                         {data.organization.location_name && (
                           <div className="flex gap-3">
                             <MapPin
@@ -189,7 +177,7 @@ function OrganizationProfile() {
                     </div>
                   </div>
 
-                  {(data.organization.latitude != null && data.organization.longitude != null) && (
+                  {(data.organization.latitude && data.organization.longitude) && (
                     <div className="card bg-base-100 shadow-md border border-base-200">
                       <div className="card-body">
                         <h5 className="font-bold text-lg">Location</h5>
@@ -211,16 +199,20 @@ function OrganizationProfile() {
               )}
             >
               <div>
-                <div className="flex items-center gap-2 mb-6">
+                <div className="flex flex-wrap items-center gap-2 mb-6">
                   <h3 className="text-2xl font-bold tracking-tight">
                     Postings
                   </h3>
                   <span className="badge badge-lg badge-primary">
-                    {data.postings.length}
+                    {postingsWithContext.length}
                   </span>
+
+                  <div className="ml-auto">
+                    <PostingViewModeToggle />
+                  </div>
                 </div>
 
-                {data.postings.length === 0
+                {postingsWithContext.length === 0
                   ? (
                       <div className="card bg-base-100 shadow-md border border-base-200">
                         <div className="card-body flex flex-col items-center justify-center py-12">
@@ -231,14 +223,12 @@ function OrganizationProfile() {
                       </div>
                     )
                   : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {data.postings.map(posting => (
-                          <PostingCard
-                            key={posting.id}
-                            posting={posting}
-                          />
-                        ))}
-                      </div>
+                      <PostingCollection
+                        postings={postingsWithContext}
+                        variant="organization"
+                        cardsContainerClassName="grid grid-cols-1 gap-6 md:grid-cols-2"
+                        listContainerClassName="space-y-4"
+                      />
                     )}
               </div>
             </ColumnLayout>

@@ -19,6 +19,7 @@ function HorizontalScrollSection({
   hasItems,
   emptyState,
   children,
+
 }: HorizontalScrollSectionProps) {
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const [showLeftFade, setShowLeftFade] = useState(false);
@@ -34,7 +35,6 @@ function HorizontalScrollSection({
 
     const updateFades = () => {
       const maxScrollLeft = container.scrollWidth - container.clientWidth;
-
       setShowLeftFade(container.scrollLeft > 8);
       setShowRightFade(maxScrollLeft - container.scrollLeft > 8);
     };

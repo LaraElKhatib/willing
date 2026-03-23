@@ -1,135 +1,42 @@
 import { ClipboardList, Plus } from 'lucide-react';
-import { useCallback } from 'react';
+import { useMemo } from 'react';
 
 import Alert from '../../components/Alert';
 import PageHeader from '../../components/layout/PageHeader';
 import LinkButton from '../../components/LinkButton';
-import PostingCard from '../../components/PostingCard';
-import {
-  buildSharedPostingQuery,
-  hasSharedAdvancedPostingFilters,
-  organizationPostingSortOptions,
-  resolveOrganizationPostingSortOption,
-  toOrganizationPostingSortOptionValue,
-  type OrganizationPostingSortBy,
-  type OrganizationPostingSortOptionValue,
-  type PostingSortDir,
-  type SharedPostingFilterFields,
-} from '../../components/postings/postingFilterConfig';
-import PostingFiltersCard from '../../components/postings/PostingFiltersCard';
-import { FormField } from '../../utils/formUtils';
+import PostingCollection from '../../components/postings/PostingCollection';
+import PostingViewModeToggle from '../../components/postings/PostingViewModeToggle.tsx';
 import requestServer from '../../utils/requestServer';
 import useAsync from '../../utils/useAsync';
 
-import type {
-  OrganizationCrisesResponse,
-  OrganizationPostingListResponse,
-} from '../../../../server/src/api/types';
-
-type OrganizationPostingFilters = SharedPostingFilterFields & {
-  sortBy: OrganizationPostingSortBy;
-  sortDir: PostingSortDir;
-  isClosed: 'all' | 'open' | 'closed';
-  postingType: 'all' | 'open' | 'review';
-  crisisId: 'all' | `${number}`;
-};
-
-type OrganizationPostingFilterFormValues = Omit<OrganizationPostingFilters, 'sortBy' | 'sortDir'> & {
-  sortOption: OrganizationPostingSortOptionValue;
-};
-
-const defaultFilters: OrganizationPostingFilters = {
-  search: '',
-  sortBy: 'created_at',
-  sortDir: 'desc',
-  isClosed: 'all',
-  postingType: 'all',
-  crisisId: 'all',
-  startDateFrom: '',
-  endDateTo: '',
-  startTimeFrom: '',
-  endTimeTo: '',
-};
-
-const defaultFormValues: OrganizationPostingFilterFormValues = {
-  search: defaultFilters.search,
-  sortOption: toOrganizationPostingSortOptionValue(defaultFilters.sortBy, defaultFilters.sortDir),
-  isClosed: defaultFilters.isClosed,
-  postingType: defaultFilters.postingType,
-  crisisId: defaultFilters.crisisId,
-  startDateFrom: defaultFilters.startDateFrom,
-  endDateTo: defaultFilters.endDateTo,
-  startTimeFrom: defaultFilters.startTimeFrom,
-  endTimeTo: defaultFilters.endTimeTo,
-};
-
-const fromOrganizationPostingFilterFormValues = (
-  values: OrganizationPostingFilterFormValues,
-): OrganizationPostingFilters => {
-  const selectedSortOption = resolveOrganizationPostingSortOption(values.sortOption);
-
-  return {
-    search: values.search,
-    sortBy: selectedSortOption.sortBy,
-    sortDir: selectedSortOption.sortDir,
-    isClosed: values.isClosed,
-    postingType: values.postingType,
-    crisisId: values.crisisId,
-    startDateFrom: values.startDateFrom,
-    endDateTo: values.endDateTo,
-    startTimeFrom: values.startTimeFrom,
-    endTimeTo: values.endTimeTo,
-  };
-};
+import type { OrganizationPostingListResponse } from '../../../../server/src/api/types';
+import type { PostingWithContext } from '../../../../server/src/types';
 
 function OrganizationHome() {
-  const fetchOrganizationPostings = useCallback(
-    async (nextFilters: OrganizationPostingFilters) => {
-      const query = buildSharedPostingQuery(nextFilters);
-
-      if (nextFilters.isClosed !== 'all') {
-        query.is_closed = nextFilters.isClosed === 'closed' ? 'true' : 'false';
-      }
-
-      if (nextFilters.postingType !== 'all') {
-        query.automatic_acceptance = nextFilters.postingType === 'open' ? 'true' : 'false';
-      }
-
-      if (nextFilters.crisisId !== 'all') {
-        query.crisis_id = nextFilters.crisisId;
-      }
-
+  const { data: postings, loading, error } = useAsync(
+    async () => {
       const response = await requestServer<OrganizationPostingListResponse>(
         '/organization/posting',
         {
           includeJwt: true,
-          query,
         },
       );
       return response.postings;
     },
-    [],
-  );
-
-  const {
-    data: postings,
-    loading,
-    error,
-    trigger: fetchPostings,
-  } = useAsync(fetchOrganizationPostings, { immediate: false });
-
-  const { data: crises } = useAsync(
-    async () => {
-      const response = await requestServer<OrganizationCrisesResponse>('/organization/crises', {
-        includeJwt: true,
-      });
-      return response.crises;
-    },
     { immediate: true },
   );
-  const applyFilters = useCallback(async (formValues: OrganizationPostingFilterFormValues) => {
-    await fetchPostings(fromOrganizationPostingFilterFormValues(formValues));
-  }, [fetchPostings]);
+
+  const postingsWithContext = useMemo<PostingWithContext[]>(() => {
+    if (!postings) return [];
+
+    return postings.map(posting => ({
+      ...posting,
+      organization_name: '',
+      organization_logo_path: undefined,
+      crisis_name: null,
+      application_status: 'none',
+    }));
+  }, [postings]);
 
   return (
     <div className="grow bg-base-200">
@@ -148,99 +55,17 @@ function OrganizationHome() {
             )
           }
           actions={(
-            <LinkButton
-              color="primary"
-              to="/organization/posting"
-              Icon={Plus}
-            >
-              Create New Posting
-            </LinkButton>
-          )}
-        />
+            <div className="flex flex-wrap items-center gap-2">
+              <PostingViewModeToggle />
 
-        <PostingFiltersCard
-          defaultValues={defaultFormValues}
-          onApply={applyFilters}
-          searchFieldName="search"
-          searchPlaceholder="Search title, description, or location"
-          sortFieldName="sortOption"
-          sortOptions={organizationPostingSortOptions.map(option => ({
-            label: option.label,
-            value: option.value,
-          }))}
-          getHasAdvancedFiltersApplied={values => (
-            hasSharedAdvancedPostingFilters(values)
-            || values.isClosed !== 'all'
-            || values.postingType !== 'all'
-            || values.crisisId !== 'all'
-          )}
-          renderAdvancedFields={form => (
-            <>
-              <FormField
-                form={form}
-                name="isClosed"
-                label="Status"
-                selectOptions={[
-                  { label: 'All statuses', value: 'all' },
-                  { label: 'Open', value: 'open' },
-                  { label: 'Closed', value: 'closed' },
-                ]}
-              />
-
-              <FormField
-                form={form}
-                name="postingType"
-                label="Posting Type"
-                selectOptions={[
-                  { label: 'All posting types', value: 'all' },
-                  { label: 'Open Posting', value: 'open' },
-                  { label: 'Review-Based', value: 'review' },
-                ]}
-              />
-
-              <div className="lg:col-span-2">
-                <FormField
-                  form={form}
-                  name="crisisId"
-                  label="Crisis"
-                  selectOptions={[
-                    { label: 'All Postings', value: 'all' },
-                    ...(crises?.map(crisis => ({
-                      label: crisis.name,
-                      value: String(crisis.id),
-                    })) ?? []),
-                  ]}
-                />
-              </div>
-
-              <FormField
-                form={form}
-                name="startDateFrom"
-                label="Start After (Inclusive)"
-                type="date"
-              />
-
-              <FormField
-                form={form}
-                name="endDateTo"
-                label="End By (Inclusive)"
-                type="date"
-              />
-
-              <FormField
-                form={form}
-                name="startTimeFrom"
-                label="Start Time After"
-                type="time"
-              />
-
-              <FormField
-                form={form}
-                name="endTimeTo"
-                label="End Time By"
-                type="time"
-              />
-            </>
+              <LinkButton
+                color="primary"
+                to="/organization/posting"
+                Icon={Plus}
+              >
+                Create New Posting
+              </LinkButton>
+            </div>
           )}
         />
 
@@ -258,15 +83,13 @@ function OrganizationHome() {
           </Alert>
         )}
 
-        {!loading && postings && postings.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {postings.map(posting => (
-              <PostingCard
-                key={posting.id}
-                posting={posting}
-              />
-            ))}
-          </div>
+        {!loading && postingsWithContext.length > 0 && (
+          <PostingCollection
+            postings={postingsWithContext}
+            variant="organization"
+            cardsContainerClassName="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3"
+            listContainerClassName="space-y-4"
+          />
         )}
       </div>
     </div>

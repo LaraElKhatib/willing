@@ -1,47 +1,23 @@
-import { TextSearch, type LucideIcon } from 'lucide-react';
-import { type ReactNode, useCallback, useMemo, useState } from 'react';
+import { RotateCcw, Search, TextSearch, type LucideIcon } from 'lucide-react';
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 
-import {
-  buildSharedPostingQuery,
-  hasSharedAdvancedPostingFilters,
-  resolveVolunteerPostingSortOption,
-  toVolunteerPostingSortOptionValue,
-  volunteerPostingSortOptions,
-  type PostingSortDir,
-  type SharedPostingFilterFields,
-  type VolunteerPostingSortBy,
-  type VolunteerPostingSortOptionValue,
-} from './postingFilterConfig.ts';
-import { FormField } from '../../utils/formUtils.tsx';
 import requestServer from '../../utils/requestServer.ts';
 import useAsync from '../../utils/useAsync';
 import Alert from '../Alert.tsx';
+import Button from '../Button.tsx';
+import CalendarInfo from '../CalendarInfo.tsx';
 import PageHeader from '../layout/PageHeader.tsx';
 import Loading from '../Loading.tsx';
-import PostingCard from '../PostingCard.tsx';
-import PostingFiltersCard from './PostingFiltersCard.tsx';
+import PostingCollection from './PostingCollection.tsx';
+import PostingViewModeToggle from './PostingViewModeToggle.tsx';
 
 import type { VolunteerPostingSearchResponse, VolunteerEnrollmentsResponse } from '../../../../server/src/api/types.ts';
 import type { PostingWithContext } from '../../../../server/src/types.ts';
 
-export type PostingSearchFilters = SharedPostingFilterFields & {
-  sortBy: VolunteerPostingSortBy;
-  sortDir: PostingSortDir;
-  startDateFrom: string;
-  endDateTo: string;
-  startTimeFrom: string;
-  endTimeTo: string;
-  hideFull: boolean;
-  crisisId: 'all' | `${number}`;
-};
-
-type PostingCrisisOption = {
-  id: number;
-  name: string;
-};
-
-type PostingSearchFormValues = Omit<PostingSearchFilters, 'sortBy' | 'sortDir'> & {
-  sortOption: VolunteerPostingSortOptionValue;
+export type PostingSearchFilters = {
+  search: string;
+  startDate: string;
+  endDate: string;
 };
 
 type PostingSearchViewProps = {
@@ -55,35 +31,65 @@ type PostingSearchViewProps = {
   emptyMessage?: string;
   filterPostings?: (postings: PostingWithContext[]) => PostingWithContext[];
   fetchUrl?: string;
-  enableCrisisFilter?: boolean;
-  crisisOptions?: PostingCrisisOption[];
 };
 
-const toPostingSearchFormValues = (filters: PostingSearchFilters): PostingSearchFormValues => ({
-  search: filters.search,
-  sortOption: toVolunteerPostingSortOptionValue(filters.sortBy, filters.sortDir),
-  startDateFrom: filters.startDateFrom,
-  endDateTo: filters.endDateTo,
-  startTimeFrom: filters.startTimeFrom,
-  endTimeTo: filters.endTimeTo,
-  hideFull: filters.hideFull,
-  crisisId: filters.crisisId,
-});
+const applyDateFilter = (
+  postings: PostingWithContext[],
+  startDate: string,
+  endDate: string,
+) => {
+  return postings.filter((posting) => {
+    if (startDate && posting.start_time) {
+      const postingStart = new Date(posting.start_time).toISOString().split('T')[0];
+      if (postingStart < startDate) return false;
+    }
+    if (endDate && posting.end_time) {
+      const postingEnd = new Date(posting.end_time).toISOString().split('T')[0];
+      if (postingEnd > endDate) return false;
+    }
+    return true;
+  });
+};
 
-const fromPostingSearchFormValues = (values: PostingSearchFormValues): PostingSearchFilters => {
-  const selectedSortOption = resolveVolunteerPostingSortOption(values.sortOption);
+const applyTextSearch = (
+  postings: PostingWithContext[],
+  normalizedSearch: string,
+) => {
+  if (!normalizedSearch) {
+    return postings;
+  }
 
-  return {
-    search: values.search,
-    sortBy: selectedSortOption.sortBy,
-    sortDir: selectedSortOption.sortDir,
-    startDateFrom: values.startDateFrom,
-    endDateTo: values.endDateTo,
-    startTimeFrom: values.startTimeFrom,
-    endTimeTo: values.endTimeTo,
-    hideFull: values.hideFull,
-    crisisId: values.crisisId,
-  };
+  const andParts = normalizedSearch
+    .split(/\s+and\s+/i)
+    .map(part => part.trim())
+    .filter(Boolean);
+  const orParts = normalizedSearch
+    .split(/\s+or\s+/i)
+    .map(part => part.trim())
+    .filter(Boolean);
+
+  const terms = andParts.length > 1
+    ? andParts
+    : orParts.length > 1
+      ? orParts
+      : [normalizedSearch];
+
+  const useAndMode = andParts.length > 1;
+
+  return postings.filter((posting) => {
+    const locationText = posting.location_name.toLowerCase();
+    const skillTexts = posting.skills.map(skill => skill.name.toLowerCase());
+
+    const matchesTerm = (term: string) => {
+      const locationMatch = locationText.includes(term);
+      const skillMatch = skillTexts.some(skill => skill.includes(term));
+      return locationMatch || skillMatch;
+    };
+
+    return useAndMode
+      ? terms.every(matchesTerm)
+      : terms.some(matchesTerm);
+  });
 };
 
 function PostingSearchView({
@@ -97,24 +103,16 @@ function PostingSearchView({
   emptyMessage = 'No postings found yet',
   filterPostings,
   fetchUrl,
-  enableCrisisFilter = false,
-  crisisOptions = [],
 }: PostingSearchViewProps) {
   const defaultFilters = useMemo<PostingSearchFilters>(() => ({
     search: '',
-    sortBy: 'recommended',
-    sortDir: 'desc',
-    startDateFrom: '',
-    endDateTo: '',
-    startTimeFrom: '',
-    endTimeTo: '',
-    hideFull: false,
-    crisisId: 'all',
+    startDate: '',
+    endDate: '',
     ...initialFilters,
   }), [initialFilters]);
-  const defaultFormValues = useMemo(() => toPostingSearchFormValues(defaultFilters), [defaultFilters]);
 
   const [postings, setPostings] = useState<PostingWithContext[]>([]);
+  const [filters, setFilters] = useState<PostingSearchFilters>(defaultFilters);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -125,9 +123,12 @@ function PostingSearchView({
 
   const fetchPostings = useCallback(async (activeFilters: PostingSearchFilters) => {
     const baseUrl = fetchUrl ?? '/volunteer/posting';
-    const query = new URLSearchParams(buildSharedPostingQuery(activeFilters));
-    if (activeFilters.hideFull) query.append('hide_full', 'true');
-    if (activeFilters.crisisId !== 'all') query.append('crisis_id', activeFilters.crisisId);
+    const query = new URLSearchParams();
+
+    if (!fetchUrl) {
+      if (activeFilters.startDate) query.append('start_timestamp', activeFilters.startDate);
+      if (activeFilters.endDate) query.append('end_timestamp', activeFilters.endDate);
+    }
 
     const url = query.size > 0 ? `${baseUrl}?${query.toString()}` : baseUrl;
 
@@ -136,8 +137,15 @@ function PostingSearchView({
 
     try {
       const response = await fetchPostingsRequest(url);
-      const postProcessFilteredPostings = filterPostings ? filterPostings(response.postings) : response.postings;
-      setPostings(postProcessFilteredPostings);
+      const normalizedSearch = activeFilters.search.trim().toLowerCase();
+
+      let result = applyTextSearch(response.postings, normalizedSearch);
+      if (fetchUrl) {
+        result = applyDateFilter(result, activeFilters.startDate, activeFilters.endDate);
+      }
+      const finalPostings = filterPostings ? filterPostings(result) : result;
+
+      setPostings(finalPostings);
     } catch (fetchError) {
       setPostings([]);
       const message = fetchError instanceof Error ? fetchError.message : 'Failed to load postings';
@@ -147,9 +155,16 @@ function PostingSearchView({
     }
   }, [fetchPostingsRequest, fetchUrl, filterPostings]);
 
-  const applyFilters = useCallback(async (formValues: PostingSearchFormValues) => {
-    await fetchPostings(fromPostingSearchFormValues(formValues));
-  }, [fetchPostings]);
+  useEffect(() => {
+    void fetchPostings(defaultFilters);
+  }, [defaultFilters]);
+
+  const resetFilters = () => {
+    setFilters(defaultFilters);
+    void fetchPostings(defaultFilters);
+  };
+
+  const hasActiveFilters = Boolean(filters.search || filters.startDate || filters.endDate);
 
   return (
     <div className="p-6 md:container mx-auto">
@@ -162,77 +177,63 @@ function PostingSearchView({
         defaultBackTo={defaultBackTo}
       />
 
-      <PostingFiltersCard
-        defaultValues={defaultFormValues}
-        onApply={applyFilters}
-        searchFieldName="search"
-        searchPlaceholder="Search title, description, location, organization, or skills"
-        sortFieldName="sortOption"
-        sortOptions={volunteerPostingSortOptions.map(option => ({
-          label: option.label,
-          value: option.value,
-        }))}
-        getHasAdvancedFiltersApplied={values => hasSharedAdvancedPostingFilters(values) || values.hideFull || values.crisisId !== 'all'}
-        renderAdvancedFields={form => (
-          <>
-            <FormField
-              form={form}
-              name="startDateFrom"
-              label="Start After (Inclusive)"
-              type="date"
+      <div className="mb-6 rounded-box border border-base-300 bg-base-100 p-4 shadow-sm">
+        <h4 className="mb-3 text-lg font-semibold">Filter</h4>
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            void fetchPostings(filters);
+          }}
+        >
+          <div className="mb-3 flex flex-wrap gap-4">
+            <label className="input input-bordered flex w-full items-center gap-2 md:w-96">
+              <Search className="h-4 w-4 opacity-70" />
+              <input
+                type="text"
+                className="grow"
+                placeholder="Search by location or skill (use AND / OR)"
+                value={filters.search}
+                onChange={event => setFilters({ ...filters, search: event.target.value })}
+              />
+            </label>
+
+            <CalendarInfo
+              startValue={filters.startDate}
+              endValue={filters.endDate}
+              onStartChange={(value: string) => setFilters({ ...filters, startDate: value })}
+              onEndChange={(value: string) => setFilters({ ...filters, endDate: value })}
+              inputType="date"
+              startPlaceholder="Start Date"
+              endPlaceholder="End Date"
             />
+          </div>
 
-            <FormField
-              form={form}
-              name="endDateTo"
-              label="End By (Inclusive)"
-              type="date"
-            />
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              color="primary"
+              type="submit"
+              disabled={!hasActiveFilters}
+              Icon={Search}
+            >
+              Apply Filters
+            </Button>
 
-            <FormField
-              form={form}
-              name="startTimeFrom"
-              label="Start Time After"
-              type="time"
-            />
+            <Button
+              type="button"
+              color="ghost"
+              disabled={!hasActiveFilters}
+              onClick={resetFilters}
+              Icon={RotateCcw}
+            >
+              Reset Filters
+            </Button>
 
-            <FormField
-              form={form}
-              name="endTimeTo"
-              label="End Time By"
-              type="time"
-            />
-
-            {enableCrisisFilter && (
-              <div className="lg:col-span-2">
-                <FormField
-                  form={form}
-                  name="crisisId"
-                  label="Crisis"
-                  selectOptions={[
-                    { label: 'All Postings', value: 'all' },
-                    ...crisisOptions.map(crisis => ({
-                      label: crisis.name,
-                      value: String(crisis.id),
-                    })),
-                  ]}
-                />
-              </div>
-            )}
-
-            <div className="lg:col-span-2 flex items-end">
-              <label className="label cursor-pointer justify-start gap-3 py-0">
-                <input
-                  type="checkbox"
-                  className="checkbox checkbox-sm"
-                  {...form.register('hideFull')}
-                />
-                <span className="label-text">Hide full postings</span>
-              </label>
+            <div className="ml-auto">
+              <PostingViewModeToggle />
             </div>
-          </>
-        )}
-      />
+          </div>
+        </form>
+      </div>
 
       {error && <div className="mb-4 text-sm text-base-content/70">Unable to load postings.</div>}
 
@@ -249,14 +250,11 @@ function PostingSearchView({
               </Alert>
             )
           : (
-              <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 2xl:grid-cols-3">
-                {postings.map(posting => (
-                  <PostingCard
-                    key={posting.id}
-                    posting={posting}
-                  />
-                ))}
-              </div>
+              <PostingCollection
+                postings={postings}
+                cardsContainerClassName="grid grid-cols-1 gap-6 lg:grid-cols-2 2xl:grid-cols-3"
+                listContainerClassName="space-y-4"
+              />
             )}
     </div>
   );

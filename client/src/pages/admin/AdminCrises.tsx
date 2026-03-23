@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AlertCircle, Pencil, Pin, PinOff, Plus, RotateCcw, Save, Search, SlidersHorizontal, Trash2, X } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
+import { AlertCircle, Pencil, Pin, PinOff, Plus, Save, Trash2, X } from 'lucide-react';
+import { useCallback, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import zod from 'zod';
 
@@ -30,37 +30,7 @@ const editCrisisFormSchema = createCrisisFormSchema;
 
 type CreateCrisisFormData = zod.infer<typeof createCrisisFormSchema>;
 
-type CrisisSortBy = 'pinned' | 'created_at' | 'name';
-type CrisisSortDir = 'asc' | 'desc';
-type CrisisSortOptionValue = `${CrisisSortBy}_${CrisisSortDir}`;
-
-type CrisisFilters = {
-  search: string;
-  sortBy: CrisisSortBy;
-  sortDir: CrisisSortDir;
-  pinned: 'all' | 'pinned' | 'unpinned';
-};
-
-const crisisSortOptions: Array<{ value: CrisisSortOptionValue; label: string; sortBy: CrisisSortBy; sortDir: CrisisSortDir }> = [
-  { value: 'pinned_desc', label: 'Pinned first', sortBy: 'pinned', sortDir: 'desc' },
-  { value: 'pinned_asc', label: 'Unpinned first', sortBy: 'pinned', sortDir: 'asc' },
-  { value: 'created_at_desc', label: 'Newest crises', sortBy: 'created_at', sortDir: 'desc' },
-  { value: 'created_at_asc', label: 'Oldest crises', sortBy: 'created_at', sortDir: 'asc' },
-  { value: 'name_asc', label: 'Name: A to Z', sortBy: 'name', sortDir: 'asc' },
-  { value: 'name_desc', label: 'Name: Z to A', sortBy: 'name', sortDir: 'desc' },
-];
-
-const defaultFilters: CrisisFilters = {
-  search: '',
-  sortBy: 'pinned',
-  sortDir: 'desc',
-  pinned: 'all',
-};
-
 function AdminCrises() {
-  const [filters, setFilters] = useState<CrisisFilters>(defaultFilters);
-  const [activeFilters, setActiveFilters] = useState<CrisisFilters>(defaultFilters);
-  const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
   const [isCreatingCrisis, setIsCreatingCrisis] = useState(false);
   const [editingCrisisId, setEditingCrisisId] = useState<number | null>(null);
   const [editingName, setEditingName] = useState('');
@@ -77,40 +47,15 @@ function AdminCrises() {
     },
   });
 
-  const getCrises = useCallback(async (nextFilters: CrisisFilters) => {
-    const query: Record<string, string> = {
-      sortBy: nextFilters.sortBy,
-      sortDir: nextFilters.sortDir,
-    };
-
-    if (nextFilters.search.trim()) {
-      query.search = nextFilters.search.trim();
-    }
-
-    if (nextFilters.pinned !== 'all') {
-      query.pinned = nextFilters.pinned === 'pinned' ? 'true' : 'false';
-    }
-
-    const res = await requestServer<AdminCrisesResponse>('/admin/crises', {
-      includeJwt: true,
-      query,
-    });
+  const getCrises = useCallback(async () => {
+    const res = await requestServer<AdminCrisesResponse>('/admin/crises', { includeJwt: true });
     return res.crises;
   }, []);
 
   const {
     data: crises,
     trigger: refreshCrises,
-  } = useAsync(getCrises, { immediate: false });
-
-  useEffect(() => {
-    void refreshCrises(activeFilters);
-  }, [activeFilters, refreshCrises]);
-
-  const refreshCurrentCrises = useCallback(
-    async () => refreshCrises(activeFilters),
-    [activeFilters, refreshCrises],
-  );
+  } = useAsync(getCrises, { immediate: true });
 
   const { trigger: updateCrisis } = useAsync(
     async (
@@ -163,7 +108,7 @@ function AdminCrises() {
         name: '',
         description: '',
       });
-      await refreshCurrentCrises();
+      await refreshCrises();
       notifications.push({
         type: 'success',
         message: 'Crisis created successfully.',
@@ -204,7 +149,7 @@ function AdminCrises() {
     try {
       await updateCrisis(crisisId, parsed.data);
 
-      await refreshCurrentCrises();
+      await refreshCrises();
       notifications.push({
         type: 'success',
         message: 'Crisis updated successfully.',
@@ -228,7 +173,7 @@ function AdminCrises() {
         onCancelEdit();
       }
 
-      await refreshCurrentCrises();
+      await refreshCrises();
       notifications.push({
         type: 'success',
         message: 'Crisis deleted successfully.',
@@ -244,7 +189,7 @@ function AdminCrises() {
     try {
       await toggleCrisisPin(crisisId, pinned);
 
-      await refreshCurrentCrises();
+      await refreshCrises();
       notifications.push({
         type: 'success',
         message: pinned ? 'Crisis unpinned.' : 'Crisis pinned.',
@@ -267,40 +212,6 @@ function AdminCrises() {
       </div>
     );
   }, [crises]);
-
-  const hasPendingChanges = useMemo(() => JSON.stringify(filters) !== JSON.stringify(activeFilters), [filters, activeFilters]);
-  const hasAnyChangesFromDefault = useMemo(() => (
-    JSON.stringify(filters) !== JSON.stringify(defaultFilters)
-    || JSON.stringify(activeFilters) !== JSON.stringify(defaultFilters)
-  ), [filters, activeFilters]);
-
-  const applyFilters = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setActiveFilters(filters);
-  };
-
-  const resetFilters = () => {
-    setFilters(defaultFilters);
-    setActiveFilters(defaultFilters);
-    setShowAdvancedSearch(false);
-  };
-
-  const selectedSortOption = crisisSortOptions.find(option => (
-    option.sortBy === filters.sortBy && option.sortDir === filters.sortDir
-  )) ?? crisisSortOptions[0];
-
-  const hasAdvancedFiltersApplied = filters.pinned !== 'all';
-
-  const onSortChange = (value: CrisisSortOptionValue) => {
-    const nextOption = crisisSortOptions.find(option => option.value === value);
-    if (!nextOption) return;
-
-    setFilters(prev => ({
-      ...prev,
-      sortBy: nextOption.sortBy,
-      sortDir: nextOption.sortDir,
-    }));
-  };
 
   return (
     <div className="grow bg-base-200">
@@ -354,85 +265,6 @@ function AdminCrises() {
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-lg font-semibold">Existing Crises</h3>
               {crisisCountBadge}
-            </div>
-
-            <div className="mb-4 rounded-box border border-base-300 bg-base-100 p-4 shadow-sm">
-              <div className="mb-4">
-                <h3 className="text-lg font-semibold">Filters</h3>
-              </div>
-
-              <form className="space-y-4" onSubmit={applyFilters}>
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
-                  <div className="lg:min-w-0 lg:flex-1">
-                    <label className="label" htmlFor="admin-crises-search">
-                      <span className="label-text">Search</span>
-                    </label>
-                    <label className="input input-bordered flex w-full items-center gap-2">
-                      <Search className="h-4 w-4 opacity-70" />
-                      <input
-                        id="admin-crises-search"
-                        type="text"
-                        className="w-full min-w-0"
-                        placeholder="Search crisis name or description"
-                        value={filters.search}
-                        onChange={event => setFilters(prev => ({ ...prev, search: event.target.value }))}
-                      />
-                    </label>
-                  </div>
-
-                  <div className="lg:w-64">
-                    <label className="label" htmlFor="admin-crises-sort">
-                      <span className="label-text">Sort By</span>
-                    </label>
-                    <select
-                      id="admin-crises-sort"
-                      className="select select-bordered w-full"
-                      value={selectedSortOption.value}
-                      onChange={event => onSortChange(event.target.value as CrisisSortOptionValue)}
-                    >
-                      {crisisSortOptions.map(option => (
-                        <option key={option.value} value={option.value}>{option.label}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="lg:w-40">
-                    <Button color="primary" type="submit" disabled={!hasPendingChanges} layout="block">Search</Button>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap gap-3">
-                  <Button
-                    type="button"
-                    color={hasAdvancedFiltersApplied || showAdvancedSearch ? 'secondary' : 'ghost'}
-                    onClick={() => setShowAdvancedSearch(prev => !prev)}
-                    Icon={SlidersHorizontal}
-                  >
-                    Advanced Search
-                  </Button>
-
-                  <Button type="button" color="ghost" onClick={resetFilters} disabled={!hasAnyChangesFromDefault} Icon={RotateCcw}>Reset</Button>
-                </div>
-
-                {showAdvancedSearch && (
-                  <div className="rounded-box border border-base-300 bg-base-200/40 p-4">
-                    <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-                      <select
-                        className="select select-bordered w-full"
-                        value={filters.pinned}
-                        onChange={event => setFilters(prev => ({
-                          ...prev,
-                          pinned: event.target.value as CrisisFilters['pinned'],
-                        }))}
-                      >
-                        <option value="all">Pinned State: All</option>
-                        <option value="pinned">Pinned State: Pinned</option>
-                        <option value="unpinned">Pinned State: Unpinned</option>
-                      </select>
-                    </div>
-                  </div>
-                )}
-              </form>
             </div>
 
             {!crises

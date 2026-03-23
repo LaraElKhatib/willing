@@ -196,16 +196,17 @@ All components are in `client/src/components/`. **Use these instead of recreatin
 ### Posting Components (`client/src/components/postings/` + shared posting cards)
 
 - **`PostingCard`**: Standard volunteer opportunity card (title, description, location, dates, constraints, skills). Required prop: `posting`. Optional prop: `organization`.
-- **`PostingFiltersCard`**: Shared posting filter shell for search/manage pages. Use it for posting list filters instead of duplicating search/sort/advanced filter card markup.
 - **`PostingSearchView`**: Reusable posting discovery shell with page header, search, date filters, and result states. Required props: `title`, `subtitle`. Optional props: `icon`, `badge`, `showBack`, `defaultBackTo`, `initialFilters`, `emptyMessage`, `filterPostings`, `fetchUrl`.
 - **`HorizontalScrollSection`**: Horizontal carousel-style section with scroll controls, edge fades, and empty state. Required props: `title`, `hasItems`. Optional props: `subtitle`, `action`, `emptyState`, `children`.
+- **`PostingCollection`**: Shared renderer that switches between `PostingCard` and `PostingList` using global posting view mode context. Required prop: `postings`. Optional props: `showCrisis`, `variant`, `cardsContainerClassName`, `listContainerClassName`, `cardItemClassName`, `listItemClassName`, `emptyState`.
+- **`PostingViewModeToggle`**: Reusable cards/list toggle UI bound to global posting view mode context.
+- **`PostingViewModeProvider`** + **`usePostingViewMode`** (`PostingViewModeContext.tsx` and `PostingViewModeState.ts`): app-level context and hook for shared cards/list mode state with `localStorage` persistence.
 
 ### Form and Input Components
 
 - **`PasswordResetCard`**: Self-contained password reset form integrated with auth context and validation/error handling.
 - **`ToggleButton`**: React-hook-form-friendly toggle group. Required props: `form`, `name`, `label`, `options`. Optional props: `disabled` (default `false`), `compact` (default `false`). Option-level optional fields: `description`, `Icon`, `btnColor`.
 - **`CalendarInfo`**: Shared date/date-time input abstraction supporting form mode and controlled mode. Optional common props: `startLabel`, `endLabel`, `className`, `inputType`.
-- **`SignatureUploadField`**: Shared signature upload + draw control (file upload, draw pad, clear/save drawn signature, preview, remove). Use this for both organization and admin signature management to avoid duplicating signature canvas logic.
 
 ### Interaction and Workflow Components
 

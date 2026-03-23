@@ -1,0 +1,32 @@
+import { LayoutGrid, List } from 'lucide-react';
+
+import { usePostingViewMode } from './PostingViewModeState';
+
+function PostingViewModeToggle() {
+  const { viewMode, setViewMode } = usePostingViewMode();
+
+  return (
+    <div className="join">
+      <button
+        type="button"
+        className={`join-item btn btn-sm ${viewMode === 'cards' ? 'btn-primary' : 'btn-outline'}`}
+        onClick={() => setViewMode('cards')}
+        aria-pressed={viewMode === 'cards'}
+      >
+        <LayoutGrid size={14} />
+        Cards
+      </button>
+      <button
+        type="button"
+        className={`join-item btn btn-sm ${viewMode === 'list' ? 'btn-primary' : 'btn-outline'}`}
+        onClick={() => setViewMode('list')}
+        aria-pressed={viewMode === 'list'}
+      >
+        <List size={14} />
+        List
+      </button>
+    </div>
+  );
+}
+
+export default PostingViewModeToggle;
