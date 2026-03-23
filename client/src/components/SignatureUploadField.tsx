@@ -46,6 +46,41 @@ function SignatureUploadField({
     setHasDrawnSignature(false);
   };
 
+  const getNonTransparentBounds = (canvas: HTMLCanvasElement) => {
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    if (!context) return null;
+
+    const { width, height } = canvas;
+    const imageData = context.getImageData(0, 0, width, height);
+    const data = imageData.data;
+
+    let top = height;
+    let left = width;
+    let right = -1;
+    let bottom = -1;
+
+    for (let y = 0; y < height; y += 1) {
+      for (let x = 0; x < width; x += 1) {
+        const alpha = data[(y * width + x) * 4 + 3];
+        if (alpha === 0) continue;
+        if (x < left) left = x;
+        if (x > right) right = x;
+        if (y < top) top = y;
+        if (y > bottom) bottom = y;
+      }
+    }
+
+    if (right < left || bottom < top) return null;
+
+    const padding = 8;
+    return {
+      left: Math.max(0, left - padding),
+      top: Math.max(0, top - padding),
+      right: Math.min(width - 1, right + padding),
+      bottom: Math.min(height - 1, bottom + padding),
+    };
+  };
+
   const saveDrawnSignature = async () => {
     const sourceCanvas = canvasRef.current?.getCanvas();
     if (!sourceCanvas || canvasRef.current?.isEmpty()) {
@@ -53,9 +88,18 @@ function SignatureUploadField({
       return;
     }
 
+    const bounds = getNonTransparentBounds(sourceCanvas);
+    if (!bounds) {
+      onError?.('Failed to capture drawn signature.');
+      return;
+    }
+
+    const exportWidth = bounds.right - bounds.left + 1;
+    const exportHeight = bounds.bottom - bounds.top + 1;
+
     const exportCanvas = document.createElement('canvas');
-    exportCanvas.width = sourceCanvas.width;
-    exportCanvas.height = sourceCanvas.height;
+    exportCanvas.width = exportWidth;
+    exportCanvas.height = exportHeight;
     const exportContext = exportCanvas.getContext('2d');
     if (!exportContext) {
       onError?.('Failed to prepare drawn signature.');
@@ -64,7 +108,17 @@ function SignatureUploadField({
 
     exportContext.fillStyle = '#ffffff';
     exportContext.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
-    exportContext.drawImage(sourceCanvas, 0, 0);
+    exportContext.drawImage(
+      sourceCanvas,
+      bounds.left,
+      bounds.top,
+      exportWidth,
+      exportHeight,
+      0,
+      0,
+      exportWidth,
+      exportHeight,
+    );
 
     const signatureBlob = await new Promise<Blob | null>((resolve) => {
       exportCanvas.toBlob(blob => resolve(blob), 'image/png');

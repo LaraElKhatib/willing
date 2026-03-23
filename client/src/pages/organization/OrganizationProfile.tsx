@@ -69,7 +69,7 @@ const certificateFormSchema = newOrganizationCertificateInfoSchema.pick({
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ['hours_threshold'],
-      message: 'Hours threshold is required when certificate feature is enabled.',
+      message: 'Minimum volunteer hours are required when certificate feature is enabled.',
     });
   }
   if (!data.signatory_name?.trim()) {
@@ -253,6 +253,21 @@ function OrganizationProfile() {
   const onDeleteLogo = async () => {
     try {
       setLogoBusy(true);
+
+      // If the organization disabled certificates in edit mode but didn't save yet,
+      // persist the disable first so logo deletion can proceed immediately.
+      if (certificateInfo?.certificate_feature_enabled && !certificateForm.getValues('certificate_feature_enabled')) {
+        const certificateResponse = await requestServer<UpdateCertificateInfoResponse>(
+          '/organization/certificate-info',
+          {
+            method: 'PUT',
+            body: { certificate_feature_enabled: false },
+            includeJwt: true,
+          },
+        );
+        setCertificateInfo(certificateResponse.certificateInfo);
+      }
+
       const response = await requestServer<OrganizationDeleteLogoResponse>(
         '/organization/logo',
         {
@@ -670,7 +685,7 @@ function OrganizationProfile() {
                             <FormField
                               form={certificateForm}
                               name="hours_threshold"
-                              label="Hours Threshold"
+                              label="Minimum Volunteer Hours (for certificate eligibility)"
                               type="number"
                             />
                             <FormField
@@ -715,7 +730,7 @@ function OrganizationProfile() {
                           </p>
                         </div>
                         <div className="rounded-box border border-base-300 p-3">
-                          <p className="opacity-70">Hours Threshold</p>
+                          <p className="opacity-70">Minimum Volunteer Hours</p>
                           <p className="font-semibold mt-1">{certificateInfo?.hours_threshold ?? '-'}</p>
                         </div>
                         <div className="rounded-box border border-base-300 p-3">

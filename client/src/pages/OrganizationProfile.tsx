@@ -5,7 +5,7 @@ import ColumnLayout from '../components/layout/ColumnLayout';
 import PageHeader from '../components/layout/PageHeader';
 import LocationPicker from '../components/LocationPicker';
 import PostingCard from '../components/PostingCard';
-import requestServer from '../utils/requestServer';
+import requestServer, { SERVER_BASE_URL } from '../utils/requestServer';
 import useAsync from '../utils/useAsync';
 
 import type { OrganizationProfileResponse } from '../../../server/src/api/types';
@@ -67,10 +67,20 @@ function OrganizationProfile() {
                   <div className="card bg-base-100 shadow-md border border-base-200">
                     <div className="card-body">
                       <div className="flex flex-col items-center text-center">
-                        <div className="bg-linear-to-br from-primary to-primary/70 text-primary-content rounded-full w-24 h-24 flex items-center justify-center mb-4">
-                          <span className="text-4xl font-bold">
-                            {data.organization.name.charAt(0).toUpperCase()}
-                          </span>
+                        <div className={`${data.organization.logo_path ? 'bg-white border border-base-300' : 'bg-linear-to-br from-primary to-primary/70 text-primary-content'} rounded-full w-24 h-24 flex items-center justify-center mb-4 overflow-hidden`}>
+                          {data.organization.logo_path
+                            ? (
+                                <img
+                                  src={`${SERVER_BASE_URL}/organization/${data.organization.id}/logo`}
+                                  alt={`${data.organization.name} logo`}
+                                  className="w-24 h-24 rounded-full object-cover"
+                                />
+                              )
+                            : (
+                                <span className="text-4xl font-bold">
+                                  {data.organization.name.charAt(0).toUpperCase()}
+                                </span>
+                              )}
                         </div>
                         <h2 className="text-2xl font-bold">
                           {data.organization.name}

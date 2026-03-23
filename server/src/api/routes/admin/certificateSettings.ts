@@ -76,6 +76,7 @@ certificateSettingsRouter.post(
 
     try {
       await sharp(uploadedAbsolutePath)
+        .trim({ threshold: 10 })
         .flatten({ background: '#ffffff' })
         .png()
         .toFile(normalizedAbsolutePath);

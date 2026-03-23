@@ -42,6 +42,7 @@ const organizationProfileResponseColumns = [
   'latitude',
   'longitude',
   'location_name',
+  'logo_path',
   'created_at',
   'updated_at',
 ] as const;

@@ -52,7 +52,7 @@ const validateCertificateEnabledRequirements = ({
     || !parsed.data.signatory_position?.trim()
     || !parsed.data.signature_path?.trim()
   ) {
-    return 'Please provide hours threshold, signatory name, signatory position, and signature before enabling certificates.';
+    return 'Please provide minimum volunteer hours, signatory name, signatory position, and signature before enabling certificates.';
   }
 
   return null;
@@ -188,6 +188,7 @@ certificateInfoRouter.post(
 
     try {
       await sharp(uploadedAbsolutePath)
+        .trim({ threshold: 10 })
         .flatten({ background: '#ffffff' })
         .png()
         .toFile(normalizedAbsolutePath);

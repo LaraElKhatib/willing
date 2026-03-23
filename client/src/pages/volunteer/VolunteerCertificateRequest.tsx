@@ -411,10 +411,18 @@ function VolunteerCertificateRequest() {
                                   {' '}
                                   <span className="font-bold">{formatHours(org.hours)}</span>
                                 </p>
-                                {signatureUrl
-                                  ? <img src={signatureUrl} alt={`${org.name} signature`} className="mt-3 h-8 w-auto object-contain" />
-                                  : <div className="mt-3 h-8" />}
-                                <div className="certificate-sign-line h-6 border-b border-neutral-400" />
+                                <div className="mt-3 h-10 flex items-end">
+                                  {signatureUrl
+                                    ? (
+                                        <img
+                                          src={signatureUrl}
+                                          alt={`${org.name} signature`}
+                                          className="max-h-9 w-auto object-contain object-bottom"
+                                        />
+                                      )
+                                    : <div className="h-9" />}
+                                </div>
+                                <div className="certificate-sign-line h-0 border-b border-neutral-400" />
                                 <p className="text-sm mt-2 font-semibold">{org.signatory_name || ''}</p>
                                 <p className="text-xs opacity-70">{org.signatory_position || ''}</p>
                               </div>
@@ -427,10 +435,18 @@ function VolunteerCertificateRequest() {
                     <div className="certificate-footer mt-4 flex items-end">
                       <div className="w-72">
                         <p className="text-base uppercase tracking-wide opacity-60">Willing Admin Signature</p>
-                        {platformSignatureUrl
-                          ? <img src={platformSignatureUrl} alt="Willing admin signature" className="h-8 w-auto object-contain mt-2" />
-                          : <div className="mt-2 h-8" />}
-                        <div className="certificate-sign-line h-8 border-b border-neutral-300 mt-1" />
+                        <div className="mt-2 h-10 flex items-end">
+                          {platformSignatureUrl
+                            ? (
+                                <img
+                                  src={platformSignatureUrl}
+                                  alt="Willing admin signature"
+                                  className="max-h-9 w-auto object-contain object-bottom"
+                                />
+                              )
+                            : <div className="h-9" />}
+                        </div>
+                        <div className="certificate-sign-line h-0 border-b border-neutral-300 mt-1" />
                         <p className="text-base opacity-70 mt-1">{data?.platform_certificate?.signatory_name || 'Name'}</p>
                         <p className="text-sm opacity-60">
                           {data?.platform_certificate?.signatory_position || 'Title'}

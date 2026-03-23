@@ -330,7 +330,7 @@ export type EnrollmentApplicationTable = WithGeneratedIDAndCreatedAt<EnrollmentA
 export const organizationCertificateInfoSchema = zod.object({
   id: zod.number(),
   certificate_feature_enabled: zod.boolean(),
-  hours_threshold: zod.number().int().min(0, 'Hours threshold must be >= 0').nullable(),
+  hours_threshold: zod.number().int().min(0, 'Minimum volunteer hours must be >= 0').nullable(),
   signatory_name: zod.string().max(128, 'Signatory name must be at most 128 characters').nullable(),
   signatory_position: zod.string().max(128, 'Signatory position must be at most 128 characters').nullable(),
   signature_path: zod.string().max(256, 'Signature path must be at most 256 characters').nullable(),
