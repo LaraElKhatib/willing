@@ -1,14 +1,17 @@
-import { MapPin, Globe, Mail, Phone, Building2 } from 'lucide-react';
+import { Building2, Globe, Mail, MapPin, Phone } from 'lucide-react';
+import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 
 import ColumnLayout from '../components/layout/ColumnLayout';
 import PageHeader from '../components/layout/PageHeader';
 import LocationPicker from '../components/LocationPicker';
-import PostingCard from '../components/PostingCard';
-import requestServer, { SERVER_BASE_URL } from '../utils/requestServer';
+import PostingCollection from '../components/postings/PostingCollection';
+import PostingViewModeToggle from '../components/postings/PostingViewModeToggle';
+import requestServer from '../utils/requestServer';
 import useAsync from '../utils/useAsync';
 
 import type { OrganizationProfileResponse } from '../../../server/src/api/types';
+import type { PostingWithContext } from '../../../server/src/types';
 
 function OrganizationProfile() {
   const { id } = useParams<{ id: string }>();
@@ -27,6 +30,18 @@ function OrganizationProfile() {
     },
     { immediate: !!id },
   );
+
+  const postingsWithContext = useMemo<PostingWithContext[]>(() => {
+    if (!data) return [];
+
+    return data.postings.map(posting => ({
+      ...posting,
+      organization_name: data.organization.name,
+      crisis_name: null,
+      enrollment_count: 0,
+      application_status: 'none',
+    }));
+  }, [data]);
 
   if (!id) {
     return (
@@ -211,16 +226,20 @@ function OrganizationProfile() {
               )}
             >
               <div>
-                <div className="flex items-center gap-2 mb-6">
+                <div className="flex flex-wrap items-center gap-2 mb-6">
                   <h3 className="text-2xl font-bold tracking-tight">
                     Postings
                   </h3>
                   <span className="badge badge-lg badge-primary">
-                    {data.postings.length}
+                    {postingsWithContext.length}
                   </span>
+
+                  <div className="ml-auto">
+                    <PostingViewModeToggle />
+                  </div>
                 </div>
 
-                {data.postings.length === 0
+                {postingsWithContext.length === 0
                   ? (
                       <div className="card bg-base-100 shadow-md border border-base-200">
                         <div className="card-body flex flex-col items-center justify-center py-12">
@@ -231,14 +250,12 @@ function OrganizationProfile() {
                       </div>
                     )
                   : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {data.postings.map(posting => (
-                          <PostingCard
-                            key={posting.id}
-                            posting={posting}
-                          />
-                        ))}
-                      </div>
+                      <PostingCollection
+                        postings={postingsWithContext}
+                        variant="organization"
+                        cardsContainerClassName="grid grid-cols-1 gap-6 md:grid-cols-2"
+                        listContainerClassName="space-y-4"
+                      />
                     )}
               </div>
             </ColumnLayout>

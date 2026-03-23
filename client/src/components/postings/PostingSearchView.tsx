@@ -8,7 +8,8 @@ import Button from '../Button.tsx';
 import CalendarInfo from '../CalendarInfo.tsx';
 import PageHeader from '../layout/PageHeader.tsx';
 import Loading from '../Loading.tsx';
-import PostingCard from '../PostingCard.tsx';
+import PostingCollection from './PostingCollection.tsx';
+import PostingViewModeToggle from './PostingViewModeToggle.tsx';
 
 import type { VolunteerPostingSearchResponse, VolunteerEnrollmentsResponse } from '../../../../server/src/api/types.ts';
 import type { PostingWithContext } from '../../../../server/src/types.ts';
@@ -207,7 +208,7 @@ function PostingSearchView({
             />
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <Button
               color="primary"
               type="submit"
@@ -226,6 +227,10 @@ function PostingSearchView({
             >
               Reset Filters
             </Button>
+
+            <div className="ml-auto">
+              <PostingViewModeToggle />
+            </div>
           </div>
         </form>
       </div>
@@ -245,14 +250,11 @@ function PostingSearchView({
               </Alert>
             )
           : (
-              <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 2xl:grid-cols-3">
-                {postings.map(posting => (
-                  <PostingCard
-                    key={posting.id}
-                    posting={posting}
-                  />
-                ))}
-              </div>
+              <PostingCollection
+                postings={postings}
+                cardsContainerClassName="grid grid-cols-1 gap-6 lg:grid-cols-2 2xl:grid-cols-3"
+                listContainerClassName="space-y-4"
+              />
             )}
     </div>
   );

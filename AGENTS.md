@@ -198,6 +198,9 @@ All components are in `client/src/components/`. **Use these instead of recreatin
 - **`PostingCard`**: Standard volunteer opportunity card (title, description, location, dates, constraints, skills). Required prop: `posting`. Optional prop: `organization`.
 - **`PostingSearchView`**: Reusable posting discovery shell with page header, search, date filters, and result states. Required props: `title`, `subtitle`. Optional props: `icon`, `badge`, `showBack`, `defaultBackTo`, `initialFilters`, `emptyMessage`, `filterPostings`, `fetchUrl`.
 - **`HorizontalScrollSection`**: Horizontal carousel-style section with scroll controls, edge fades, and empty state. Required props: `title`, `hasItems`. Optional props: `subtitle`, `action`, `emptyState`, `children`.
+- **`PostingCollection`**: Shared renderer that switches between `PostingCard` and `PostingList` using global posting view mode context. Required prop: `postings`. Optional props: `showCrisis`, `variant`, `cardsContainerClassName`, `listContainerClassName`, `cardItemClassName`, `listItemClassName`, `emptyState`.
+- **`PostingViewModeToggle`**: Reusable cards/list toggle UI bound to global posting view mode context.
+- **`PostingViewModeProvider`** + **`usePostingViewMode`** (`PostingViewModeContext.tsx` and `PostingViewModeState.ts`): app-level context and hook for shared cards/list mode state with `localStorage` persistence.
 
 ### Form and Input Components
 
