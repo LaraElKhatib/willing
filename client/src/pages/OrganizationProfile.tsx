@@ -67,10 +67,20 @@ function OrganizationProfile() {
                   <div className="card bg-base-100 shadow-md border border-base-200">
                     <div className="card-body">
                       <div className="flex flex-col items-center text-center">
-                        <div className="bg-linear-to-br from-primary to-primary/70 text-primary-content rounded-full w-24 h-24 flex items-center justify-center mb-4">
-                          <span className="text-4xl font-bold">
-                            {data.organization.name.charAt(0).toUpperCase()}
-                          </span>
+                        <div className={`${data.organization.logo_path ? 'bg-white border border-base-300' : 'bg-linear-to-br from-primary to-primary/70 text-primary-content'} rounded-full w-24 h-24 flex items-center justify-center mb-4 overflow-hidden`}>
+                          {data.organization.logo_path
+                            ? (
+                                <img
+                                  src={`${SERVER_BASE_URL}/organization/${data.organization.id}/logo`}
+                                  alt={`${data.organization.name} logo`}
+                                  className="w-24 h-24 rounded-full object-cover"
+                                />
+                              )
+                            : (
+                                <span className="text-4xl font-bold">
+                                  {data.organization.name.charAt(0).toUpperCase()}
+                                </span>
+                              )}
                         </div>
                         <h2 className="text-2xl font-bold">
                           {data.organization.name}
@@ -80,6 +90,23 @@ function OrganizationProfile() {
                       <div className="divider my-4" />
 
                       <div className="space-y-4">
+                        {data.organization.description && (
+                          <div className="flex gap-3">
+                            <Building2
+                              size={20}
+                              className="text-primary shrink-0 mt-0.5"
+                            />
+                            <div className="flex-1">
+                              <p className="text-xs opacity-70 font-semibold mb-0.5">
+                                DESCRIPTION
+                              </p>
+                              <p className="text-sm whitespace-pre-wrap break-words">
+                                {data.organization.description}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
                         {data.organization.location_name && (
                           <div className="flex gap-3">
                             <MapPin
@@ -162,7 +189,7 @@ function OrganizationProfile() {
                     </div>
                   </div>
 
-                  {(data.organization.latitude && data.organization.longitude) && (
+                  {(data.organization.latitude != null && data.organization.longitude != null) && (
                     <div className="card bg-base-100 shadow-md border border-base-200">
                       <div className="card-body">
                         <h5 className="font-bold text-lg">Location</h5>

@@ -3,6 +3,7 @@ export * from './routes/public.types.js';
 
 export * from './routes/admin/index.types.js';
 export * from './routes/admin/crises.types.js';
+export * from './routes/admin/certificateSettings.types.js';
 
 export * from './routes/volunteer/index.types.js';
 export * from './routes/volunteer/posting.types.js';

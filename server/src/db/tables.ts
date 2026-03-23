@@ -125,6 +125,7 @@ export const organizationAccountSchema = zod.object({
   email: zod.email('Invalid email').transform(val => val.toLowerCase().trim()),
   phone_number: zod.e164('Phone number is invalid'),
   url: organizationWebsiteSchema,
+  description: zod.string().max(300, 'Description must be less than 300 characters').optional(),
   latitude: zod
     .number()
     .min(-90, { message: 'Latitude must be >= -90' })
@@ -328,8 +329,10 @@ export type EnrollmentApplicationTable = WithGeneratedIDAndCreatedAt<EnrollmentA
 
 export const organizationCertificateInfoSchema = zod.object({
   id: zod.number(),
-  hours_threshold: zod.number().int().min(0, 'Hours threshold must be >= 0').nullable(),
+  certificate_feature_enabled: zod.boolean(),
+  hours_threshold: zod.number().int().min(0, 'Minimum volunteer hours must be >= 0').nullable(),
   signatory_name: zod.string().max(128, 'Signatory name must be at most 128 characters').nullable(),
+  signatory_position: zod.string().max(128, 'Signatory position must be at most 128 characters').nullable(),
   signature_path: zod.string().max(256, 'Signature path must be at most 256 characters').nullable(),
 });
 
@@ -341,6 +344,27 @@ export const newOrganizationCertificateInfoSchema = organizationCertificateInfoS
   id: true,
 }).strict();
 export type NewOrganizationCertificateInfo = zod.infer<typeof newOrganizationCertificateInfoSchema>;
+
+// platform_certificate_settings
+
+export const platformCertificateSettingsSchema = zod.object({
+  id: zod.number(),
+  signatory_name: zod.string().max(128, 'Signatory name must be at most 128 characters').nullable(),
+  signatory_position: zod.string().max(128, 'Signatory position must be at most 128 characters').nullable(),
+  signature_path: zod.string().max(256, 'Signature path must be at most 256 characters').nullable(),
+  signature_uploaded_by_admin_id: zod.number().nullable(),
+  created_at: zod.date(),
+  updated_at: zod.date(),
+});
+export type PlatformCertificateSettings = zod.infer<typeof platformCertificateSettingsSchema>;
+export type PlatformCertificateSettingsTable = WithGeneratedIDAndTimestamps<PlatformCertificateSettings>;
+
+export const newPlatformCertificateSettingsSchema = platformCertificateSettingsSchema.omit({
+  id: true,
+  created_at: true,
+  updated_at: true,
+}).strict();
+export type NewPlatformCertificateSettings = zod.infer<typeof newPlatformCertificateSettingsSchema>;
 
 export interface Database {
   volunteer_account: VolunteerAccountTable;
@@ -355,4 +379,5 @@ export interface Database {
   enrollment: EnrollmentTable;
   enrollment_application: EnrollmentApplicationTable;
   organization_certificate_info: OrganizationCertificateInfoTable;
+  platform_certificate_settings: PlatformCertificateSettingsTable;
 }

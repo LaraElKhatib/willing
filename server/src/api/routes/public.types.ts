@@ -3,3 +3,5 @@ export type PublicHomeStatsResponse = {
   totalOrganizations: number;
   totalVolunteers: number;
 };
+
+export type PublicCertificateSignatureResponse = never;

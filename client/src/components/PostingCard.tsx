@@ -1,7 +1,9 @@
 import { Calendar, Cake, Clock, ExternalLink, LockOpen, MapPin, Users, AlertCircle, Building2, Ban } from 'lucide-react';
+import { useState } from 'react';
 import { Link } from 'react-router';
 
 import SkillsList from './skills/SkillsList';
+import { SERVER_BASE_URL } from '../utils/requestServer';
 
 import type { PostingWithContext, PostingWithSkills } from '../../../server/src/types';
 
@@ -13,6 +15,7 @@ interface PostingCardProps {
 }
 
 function PostingCard({ posting, showCrisis = true }: PostingCardProps) {
+  const [logoLoadFailed, setLogoLoadFailed] = useState(false);
   const postingDetailsPath = `/posting/${posting.id}`;
   const normalizeTimestamp = (value: string | Date | undefined | null) => {
     if (value == null) return null;
@@ -63,6 +66,9 @@ function PostingCard({ posting, showCrisis = true }: PostingCardProps) {
         .map((word: string) => word[0]?.toUpperCase() ?? '')
         .join('')
     : '';
+  const organizationLogoUrl = !logoLoadFailed
+    ? `${SERVER_BASE_URL}/organization/${posting.organization_id}/logo`
+    : null;
 
   const volunteerFilled = posting.enrollment_count ?? 0;
   const volunteerPercent = posting.max_volunteers ? Math.round((volunteerFilled / posting.max_volunteers) * 100) : 0;
@@ -88,13 +94,28 @@ function PostingCard({ posting, showCrisis = true }: PostingCardProps) {
       <div className="p-4 md:p-5 mt-1 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3 min-w-0">
           <Link to={`/organization/${posting.organization_id}`} className="shrink-0">
-            <div className="avatar avatar-placeholder">
-              <div className="bg-primary text-primary-content w-12 rounded-full">
-                {organizationInitials
-                  ? <span className="text-md font-semibold">{organizationInitials}</span>
-                  : <Building2 size={18} />}
-              </div>
-            </div>
+            {organizationLogoUrl
+              ? (
+                  <div className="avatar">
+                    <div className="w-12 rounded-full bg-white border border-base-300 overflow-hidden">
+                      <img
+                        src={organizationLogoUrl}
+                        alt={`${posting.organization_name} logo`}
+                        className="w-12 h-12 object-cover"
+                        onError={() => setLogoLoadFailed(true)}
+                      />
+                    </div>
+                  </div>
+                )
+              : (
+                  <div className="avatar avatar-placeholder">
+                    <div className="bg-primary text-primary-content w-12 rounded-full">
+                      {organizationInitials
+                        ? <span className="text-md font-semibold">{organizationInitials}</span>
+                        : <Building2 size={18} />}
+                    </div>
+                  </div>
+                )}
           </Link>
 
           {posting.organization_name
@@ -107,7 +128,7 @@ function PostingCard({ posting, showCrisis = true }: PostingCardProps) {
                     </Link>
                   </h3>
                   <p className="text-xs mt-1">
-                    <Link to={`/organization/${posting.organization_id}`} className="text-primary">
+                    <Link to={`/organization/${posting.organization_id}`} className="link link-primary link-hover no-underline hover:underline">
                       {posting.organization_name}
                     </Link>
                   </p>
