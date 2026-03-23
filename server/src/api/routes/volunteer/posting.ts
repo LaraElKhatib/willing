@@ -224,8 +224,11 @@ volunteerPostingRouter.get('/enrollments', async (req, res: Response<VolunteerEn
   });
 
   const filteredPostings = postings
-    .filter(posting => matchesPostingSearch(posting, search))
-    .filter(posting => matchesPostingDateTimeFilters<PostingWithContext>(posting, dateTimeFilters))
+    .filter(posting => matchesPostingDateTimeFilters(posting, dateTimeFilters));
+    
+  const visiblePostings = hideFull
+    ? filteredPostings.filter(posting => posting.max_volunteers == null || posting.enrollment_count < posting.max_volunteers)
+    : filteredPostings;
     .filter(posting => (hideFull ? posting.max_volunteers == null || posting.enrollment_count < posting.max_volunteers : true));
 
   const effectiveSortBy = sortBy === 'recommended' ? 'start_date' : sortBy;
