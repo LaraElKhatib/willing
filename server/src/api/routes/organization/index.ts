@@ -23,7 +23,7 @@ import {
 import postingRouter from './posting.js';
 import resetPassword from '../../../auth/resetPassword.js';
 import database from '../../../db/index.js';
-import { newOrganizationRequestSchema, organizationAccountSchema, PostingSkill } from '../../../db/tables.js';
+import { newOrganizationRequestSchema, organizationAccountSchema, PostingSkill } from '../../../db/tables/index.js';
 import { recomputeOrganizationVector } from '../../../services/embeddings/updates.js';
 import { sendAdminOrganizationRequestEmail } from '../../../services/smtp/emails.js';
 import { orgLogoMulter } from '../../../services/uploads/orgLogo.js';

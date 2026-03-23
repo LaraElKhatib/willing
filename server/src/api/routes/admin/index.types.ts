@@ -3,7 +3,7 @@ import {
   AdminAccountWithoutPassword,
   OrganizationAccountWithoutPassword,
   OrganizationRequest,
-} from '../../../db/tables.js';
+} from '../../../db/tables/index.js';
 
 export type AdminLoginResponse = {
   token: string;

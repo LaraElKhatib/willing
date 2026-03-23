@@ -1,0 +1,39 @@
+import zod from 'zod';
+
+import { emailSchema, idSchema, latitudeSchema, longitudeSchema, passwordSchema, websiteSchema } from '../../schemas/index.js';
+
+import type { WithGeneratedIDAndTimestamps } from './shared.js';
+
+export const organizationAccountSchema = zod.object({
+  id: idSchema,
+  name: zod.string().min(1, 'Name is required'),
+  email: emailSchema,
+  phone_number: zod.e164('Phone number is invalid'),
+  url: websiteSchema,
+  latitude: latitudeSchema.optional(),
+  longitude: longitudeSchema.optional(),
+  location_name: zod.string().min(2, 'Location must be longer than 2 characters'),
+  password: passwordSchema,
+  logo_path: zod.string().optional(),
+  certificate_info_id: zod.number().nullable().optional(),
+  org_vector: zod.string().optional(),
+  updated_at: zod.date(),
+  created_at: zod.date(),
+});
+
+export type OrganizationAccount = zod.infer<typeof organizationAccountSchema>;
+
+export type OrganizationAccountTable = WithGeneratedIDAndTimestamps<OrganizationAccount>;
+
+export const newOrganizationAccountSchema = organizationAccountSchema.omit({ id: true, certificate_info_id: true, org_vector: true, created_at: true, updated_at: true }).strict();
+export type NewOrganizationAccount = zod.infer<typeof newOrganizationAccountSchema>;
+
+export const organizationAccountUpdate = organizationAccountSchema.omit({ password: true, certificate_info_id: true, org_vector: true, created_at: true, updated_at: true });
+export type OrganizationAccountWithoutPassword = zod.infer<typeof organizationAccountUpdate>;
+
+export const organizationAccountWithoutPasswordAndVectorSchema = organizationAccountSchema.omit({
+  password: true,
+  certificate_info_id: true,
+  org_vector: true,
+});
+export type OrganizationAccountWithoutPasswordAndVector = zod.infer<typeof organizationAccountWithoutPasswordAndVectorSchema>;

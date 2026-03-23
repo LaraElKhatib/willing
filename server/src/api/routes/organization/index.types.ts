@@ -1,5 +1,5 @@
 import { ResetPasswordResponse } from '../../../auth/resetPassword.js';
-import { Crisis, OrganizationAccountWithoutPassword, OrganizationAccountWithoutPasswordAndVector, OrganizationPostingWithoutVectors, PostingSkill } from '../../../db/tables.js';
+import { Crisis, OrganizationAccountWithoutPassword, OrganizationAccountWithoutPasswordAndVector, OrganizationPostingWithoutVectors, PostingSkill } from '../../../db/tables/index.js';
 import { SuccessResponse } from '../../../types.js';
 
 export type OrganizationRequestResponse = SuccessResponse;

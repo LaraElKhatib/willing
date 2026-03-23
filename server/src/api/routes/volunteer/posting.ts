@@ -5,7 +5,7 @@ import zod from 'zod';
 import { VolunteerEnrollmentsResponse, VolunteerPostingEnrollResponse, VolunteerPostingResponse, VolunteerPostingSearchResponse, VolunteerPostingWithdrawResponse } from './posting.types.js';
 import { buildPostingsWithContext, postingWithContextSelectColumns } from './postingWithContext.js';
 import database from '../../../db/index.js';
-import { Enrollment, EnrollmentApplication } from '../../../db/tables.js';
+import { Enrollment, EnrollmentApplication } from '../../../db/tables/index.js';
 import { recomputeVolunteerExperienceVector } from '../../../services/embeddings/updates.js';
 import { PostingWithContext } from '../../../types.js';
 import { authorizeOnly } from '../../authorization.js';

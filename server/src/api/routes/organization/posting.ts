@@ -20,7 +20,7 @@ import {
   newOrganizationPostingSchema,
   type NewOrganizationPosting,
   type PostingSkill,
-} from '../../../db/tables.js';
+} from '../../../db/tables/index.js';
 import {
   recomputePostingVectors,
   recomputeVolunteerExperienceVector,

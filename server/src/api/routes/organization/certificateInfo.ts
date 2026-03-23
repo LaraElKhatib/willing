@@ -13,8 +13,9 @@ import database from '../../../db/index.js';
 import {
   organizationCertificateInfoSchema,
   newOrganizationCertificateInfoSchema,
-} from '../../../db/tables.js';
-import { getAbsoluteSignaturePath, orgSignatureMulter } from '../../../services/uploads/orgSignature.js';
+} from '../../../db/tables/index.js';
+import { orgSignatureMulter, getAbsoluteSignaturePath } from '../../../services/uploads/orgSignature.js';
+import { ORG_SIGNATURE_UPLOAD_DIR } from '../../../services/uploads/paths.js';
 import uploadSingle from '../../../services/uploads/uploadSingle.js';
 
 const certificateInfoRouter = Router();

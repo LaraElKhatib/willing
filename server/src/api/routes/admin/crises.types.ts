@@ -1,4 +1,4 @@
-import { Crisis } from '../../../db/tables.js';
+import { Crisis } from '../../../db/tables/index.js';
 import { SuccessResponse } from '../../../types.js';
 
 export type AdminCrisesResponse = {
