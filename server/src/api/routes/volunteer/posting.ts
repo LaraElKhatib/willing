@@ -225,14 +225,12 @@ volunteerPostingRouter.get('/enrollments', async (req, res: Response<VolunteerEn
 
   const filteredPostings = postings
     .filter(posting => matchesPostingSearch(posting, search))
-    .filter(posting => matchesPostingDateTimeFilters(posting, dateTimeFilters));
+    .filter(posting => matchesPostingDateTimeFilters<PostingWithContext>(posting, dateTimeFilters))
+    .filter(posting => (hideFull ? posting.max_volunteers == null || posting.enrollment_count < posting.max_volunteers : true));
 
-  const visiblePostings = hideFull
-    ? filteredPostings.filter(posting => posting.max_volunteers == null || posting.enrollment_count < posting.max_volunteers)
-    : filteredPostings;
-
-  const sortByForList = sortBy === 'recommended' ? 'start_date' : sortBy;
-  const sortedPostings = sortPostingsBySharedSort<PostingWithContext>(visiblePostings, sortByForList, sortDir);
+  const effectiveSortBy = sortBy === 'recommended' ? 'start_date' : sortBy;
+  const effectiveSortDir = sortDir;
+  const sortedPostings = sortPostingsBySharedSort<PostingWithContext>(filteredPostings, effectiveSortBy, effectiveSortDir);
 
   res.json({ postings: sortedPostings });
 });
