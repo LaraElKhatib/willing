@@ -17,6 +17,7 @@ import {
 import {
   applyPostingDateTimeFilters,
   applySharedPostingSort,
+  matchesPostingDateTimeFilters,
   matchesPostingSearch,
   parsePostingDateTimeFilters,
   sortPostingsBySharedSort,
@@ -181,6 +182,7 @@ volunteerPostingRouter.get('/enrollments', async (req, res: Response<VolunteerEn
     defaultSortBy: 'recommended',
     defaultSortDir: 'desc',
   });
+  const dateTimeFilters = parsePostingDateTimeFilters(req.query);
   const hideFull = parseOptionalBooleanQueryParam(req.query.hide_full) ?? false;
 
   const [enrolledPostings, pendingPostings] = await Promise.all([
@@ -222,12 +224,16 @@ volunteerPostingRouter.get('/enrollments', async (req, res: Response<VolunteerEn
   });
 
   const filteredPostings = postings
-    .filter(posting => matchesPostingSearch(posting, search));
+    .filter(posting => matchesPostingSearch(posting, search))
+    .filter(posting => matchesPostingDateTimeFilters(posting, dateTimeFilters));
+
   const visiblePostings = hideFull
     ? filteredPostings.filter(posting => posting.max_volunteers == null || posting.enrollment_count < posting.max_volunteers)
     : filteredPostings;
+
   const sortByForList = sortBy === 'recommended' ? 'start_date' : sortBy;
   const sortedPostings = sortPostingsBySharedSort<PostingWithContext>(visiblePostings, sortByForList, sortDir);
+
   res.json({ postings: sortedPostings });
 });
 
