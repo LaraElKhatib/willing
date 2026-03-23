@@ -110,7 +110,7 @@ async function seed() {
   const volunteers = await database.insertInto('volunteer_account')
     .values([
       {
-        first_name: 'karim',
+        first_name: 'Karim',
         last_name: 'Mansour',
         email: 'vol1@willing.com',
         password: passwordHash,
