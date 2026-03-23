@@ -140,7 +140,7 @@ function PostingList({ posting, showCrisis = true, variant = 'volunteer' }: Post
         </div>
 
         <div className="min-w-0 flex-1 relative">
-          <div className="grid w-full grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] items-center gap-x-3 gap-y-1">
+          <div className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]">
             <div className="flex min-w-0 items-center gap-2">
               <Link
                 to={postingDetailsPath}
@@ -154,24 +154,24 @@ function PostingList({ posting, showCrisis = true, variant = 'volunteer' }: Post
               <div className="shrink-0 opacity-100">{statusTag}</div>
             </div>
 
-            <span className="-ml-8 inline-flex items-center gap-1.5 justify-self-start text-sm opacity-70">
+            <span className="-ml-8 hidden items-center gap-1.5 justify-self-start text-sm opacity-70 lg:inline-flex">
               <Calendar size={14} className="shrink-0 text-primary" />
               Date
             </span>
 
-            <span className="-ml-8 inline-flex items-center gap-1.5 justify-self-start text-sm opacity-70">
+            <span className="-ml-8 hidden items-center gap-1.5 justify-self-start text-sm opacity-70 lg:inline-flex">
               <Clock size={14} className="shrink-0 text-primary" />
               Time
             </span>
 
-            <span className="-ml-8 inline-flex items-center gap-1.5 justify-self-start text-sm opacity-70">
+            <span className="-ml-8 hidden items-center gap-1.5 justify-self-start text-sm opacity-70 lg:inline-flex">
               <MapPin size={14} className="shrink-0 text-primary" />
               Location
             </span>
           </div>
 
           {variant === 'volunteer' && (
-            <div className="mt-1 grid w-full grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] items-center gap-x-3 gap-y-1 text-xs text-base-content">
+            <div className="mt-1 grid w-full grid-cols-1 items-center gap-x-3 gap-y-1 text-xs text-base-content lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]">
               {posting.organization_name && (
                 <Link
                   to={`/organization/${posting.organization_id}`}
@@ -182,21 +182,21 @@ function PostingList({ posting, showCrisis = true, variant = 'volunteer' }: Post
                 </Link>
               )}
 
-              <span className="-ml-8 min-w-0 truncate justify-self-start font-medium">{hasEndDate ? `${startDateStr} - ${endDateStr}` : startDateStr}</span>
+              <span className="-ml-8 hidden min-w-0 truncate justify-self-start pr-1 font-medium lg:block">{hasEndDate ? `${startDateStr} - ${endDateStr}` : startDateStr}</span>
 
-              <span className="-ml-8 min-w-0 truncate justify-self-start font-medium">{hasEndDate ? `${startTimeStr} - ${endTimeStr}` : startTimeStr}</span>
+              <span className="-ml-8 hidden min-w-0 truncate justify-self-start pr-1 font-medium lg:block">{hasEndDate ? `${startTimeStr} - ${endTimeStr}` : startTimeStr}</span>
 
-              <span className="-ml-8 min-w-0 truncate justify-self-start font-medium">{locationText}</span>
+              <span className="-ml-8 hidden min-w-0 truncate justify-self-start font-medium lg:block">{locationText}</span>
             </div>
           )}
 
           {variant === 'organization' && (
-            <div className="mt-1 grid w-full grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] items-center gap-x-3 gap-y-1 text-xs text-base-content">
+            <div className="mt-1 hidden w-full grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] items-center gap-x-3 gap-y-1 text-xs text-base-content lg:grid">
               <span aria-hidden="true"></span>
 
-              <span className="-ml-8 min-w-0 truncate justify-self-start font-medium">{hasEndDate ? `${startDateStr} - ${endDateStr}` : startDateStr}</span>
+              <span className="-ml-8 min-w-0 truncate justify-self-start pr-1 font-medium">{hasEndDate ? `${startDateStr} - ${endDateStr}` : startDateStr}</span>
 
-              <span className="-ml-8 min-w-0 truncate justify-self-start font-medium">{hasEndDate ? `${startTimeStr} - ${endTimeStr}` : startTimeStr}</span>
+              <span className="-ml-8 min-w-0 truncate justify-self-start pr-1 font-medium">{hasEndDate ? `${startTimeStr} - ${endTimeStr}` : startTimeStr}</span>
 
               <span className="-ml-8 min-w-0 truncate justify-self-start font-medium">{locationText}</span>
             </div>
@@ -205,6 +205,26 @@ function PostingList({ posting, showCrisis = true, variant = 'volunteer' }: Post
       </div>
 
       <div className="collapse-content pt-0">
+        <div className="mb-3 space-y-1 text-sm lg:hidden">
+          <div className="inline-flex items-center gap-2">
+            <Calendar size={14} className="text-primary" />
+            <span className="opacity-70">Date:</span>
+            <span className="font-medium text-base-content pr-3">{hasEndDate ? `${startDateStr} - ${endDateStr}` : startDateStr}</span>
+          </div>
+
+          <div className="inline-flex items-center gap-2">
+            <Clock size={14} className="text-primary" />
+            <span className="opacity-70">Time:</span>
+            <span className="font-medium text-base-content pr-3">{hasEndDate ? `${startTimeStr} - ${endTimeStr}` : startTimeStr}</span>
+          </div>
+
+          <div className="inline-flex items-center gap-2">
+            <MapPin size={14} className="text-primary" />
+            <span className="opacity-70">Location:</span>
+            <span className="font-medium text-base-content">{locationText}</span>
+          </div>
+        </div>
+
         <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
           <div className="inline-flex items-center gap-2">
             <Users size={14} className="text-primary" />
