@@ -235,7 +235,7 @@ function PostingList({ posting, showCrisis = true, variant = 'volunteer' }: Post
           {posting.minimum_age && (
             <div className="inline-flex items-center gap-2">
               <Cake size={14} className="text-primary" />
-              <span className="opacity-70">Minimum age:</span>
+              <span className="opacity-70">Age:</span>
               <span className="font-medium text-base-content">
                 {posting.minimum_age}
                 +
