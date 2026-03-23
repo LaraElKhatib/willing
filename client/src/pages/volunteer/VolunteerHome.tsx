@@ -55,6 +55,45 @@ const RailLoadingState = () => (
   </div>
 );
 
+const VerticalPostingSection = ({
+  title,
+  subtitle,
+  action,
+  hasItems,
+  emptyState,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  action?: React.ReactNode;
+  hasItems: boolean;
+  emptyState?: React.ReactNode;
+  children?: React.ReactNode;
+}) => (
+  <section className="space-y-4">
+    <div>
+      <h2 className="text-2xl font-bold tracking-tight">{title}</h2>
+      {subtitle && (
+        <p className="mt-1 opacity-70">{subtitle}</p>
+      )}
+    </div>
+
+    {hasItems
+      ? (
+          <div className="space-y-3">
+            {children}
+          </div>
+        )
+      : emptyState}
+
+    {action && (
+      <div className="pt-1">
+        {action}
+      </div>
+    )}
+  </section>
+);
+
 const getPostingCrisisId = (posting: PostingWithContext): number | undefined => {
   const maybePosting = posting as PostingWithContext & { crisis_id?: unknown };
   return typeof maybePosting.crisis_id === 'number' ? maybePosting.crisis_id : undefined;
@@ -186,35 +225,67 @@ function VolunteerHome() {
         <div className="space-y-10">
 
           {(enrolledLoading || enrolledError || (enrolledPostings?.postings.length ?? 0) > 0) && (
-            <HorizontalScrollSection
-              title="My Enrollments"
-              subtitle="All postings you're currently enrolled in or have applied to."
-              orientation={viewMode === 'list' ? 'vertical' : 'horizontal'}
-              hasItems={!enrolledLoading && (enrolledPostings?.postings.length ?? 0) > 0}
-              action={(
-                <Link to="/volunteer/enrollments" className="btn btn-sm btn-primary">
-                  View All
-                </Link>
-              )}
-              emptyState={enrolledLoading
-                ? <RailLoadingState />
-                : enrolledError
-                  ? (
-                      <div className="rounded-box border border-base-300 bg-base-100 px-6 py-4 text-sm text-base-content/70">
-                        Unable to load enrollments.
-                      </div>
-                    )
-                  : null}
-            >
-              {(enrolledPostings?.postings ?? []).map(posting => (
-                <PostingRailCard
-                  key={posting.id}
-                  posting={posting}
-                  showCrisis
-                  viewMode={viewMode}
-                />
-              ))}
-            </HorizontalScrollSection>
+            (viewMode === 'list'
+              ? (
+                  <VerticalPostingSection
+                    title="My Enrollments"
+                    subtitle="All postings you're currently enrolled in or have applied to."
+                    hasItems={!enrolledLoading && (enrolledPostings?.postings.length ?? 0) > 0}
+                    action={(
+                      <Link to="/volunteer/enrollments" className="btn btn-sm btn-primary">
+                        View All
+                      </Link>
+                    )}
+                    emptyState={enrolledLoading
+                      ? <RailLoadingState />
+                      : enrolledError
+                        ? (
+                            <div className="rounded-box border border-base-300 bg-base-100 px-6 py-4 text-sm text-base-content/70">
+                              Unable to load enrollments.
+                            </div>
+                          )
+                        : null}
+                  >
+                    {(enrolledPostings?.postings ?? []).map(posting => (
+                      <PostingRailCard
+                        key={posting.id}
+                        posting={posting}
+                        showCrisis
+                        viewMode={viewMode}
+                      />
+                    ))}
+                  </VerticalPostingSection>
+                )
+              : (
+                  <HorizontalScrollSection
+                    title="My Enrollments"
+                    subtitle="All postings you're currently enrolled in or have applied to."
+                    hasItems={!enrolledLoading && (enrolledPostings?.postings.length ?? 0) > 0}
+                    action={(
+                      <Link to="/volunteer/enrollments" className="btn btn-sm btn-primary">
+                        View All
+                      </Link>
+                    )}
+                    emptyState={enrolledLoading
+                      ? <RailLoadingState />
+                      : enrolledError
+                        ? (
+                            <div className="rounded-box border border-base-300 bg-base-100 px-6 py-4 text-sm text-base-content/70">
+                              Unable to load enrollments.
+                            </div>
+                          )
+                        : null}
+                  >
+                    {(enrolledPostings?.postings ?? []).map(posting => (
+                      <PostingRailCard
+                        key={posting.id}
+                        posting={posting}
+                        showCrisis
+                        viewMode={viewMode}
+                      />
+                    ))}
+                  </HorizontalScrollSection>
+                ))
           )}
 
           {crisesError && (
@@ -224,69 +295,136 @@ function VolunteerHome() {
           )}
 
           {!crisesError && featuredCrisesWithPostings.map(({ crisis, postings }) => (
-            <HorizontalScrollSection
-              key={crisis.id}
-              title={crisis.name}
-              subtitle={crisis.description || 'No description provided.'}
-              orientation={viewMode === 'list' ? 'vertical' : 'horizontal'}
-              hasItems={!crisisSectionsLoading && postings.length > 0}
-              action={(
-                <Link
-                  to={`/volunteer/crises/${crisis.id}/postings`}
-                  state={{ crisis }}
-                  className="btn btn-sm btn-primary"
-                >
-                  View All
-                </Link>
-              )}
-              emptyState={crisisSectionsLoading
-                ? <RailLoadingState />
-                : null}
-            >
-              {postings.map(posting => (
-                <PostingRailCard
-                  key={posting.id}
-                  posting={posting}
-                  showCrisis
-                  viewMode={viewMode}
-                />
-              ))}
-            </HorizontalScrollSection>
+            viewMode === 'list'
+              ? (
+                  <VerticalPostingSection
+                    key={crisis.id}
+                    title={crisis.name}
+                    subtitle={crisis.description || 'No description provided.'}
+                    hasItems={!crisisSectionsLoading && postings.length > 0}
+                    action={(
+                      <Link
+                        to={`/volunteer/crises/${crisis.id}/postings`}
+                        state={{ crisis }}
+                        className="btn btn-sm btn-primary"
+                      >
+                        View All
+                      </Link>
+                    )}
+                    emptyState={crisisSectionsLoading
+                      ? <RailLoadingState />
+                      : null}
+                  >
+                    {postings.map(posting => (
+                      <PostingRailCard
+                        key={posting.id}
+                        posting={posting}
+                        showCrisis
+                        viewMode={viewMode}
+                      />
+                    ))}
+                  </VerticalPostingSection>
+                )
+              : (
+                  <HorizontalScrollSection
+                    key={crisis.id}
+                    title={crisis.name}
+                    subtitle={crisis.description || 'No description provided.'}
+                    hasItems={!crisisSectionsLoading && postings.length > 0}
+                    action={(
+                      <Link
+                        to={`/volunteer/crises/${crisis.id}/postings`}
+                        state={{ crisis }}
+                        className="btn btn-sm btn-primary"
+                      >
+                        View All
+                      </Link>
+                    )}
+                    emptyState={crisisSectionsLoading
+                      ? <RailLoadingState />
+                      : null}
+                  >
+                    {postings.map(posting => (
+                      <PostingRailCard
+                        key={posting.id}
+                        posting={posting}
+                        showCrisis
+                        viewMode={viewMode}
+                      />
+                    ))}
+                  </HorizontalScrollSection>
+                )
           ))}
 
-          <HorizontalScrollSection
-            title="For You"
-            subtitle="Recommended for you."
-            orientation={viewMode === 'list' ? 'vertical' : 'horizontal'}
-            hasItems={!forYouSectionLoading && forYouPostings.length > 0}
-            action={(
-              <Link to="/volunteer/search" className="btn btn-sm btn-primary">
-                View All
-              </Link>
-            )}
-            emptyState={forYouSectionLoading
-              ? <RailLoadingState />
-              : allError
-                ? (
-                    <div className="rounded-box border border-base-300 bg-base-100 px-6 py-4 text-sm text-base-content/70">
-                      Unable to load recommended postings.
-                    </div>
-                  )
-                : (
-                    <Alert>
-                      No recommended postings are available yet.
-                    </Alert>
+          {viewMode === 'list'
+            ? (
+                <VerticalPostingSection
+                  title="For You"
+                  subtitle="Recommended for you."
+                  hasItems={!forYouSectionLoading && forYouPostings.length > 0}
+                  action={(
+                    <Link to="/volunteer/search" className="btn btn-sm btn-primary">
+                      View All
+                    </Link>
                   )}
-          >
-            {forYouPostings.map(posting => (
-              <PostingRailCard
-                key={posting.id}
-                posting={posting}
-                showCrisis
-                viewMode={viewMode}
-              />
-            ))}
-          </HorizontalScrollSection>
+                  emptyState={forYouSectionLoading
+                    ? <RailLoadingState />
+                    : allError
+                      ? (
+                          <div className="rounded-box border border-base-300 bg-base-100 px-6 py-4 text-sm text-base-content/70">
+                            Unable to load recommended postings.
+                          </div>
+                        )
+                      : (
+                          <Alert>
+                            No recommended postings are available yet.
+                          </Alert>
+                        )}
+                >
+                  {forYouPostings.map(posting => (
+                    <PostingRailCard
+                      key={posting.id}
+                      posting={posting}
+                      showCrisis
+                      viewMode={viewMode}
+                    />
+                  ))}
+                </VerticalPostingSection>
+              )
+            : (
+                <HorizontalScrollSection
+                  title="For You"
+                  subtitle="Recommended for you."
+                  hasItems={!forYouSectionLoading && forYouPostings.length > 0}
+                  action={(
+                    <Link to="/volunteer/search" className="btn btn-sm btn-primary">
+                      View All
+                    </Link>
+                  )}
+                  emptyState={forYouSectionLoading
+                    ? <RailLoadingState />
+                    : allError
+                      ? (
+                          <div className="rounded-box border border-base-300 bg-base-100 px-6 py-4 text-sm text-base-content/70">
+                            Unable to load recommended postings.
+                          </div>
+                        )
+                      : (
+                          <Alert>
+                            No recommended postings are available yet.
+                          </Alert>
+                        )}
+                >
+                  {forYouPostings.map(posting => (
+                    <PostingRailCard
+                      key={posting.id}
+                      posting={posting}
+                      showCrisis
+                      viewMode={viewMode}
+                    />
+                  ))}
+                </HorizontalScrollSection>
+              )}
 
         </div>
       </div>
