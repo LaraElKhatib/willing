@@ -114,9 +114,8 @@ function PostingList({ posting, showCrisis = true, variant = 'volunteer' }: Post
               );
 
   return (
-    <article className="collapse collapse-arrow relative overflow-visible border border-base-300 bg-base-100 shadow-sm hover:shadow-md transition-shadow">
-      <input type="checkbox" />
 
+    <div className="overflow-visible">
       {showCrisis && posting.crisis_name && posting.crisis_id && (
         <Link
           to={`/volunteer/crises/${posting.crisis_id}/postings`}
@@ -128,130 +127,134 @@ function PostingList({ posting, showCrisis = true, variant = 'volunteer' }: Post
         </Link>
       )}
 
-      <div className="collapse-title z-10 pointer-events-none flex items-center gap-3 pr-12">
-        <div className="relative shrink-0 pointer-events-auto">
-          <Link to={`/organization/${posting.organization_id}`} onClick={event => event.stopPropagation()} className="avatar avatar-placeholder">
-            <div className="bg-primary text-primary-content rounded-full w-11 h-11">
-              {organizationInitials
-                ? <span className="text-sm font-semibold">{organizationInitials}</span>
-                : <Building2 size={18} />}
-            </div>
-          </Link>
-        </div>
+      <article className="collapse collapse-arrow relative border border-base-300 bg-base-100 shadow-sm hover:shadow-md transition-shadow">
+        <input type="checkbox" />
 
-        <div className="min-w-0 flex-1 relative">
-          <div className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]">
-            <div className="flex min-w-0 items-center gap-2">
-              <Link
-                to={postingDetailsPath}
-                onClick={event => event.stopPropagation()}
-                className="link link-primary link-hover no-underline hover:underline inline-flex min-w-0 items-center gap-2 pointer-events-auto"
-              >
-                <span className="truncate text-lg font-semibold leading-tight text-primary">{posting.title}</span>
-                <ExternalLink size={14} />
-              </Link>
-
-              <div className="shrink-0 opacity-100">{statusTag}</div>
-            </div>
-
-            <span className="-ml-8 hidden items-center gap-1.5 justify-self-start text-sm opacity-70 lg:inline-flex">
-              <Calendar size={14} className="shrink-0 text-primary" />
-              Date
-            </span>
-
-            <span className="-ml-8 hidden items-center gap-1.5 justify-self-start text-sm opacity-70 lg:inline-flex">
-              <Clock size={14} className="shrink-0 text-primary" />
-              Time
-            </span>
-
-            <span className="-ml-8 hidden items-center gap-1.5 justify-self-start text-sm opacity-70 lg:inline-flex">
-              <MapPin size={14} className="shrink-0 text-primary" />
-              Location
-            </span>
+        <div className="collapse-title z-10 pointer-events-none flex items-center gap-3 pr-12">
+          <div className="relative shrink-0 pointer-events-auto">
+            <Link to={`/organization/${posting.organization_id}`} onClick={event => event.stopPropagation()} className="avatar avatar-placeholder">
+              <div className="bg-primary text-primary-content rounded-full w-11 h-11">
+                {organizationInitials
+                  ? <span className="text-sm font-semibold">{organizationInitials}</span>
+                  : <Building2 size={18} />}
+              </div>
+            </Link>
           </div>
 
-          {variant === 'volunteer' && (
-            <div className="mt-1 grid w-full grid-cols-1 items-center gap-x-3 gap-y-1 text-xs text-base-content lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]">
-              {posting.organization_name && (
+          <div className="min-w-0 flex-1 relative">
+            <div className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]">
+              <div className="flex min-w-0 items-center gap-2">
                 <Link
-                  to={`/organization/${posting.organization_id}`}
+                  to={postingDetailsPath}
                   onClick={event => event.stopPropagation()}
-                  className="pointer-events-auto text-primary link link-hover no-underline hover:underline text-xs justify-self-start"
+                  className="link link-primary link-hover no-underline hover:underline inline-flex min-w-0 items-center gap-2 pointer-events-auto"
                 >
-                  {posting.organization_name}
+                  <span className="truncate text-lg font-semibold leading-tight text-primary">{posting.title}</span>
+                  <ExternalLink size={14} />
                 </Link>
-              )}
 
-              <span className="-ml-8 hidden min-w-0 truncate justify-self-start pr-1 font-medium lg:block">{hasEndDate ? `${startDateStr} - ${endDateStr}` : startDateStr}</span>
+                <div className="shrink-0 opacity-100">{statusTag}</div>
+              </div>
 
-              <span className="-ml-8 hidden min-w-0 truncate justify-self-start pr-1 font-medium lg:block">{hasEndDate ? `${startTimeStr} - ${endTimeStr}` : startTimeStr}</span>
+              <span className="-ml-8 hidden items-center gap-1.5 justify-self-start text-sm opacity-70 lg:inline-flex">
+                <Calendar size={14} className="shrink-0 text-primary" />
+                Date
+              </span>
 
-              <span className="-ml-8 hidden min-w-0 truncate justify-self-start font-medium lg:block">{locationText}</span>
-            </div>
-          )}
+              <span className="-ml-8 hidden items-center gap-1.5 justify-self-start text-sm opacity-70 lg:inline-flex">
+                <Clock size={14} className="shrink-0 text-primary" />
+                Time
+              </span>
 
-          {variant === 'organization' && (
-            <div className="mt-1 hidden w-full grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] items-center gap-x-3 gap-y-1 text-xs text-base-content lg:grid">
-              <span aria-hidden="true"></span>
-
-              <span className="-ml-8 min-w-0 truncate justify-self-start pr-1 font-medium">{hasEndDate ? `${startDateStr} - ${endDateStr}` : startDateStr}</span>
-
-              <span className="-ml-8 min-w-0 truncate justify-self-start pr-1 font-medium">{hasEndDate ? `${startTimeStr} - ${endTimeStr}` : startTimeStr}</span>
-
-              <span className="-ml-8 min-w-0 truncate justify-self-start font-medium">{locationText}</span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="collapse-content overflow-hidden pt-0">
-        <div className="mb-3 space-y-1 text-sm lg:hidden">
-          <div className="inline-flex items-center gap-2">
-            <Calendar size={14} className="text-primary" />
-            <span className="opacity-70">Date:</span>
-            <span className="font-medium text-base-content pr-3">{hasEndDate ? `${startDateStr} - ${endDateStr}` : startDateStr}</span>
-          </div>
-
-          <div className="inline-flex items-center gap-2">
-            <Clock size={14} className="text-primary" />
-            <span className="opacity-70">Time:</span>
-            <span className="font-medium text-base-content pr-3">{hasEndDate ? `${startTimeStr} - ${endTimeStr}` : startTimeStr}</span>
-          </div>
-
-          <div className="inline-flex items-center gap-2">
-            <MapPin size={14} className="text-primary" />
-            <span className="opacity-70">Location:</span>
-            <span className="font-medium text-base-content">{locationText}</span>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
-          <div className="inline-flex items-center gap-2">
-            <Users size={14} className="text-primary" />
-            <span className="opacity-70">Volunteers:</span>
-            <span className="font-medium text-base-content">{volunteerCountText}</span>
-          </div>
-
-          {posting.minimum_age && (
-            <div className="inline-flex items-center gap-2">
-              <Cake size={14} className="text-primary" />
-              <span className="opacity-70">Age:</span>
-              <span className="font-medium text-base-content">
-                {posting.minimum_age}
-                +
+              <span className="-ml-8 hidden items-center gap-1.5 justify-self-start text-sm opacity-70 lg:inline-flex">
+                <MapPin size={14} className="shrink-0 text-primary" />
+                Location
               </span>
             </div>
-          )}
+
+            {variant === 'volunteer' && (
+              <div className="mt-1 grid w-full grid-cols-1 items-center gap-x-3 gap-y-1 text-xs text-base-content lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]">
+                {posting.organization_name && (
+                  <Link
+                    to={`/organization/${posting.organization_id}`}
+                    onClick={event => event.stopPropagation()}
+                    className="pointer-events-auto text-primary link link-hover no-underline hover:underline text-xs justify-self-start"
+                  >
+                    {posting.organization_name}
+                  </Link>
+                )}
+
+                <span className="-ml-8 hidden min-w-0 truncate justify-self-start pr-1 font-medium lg:block">{hasEndDate ? `${startDateStr} - ${endDateStr}` : startDateStr}</span>
+
+                <span className="-ml-8 hidden min-w-0 truncate justify-self-start pr-1 font-medium lg:block">{hasEndDate ? `${startTimeStr} - ${endTimeStr}` : startTimeStr}</span>
+
+                <span className="-ml-8 hidden min-w-0 truncate justify-self-start font-medium lg:block">{locationText}</span>
+              </div>
+            )}
+
+            {variant === 'organization' && (
+              <div className="mt-1 hidden w-full grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] items-center gap-x-3 gap-y-1 text-xs text-base-content lg:grid">
+                <span aria-hidden="true"></span>
+
+                <span className="-ml-8 min-w-0 truncate justify-self-start pr-1 font-medium">{hasEndDate ? `${startDateStr} - ${endDateStr}` : startDateStr}</span>
+
+                <span className="-ml-8 min-w-0 truncate justify-self-start pr-1 font-medium">{hasEndDate ? `${startTimeStr} - ${endTimeStr}` : startTimeStr}</span>
+
+                <span className="-ml-8 min-w-0 truncate justify-self-start font-medium">{locationText}</span>
+              </div>
+            )}
+          </div>
         </div>
 
-        {posting.skills && posting.skills.length > 0 && (
-          <div className="mt-3">
-            <p className="text-xs opacity-70 mb-2">Skills</p>
-            <SkillsList skills={posting.skills} limit={6} />
+        <div className="collapse-content pt-0">
+          <div className="mb-3 space-y-1 text-sm lg:hidden">
+            <div className="inline-flex items-center gap-2">
+              <Calendar size={14} className="text-primary" />
+              <span className="opacity-70">Date:</span>
+              <span className="font-medium text-base-content pr-3">{hasEndDate ? `${startDateStr} - ${endDateStr}` : startDateStr}</span>
+            </div>
+
+            <div className="inline-flex items-center gap-2">
+              <Clock size={14} className="text-primary" />
+              <span className="opacity-70">Time:</span>
+              <span className="font-medium text-base-content pr-3">{hasEndDate ? `${startTimeStr} - ${endTimeStr}` : startTimeStr}</span>
+            </div>
+
+            <div className="inline-flex items-center gap-2">
+              <MapPin size={14} className="text-primary" />
+              <span className="opacity-70">Location:</span>
+              <span className="font-medium text-base-content">{locationText}</span>
+            </div>
           </div>
-        )}
-      </div>
-    </article>
+
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+            <div className="inline-flex items-center gap-2">
+              <Users size={14} className="text-primary" />
+              <span className="opacity-70">Volunteers:</span>
+              <span className="font-medium text-base-content">{volunteerCountText}</span>
+            </div>
+
+            {posting.minimum_age && (
+              <div className="inline-flex items-center gap-2">
+                <Cake size={14} className="text-primary" />
+                <span className="opacity-70">Age:</span>
+                <span className="font-medium text-base-content">
+                  {posting.minimum_age}
+                  +
+                </span>
+              </div>
+            )}
+          </div>
+
+          {posting.skills && posting.skills.length > 0 && (
+            <div className="mt-3">
+              <p className="text-xs opacity-70 mb-2">Skills</p>
+              <SkillsList skills={posting.skills} limit={6} />
+            </div>
+          )}
+        </div>
+      </article>
+    </div>
   );
 }
 
