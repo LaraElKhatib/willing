@@ -1,13 +1,13 @@
-import { House, LayoutGrid, List } from 'lucide-react';
-import { useState } from 'react';
+import { House } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 import Alert from '../../components/Alert';
 import PageHeader from '../../components/layout/PageHeader.tsx';
 import Loading from '../../components/Loading.tsx';
-import PostingCard from '../../components/PostingCard';
-import PostingList from '../../components/PostingList';
 import HorizontalScrollSection from '../../components/postings/HorizontalScrollSection.tsx';
+import PostingCollection from '../../components/postings/PostingCollection';
+import { usePostingViewMode } from '../../components/postings/PostingViewModeState';
+import PostingViewModeToggle from '../../components/postings/PostingViewModeToggle';
 import requestServer from '../../utils/requestServer';
 import useAsync from '../../utils/useAsync';
 
@@ -17,37 +17,6 @@ import type {
   VolunteerPostingSearchResponse,
 } from '../../../../server/src/api/types';
 import type { PostingWithContext } from '../../../../server/src/types';
-
-type PostingViewMode = 'cards' | 'list';
-const POSTING_VIEW_MODE_STORAGE_KEY = 'posting-view-mode';
-
-const PostingRailCard = ({
-  posting,
-  showCrisis,
-  viewMode,
-}: {
-  posting: PostingWithContext;
-  showCrisis: boolean;
-  viewMode: PostingViewMode;
-}) => {
-  return (
-    <div className={viewMode === 'cards' ? 'shrink-0 snap-start md:w-md w-sm' : 'w-full'}>
-      {viewMode === 'cards'
-        ? (
-            <PostingCard
-              posting={posting}
-              showCrisis={showCrisis}
-            />
-          )
-        : (
-            <PostingList
-              posting={posting}
-              showCrisis={showCrisis}
-            />
-          )}
-    </div>
-  );
-};
 
 const RailLoadingState = () => (
   <div className="flex justify-center rounded-box border border-base-300 bg-base-100 px-6 py-12">
@@ -100,17 +69,7 @@ const getPostingCrisisId = (posting: PostingWithContext): number | undefined => 
 };
 
 function VolunteerHome() {
-  const [viewMode, setViewMode] = useState<PostingViewMode>(() => {
-    if (typeof window === 'undefined') return 'cards';
-    return window.localStorage.getItem(POSTING_VIEW_MODE_STORAGE_KEY) === 'list' ? 'list' : 'cards';
-  });
-
-  const onViewModeChange = (mode: PostingViewMode) => {
-    setViewMode(mode);
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem(POSTING_VIEW_MODE_STORAGE_KEY, mode);
-    }
-  };
+  const { viewMode } = usePostingViewMode();
 
   const {
     data: enrolledPostings,
@@ -198,28 +157,7 @@ function VolunteerHome() {
           title="Home"
           subtitle="Your enrollments, pinned crises, and personalised picks - all in one place."
           icon={House}
-          actions={(
-            <div className="join">
-              <button
-                type="button"
-                className={`join-item btn btn-sm ${viewMode === 'cards' ? 'btn-primary' : 'btn-outline'}`}
-                onClick={() => onViewModeChange('cards')}
-                aria-pressed={viewMode === 'cards'}
-              >
-                <LayoutGrid size={14} />
-                Cards
-              </button>
-              <button
-                type="button"
-                className={`join-item btn btn-sm ${viewMode === 'list' ? 'btn-primary' : 'btn-outline'}`}
-                onClick={() => onViewModeChange('list')}
-                aria-pressed={viewMode === 'list'}
-              >
-                <List size={14} />
-                List
-              </button>
-            </div>
-          )}
+          actions={<PostingViewModeToggle />}
         />
 
         <div className="space-y-10">
@@ -246,14 +184,11 @@ function VolunteerHome() {
                           )
                         : null}
                   >
-                    {(enrolledPostings?.postings ?? []).map(posting => (
-                      <PostingRailCard
-                        key={posting.id}
-                        posting={posting}
-                        showCrisis
-                        viewMode={viewMode}
-                      />
-                    ))}
+                    <PostingCollection
+                      postings={enrolledPostings?.postings ?? []}
+                      showCrisis
+                      listItemClassName="w-full"
+                    />
                   </VerticalPostingSection>
                 )
               : (
@@ -276,14 +211,11 @@ function VolunteerHome() {
                           )
                         : null}
                   >
-                    {(enrolledPostings?.postings ?? []).map(posting => (
-                      <PostingRailCard
-                        key={posting.id}
-                        posting={posting}
-                        showCrisis
-                        viewMode={viewMode}
-                      />
-                    ))}
+                    <PostingCollection
+                      postings={enrolledPostings?.postings ?? []}
+                      showCrisis
+                      cardItemClassName="shrink-0 snap-start md:w-md w-sm"
+                    />
                   </HorizontalScrollSection>
                 ))
           )}
@@ -315,14 +247,11 @@ function VolunteerHome() {
                       ? <RailLoadingState />
                       : null}
                   >
-                    {postings.map(posting => (
-                      <PostingRailCard
-                        key={posting.id}
-                        posting={posting}
-                        showCrisis
-                        viewMode={viewMode}
-                      />
-                    ))}
+                    <PostingCollection
+                      postings={postings}
+                      showCrisis
+                      listItemClassName="w-full"
+                    />
                   </VerticalPostingSection>
                 )
               : (
@@ -344,14 +273,11 @@ function VolunteerHome() {
                       ? <RailLoadingState />
                       : null}
                   >
-                    {postings.map(posting => (
-                      <PostingRailCard
-                        key={posting.id}
-                        posting={posting}
-                        showCrisis
-                        viewMode={viewMode}
-                      />
-                    ))}
+                    <PostingCollection
+                      postings={postings}
+                      showCrisis
+                      cardItemClassName="shrink-0 snap-start md:w-md w-sm"
+                    />
                   </HorizontalScrollSection>
                 )
           ))}
@@ -381,14 +307,11 @@ function VolunteerHome() {
                           </Alert>
                         )}
                 >
-                  {forYouPostings.map(posting => (
-                    <PostingRailCard
-                      key={posting.id}
-                      posting={posting}
-                      showCrisis
-                      viewMode={viewMode}
-                    />
-                  ))}
+                  <PostingCollection
+                    postings={forYouPostings}
+                    showCrisis
+                    listItemClassName="w-full"
+                  />
                 </VerticalPostingSection>
               )
             : (
@@ -415,14 +338,11 @@ function VolunteerHome() {
                           </Alert>
                         )}
                 >
-                  {forYouPostings.map(posting => (
-                    <PostingRailCard
-                      key={posting.id}
-                      posting={posting}
-                      showCrisis
-                      viewMode={viewMode}
-                    />
-                  ))}
+                  <PostingCollection
+                    postings={forYouPostings}
+                    showCrisis
+                    cardItemClassName="shrink-0 snap-start md:w-md w-sm"
+                  />
                 </HorizontalScrollSection>
               )}
 

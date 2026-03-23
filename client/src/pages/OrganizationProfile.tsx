@@ -1,34 +1,19 @@
-import { Building2, Globe, LayoutGrid, List, Mail, MapPin, Phone } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { Building2, Globe, Mail, MapPin, Phone } from 'lucide-react';
+import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 
 import ColumnLayout from '../components/layout/ColumnLayout';
 import PageHeader from '../components/layout/PageHeader';
 import LocationPicker from '../components/LocationPicker';
-import PostingCard from '../components/PostingCard';
-import PostingList from '../components/PostingList';
+import PostingCollection from '../components/postings/PostingCollection';
+import PostingViewModeToggle from '../components/postings/PostingViewModeToggle';
 import requestServer from '../utils/requestServer';
 import useAsync from '../utils/useAsync';
 
 import type { OrganizationProfileResponse } from '../../../server/src/api/types';
 import type { PostingWithContext } from '../../../server/src/types';
 
-type PostingViewMode = 'cards' | 'list';
-const POSTING_VIEW_MODE_STORAGE_KEY = 'posting-view-mode';
-
 function OrganizationProfile() {
-  const [viewMode, setViewMode] = useState<PostingViewMode>(() => {
-    if (typeof window === 'undefined') return 'cards';
-    return window.localStorage.getItem(POSTING_VIEW_MODE_STORAGE_KEY) === 'list' ? 'list' : 'cards';
-  });
-
-  const onViewModeChange = (mode: PostingViewMode) => {
-    setViewMode(mode);
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem(POSTING_VIEW_MODE_STORAGE_KEY, mode);
-    }
-  };
-
   const { id } = useParams<{ id: string }>();
 
   const { data, loading, error } = useAsync(
@@ -222,25 +207,8 @@ function OrganizationProfile() {
                     {postingsWithContext.length}
                   </span>
 
-                  <div className="join ml-auto">
-                    <button
-                      type="button"
-                      className={`join-item btn btn-sm ${viewMode === 'cards' ? 'btn-primary' : 'btn-outline'}`}
-                      onClick={() => onViewModeChange('cards')}
-                      aria-pressed={viewMode === 'cards'}
-                    >
-                      <LayoutGrid size={14} />
-                      Cards
-                    </button>
-                    <button
-                      type="button"
-                      className={`join-item btn btn-sm ${viewMode === 'list' ? 'btn-primary' : 'btn-outline'}`}
-                      onClick={() => onViewModeChange('list')}
-                      aria-pressed={viewMode === 'list'}
-                    >
-                      <List size={14} />
-                      List
-                    </button>
+                  <div className="ml-auto">
+                    <PostingViewModeToggle />
                   </div>
                 </div>
 
@@ -255,24 +223,12 @@ function OrganizationProfile() {
                       </div>
                     )
                   : (
-                      <div className={viewMode === 'cards' ? 'grid grid-cols-1 md:grid-cols-2 gap-6' : 'space-y-4'}>
-                        {postingsWithContext.map(posting => (
-                          viewMode === 'cards'
-                            ? (
-                                <PostingCard
-                                  key={posting.id}
-                                  posting={posting}
-                                />
-                              )
-                            : (
-                                <PostingList
-                                  key={posting.id}
-                                  posting={posting}
-                                  variant="organization"
-                                />
-                              )
-                        ))}
-                      </div>
+                      <PostingCollection
+                        postings={postingsWithContext}
+                        variant="organization"
+                        cardsContainerClassName="grid grid-cols-1 gap-6 md:grid-cols-2"
+                        listContainerClassName="space-y-4"
+                      />
                     )}
               </div>
             </ColumnLayout>
