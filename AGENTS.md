@@ -287,3 +287,9 @@ Before finishing code changes:
 3. Treat `AGENTS.md` updates as part of the definition of done for changes that affect shared developer workflows.
 
 AGENTS.md files may exist at multiple levels. The most specific one in the directory tree takes precedence for files under its scope.
+## Current Sprint
+
+Sprint 5 introduces features such as reporting, partial attendance, admin controls, and email verification.
+
+always see full details for clarification about databases, features, and roles:
+docs/sprints/sprint-5.md
