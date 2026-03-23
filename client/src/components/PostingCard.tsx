@@ -232,7 +232,7 @@ function PostingCard({ posting, showCrisis = true }: PostingCardProps) {
         <div className="px-4 md:px-5 mt-4 border-t border-base-200 pt-3">
           <div className="flex flex-wrap items-center gap-4 text-sm text-muted">
             <div className="flex items-center gap-2 flex-1">
-              <MapPin size={16} className="text-primary" />
+              <MapPin size={16} className="text-primary shrink-0" />
               <div>
                 <p className="text-xs opacity-70">LOCATION</p>
                 <p className="text-sm">{posting.location_name || 'TBA'}</p>
