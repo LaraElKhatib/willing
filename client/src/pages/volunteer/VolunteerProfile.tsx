@@ -457,7 +457,10 @@ function VolunteerProfile() {
           icon={FileText}
           actions={(
             <>
-              <button className="btn btn-outline" onClick={() => navigate('/volunteer/certificate')}>
+              <LinkButton to="/volunteer/certificate" color="secondary" className="btn btn-outline">
+                <FileText size={16} />
+                Generate Certificate
+              </LinkButton>
                 <FileText size={16} />
                 Generate Certificate
               </button>
