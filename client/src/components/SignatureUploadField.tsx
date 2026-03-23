@@ -186,7 +186,7 @@ function SignatureUploadField({
               ref={canvasRef}
               penColor="#111827"
               canvasProps={{
-                className: 'w-full h-40',
+                className: 'w-[440px] max-w-full h-52',
                 style: { touchAction: 'none' },
               }}
               onBegin={() => setHasDrawnSignature(true)}

@@ -146,11 +146,13 @@ function AdminSettings() {
   return (
     <div className="grow bg-base-200">
       <div className="p-6 md:container mx-auto">
-        <PageHeader
-          title="Settings"
-          subtitle="Manage admin security and platform certificate signatory settings."
-          icon={Lock}
-        />
+        <div className="mx-auto w-full max-w-5xl min-w-0">
+          <PageHeader
+            title="Settings"
+            subtitle="Manage admin security and platform certificate signatory settings."
+            icon={Lock}
+          />
+        </div>
 
         {loading && (
           <div className="flex justify-center mt-8">
@@ -170,8 +172,8 @@ function AdminSettings() {
         )}
 
         {!loading && !error && (
-          <div className="grid gap-6 mt-4 lg:grid-cols-2">
-            <div className="card bg-base-100 shadow-md">
+          <div className="mt-4 flex flex-col items-center gap-6">
+            <div className="card bg-base-100 shadow-md w-full max-w-5xl min-w-0">
               <div className="card-body">
                 <h4 className="text-xl font-bold flex items-center gap-2">
                   <Lock size={18} />
@@ -186,7 +188,7 @@ function AdminSettings() {
               </div>
             </div>
 
-            <div className="card bg-base-100 shadow-md">
+            <div className="card bg-base-100 shadow-md w-full max-w-5xl min-w-0">
               <div className="card-body">
                 <h4 className="text-xl font-bold flex items-center gap-2">
                   <Signature size={18} />

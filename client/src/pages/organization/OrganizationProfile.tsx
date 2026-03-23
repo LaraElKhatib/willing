@@ -111,7 +111,6 @@ function OrganizationProfile() {
   const [logoBusy, setLogoBusy] = useState(false);
   const [signatureBusy, setSignatureBusy] = useState(false);
   const [logoVersion, setLogoVersion] = useState(0);
-  const [signatureVersion, setSignatureVersion] = useState(0);
   const logoInputRef = useRef<HTMLInputElement | null>(null);
 
   const form = useForm<ProfileFormData>({
@@ -204,8 +203,8 @@ function OrganizationProfile() {
 
   const signatureUrl = useMemo(() => {
     if (!profile || !certificateInfo?.signature_path) return '';
-    return `${SERVER_BASE_URL}/organization/${profile.organization.id}/signature?v=${signatureVersion}`;
-  }, [certificateInfo?.signature_path, profile, signatureVersion]);
+    return `${SERVER_BASE_URL}/organization/${profile.organization.id}/signature?v=${encodeURIComponent(certificateInfo.signature_path)}`;
+  }, [certificateInfo?.signature_path, profile]);
 
   const onMapPositionPick = useCallback((coords: [number, number], name?: string) => {
     setPosition(coords);
@@ -307,7 +306,6 @@ function OrganizationProfile() {
 
       setCertificateInfo(response.certificateInfo);
       certificateForm.setValue('hasSignature', true, { shouldValidate: true });
-      setSignatureVersion(prev => prev + 1);
       notifications.push({ type: 'success', message: 'Certificate signature uploaded.' });
     } catch (error) {
       notifications.push({
@@ -333,7 +331,6 @@ function OrganizationProfile() {
 
       setCertificateInfo(prev => prev ? { ...prev, signature_path: null } : prev);
       certificateForm.setValue('hasSignature', false, { shouldValidate: true });
-      setSignatureVersion(prev => prev + 1);
       notifications.push({ type: 'success', message: 'Certificate signature removed.' });
     } catch (error) {
       notifications.push({

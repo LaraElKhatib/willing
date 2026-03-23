@@ -2,9 +2,11 @@ import {
   AlertCircle,
   Award,
   Building2,
+  Building,
   CheckCircle2,
   Download,
   FileText,
+  Users,
 } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 
@@ -106,6 +108,30 @@ function VolunteerCertificateRequest() {
     <div className="grow bg-base-200">
       <style>
         {`
+          #${CERTIFICATE_PREVIEW_ID} .certificate-title {
+            font-size: 72px;
+            line-height: 0.95;
+            font-weight: 800;
+            margin-top: 6px;
+          }
+
+          #${CERTIFICATE_PREVIEW_ID} .certificate-subtitle {
+            font-size: 54px;
+            line-height: 1.1;
+          }
+
+          #${CERTIFICATE_PREVIEW_ID} .certificate-name {
+            font-size: 58px;
+            margin-top: 8px;
+            line-height: 1.05;
+          }
+
+          #${CERTIFICATE_PREVIEW_ID} .certificate-main-copy {
+            font-size: 31px;
+            margin-top: 10px;
+            line-height: 1.35;
+          }
+
           @media print {
             @page {
               size: A4 landscape;
@@ -155,8 +181,9 @@ function VolunteerCertificateRequest() {
             }
 
             .certificate-sign-line {
-              border-bottom: 1px solid #222 !important;
-              height: 0 !important;
+              border-bottom: none !important;
+              height: 1px !important;
+              background: #222 !important;
             }
 
             .certificate-meta p {
@@ -164,29 +191,40 @@ function VolunteerCertificateRequest() {
             }
 
             .certificate-name {
-              font-size: 42px !important;
-              margin-top: 10px !important;
+              font-size: 56px !important;
+              margin-top: 8px !important;
+              line-height: 1.05 !important;
             }
 
             .certificate-main-copy {
-              font-size: 22px !important;
-              margin-top: 12px !important;
-              line-height: 1.25 !important;
+              font-size: 30px !important;
+              margin-top: 10px !important;
+              line-height: 1.35 !important;
             }
 
             .certificate-org-section {
-              margin-top: 4px !important;
-              min-height: 18mm !important;
+              margin-top: 2px !important;
+              min-height: 0 !important;
             }
 
             .certificate-footer {
-              margin-top: 4px !important;
+              margin-top: 6px !important;
               padding-bottom: 0 !important;
               break-inside: avoid !important;
             }
 
             .certificate-footer * {
               color: #111 !important;
+            }
+
+            .certificate-title {
+              font-size: 70px !important;
+              line-height: 0.95 !important;
+            }
+
+            .certificate-subtitle {
+              font-size: 52px !important;
+              line-height: 1.1 !important;
             }
 
             .no-print {
@@ -224,22 +262,43 @@ function VolunteerCertificateRequest() {
         {!loading && !error && (
           <>
             <div className="grid gap-4 mt-4 md:grid-cols-3 no-print">
-              <div className="card bg-base-100 shadow-md">
+              <div className="card bg-base-100 border border-base-300 shadow-sm">
                 <div className="card-body">
-                  <p className="text-sm opacity-70">Total Volunteering Hours</p>
-                  <p className="text-3xl font-bold">{formatHours(totalHours)}</p>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm opacity-70">Total Volunteering Hours</p>
+                      <p className="text-3xl font-bold mt-1">{formatHours(totalHours)}</p>
+                    </div>
+                    <div className="rounded-full bg-primary/10 p-2 text-primary">
+                      <Award size={18} />
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div className="card bg-base-100 shadow-md">
+              <div className="card bg-base-100 border border-base-300 shadow-sm">
                 <div className="card-body">
-                  <p className="text-sm opacity-70">Organizations Involved</p>
-                  <p className="text-3xl font-bold">{rankedOrganizations.length}</p>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm opacity-70">Organizations Involved</p>
+                      <p className="text-3xl font-bold mt-1">{rankedOrganizations.length}</p>
+                    </div>
+                    <div className="rounded-full bg-secondary/10 p-2 text-secondary">
+                      <Building size={18} />
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div className="card bg-base-100 shadow-md">
+              <div className="card bg-base-100 border border-base-300 shadow-sm">
                 <div className="card-body">
-                  <p className="text-sm opacity-70">Eligible Organizations</p>
-                  <p className="text-3xl font-bold">{eligibleOrganizations.length}</p>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm opacity-70">Eligible Organizations</p>
+                      <p className="text-3xl font-bold mt-1">{eligibleOrganizations.length}</p>
+                    </div>
+                    <div className="rounded-full bg-success/10 p-2 text-success">
+                      <Users size={18} />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -327,130 +386,139 @@ function VolunteerCertificateRequest() {
             )}
 
             {certificateGeneratedAt && (
-              <div
-                id={CERTIFICATE_PREVIEW_ID}
-                className="mt-4 bg-white text-black border border-neutral-200 rounded-box pt-8 px-8 pb-4 shadow-xl text-[1.15rem]"
-                style={{ aspectRatio: '1.4142 / 1' }}
-              >
-                <div className="h-full grid grid-rows-[auto,1fr,auto]">
-                  <div>
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <img src="/willing.svg" alt="Willing Logo" className="h-7 w-7" />
-                          <p className="text-lg uppercase tracking-[0.2em] text-primary font-semibold">Willing Platform</p>
+              <div className="mt-4 overflow-x-auto">
+                <div
+                  id={CERTIFICATE_PREVIEW_ID}
+                  className="bg-white text-black border border-neutral-200 rounded-box pt-6 px-8 pb-4 shadow-xl text-[1.05rem]"
+                  style={{
+                    width: '1123px',
+                    height: '794px',
+                    minWidth: '1123px',
+                  }}
+                >
+                  <div className="h-full grid grid-rows-[168px_1fr_272px]">
+                    <div>
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <img src="/willing.svg" alt="Willing Logo" className="h-7 w-7" />
+                            <p className="text-base uppercase tracking-[0.2em] text-primary font-semibold">Willing Platform</p>
+                          </div>
+                          <h2 className="certificate-title">Certificate of Volunteering</h2>
+                          <div className="flex items-center gap-2 mt-2 text-success">
+                            <CheckCircle2 size={16} />
+                            <span className="font-semibold text-base">Participation Verified</span>
+                          </div>
                         </div>
-                        <h2 className="text-6xl font-extrabold mt-2">Certificate of Volunteering</h2>
-                        <div className="flex items-center gap-2 mt-3 text-success">
-                          <CheckCircle2 size={18} />
-                          <span className="font-semibold text-lg">Participation Verified</span>
+                        <div className="certificate-meta text-right text-base opacity-70">
+                          <p>Certificate ID: WL-CERT-SKELETON</p>
+                          <p className="mt-1">
+                            Generated:
+                            {' '}
+                            {certificateGeneratedAt.toLocaleDateString()}
+                          </p>
                         </div>
                       </div>
-                      <div className="certificate-meta text-right text-lg opacity-70">
-                        <p>Certificate ID: WL-CERT-SKELETON</p>
-                        <p className="mt-1">
-                          Generated:
+                    </div>
+
+                    <div className="flex items-center justify-center px-10 pt-4">
+                      <div className="text-center max-w-4xl mx-auto">
+                        <p className="certificate-subtitle">This is to certify that</p>
+                        <p className="certificate-name font-bold text-primary">{volunteerName}</p>
+                        <div className="w-[910px] max-w-full mx-auto border-b-2 border-primary/60 mt-2" />
+                        <p className="certificate-main-copy">
+                          has contributed a total of
                           {' '}
-                          {certificateGeneratedAt.toLocaleDateString()}
+                          <span className="font-bold">{formatHours(totalHours)}</span>
+                          {' '}
+                          volunteering hours through Willing.
+                          This certificate recognizes meaningful service and participation across the platform.
                         </p>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="flex items-center justify-center px-8">
-                    <div className="text-center max-w-4xl mx-auto">
-                      <p className="text-3xl">This is to certify that</p>
-                      <p className="certificate-name text-7xl font-bold text-primary mt-5">{volunteerName}</p>
-                      <div className="w-[930px] max-w-full mx-auto border-b-2 border-primary/60 mt-3" />
-                      <p className="certificate-main-copy text-3xl mt-6 leading-relaxed">
-                        has contributed a total of
-                        {' '}
-                        <span className="font-bold">{formatHours(totalHours)}</span>
-                        {' '}
-                        volunteering hours through Willing.
-                        This certificate recognizes meaningful service and participation across the platform.
-                      </p>
-                    </div>
-                  </div>
+                    <div className="certificate-org-section mt-1 h-full flex flex-col">
+                      <div className="grow">
+                        {selectedOrganizations.length > 0
+                          ? (
+                              <div className="grid grid-cols-4 gap-3">
+                                {Array.from({ length: MAX_ORGANIZATION_SELECTION }).map((_, index) => {
+                                  const org = selectedOrganizations[index];
+                                  if (!org) {
+                                    return <div key={`empty-org-slot-${index}`} className="h-40" aria-hidden />;
+                                  }
 
-                  <div className="certificate-org-section mt-3">
-                    <div className="min-h-32">
-                      {selectedOrganizations.length > 0 && (
-                        <div className="grid grid-cols-4 gap-3">
-                          {Array.from({ length: MAX_ORGANIZATION_SELECTION }).map((_, index) => {
-                            const org = selectedOrganizations[index];
-                            if (!org) {
-                              return <div key={`empty-org-slot-${index}`} className="min-h-32" aria-hidden />;
-                            }
+                                  const logoUrl = org.logo_path
+                                    ? `${SERVER_BASE_URL}/organization/${org.id}/logo`
+                                    : null;
+                                  const signatureUrl = org.signature_path
+                                    ? `${SERVER_BASE_URL}/organization/${org.id}/signature?v=${encodeURIComponent(org.signature_path)}`
+                                    : null;
 
-                            const logoUrl = org.logo_path
-                              ? `${SERVER_BASE_URL}/organization/${org.id}/logo`
-                              : null;
-                            const signatureUrl = org.signature_path
-                              ? `${SERVER_BASE_URL}/organization/${org.id}/signature`
-                              : null;
-
-                            return (
-                              <div key={org.id} className="certificate-slot rounded-box border border-neutral-300 bg-gradient-to-b from-white to-neutral-50 p-4 min-h-36 shadow-sm">
-                                <div className="flex items-center gap-3">
-                                  {logoUrl
-                                    ? (
-                                        <div className="h-10 w-10 rounded-md border border-neutral-200 bg-white flex items-center justify-center overflow-hidden">
-                                          <img src={logoUrl} alt={`${org.name} logo`} className="h-8 w-8 object-contain" />
-                                        </div>
-                                      )
-                                    : (
-                                        <div className="h-10 w-10 rounded-md border border-neutral-200 bg-white flex items-center justify-center">
-                                          <Building2 size={18} />
-                                        </div>
-                                      )}
-                                  <p className="font-bold text-xl leading-tight line-clamp-2">{org.name}</p>
-                                </div>
-                                <p className="text-lg mt-3">
-                                  Hours:
-                                  {' '}
-                                  <span className="font-bold">{formatHours(org.hours)}</span>
-                                </p>
-                                <div className="mt-3 h-10 flex items-end">
-                                  {signatureUrl
-                                    ? (
-                                        <img
-                                          src={signatureUrl}
-                                          alt={`${org.name} signature`}
-                                          className="max-h-9 w-auto object-contain object-bottom"
-                                        />
-                                      )
-                                    : <div className="h-9" />}
-                                </div>
-                                <div className="certificate-sign-line h-0 border-b border-neutral-400" />
-                                <p className="text-sm mt-2 font-semibold">{org.signatory_name || ''}</p>
-                                <p className="text-xs opacity-70">{org.signatory_position || ''}</p>
+                                  return (
+                                    <div key={org.id} className="certificate-slot rounded-box border border-neutral-300 bg-gradient-to-b from-white to-neutral-50 p-3 h-44 shadow-sm">
+                                      <div className="flex items-center gap-3">
+                                        {logoUrl
+                                          ? (
+                                              <div className="h-10 w-10 rounded-md border border-neutral-200 bg-white flex items-center justify-center overflow-hidden">
+                                                <img src={logoUrl} alt={`${org.name} logo`} className="h-8 w-8 object-contain" />
+                                              </div>
+                                            )
+                                          : (
+                                              <div className="h-10 w-10 rounded-md border border-neutral-200 bg-white flex items-center justify-center">
+                                                <Building2 size={18} />
+                                              </div>
+                                            )}
+                                        <p className="font-bold text-lg leading-tight line-clamp-2">{org.name}</p>
+                                      </div>
+                                      <p className="text-base mt-2">
+                                        Hours:
+                                        {' '}
+                                        <span className="font-bold">{formatHours(org.hours)}</span>
+                                      </p>
+                                      <div className="mt-2 h-8 flex items-end">
+                                        {signatureUrl
+                                          ? (
+                                              <img
+                                                src={signatureUrl}
+                                                alt={`${org.name} signature`}
+                                                className="max-h-7 w-auto object-contain object-bottom"
+                                              />
+                                            )
+                                          : <div className="h-7" />}
+                                      </div>
+                                      <div className="certificate-sign-line h-px border-b border-neutral-400" />
+                                      <p className="text-xs mt-1 font-semibold truncate" title={org.signatory_name || ''}>{org.signatory_name || ''}</p>
+                                      <p className="text-[11px] opacity-70 truncate" title={org.signatory_position || ''}>{org.signatory_position || ''}</p>
+                                    </div>
+                                  );
+                                })}
                               </div>
-                            );
-                          })}
+                            )
+                          : (
+                              <div className="h-44" aria-hidden />
+                            )}
+                      </div>
+                      <div className="certificate-footer mt-auto flex items-end">
+                        <div className="w-48">
+                          <p className="text-xs uppercase tracking-wide opacity-60">Willing Admin Signature</p>
+                          <div className="mt-1 h-7 flex items-end">
+                            {platformSignatureUrl
+                              ? (
+                                  <img
+                                    src={platformSignatureUrl}
+                                    alt="Willing admin signature"
+                                    className="max-h-6 w-auto object-contain object-bottom"
+                                  />
+                                )
+                              : <div className="h-6" />}
+                          </div>
+                          <div className="certificate-sign-line h-px border-b border-neutral-300 mt-0.5" />
+                          <p className="text-xs opacity-70 mt-0.5 truncate">{data?.platform_certificate?.signatory_name || 'Name'}</p>
+                          <p className="text-[11px] opacity-60 truncate">
+                            {data?.platform_certificate?.signatory_position || 'Title'}
+                          </p>
                         </div>
-                      )}
-                    </div>
-
-                    <div className="certificate-footer mt-4 flex items-end">
-                      <div className="w-72">
-                        <p className="text-base uppercase tracking-wide opacity-60">Willing Admin Signature</p>
-                        <div className="mt-2 h-10 flex items-end">
-                          {platformSignatureUrl
-                            ? (
-                                <img
-                                  src={platformSignatureUrl}
-                                  alt="Willing admin signature"
-                                  className="max-h-9 w-auto object-contain object-bottom"
-                                />
-                              )
-                            : <div className="h-9" />}
-                        </div>
-                        <div className="certificate-sign-line h-0 border-b border-neutral-300 mt-1" />
-                        <p className="text-base opacity-70 mt-1">{data?.platform_certificate?.signatory_name || 'Name'}</p>
-                        <p className="text-sm opacity-60">
-                          {data?.platform_certificate?.signatory_position || 'Title'}
-                        </p>
                       </div>
                     </div>
                   </div>
