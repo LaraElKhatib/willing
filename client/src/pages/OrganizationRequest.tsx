@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import Button from '../components/Button';
 import LinkButton from '../components/LinkButton';
 import LocationPicker from '../components/LocationPicker';
-import { organizationRequestFormSchema, type OrganizationRequestFormData } from '../schemas/auth';
+import { organizationRequestFormSchema, type OrganizationRequestFormData } from '../schemas/organization';
 import { executeAndShowError, FormField, FormRootError } from '../utils/formUtils';
 import requestServer from '../utils/requestServer';
 

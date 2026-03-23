@@ -1,8 +1,8 @@
 import { Kysely, PostgresDialect } from 'kysely';
 import { Pool, types } from 'pg';
 
-import { Database } from './tables.js';
 import config from '../config.js';
+import { Database } from './tables/index.js';
 
 types.setTypeParser(types.builtins.NUMERIC, Number);
 

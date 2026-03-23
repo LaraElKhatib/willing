@@ -2,7 +2,7 @@ import { sql } from 'kysely';
 
 import database from '../../db/index.js';
 
-import type { VolunteerAccountWithoutPassword } from '../../db/tables.js';
+import type { VolunteerAccountWithoutPassword } from '../../db/tables/index.js';
 
 export type VolunteerCompletedExperience = {
   enrollment_id: number;

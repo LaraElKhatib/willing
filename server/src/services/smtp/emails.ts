@@ -1,7 +1,7 @@
 import { sendEmail } from './mailer.js';
 import config from '../../config.js';
 import db from '../../db/index.js';
-import { OrganizationRequest } from '../../db/tables.js';
+import { OrganizationRequest } from '../../db/tables/index.js';
 
 export async function sendOrganizationAcceptanceEmail(
   organizationRequest: OrganizationRequest,

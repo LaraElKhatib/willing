@@ -40,7 +40,7 @@ import SkillsList from '../components/skills/SkillsList.tsx';
 import { ToggleButton } from '../components/ToggleButton.tsx';
 import VolunteerInfoCollapse from '../components/VolunteerInfoCollapse.tsx';
 import useNotifications from '../notifications/useNotifications';
-import { organizationPostingEditFormSchema, type OrganizationPostingEditFormData } from '../schemas/auth';
+import { organizationPostingEditFormSchema, type OrganizationPostingEditFormData } from '../schemas/posting';
 import { executeAndShowError, FormField } from '../utils/formUtils.tsx';
 import requestServer from '../utils/requestServer.ts';
 import useAsync from '../utils/useAsync';

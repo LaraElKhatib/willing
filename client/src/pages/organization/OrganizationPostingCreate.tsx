@@ -9,7 +9,7 @@ import PageHeader from '../../components/layout/PageHeader';
 import LocationPicker from '../../components/LocationPicker';
 import SkillsInput from '../../components/skills/SkillsInput';
 import { ToggleButton } from '../../components/ToggleButton';
-import { organizationPostingFormSchema, type OrganizationPostingFormData } from '../../schemas/auth';
+import { organizationPostingFormSchema, type OrganizationPostingFormData } from '../../schemas/posting';
 import { executeAndShowError, FormField, FormRootError } from '../../utils/formUtils';
 import requestServer from '../../utils/requestServer';
 import { useOrganization } from '../../utils/useUsers';
