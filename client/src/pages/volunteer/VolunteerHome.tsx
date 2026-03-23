@@ -31,7 +31,7 @@ const PostingRailCard = ({
   viewMode: PostingViewMode;
 }) => {
   return (
-    <div className={`shrink-0 snap-start ${viewMode === 'cards' ? 'md:w-md w-sm' : 'w-[min(42rem,92vw)]'}`}>
+    <div className={viewMode === 'cards' ? 'shrink-0 snap-start md:w-md w-sm' : 'w-full'}>
       {viewMode === 'cards'
         ? (
             <PostingCard
@@ -189,6 +189,7 @@ function VolunteerHome() {
             <HorizontalScrollSection
               title="My Enrollments"
               subtitle="All postings you're currently enrolled in or have applied to."
+              orientation={viewMode === 'list' ? 'vertical' : 'horizontal'}
               hasItems={!enrolledLoading && (enrolledPostings?.postings.length ?? 0) > 0}
               action={(
                 <Link to="/volunteer/enrollments" className="btn btn-sm btn-primary">
@@ -227,6 +228,7 @@ function VolunteerHome() {
               key={crisis.id}
               title={crisis.name}
               subtitle={crisis.description || 'No description provided.'}
+              orientation={viewMode === 'list' ? 'vertical' : 'horizontal'}
               hasItems={!crisisSectionsLoading && postings.length > 0}
               action={(
                 <Link
@@ -255,6 +257,7 @@ function VolunteerHome() {
           <HorizontalScrollSection
             title="For You"
             subtitle="Recommended for you."
+            orientation={viewMode === 'list' ? 'vertical' : 'horizontal'}
             hasItems={!forYouSectionLoading && forYouPostings.length > 0}
             action={(
               <Link to="/volunteer/search" className="btn btn-sm btn-primary">

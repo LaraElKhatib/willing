@@ -51,6 +51,7 @@ function PostingList({ posting, showCrisis = true, variant = 'volunteer' }: Post
   const volunteerCountText = posting.max_volunteers
     ? `${volunteerFilled}/${posting.max_volunteers}`
     : `${volunteerFilled}`;
+  const locationText = posting.location_name || 'TBA';
   const isPostingFull = Boolean(posting.max_volunteers && volunteerFilled >= posting.max_volunteers);
   const organizationInitials = posting.organization_name
     ? posting.organization_name
@@ -111,7 +112,7 @@ function PostingList({ posting, showCrisis = true, variant = 'volunteer' }: Post
         <Link
           to={`/volunteer/crises/${posting.crisis_id}/postings`}
           onClick={event => event.stopPropagation()}
-          className="absolute -top-2 right-12 z-20 pointer-events-auto inline-flex items-center gap-1 rounded-md bg-accent px-2 py-1 text-sm text-accent-content shadow-sm rotate-3 transition-transform duration-200 hover:rotate-0"
+          className="absolute -top-2 right-1 z-20 pointer-events-auto inline-flex items-center gap-1 rounded-md bg-accent px-2 py-1 text-sm text-accent-content shadow-sm rotate-3 transition-transform duration-200 hover:rotate-0"
         >
           <AlertCircle size={14} />
           <span className="truncate max-w-40 font-semibold">{posting.crisis_name}</span>
@@ -130,88 +131,94 @@ function PostingList({ posting, showCrisis = true, variant = 'volunteer' }: Post
         </div>
 
         <div className="min-w-0 flex-1 relative">
-          <div className="flex flex-wrap items-center gap-2">
-            <Link
-              to={postingDetailsPath}
-              onClick={event => event.stopPropagation()}
-              className="link link-primary link-hover no-underline hover:underline inline-flex items-center gap-2 pointer-events-auto"
-            >
-              <span className="truncate text-lg font-semibold leading-tight text-primary">{posting.title}</span>
-              <ExternalLink size={14} />
-            </Link>
+          <div className="grid w-full grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] items-center gap-x-3 gap-y-1">
+            <div className="flex min-w-0 items-center gap-2">
+              <Link
+                to={postingDetailsPath}
+                onClick={event => event.stopPropagation()}
+                className="link link-primary link-hover no-underline hover:underline inline-flex min-w-0 items-center gap-2 pointer-events-auto"
+              >
+                <span className="truncate text-lg font-semibold leading-tight text-primary">{posting.title}</span>
+                <ExternalLink size={14} />
+              </Link>
+
+              <div className="shrink-0 opacity-100">{statusTag}</div>
+            </div>
+
+            <span className="-ml-8 inline-flex items-center gap-1.5 justify-self-start text-sm opacity-70">
+              <Calendar size={14} className="shrink-0 text-primary" />
+              Date
+            </span>
+
+            <span className="-ml-8 inline-flex items-center gap-1.5 justify-self-start text-sm opacity-70">
+              <Clock size={14} className="shrink-0 text-primary" />
+              Time
+            </span>
+
+            <span className="-ml-8 inline-flex items-center gap-1.5 justify-self-start text-sm opacity-70">
+              <MapPin size={14} className="shrink-0 text-primary" />
+              Location
+            </span>
           </div>
 
           {variant === 'volunteer' && (
-            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+            <div className="mt-1 grid w-full grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] items-center gap-x-3 gap-y-1 text-xs text-base-content">
               {posting.organization_name && (
                 <Link
                   to={`/organization/${posting.organization_id}`}
                   onClick={event => event.stopPropagation()}
-                  className="pointer-events-auto text-xs text-primary link link-hover no-underline hover:underline"
+                  className="pointer-events-auto text-primary link link-hover no-underline hover:underline text-xs justify-self-start"
                 >
                   {posting.organization_name}
                 </Link>
               )}
 
-              <div className="opacity-100">{statusTag}</div>
+              <span className="-ml-8 min-w-0 truncate justify-self-start font-medium">{hasEndDate ? `${startDateStr} - ${endDateStr}` : startDateStr}</span>
+
+              <span className="-ml-8 min-w-0 truncate justify-self-start font-medium">{hasEndDate ? `${startTimeStr} - ${endTimeStr}` : startTimeStr}</span>
+
+              <span className="-ml-8 min-w-0 truncate justify-self-start font-medium">{locationText}</span>
             </div>
           )}
 
           {variant === 'organization' && (
-            <div className="mt-1 flex items-center gap-2">
-              {statusTag}
+            <div className="mt-1 grid w-full grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] items-center gap-x-3 gap-y-1 text-xs text-base-content">
+              <span aria-hidden="true"></span>
+
+              <span className="-ml-8 min-w-0 truncate justify-self-start font-medium">{hasEndDate ? `${startDateStr} - ${endDateStr}` : startDateStr}</span>
+
+              <span className="-ml-8 min-w-0 truncate justify-self-start font-medium">{hasEndDate ? `${startTimeStr} - ${endTimeStr}` : startTimeStr}</span>
+
+              <span className="-ml-8 min-w-0 truncate justify-self-start font-medium">{locationText}</span>
             </div>
           )}
         </div>
       </div>
 
       <div className="collapse-content pt-0">
-        <div className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2 text-sm">
-          <div className="inline-flex items-center gap-2">
-            <Calendar size={14} className="text-primary" />
-            <span className="opacity-70">Date:</span>
-            <span className="font-medium">{hasEndDate ? `${startDateStr} - ${endDateStr}` : startDateStr}</span>
-          </div>
-
-          <div className="inline-flex items-center gap-2">
-            <Clock size={14} className="text-primary" />
-            <span className="opacity-70">Time:</span>
-            <span className="font-medium">{hasEndDate ? `${startTimeStr} - ${endTimeStr}` : startTimeStr}</span>
-          </div>
-
-          <div className="inline-flex items-center gap-2">
-            <MapPin size={14} className="text-primary" />
-            <span className="opacity-70">Location:</span>
-            <span className="font-medium">{posting.location_name || 'TBA'}</span>
-          </div>
-
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
           <div className="inline-flex items-center gap-2">
             <Users size={14} className="text-primary" />
             <span className="opacity-70">Volunteers:</span>
-            <span className="font-medium">{volunteerCountText}</span>
+            <span className="font-medium text-base-content">{volunteerCountText}</span>
           </div>
+
+          {posting.minimum_age && (
+            <div className="inline-flex items-center gap-2">
+              <Cake size={14} className="text-primary" />
+              <span className="opacity-70">Minimum age:</span>
+              <span className="font-medium text-base-content">
+                {posting.minimum_age}
+                +
+              </span>
+            </div>
+          )}
         </div>
 
-        {(posting.minimum_age || (posting.skills && posting.skills.length > 0)) && (
-          <div className="mt-3 space-y-3">
-            {posting.minimum_age && (
-              <div className="inline-flex items-center gap-2 text-sm">
-                <Cake size={14} className="text-primary" />
-                <span>
-                  Minimum age:
-                  {' '}
-                  {posting.minimum_age}
-                  +
-                </span>
-              </div>
-            )}
-
-            {posting.skills && posting.skills.length > 0 && (
-              <div>
-                <p className="text-xs opacity-70 mb-2">Skills</p>
-                <SkillsList skills={posting.skills} limit={6} />
-              </div>
-            )}
+        {posting.skills && posting.skills.length > 0 && (
+          <div className="mt-3">
+            <p className="text-xs opacity-70 mb-2">Skills</p>
+            <SkillsList skills={posting.skills} limit={6} />
           </div>
         )}
       </div>
