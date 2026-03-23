@@ -21,6 +21,7 @@ import NotFoundPage from './pages/NotFoundPage';
 import OrganizationHome from './pages/organization/OrganizationHome';
 import OrganizationPostingAttendance from './pages/organization/OrganizationPostingAttendance';
 import OrganizationPostingCreate from './pages/organization/OrganizationPostingCreate';
+import OrganizationOwnProfile from './pages/organization/OrganizationProfile';
 import OrganizationSettings from './pages/organization/VolunteerSettings';
 import OrganizationProfile from './pages/OrganizationProfile';
 import OrganizationRequest from './pages/OrganizationRequest';
@@ -65,6 +66,7 @@ createRoot(document.getElementById('root')!).render(
                 <Route index element={<OrganizationHome />} />
                 <Route path="posting" element={<OrganizationPostingCreate />} />
                 <Route path="posting/:id/attendance" element={<OrganizationPostingAttendance />} />
+                <Route path="profile" element={<OrganizationOwnProfile />} />
                 <Route path="settings" element={<OrganizationSettings />} />
               </Route>
 
@@ -77,9 +79,10 @@ createRoot(document.getElementById('root')!).render(
                 <Route path="settings" element={<VolunteerSettings />} />
               </Route>
 
+              <Route path="organization/:id" element={<OrganizationProfile />} />
+
               <Route path="/" element={<SharedPage roles={['volunteer', 'organization']} />}>
                 <Route path="posting/:id" element={<Posting />} />
-                <Route path="organization/:id" element={<OrganizationProfile />} />
               </Route>
 
               <Route path="*" element={<NotFoundPage />} />

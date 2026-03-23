@@ -13,6 +13,7 @@ export type PostingDateTimeFilters = {
 type PostingDateValue = Date | string | null | undefined;
 
 type PostingSortLike = {
+  id?: number;
   start_date?: PostingDateValue;
   start_time?: string | null | undefined;
   end_date?: PostingDateValue;
@@ -58,6 +59,22 @@ const normalizeTimestampKey = (value: PostingDateValue): string | null => {
 
   return value.toISOString();
 };
+
+const normalizeSearchText = (value: string): string => value
+  .toLowerCase()
+  .trim()
+  .replace(/[^a-z0-9]+/g, ' ')
+  .replace(/\s+/g, ' ');
+
+export const normalizeSearchTerms = (value: string): string[] => normalizeSearchText(value)
+  .split(' ')
+  .filter(Boolean);
+
+const tokenizeSearchField = (value: string): string[] => normalizeSearchTerms(value);
+
+const escapeRegexTerm = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+export const buildSearchRegexPattern = (term: string): string => `(^|[^a-z0-9])${escapeRegexTerm(term)}([^a-z0-9]|$)`;
 
 const compareNullableKeys = (
   left: string | null,
@@ -159,13 +176,17 @@ export const matchesPostingDateTimeFilters = <T extends Pick<PostingSortLike, 's
 export const matchesPostingSearch = <T extends PostingSearchLike>(posting: T, search: string): boolean => {
   if (!search) return true;
 
-  const normalizedSearch = search.toLowerCase();
+  const terms = normalizeSearchTerms(search);
 
-  return posting.title.toLowerCase().includes(normalizedSearch)
-    || posting.description.toLowerCase().includes(normalizedSearch)
-    || posting.location_name.toLowerCase().includes(normalizedSearch)
-    || (posting.organization_name?.toLowerCase().includes(normalizedSearch) ?? false)
-    || posting.skills.some(skill => skill.name.toLowerCase().includes(normalizedSearch));
+  const searchableTokens = [
+    posting.title,
+    posting.description,
+    posting.location_name,
+    posting.organization_name ?? '',
+    ...posting.skills.map(skill => skill.name),
+  ].flatMap(tokenizeSearchField);
+
+  return terms.every(term => searchableTokens.includes(term));
 };
 
 export const sortPostingsBySharedSort = <T extends PostingSortLike>(
@@ -176,11 +197,21 @@ export const sortPostingsBySharedSort = <T extends PostingSortLike>(
   return [...postings].sort((left, right) => {
     switch (sortBy) {
       case 'created_at':
-        return compareNullableKeys(
+      {
+        const createdAtCompare = compareNullableKeys(
           normalizeTimestampKey(left.created_at),
           normalizeTimestampKey(right.created_at),
           sortDir,
         );
+
+        if (createdAtCompare !== 0) {
+          return createdAtCompare;
+        }
+
+        const leftId = left.id ?? 0;
+        const rightId = right.id ?? 0;
+        return sortDir === 'asc' ? leftId - rightId : rightId - leftId;
+      }
       case 'start_date':
       default: {
         const dateCompare = compareNullableKeys(
@@ -210,7 +241,9 @@ export const applySharedPostingSort = <Q extends PostingQueryLike>(
 ): Q => {
   switch (sortBy) {
     case 'created_at':
-      return query.orderBy('organization_posting.created_at', sortDir) as Q;
+      return query
+        .orderBy('organization_posting.created_at', sortDir)
+        .orderBy('organization_posting.id', sortDir) as Q;
     case 'start_date':
     default:
       return query

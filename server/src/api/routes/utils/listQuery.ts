@@ -17,6 +17,7 @@ type ParsedListQuery<SortBy extends string> = {
 };
 
 const sortDirSchema = zod.enum(['asc', 'desc']);
+const normalizeSearch = (value: string) => value.trim().replace(/\s+/g, ' ');
 
 export const parseListQuery = <SortBy extends string>(
   query: Record<string, unknown>,
@@ -40,7 +41,7 @@ export const parseListQuery = <SortBy extends string>(
     ? sortDirInput as SortDir
     : defaultSortDir;
 
-  const search = (searchInput ?? '').trim();
+  const search = normalizeSearch(searchInput ?? '');
 
   return { search, sortBy, sortDir };
 };
