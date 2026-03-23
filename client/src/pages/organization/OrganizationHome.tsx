@@ -1,13 +1,16 @@
-import { Plus, ClipboardList } from 'lucide-react';
+import { ClipboardList, Plus } from 'lucide-react';
+import { useMemo } from 'react';
 
 import Alert from '../../components/Alert';
 import PageHeader from '../../components/layout/PageHeader';
 import LinkButton from '../../components/LinkButton';
-import PostingCard from '../../components/PostingCard';
+import PostingCollection from '../../components/postings/PostingCollection';
+import PostingViewModeToggle from '../../components/postings/PostingViewModeToggle';
 import requestServer from '../../utils/requestServer';
 import useAsync from '../../utils/useAsync';
 
 import type { OrganizationPostingListResponse } from '../../../../server/src/api/types';
+import type { PostingWithContext } from '../../../../server/src/types';
 
 function OrganizationHome() {
   const { data: postings, loading, error } = useAsync(
@@ -22,6 +25,17 @@ function OrganizationHome() {
     },
     { immediate: true },
   );
+
+  const postingsWithContext = useMemo<PostingWithContext[]>(() => {
+    if (!postings) return [];
+
+    return postings.map(posting => ({
+      ...posting,
+      organization_name: '',
+      crisis_name: null,
+      application_status: 'none',
+    }));
+  }, [postings]);
 
   return (
     <div className="grow bg-base-200">
@@ -40,13 +54,17 @@ function OrganizationHome() {
             )
           }
           actions={(
-            <LinkButton
-              color="primary"
-              to="/organization/posting"
-              Icon={Plus}
-            >
-              Create New Posting
-            </LinkButton>
+            <div className="flex flex-wrap items-center gap-2">
+              <PostingViewModeToggle />
+
+              <LinkButton
+                color="primary"
+                to="/organization/posting"
+                Icon={Plus}
+              >
+                Create New Posting
+              </LinkButton>
+            </div>
           )}
         />
 
@@ -64,15 +82,13 @@ function OrganizationHome() {
           </Alert>
         )}
 
-        {!loading && postings && postings.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {postings.map(posting => (
-              <PostingCard
-                key={posting.id}
-                posting={posting}
-              />
-            ))}
-          </div>
+        {!loading && postingsWithContext.length > 0 && (
+          <PostingCollection
+            postings={postingsWithContext}
+            variant="organization"
+            cardsContainerClassName="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3"
+            listContainerClassName="space-y-4"
+          />
         )}
       </div>
     </div>
