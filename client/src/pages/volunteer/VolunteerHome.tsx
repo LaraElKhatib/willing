@@ -7,7 +7,7 @@ import Loading from '../../components/Loading.tsx';
 import HorizontalScrollSection from '../../components/postings/HorizontalScrollSection.tsx';
 import PostingCollection from '../../components/postings/PostingCollection';
 import { usePostingViewMode } from '../../components/postings/PostingViewModeState';
-import PostingViewModeToggle from '../../components/postings/PostingViewModeToggle';
+import PostingViewModeToggle from '../../components/postings/PostingViewModeToggle.tsx';
 import requestServer from '../../utils/requestServer';
 import useAsync from '../../utils/useAsync';
 

@@ -5,7 +5,7 @@ interface RequestServerOptions {
   includeJwt?: boolean;
 }
 
-export const SERVER_BASE_URL = import.meta.env.VITE_SERVER_BASE_URL?.trim() || 'http://localhost:9090';
+export const SERVER_BASE_URL = import.meta.env.VITE_SERVER_BASE_URL ?? 'http://localhost:9090';
 
 export default async function requestServer<ReturnType>(path: string, { body, method = 'GET', includeJwt = false, query }: RequestServerOptions) {
   const headers = new Headers();

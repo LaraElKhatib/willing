@@ -3,7 +3,6 @@ import { Router, Response } from 'express';
 import * as jose from 'jose';
 import zod from 'zod';
 
-import certificateSettingsRouter from './certificateSettings.js';
 import adminCrisesRouter from './crises.js';
 import {
   AdminLoginResponse,
@@ -19,6 +18,7 @@ import { recomputeOrganizationVector } from '../../../services/embeddings/update
 import { sendOrganizationAcceptanceEmail, sendOrganizationRejectionEmail } from '../../../services/smtp/emails.js';
 import { loginInfoSchema } from '../../../types.js';
 import { authorizeOnly } from '../../authorization.js';
+import { parseListQuery } from '../utils/listQuery.js';
 
 const adminRouter = Router();
 const organizationPrivateResponseColumns = [
@@ -79,11 +79,37 @@ adminRouter.get('/me', async (req, res: Response<AdminMeResponse>) => {
   res.json({ admin: removePassword(admin) });
 });
 
-adminRouter.get('/getOrganizationRequests', async (_req, res: Response<AdminOrganizationRequestsResponse>) => {
-  const organizationRequests = await database
+adminRouter.get('/getOrganizationRequests', async (req, res: Response<AdminOrganizationRequestsResponse>) => {
+  const { search, sortBy, sortDir } = parseListQuery(req.query, {
+    allowedSortBy: ['created_at', 'name', 'email'],
+    defaultSortBy: 'created_at',
+  });
+
+  let organizationRequestsQuery = database
     .selectFrom('organization_request')
-    .selectAll()
-    .execute();
+    .selectAll();
+
+  if (search) {
+    const searchPattern = `%${search}%`;
+    organizationRequestsQuery = organizationRequestsQuery.where(eb => eb.or([
+      eb('organization_request.name', 'ilike', searchPattern),
+      eb('organization_request.email', 'ilike', searchPattern),
+      eb('organization_request.location_name', 'ilike', searchPattern),
+    ]));
+  }
+
+  switch (sortBy) {
+    case 'name':
+    case 'email':
+      organizationRequestsQuery = organizationRequestsQuery.orderBy('organization_request.name', sortDir);
+      break;
+    case 'created_at':
+    default:
+      organizationRequestsQuery = organizationRequestsQuery.orderBy('organization_request.created_at', sortDir);
+      break;
+  }
+
+  const organizationRequests = await organizationRequestsQuery.execute();
 
   res.json({ organizationRequests });
 });
@@ -158,6 +184,5 @@ adminRouter.post('/reviewOrganizationRequest', async (req, res: Response<AdminOr
 adminRouter.post('/reset-password', resetPassword);
 
 adminRouter.use('/crises', adminCrisesRouter);
-adminRouter.use('/certificate-settings', certificateSettingsRouter);
 
 export default adminRouter;

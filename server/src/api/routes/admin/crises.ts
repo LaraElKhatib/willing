@@ -10,6 +10,7 @@ import {
 } from './crises.types.js';
 import database from '../../../db/index.js';
 import { newCrisisSchema } from '../../../db/tables.js';
+import { parseListQuery, parseOptionalBooleanQueryParam } from '../utils/listQuery.js';
 
 const adminCrisesRouter = Router();
 
@@ -23,13 +24,48 @@ const crisisPinBodySchema = zod.object({
   pinned: zod.boolean(),
 });
 
-adminCrisesRouter.get('/', async (_req, res: Response<AdminCrisesResponse>) => {
-  const crises = await database
+adminCrisesRouter.get('/', async (req, res: Response<AdminCrisesResponse>) => {
+  const { search, sortBy, sortDir } = parseListQuery(req.query, {
+    allowedSortBy: ['pinned', 'created_at', 'name'],
+    defaultSortBy: 'pinned',
+  });
+  const pinnedFilter = parseOptionalBooleanQueryParam(req.query.pinned);
+
+  let crisesQuery = database
     .selectFrom('crisis')
-    .selectAll()
-    .orderBy('pinned', 'desc')
-    .orderBy('created_at', 'desc')
-    .execute();
+    .selectAll();
+
+  if (search) {
+    const searchPattern = `%${search}%`;
+    crisesQuery = crisesQuery.where(eb => eb.or([
+      eb('crisis.name', 'ilike', searchPattern),
+      eb('crisis.description', 'ilike', searchPattern),
+    ]));
+  }
+
+  if (pinnedFilter !== undefined) {
+    crisesQuery = crisesQuery.where('crisis.pinned', '=', pinnedFilter);
+  }
+
+  switch (sortBy) {
+    case 'name':
+      crisesQuery = crisesQuery.orderBy('crisis.name', sortDir);
+      break;
+    case 'created_at':
+      crisesQuery = crisesQuery
+        .orderBy('crisis.created_at', sortDir)
+        .orderBy('crisis.id', sortDir);
+      break;
+    case 'pinned':
+    default:
+      crisesQuery = crisesQuery
+        .orderBy('crisis.pinned', sortDir)
+        .orderBy('crisis.created_at', 'desc')
+        .orderBy('crisis.id', 'desc');
+      break;
+  }
+
+  const crises = await crisesQuery.execute();
 
   res.json({ crises });
 });
