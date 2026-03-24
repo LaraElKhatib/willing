@@ -37,6 +37,7 @@ function OrganizationProfile() {
     return data.postings.map(posting => ({
       ...posting,
       organization_name: data.organization.name,
+      organization_logo_path: data.organization.logo_path,
       crisis_name: null,
       enrollment_count: 0,
       application_status: 'none',
