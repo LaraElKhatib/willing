@@ -5,6 +5,7 @@ import {
   Building2,
   Calendar,
   Cake,
+  Clock,
   Edit3,
   ExternalLink,
   House,
@@ -102,6 +103,32 @@ const splitDateTimeInput = (value?: string) => {
 const combineDateAndTime = (date: string, time: string) => {
   if (!date) return '';
   return `${date}T${time || '00:00'}`;
+};
+
+const formatDisplayDate = (value?: string) => {
+  if (!value) return '-';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(parsed);
+};
+
+const formatDisplayTime = (value?: string) => {
+  if (!value) return '-';
+
+  const [hoursRaw, minutesRaw] = value.split(':');
+  const hours = Number(hoursRaw);
+  const minutes = Number(minutesRaw);
+
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) return value;
+
+  const normalizedHours = ((hours % 24) + 24) % 24;
+  const suffix = normalizedHours >= 12 ? 'PM' : 'AM';
+  const hour12 = normalizedHours % 12 === 0 ? 12 : normalizedHours % 12;
+  return `${hour12}:${String(minutes).padStart(2, '0')} ${suffix}`;
 };
 
 function PostingPage() {
@@ -630,31 +657,10 @@ function PostingPage() {
 
   const formValues = form.watch();
 
-  const formattedStartDate = useMemo(() => {
-    if (!formValues.start_timestamp) return '-';
-    const parsed = new Date(formValues.start_timestamp);
-    if (Number.isNaN(parsed.getTime())) return formValues.start_timestamp;
-    return parsed.toLocaleString(undefined, {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  }, [formValues.start_timestamp]);
-
-  const formattedEndDate = useMemo(() => {
-    if (!formValues.end_timestamp) return '-';
-    const parsed = new Date(formValues.end_timestamp);
-    if (Number.isNaN(parsed.getTime())) return formValues.end_timestamp;
-    return parsed.toLocaleString(undefined, {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  }, [formValues.end_timestamp]);
+  const formattedStartDate = useMemo(() => formatDisplayDate(startDateTimeParts.date), [startDateTimeParts.date]);
+  const formattedStartTime = useMemo(() => formatDisplayTime(startDateTimeParts.time), [startDateTimeParts.time]);
+  const formattedEndDate = useMemo(() => formatDisplayDate(endDateTimeParts.date), [endDateTimeParts.date]);
+  const formattedEndTime = useMemo(() => formatDisplayTime(endDateTimeParts.time), [endDateTimeParts.time]);
 
   const applicationStatus = useMemo(() => {
     if (isEnrolled) {
@@ -959,20 +965,38 @@ function PostingPage() {
                               <MapPin size={16} className="text-primary" />
                               <span className="text-sm">{formValues.location_name}</span>
                             </div>
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-2">
-                                <Calendar size={16} className="text-primary" />
-                                <div>
-                                  <p className="text-xs opacity-70 font-semibold">START</p>
-                                  <span className="text-xs">{formattedStartDate}</span>
-                                </div>
-                              </div>
-                              {formValues.end_timestamp && (
+                            <div className={`grid gap-4 ${formValues.end_timestamp ? 'sm:grid-cols-2' : 'grid-cols-1'}`}>
+                              <div className="space-y-2">
                                 <div className="flex items-center gap-2">
                                   <Calendar size={16} className="text-primary" />
                                   <div>
-                                    <p className="text-xs opacity-70 font-semibold">END</p>
-                                    <span className="text-xs">{formattedEndDate}</span>
+                                    <p className="text-xs opacity-70 font-semibold">START DATE</p>
+                                    <span className="text-xs">{formattedStartDate}</span>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Clock size={16} className="text-primary" />
+                                  <div>
+                                    <p className="text-xs opacity-70 font-semibold">START TIME</p>
+                                    <span className="text-xs">{formattedStartTime}</span>
+                                  </div>
+                                </div>
+                              </div>
+                              {formValues.end_timestamp && (
+                                <div className="space-y-2">
+                                  <div className="flex items-center gap-2">
+                                    <Calendar size={16} className="text-primary" />
+                                    <div>
+                                      <p className="text-xs opacity-70 font-semibold">END DATE</p>
+                                      <span className="text-xs">{formattedEndDate}</span>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <Clock size={16} className="text-primary" />
+                                    <div>
+                                      <p className="text-xs opacity-70 font-semibold">END TIME</p>
+                                      <span className="text-xs">{formattedEndTime}</span>
+                                    </div>
                                   </div>
                                 </div>
                               )}

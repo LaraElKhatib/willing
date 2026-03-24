@@ -90,7 +90,21 @@ volunteerPostingRouter.get('/', async (req, res: Response<VolunteerPostingSearch
       'organization_posting.crisis_id',
     )
     .select(postingWithContextSelectColumns)
-    .where('organization_posting.is_closed', '=', false);
+    .where('organization_posting.is_closed', '=', false)
+    .where(({ not, exists, selectFrom, or }) => not(or([
+      exists(
+        selectFrom('enrollment')
+          .select('enrollment.id')
+          .whereRef('enrollment.posting_id', '=', 'organization_posting.id')
+          .where('enrollment.volunteer_id', '=', volunteerId),
+      ),
+      exists(
+        selectFrom('enrollment_application')
+          .select('enrollment_application.id')
+          .whereRef('enrollment_application.posting_id', '=', 'organization_posting.id')
+          .where('enrollment_application.volunteer_id', '=', volunteerId),
+      ),
+    ])));
 
   if (skillFilter) {
     query = query.where(({ exists, selectFrom }) => exists(
