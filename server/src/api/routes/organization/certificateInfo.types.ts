@@ -1,4 +1,4 @@
-import { OrganizationCertificateInfo } from '../../../db/tables.js';
+import { OrganizationCertificateInfo } from '../../../db/tables/index.js';
 import { SuccessResponse } from '../../../types.js';
 
 export type GetCertificateInfoResponse = {

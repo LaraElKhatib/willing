@@ -9,7 +9,7 @@ import {
   AdminCrisesResponse,
 } from './crises.types.js';
 import database from '../../../db/index.js';
-import { newCrisisSchema } from '../../../db/tables.js';
+import { newCrisisSchema } from '../../../db/tables/index.js';
 import { parseListQuery, parseOptionalBooleanQueryParam } from '../utils/listQuery.js';
 
 const adminCrisesRouter = Router();

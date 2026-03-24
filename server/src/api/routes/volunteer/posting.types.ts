@@ -1,4 +1,4 @@
-import { Enrollment, EnrollmentApplication } from '../../../db/tables.js';
+import { Enrollment, EnrollmentApplication } from '../../../db/tables/index.js';
 import { PostingWithContext, SuccessResponse } from '../../../types.js';
 
 export type VolunteerEnrollmentsResponse = {

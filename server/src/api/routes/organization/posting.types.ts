@@ -1,4 +1,4 @@
-import { Crisis, OrganizationPostingWithoutVectors, PostingSkill } from '../../../db/tables.js';
+import { Crisis, OrganizationPostingWithoutVectors, PostingSkill } from '../../../db/tables/index.js';
 import { PostingWithSkills, PostingEnrollment, SuccessResponse, PostingApplication } from '../../../types.js';
 
 export type OrganizationPostingCreateResponse = {

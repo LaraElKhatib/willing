@@ -17,7 +17,7 @@ import volunteerPostingRouter from './posting.js';
 import resetPassword from '../../../auth/resetPassword.js';
 import config from '../../../config.js';
 import database from '../../../db/index.js';
-import { type VolunteerAccountWithoutPassword, newVolunteerAccountSchema, volunteerAccountSchema } from '../../../db/tables.js';
+import { type VolunteerAccountWithoutPassword, newVolunteerAccountSchema, volunteerAccountSchema } from '../../../db/tables/index.js';
 import {
   recomputeVolunteerExperienceVector,
   recomputeVolunteerProfileVector,

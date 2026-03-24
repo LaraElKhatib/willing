@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import zod from 'zod';
 
 import Button from './Button';
-import { passwordSchema } from '../../../server/src/db/tables';
+import { passwordSchema } from '../../../server/src/schemas';
 import AuthContext from '../auth/AuthContext';
 import useNotifications from '../notifications/useNotifications';
 import { executeAndShowError, FormField, FormRootError } from '../utils/formUtils';

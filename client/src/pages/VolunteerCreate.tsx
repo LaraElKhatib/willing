@@ -14,7 +14,7 @@ import { Link } from 'react-router-dom';
 
 import AuthContext from '../auth/AuthContext';
 import Button from '../components/Button';
-import { volunteerSignupSchema, type VolunteerSignupFormData } from '../schemas/auth';
+import { volunteerSignupSchema, type VolunteerSignupFormData } from '../schemas/volunteer';
 import { executeAndShowError, FormField, FormRootError } from '../utils/formUtils';
 
 export default function VolunteerCreate() {

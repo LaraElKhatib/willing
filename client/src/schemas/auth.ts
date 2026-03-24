@@ -1,11 +1,6 @@
 import { z } from 'zod';
 
-import {
-  newOrganizationRequestSchema,
-  newVolunteerAccountSchema,
-  newOrganizationPostingSchema,
-  passwordSchema,
-} from '../../../server/src/db/tables';
+import { passwordSchema } from '../../../server/src/schemas';
 import { loginInfoSchema } from '../../../server/src/types';
 
 export const loginFormSchema = loginInfoSchema.extend({
@@ -14,68 +9,6 @@ export const loginFormSchema = loginInfoSchema.extend({
 });
 
 export type LoginFormData = z.infer<typeof loginFormSchema>;
-
-export const volunteerSignupSchema = newVolunteerAccountSchema
-  .extend({
-    confirmPassword: z.string().min(1, 'Confirm password is required'),
-  })
-  .refine((data: { password: string; confirmPassword: string }) => data.password === data.confirmPassword, {
-    message: 'Passwords do not match',
-    path: ['confirmPassword'],
-  });
-
-export type VolunteerSignupFormData = z.infer<typeof volunteerSignupSchema>;
-
-export const organizationRequestFormSchema = newOrganizationRequestSchema
-  .omit({ latitude: true, longitude: true })
-  .extend({
-    email: z.email('Invalid email'),
-  });
-
-export type OrganizationRequestFormData = z.infer<typeof organizationRequestFormSchema>;
-
-export const organizationPostingFormSchema = newOrganizationPostingSchema
-  .omit({
-    latitude: true,
-    longitude: true,
-    start_date: true,
-    start_time: true,
-    end_date: true,
-    end_time: true,
-    is_closed: true,
-  })
-  .extend({
-    latitude: z.number().optional(),
-    longitude: z.number().optional(),
-    start_timestamp: z.string().min(1, 'Start date is required'),
-    end_timestamp: z.string().optional(),
-    max_volunteers: z.string().optional(),
-    minimum_age: z.string().optional(),
-    automatic_acceptance: z.boolean(),
-  });
-
-export const organizationPostingEditFormSchema = newOrganizationPostingSchema
-  .omit({
-    latitude: true,
-    longitude: true,
-    start_date: true,
-    start_time: true,
-    end_date: true,
-    end_time: true,
-  })
-  .extend({
-    latitude: z.number().optional(),
-    longitude: z.number().optional(),
-    start_timestamp: z.string().min(1, 'Start date is required'),
-    end_timestamp: z.string().optional(),
-    max_volunteers: z.string().optional(),
-    minimum_age: z.string().optional(),
-    automatic_acceptance: z.boolean(),
-    is_closed: z.boolean(),
-  });
-export type OrganizationPostingEditFormData = z.infer<typeof organizationPostingEditFormSchema>;
-
-export type OrganizationPostingFormData = z.infer<typeof organizationPostingFormSchema>;
 
 export const forgotPasswordRequestSchema = z.object({
   email: z.email('Invalid email'),

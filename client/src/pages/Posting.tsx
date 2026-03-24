@@ -40,7 +40,7 @@ import SkillsList from '../components/skills/SkillsList.tsx';
 import { ToggleButton } from '../components/ToggleButton.tsx';
 import VolunteerInfoCollapse from '../components/VolunteerInfoCollapse.tsx';
 import useNotifications from '../notifications/useNotifications';
-import { organizationPostingEditFormSchema, type OrganizationPostingEditFormData } from '../schemas/auth';
+import { organizationPostingEditFormSchema, type OrganizationPostingEditFormData } from '../schemas/posting';
 import { executeAndShowError, FormField } from '../utils/formUtils.tsx';
 import requestServer from '../utils/requestServer.ts';
 import useAsync from '../utils/useAsync';
@@ -56,7 +56,7 @@ import type {
   VolunteerCrisisResponse,
   VolunteerPostingResponse,
 } from '../../../server/src/api/types.ts';
-import type { Crisis } from '../../../server/src/db/tables.ts';
+import type { Crisis } from '../../../server/src/db/tables/index.ts';
 import type { PostingApplication, PostingEnrollment, PostingWithSkills } from '../../../server/src/types.ts';
 
 const getDateInputValue = (value: Date | string) => {

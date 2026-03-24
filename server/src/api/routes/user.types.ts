@@ -1,4 +1,4 @@
-import { OrganizationAccountWithoutPassword, VolunteerAccountWithoutPassword } from '../../db/tables.js';
+import { OrganizationAccountWithoutPassword, VolunteerAccountWithoutPassword } from '../../db/tables/index.js';
 
 export type UserLoginResponse = {
   token: string;

@@ -13,7 +13,7 @@ import {
 import removePassword from '../../auth/removePassword.js';
 import config from '../../config.js';
 import database from '../../db/index.js';
-import { passwordSchema } from '../../db/tables.js';
+import { passwordSchema } from '../../schemas/index.js';
 import { sendPasswordResetEmail } from '../../services/smtp/emails.js';
 import { loginInfoSchema } from '../../types.js';
 

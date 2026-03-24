@@ -10,7 +10,7 @@ import {
 import { runOrDeferEmbeddingJob } from './rateLimiter.js';
 import { extractCvText } from './textExtraction.js';
 import database from '../../db/index.js';
-import { type Database, type OrganizationAccount, type OrganizationPosting, type VolunteerAccountWithoutPassword } from '../../db/tables.js';
+import { type Database, type OrganizationAccount, type OrganizationPosting, type VolunteerAccountWithoutPassword } from '../../db/tables/index.js';
 
 type DBExecutor = Kysely<Database> | Transaction<Database>;
 

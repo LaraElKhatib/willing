@@ -5,7 +5,7 @@ import {
   type PostingSkill,
   VolunteerSkill,
   VolunteerAccountWithoutPassword,
-} from './db/tables.js';
+} from './db/tables/index.js';
 
 export type Role = 'admin' | 'volunteer' | 'organization';
 
