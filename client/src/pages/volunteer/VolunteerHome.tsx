@@ -143,9 +143,18 @@ function VolunteerHome() {
     });
   });
 
-  const forYouPostings = allAvailablePostings
-    .filter(posting => !enrollmentPostingIds.has(posting.id) && !crisisPostingIds.has(posting.id))
-    .slice(0, 8);
+  const primaryForYouPostings = allAvailablePostings
+    .filter(posting => !enrollmentPostingIds.has(posting.id) && !crisisPostingIds.has(posting.id));
+
+  const fallbackForYouPostings = allAvailablePostings
+    .filter(posting => !enrollmentPostingIds.has(posting.id));
+
+  const forYouPostings = [
+    ...primaryForYouPostings,
+    ...fallbackForYouPostings.filter(
+      posting => !primaryForYouPostings.some(primaryPosting => primaryPosting.id === posting.id),
+    ),
+  ].slice(0, 8);
 
   const crisisSectionsLoading = crisesLoading || allLoading || enrolledLoading;
   const forYouSectionLoading = allLoading || enrolledLoading;
