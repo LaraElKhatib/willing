@@ -44,6 +44,21 @@ import type { VolunteerProfileResponse } from '../../../../server/src/api/types'
 
 const DESCRIPTION_MAX_LENGTH = 300;
 
+const DATE_ONLY_REGEX = /^(\d{4})-(\d{2})-(\d{2})/;
+
+const getDateParts = (value: string) => {
+  const match = value.match(DATE_ONLY_REGEX);
+  if (!match) return null;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+
+  if (!year || month < 1 || month > 12 || day < 1 || day > 31) return null;
+
+  return { year, month, day };
+};
+
 const profileFormSchema = volunteerAccountSchema.omit({
   id: true,
   password: true,
@@ -62,9 +77,9 @@ const profileFormSchema = volunteerAccountSchema.omit({
 type ProfileFormData = z.infer<typeof profileFormSchema>;
 
 const getDateInputValue = (value: string) => {
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return '';
-  return parsed.toISOString().slice(0, 10);
+  const dateParts = getDateParts(value);
+  if (!dateParts) return '';
+  return `${dateParts.year}-${String(dateParts.month).padStart(2, '0')}-${String(dateParts.day).padStart(2, '0')}`;
 };
 
 const formatExperienceDateRange = (startValue: Date | string, endValue?: Date | string) => {
@@ -251,7 +266,10 @@ function VolunteerProfile() {
   const formattedDateOfBirth = useMemo(() => {
     if (!formValues.date_of_birth) return '-';
 
-    const parsed = new Date(formValues.date_of_birth);
+    const dateParts = getDateParts(formValues.date_of_birth);
+    if (!dateParts) return formValues.date_of_birth;
+
+    const parsed = new Date(dateParts.year, dateParts.month - 1, dateParts.day);
     if (Number.isNaN(parsed.getTime())) return formValues.date_of_birth;
 
     return parsed.toLocaleDateString(undefined, {
