@@ -249,7 +249,7 @@ function OrganizationVolunteerProfile() {
                   </div>
 
                   <div className="mt-4">
-                    <label className="text-sm opacity-70 mb-2 block">Description</label>
+                    <label className="text-sm font-semibold text-base-content mb-2 block">Description</label>
                     <p className="text-sm opacity-80 whitespace-pre-wrap wrap-break-word">
                       {profile.volunteer.description || 'No description added yet.'}
                     </p>

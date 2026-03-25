@@ -41,7 +41,7 @@ import type { PostingWithContext } from '../../../../server/src/types';
 
 const DESCRIPTION_MAX_LENGTH = 300;
 
-const DATE_ONLY_REGEX = /^(\d{4})-(\d{2})-(\d{2})$/;
+const DATE_ONLY_REGEX = /^(\d{4})-(\d{2})-(\d{2})/;
 
 const getDateParts = (value: string) => {
   const match = value.match(DATE_ONLY_REGEX);
@@ -600,7 +600,7 @@ function VolunteerProfile() {
                       )}
 
                   <div className="mt-4">
-                    <label className="text-sm opacity-70 mb-2 block">Description</label>
+                    <label className="text-sm font-semibold text-base-content mb-2 block">Description</label>
                     {isEditMode
                       ? (
                           <>
