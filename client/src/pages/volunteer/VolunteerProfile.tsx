@@ -44,7 +44,7 @@ import type { VolunteerProfileResponse } from '../../../../server/src/api/types'
 
 const DESCRIPTION_MAX_LENGTH = 300;
 
-const DATE_ONLY_REGEX = /^(\d{4})-(\d{2})-(\d{2})/;
+const DATE_ONLY_REGEX = /^(\d{4})-(\d{2})-(\d{2})$/;
 
 const getDateParts = (value: string) => {
   const match = value.match(DATE_ONLY_REGEX);
