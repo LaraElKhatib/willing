@@ -83,10 +83,9 @@ createRoot(document.getElementById('root')!).render(
                 <Route path="settings" element={<VolunteerSettings />} />
               </Route>
 
-              <Route path="organization/:id" element={<OrganizationProfile />} />
-
               <Route path="/" element={<SharedPage roles={['volunteer', 'organization']} />}>
                 <Route path="posting/:id" element={<Posting />} />
+                <Route path="organization/:id" element={<OrganizationProfile />} />
               </Route>
 
               <Route path="*" element={<NotFoundPage />} />
