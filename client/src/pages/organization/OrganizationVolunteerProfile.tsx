@@ -4,6 +4,7 @@ import { Link, useParams } from 'react-router';
 
 import Alert from '../../components/Alert';
 import Button from '../../components/Button';
+import IconButton from '../../components/IconButton';
 import ColumnLayout from '../../components/layout/ColumnLayout';
 import PageHeader from '../../components/layout/PageHeader';
 import Loading from '../../components/Loading';
@@ -54,7 +55,7 @@ function OrganizationVolunteerProfile() {
     { immediate: true, notifyOnError: true },
   );
 
-  const { trigger: requestCvDownload } = useAsync(
+  const { trigger: requestCvFile } = useAsync(
     async (requestedVolunteerId: string) => {
       const token = localStorage.getItem('jwt');
       if (!token) throw new Error('Not authenticated');
@@ -66,7 +67,7 @@ function OrganizationVolunteerProfile() {
       });
 
       if (!response.ok) {
-        let message = 'Failed to download CV';
+        let message = 'Failed to load CV';
         try {
           const errorBody = await response.json() as { error?: string; message?: string };
           message = errorBody.message ?? errorBody.error ?? message;
@@ -125,9 +126,17 @@ function OrganizationVolunteerProfile() {
     return 'badge-accent';
   }, [profile]);
 
+  const viewCv = async () => {
+    if (!volunteerId) return;
+    const { blob } = await requestCvFile(volunteerId);
+    const previewUrl = URL.createObjectURL(blob);
+    window.open(previewUrl, '_blank', 'noopener,noreferrer');
+    setTimeout(() => URL.revokeObjectURL(previewUrl), 60_000);
+  };
+
   const downloadCv = async () => {
     if (!volunteerId) return;
-    const { blob, filename } = await requestCvDownload(volunteerId);
+    const { blob, filename } = await requestCvFile(volunteerId);
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = filename;
@@ -229,9 +238,20 @@ function OrganizationVolunteerProfile() {
                   <div className="mt-4">
                     {profile.volunteer.cv_path
                       ? (
-                          <Button type="button" style="outline" color="primary" onClick={() => { void downloadCv(); }} Icon={Download}>
-                            Download CV
-                          </Button>
+                          <div className="flex items-center gap-2">
+                            <Button type="button" color="primary" style="soft" onClick={() => { void viewCv(); }} Icon={FileText}>
+                              View User CV
+                            </Button>
+                            <IconButton
+                              type="button"
+                              color="primary"
+                              style="outline"
+                              Icon={Download}
+                              onClick={() => { void downloadCv(); }}
+                              aria-label="Download CV"
+                              title="Download CV"
+                            />
+                          </div>
                         )
                       : (
                           <p className="text-sm opacity-70">No CV uploaded by this volunteer.</p>
