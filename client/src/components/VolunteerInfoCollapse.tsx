@@ -1,7 +1,7 @@
 import { Cake, Mail, Mars, MessageSquare, Venus } from 'lucide-react';
 import { useMemo, type ReactNode } from 'react';
+import { Link } from 'react-router';
 
-import LinkButton from './LinkButton';
 import SkillsList from './skills/SkillsList';
 
 import type { PostingApplication, PostingEnrollment } from '../../../server/src/types';
@@ -38,33 +38,73 @@ function VolunteerInfoCollapse({ volunteer, actions, profileLink }: VolunteerInf
       <input type="checkbox" />
       <div className="collapse-title flex items-center justify-between gap-3 z-10 pointer-events-none">
         <div className="flex items-center gap-3 flex-1">
-          <div className="avatar">
-            <div className="bg-primary text-primary-content rounded-full w-12 h-12 flex items-center justify-center">
-              <span className="text-lg font-semibold">{initials}</span>
-            </div>
-          </div>
-          <div className="flex flex-col">
-            <span className="flex items-center gap-2">
-              <h5 className="font-bold text-base leading-tight">{volunteerName}</h5>
-              {
-                volunteer.message && <MessageSquare size={12} strokeWidth={3} opacity={0.7} />
-              }
-            </span>
-            <div className="flex gap-2 mt-1">
-              <span className={`badge badge-sm gap-1 ${genderBadgeStyles}`}>
-                {volunteer.gender === 'male' && <Mars size={10} />}
-                {volunteer.gender === 'female' && <Venus size={10} />}
-                {volunteer.gender === 'other' && <span className="font-bold">*</span>}
-                {volunteer.gender.charAt(0).toUpperCase() + volunteer.gender.slice(1)}
-              </span>
-              <span className="badge badge-sm gap-1">
-                <Cake size={12} />
-                {age}
-                {' '}
-                years old
-              </span>
-            </div>
-          </div>
+          {profileLink
+            ? (
+                <Link
+                  to={profileLink}
+                  className="flex items-center gap-3 pointer-events-auto rounded-box -m-1 p-1"
+                  onClick={event => event.stopPropagation()}
+                >
+                  <div className="avatar">
+                    <div className="bg-primary text-primary-content rounded-full w-12 h-12 flex items-center justify-center">
+                      <span className="text-lg font-semibold">{initials}</span>
+                    </div>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="flex items-center gap-2">
+                      <h5 className="font-bold text-base leading-tight hover:underline">{volunteerName}</h5>
+                      {
+                        volunteer.message && <MessageSquare size={12} strokeWidth={3} opacity={0.7} />
+                      }
+                    </span>
+                    <div className="flex gap-2 mt-1">
+                      <span className={`badge badge-sm gap-1 ${genderBadgeStyles}`}>
+                        {volunteer.gender === 'male' && <Mars size={10} />}
+                        {volunteer.gender === 'female' && <Venus size={10} />}
+                        {volunteer.gender === 'other' && <span className="font-bold">*</span>}
+                        {volunteer.gender.charAt(0).toUpperCase() + volunteer.gender.slice(1)}
+                      </span>
+                      <span className="badge badge-sm gap-1">
+                        <Cake size={12} />
+                        {age}
+                        {' '}
+                        years old
+                      </span>
+                    </div>
+                  </div>
+                </Link>
+              )
+            : (
+                <>
+                  <div className="avatar">
+                    <div className="bg-primary text-primary-content rounded-full w-12 h-12 flex items-center justify-center">
+                      <span className="text-lg font-semibold">{initials}</span>
+                    </div>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="flex items-center gap-2">
+                      <h5 className="font-bold text-base leading-tight">{volunteerName}</h5>
+                      {
+                        volunteer.message && <MessageSquare size={12} strokeWidth={3} opacity={0.7} />
+                      }
+                    </span>
+                    <div className="flex gap-2 mt-1">
+                      <span className={`badge badge-sm gap-1 ${genderBadgeStyles}`}>
+                        {volunteer.gender === 'male' && <Mars size={10} />}
+                        {volunteer.gender === 'female' && <Venus size={10} />}
+                        {volunteer.gender === 'other' && <span className="font-bold">*</span>}
+                        {volunteer.gender.charAt(0).toUpperCase() + volunteer.gender.slice(1)}
+                      </span>
+                      <span className="badge badge-sm gap-1">
+                        <Cake size={12} />
+                        {age}
+                        {' '}
+                        years old
+                      </span>
+                    </div>
+                  </div>
+                </>
+              )}
         </div>
         {actions && (
           <div className="flex gap-2 items-center pointer-events-auto" onClick={e => e.stopPropagation()}>
@@ -95,13 +135,6 @@ function VolunteerInfoCollapse({ volunteer, actions, profileLink }: VolunteerInf
               {volunteer.message}
               "
             </p>
-          </div>
-        )}
-        {profileLink && (
-          <div className="mt-3">
-            <LinkButton to={profileLink} style="outline" size="sm">
-              View Full Profile
-            </LinkButton>
           </div>
         )}
       </div>
