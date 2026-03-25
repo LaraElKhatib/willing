@@ -1,6 +1,7 @@
 import { Cake, Mail, Mars, MessageSquare, Venus } from 'lucide-react';
 import { useMemo, type ReactNode } from 'react';
 
+import LinkButton from './LinkButton';
 import SkillsList from './skills/SkillsList';
 
 import type { PostingApplication, PostingEnrollment } from '../../../server/src/types';
@@ -8,9 +9,10 @@ import type { PostingApplication, PostingEnrollment } from '../../../server/src/
 interface VolunteerInfoCollapseProps {
   volunteer: PostingEnrollment | PostingApplication;
   actions?: ReactNode;
+  profileLink?: string;
 }
 
-function VolunteerInfoCollapse({ volunteer, actions }: VolunteerInfoCollapseProps) {
+function VolunteerInfoCollapse({ volunteer, actions, profileLink }: VolunteerInfoCollapseProps) {
   const volunteerName = `${volunteer.first_name} ${volunteer.last_name}`;
   const initials = `${volunteer.first_name.charAt(0)}${volunteer.last_name.charAt(0)}`.toUpperCase();
   const age = useMemo(() => {
@@ -93,6 +95,13 @@ function VolunteerInfoCollapse({ volunteer, actions }: VolunteerInfoCollapseProp
               {volunteer.message}
               "
             </p>
+          </div>
+        )}
+        {profileLink && (
+          <div className="mt-3">
+            <LinkButton to={profileLink} style="outline" size="sm">
+              View Full Profile
+            </LinkButton>
           </div>
         )}
       </div>

@@ -7,6 +7,7 @@ export type OrganizationRequestResponse = SuccessResponse;
 
 export type OrganizationGetLogoFileResponse = never;
 export type OrganizationGetSignatureFileResponse = never;
+export type OrganizationVolunteerCvDownloadResponse = never;
 
 export type OrganizationProfileResponse = {
   organization: OrganizationAccountWithoutPasswordAndVector;

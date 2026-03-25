@@ -1,13 +1,14 @@
-import { AlertTriangle, Building2, Calendar, Clock3, FileText, Mail, MapPin, Mars, Users, Venus } from 'lucide-react';
+import { AlertTriangle, Building2, Calendar, Clock3, Download, FileText, Mail, MapPin, Mars, Users, Venus } from 'lucide-react';
 import { useMemo } from 'react';
 import { Link, useParams } from 'react-router';
 
 import Alert from '../../components/Alert';
+import Button from '../../components/Button';
 import ColumnLayout from '../../components/layout/ColumnLayout';
 import PageHeader from '../../components/layout/PageHeader';
 import Loading from '../../components/Loading';
 import SkillsList from '../../components/skills/SkillsList';
-import requestServer from '../../utils/requestServer';
+import requestServer, { SERVER_BASE_URL } from '../../utils/requestServer';
 import useAsync from '../../utils/useAsync';
 
 import type { OrganizationVolunteerProfileResponse } from '../../../../server/src/api/types';
@@ -53,6 +54,40 @@ function OrganizationVolunteerProfile() {
     { immediate: true, notifyOnError: true },
   );
 
+  const { trigger: requestCvDownload } = useAsync(
+    async (requestedVolunteerId: string) => {
+      const token = localStorage.getItem('jwt');
+      if (!token) throw new Error('Not authenticated');
+
+      const response = await fetch(`${SERVER_BASE_URL}/organization/volunteer/${requestedVolunteerId}/cv`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        let message = 'Failed to download CV';
+        try {
+          const errorBody = await response.json() as { error?: string; message?: string };
+          message = errorBody.message ?? errorBody.error ?? message;
+        } catch {
+          // ignore non-JSON error payloads
+        }
+        throw new Error(message);
+      }
+
+      const blob = await response.blob();
+      const contentDisposition = response.headers.get('Content-Disposition');
+      const filenameFromHeader = contentDisposition?.match(/filename="([^"]+)"/)?.[1];
+
+      return {
+        blob,
+        filename: filenameFromHeader ?? `volunteer-${requestedVolunteerId}-cv.pdf`,
+      };
+    },
+    { notifyOnError: true },
+  );
+
   const profile = data?.profile;
 
   const volunteerName = useMemo(() => {
@@ -89,6 +124,18 @@ function OrganizationVolunteerProfile() {
     if (profile.volunteer.gender === 'female') return 'badge-secondary';
     return 'badge-accent';
   }, [profile]);
+
+  const downloadCv = async () => {
+    if (!volunteerId) return;
+    const { blob, filename } = await requestCvDownload(volunteerId);
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
+  };
 
   if (loading && !profile) {
     return (
@@ -178,6 +225,18 @@ function OrganizationVolunteerProfile() {
                     <p className="text-sm opacity-80 whitespace-pre-wrap wrap-break-word">
                       {profile.volunteer.description || 'No description added yet.'}
                     </p>
+                  </div>
+
+                  <div className="mt-4">
+                    {profile.volunteer.cv_path
+                      ? (
+                          <Button type="button" style="outline" color="primary" onClick={() => { void downloadCv(); }} Icon={Download}>
+                            Download CV
+                          </Button>
+                        )
+                      : (
+                          <p className="text-sm opacity-70">No CV uploaded by this volunteer.</p>
+                        )}
                   </div>
                 </div>
               </div>
