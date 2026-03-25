@@ -24,6 +24,7 @@ import { useOrganization } from '../../utils/useUsers';
 
 import type {
   OrganizationCrisesResponse,
+  OrganizationGetMeResponse,
   OrganizationPostingListResponse,
 } from '../../../../server/src/api/types';
 import type { PostingWithContext } from '../../../../server/src/types';
@@ -131,22 +132,30 @@ function OrganizationHome() {
     },
     { immediate: true },
   );
+
+  const { data: organizationMe } = useAsync(
+    async () => requestServer<OrganizationGetMeResponse>('/organization/me', { includeJwt: true }),
+    { immediate: true },
+  );
+
   const applyFilters = useCallback(async (formValues: OrganizationPostingFilterFormValues) => {
     await fetchPostings(fromOrganizationPostingFilterFormValues(formValues));
   }, [fetchPostings]);
 
   const postingsWithContext = useMemo<PostingWithContext[]>(() => {
     if (!postings) return [];
+    const orgName = organizationMe?.organization.name ?? organization?.name ?? '';
+    const orgLogoPath = organizationMe?.organization.logo_path ?? organization?.logo_path ?? undefined;
 
     return postings.map(posting => ({
       ...posting,
-      organization_name: organization?.name ?? '',
-      organization_logo_path: organization?.logo_path ?? undefined,
+      organization_name: orgName,
+      organization_logo_path: orgLogoPath,
       crisis_name: null,
       enrollment_count: 0,
       application_status: 'none',
     }));
-  }, [organization?.logo_path, organization?.name, postings]);
+  }, [organization?.logo_path, organization?.name, organizationMe?.organization.logo_path, organizationMe?.organization.name, postings]);
 
   return (
     <div className="grow bg-base-200">
