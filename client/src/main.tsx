@@ -28,6 +28,7 @@ import OrganizationRequest from './pages/OrganizationRequest';
 import Posting from './pages/Posting';
 import UserLogin from './pages/UserLogin';
 import VolunteerCrisisPostings from './pages/volunteer/VolunteerCrisisPostings';
+import VolunteerCertificateRequest from './pages/volunteer/VolunteerCertificateRequest';
 import VolunteerEnrollments from './pages/volunteer/VolunteerEnrollments';
 import VolunteerHome from './pages/volunteer/VolunteerHome';
 import VolunteerProfile from './pages/volunteer/VolunteerProfile';
@@ -72,6 +73,7 @@ createRoot(document.getElementById('root')!).render(
 
               <Route path="volunteer" element={<VolunteerPage />}>
                 <Route index element={<VolunteerHome />} />
+                <Route path="certificate" element={<VolunteerCertificateRequest />} />
                 <Route path="enrollments" element={<VolunteerEnrollments />} />
                 <Route path="crises/:crisisId/postings" element={<VolunteerCrisisPostings />} />
                 <Route path="profile" element={<VolunteerProfile />} />
