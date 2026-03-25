@@ -192,7 +192,6 @@ function VolunteerProfile() {
     async (data: {
       first_name: string;
       last_name: string;
-      date_of_birth: string;
       gender: 'male' | 'female' | 'other';
       description: string;
       skills: string[];
@@ -319,7 +318,6 @@ function VolunteerProfile() {
       const response = await updateProfile({
         first_name: data.first_name,
         last_name: data.last_name,
-        date_of_birth: data.date_of_birth,
         gender: data.gender,
         description: data.description,
         skills,
@@ -564,13 +562,13 @@ function VolunteerProfile() {
                             </div>
                           </div>
                           <div className={saving ? 'pointer-events-none opacity-70' : ''}>
-                            <FormField
-                              form={form}
-                              name="date_of_birth"
-                              label="Date of Birth"
-                              type="date"
-                              Icon={Calendar}
-                            />
+                            <div className="space-y-1">
+                              <label className="text-sm font-medium">Date of Birth</label>
+                              <div className="input input-bordered w-full flex items-center gap-2 opacity-80">
+                                <Calendar size={16} />
+                                <span>{formattedDateOfBirth}</span>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       )
