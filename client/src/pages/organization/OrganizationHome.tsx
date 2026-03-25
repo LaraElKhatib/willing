@@ -20,6 +20,7 @@ import PostingFiltersCard from '../../components/postings/PostingFiltersCard';
 import { FormField } from '../../utils/formUtils';
 import requestServer from '../../utils/requestServer';
 import useAsync from '../../utils/useAsync';
+import { useOrganization } from '../../utils/useUsers';
 
 import type {
   OrganizationCrisesResponse,
@@ -84,6 +85,8 @@ const fromOrganizationPostingFilterFormValues = (
 };
 
 function OrganizationHome() {
+  const organization = useOrganization();
+
   const fetchOrganizationPostings = useCallback(
     async (nextFilters: OrganizationPostingFilters) => {
       const query = buildSharedPostingQuery(nextFilters);
@@ -137,13 +140,13 @@ function OrganizationHome() {
 
     return postings.map(posting => ({
       ...posting,
-      organization_name: '',
-      organization_logo_path: undefined,
+      organization_name: organization?.name ?? '',
+      organization_logo_path: organization?.logo_path ?? undefined,
       crisis_name: null,
       enrollment_count: 0,
       application_status: 'none',
     }));
-  }, [postings]);
+  }, [organization?.logo_path, organization?.name, postings]);
 
   return (
     <div className="grow bg-base-200">

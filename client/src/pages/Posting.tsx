@@ -1302,6 +1302,7 @@ function PostingPage() {
                             <VolunteerInfoCollapse
                               key={app.application_id}
                               volunteer={app}
+                              profileLink={`/organization/volunteer/${app.volunteer_id}`}
                               actions={(
                                 <>
                                   <Button
@@ -1353,6 +1354,7 @@ function PostingPage() {
                             <VolunteerInfoCollapse
                               key={volunteer.enrollment_id}
                               volunteer={volunteer}
+                              profileLink={`/organization/volunteer/${volunteer.volunteer_id}`}
                             />
                           ))}
                         </div>

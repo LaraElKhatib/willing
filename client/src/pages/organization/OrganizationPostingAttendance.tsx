@@ -364,6 +364,7 @@ function OrganizationPostingAttendance() {
                   <VolunteerInfoCollapse
                     key={volunteer.enrollment_id}
                     volunteer={volunteer}
+                    profileLink={`/organization/volunteer/${volunteer.volunteer_id}`}
                     actions={(
                       <label className="flex items-center gap-2">
                         <span className={`badge ${volunteer.attended ? 'badge-success' : 'badge-ghost'}`}>
