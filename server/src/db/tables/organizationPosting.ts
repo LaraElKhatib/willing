@@ -20,6 +20,7 @@ export const organizationPostingSchema = zod.object({
   minimum_age: zod.number().optional(),
   automatic_acceptance: zod.boolean().default(true),
   is_closed: zod.boolean().default(false),
+  allows_partial_attendance: zod.boolean().optional(),
   location_name: zod.string().min(2, 'Location must be longer than 2 characters'),
   opportunity_vector: zod.string().optional(),
   posting_context_vector: zod.string().optional(),
@@ -32,7 +33,7 @@ export type OrganizationPosting = zod.infer<typeof organizationPostingSchema>;
 export type OrganizationPostingTable = WithGeneratedIDAndTimestamps<OrganizationPosting>;
 
 export const newOrganizationPostingSchema = organizationPostingSchema
-  .omit({ id: true, opportunity_vector: true, posting_context_vector: true, created_at: true, updated_at: true, organization_id: true })
+  .omit({ id: true, opportunity_vector: true, posting_context_vector: true, allows_partial_attendance: true, created_at: true, updated_at: true, organization_id: true })
   .extend({
     skills: zod
       .array(zod.string().min(1, 'Skill name is required'))
@@ -44,5 +45,6 @@ export type NewOrganizationPosting = zod.infer<typeof newOrganizationPostingSche
 export const organizationPostingWithoutVectorsSchema = organizationPostingSchema.omit({
   opportunity_vector: true,
   posting_context_vector: true,
+  allows_partial_attendance: true,
 });
 export type OrganizationPostingWithoutVectors = zod.infer<typeof organizationPostingWithoutVectorsSchema>;

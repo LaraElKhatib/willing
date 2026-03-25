@@ -21,6 +21,8 @@ export const volunteerAccountSchema = zod.object({
   privacy: zod.enum(['public', 'private']),
   profile_vector: zod.string().optional(),
   experience_vector: zod.string().optional(),
+  is_disabled: zod.boolean().optional(),
+  is_deleted: zod.boolean().optional(),
   updated_at: zod.date(),
   created_at: zod.date(),
 });
@@ -35,6 +37,8 @@ export const newVolunteerAccountSchema = volunteerAccountSchema.omit({
   description: true,
   profile_vector: true,
   experience_vector: true,
+  is_disabled: true,
+  is_deleted: true,
   created_at: true,
   updated_at: true,
 }).strict();
@@ -44,6 +48,8 @@ export const volunteerAccountWithoutPasswordSchema = volunteerAccountSchema.omit
   password: true,
   profile_vector: true,
   experience_vector: true,
+  is_disabled: true,
+  is_deleted: true,
   created_at: true,
   updated_at: true,
 });
