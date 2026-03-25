@@ -18,6 +18,7 @@ import {
   OrganizationRequestResponse,
   OrganizationResetPasswordResponse,
   OrganizationUpdateProfileResponse,
+  OrganizationVolunteerProfileResponse,
   OrganizationUploadLogoResponse,
 } from './index.types.js';
 import postingRouter from './posting.js';
@@ -29,6 +30,7 @@ import { sendAdminOrganizationRequestEmail } from '../../../services/smtp/emails
 import { orgLogoMulter } from '../../../services/uploads/orgLogo.js';
 import { ORG_LOGO_UPLOAD_DIR, ORG_SIGNATURE_UPLOAD_DIR } from '../../../services/uploads/paths.js';
 import uploadSingle from '../../../services/uploads/uploadSingle.js';
+import { getVolunteerProfile } from '../../../services/volunteer/index.js';
 import { authorizeOnly } from '../../authorization.js';
 
 const organizationRouter = Router();
@@ -307,6 +309,38 @@ organizationRouter.get('/me', async (req, res: Response<OrganizationGetMeRespons
     .executeTakeFirstOrThrow();
 
   res.json({ organization });
+});
+
+organizationRouter.get('/volunteer/:id', async (req, res: Response<OrganizationVolunteerProfileResponse>) => {
+  const { id: volunteerId } = zod.object({
+    id: zod.coerce.number().int().positive('Volunteer ID must be a positive number'),
+  }).parse(req.params);
+
+  const organizationId = req.userJWT!.id;
+
+  const relatedApplication = await database
+    .selectFrom('enrollment_application')
+    .innerJoin('organization_posting', 'organization_posting.id', 'enrollment_application.posting_id')
+    .select('enrollment_application.id')
+    .where('enrollment_application.volunteer_id', '=', volunteerId)
+    .where('organization_posting.organization_id', '=', organizationId)
+    .executeTakeFirst();
+
+  const relatedEnrollment = await database
+    .selectFrom('enrollment')
+    .innerJoin('organization_posting', 'organization_posting.id', 'enrollment.posting_id')
+    .select('enrollment.id')
+    .where('enrollment.volunteer_id', '=', volunteerId)
+    .where('organization_posting.organization_id', '=', organizationId)
+    .executeTakeFirst();
+
+  if (!relatedApplication && !relatedEnrollment) {
+    res.status(403);
+    throw new Error('You can only view profiles of volunteers related to your postings.');
+  }
+
+  const profile = await getVolunteerProfile(volunteerId);
+  res.json({ profile });
 });
 
 organizationRouter.put('/profile', async (req, res: Response<OrganizationUpdateProfileResponse>) => {

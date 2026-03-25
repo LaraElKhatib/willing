@@ -1,6 +1,7 @@
 import { ResetPasswordResponse } from '../../../auth/resetPassword.js';
 import { Crisis, OrganizationAccountWithoutPassword, OrganizationAccountWithoutPasswordAndVector, OrganizationPostingWithoutVectors, PostingSkill } from '../../../db/tables/index.js';
 import { SuccessResponse } from '../../../types.js';
+import type { VolunteerProfileData } from '../../../services/volunteer/index.js';
 
 export type OrganizationRequestResponse = SuccessResponse;
 
@@ -38,6 +39,10 @@ export type OrganizationCrisesResponse = {
 
 export type OrganizationCrisisResponse = {
   crisis: Crisis;
+};
+
+export type OrganizationVolunteerProfileResponse = {
+  profile: VolunteerProfileData;
 };
 
 export type OrganizationResetPasswordResponse = ResetPasswordResponse;
