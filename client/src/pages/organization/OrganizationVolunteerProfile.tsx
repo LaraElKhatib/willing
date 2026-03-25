@@ -1,6 +1,6 @@
-import { AlertTriangle, Building2, Calendar, Clock3, Download, FileText, Mail, MapPin, Mars, Users, Venus } from 'lucide-react';
+import { AlertTriangle, Building2, Calendar, Clock3, Download, FileText, Mail, Mars, Users, Venus } from 'lucide-react';
 import { useMemo } from 'react';
-import { Link, useParams } from 'react-router';
+import { useParams } from 'react-router';
 
 import Alert from '../../components/Alert';
 import Button from '../../components/Button';
@@ -8,34 +8,16 @@ import IconButton from '../../components/IconButton';
 import ColumnLayout from '../../components/layout/ColumnLayout';
 import PageHeader from '../../components/layout/PageHeader';
 import Loading from '../../components/Loading';
+import PostingList from '../../components/PostingList';
 import SkillsList from '../../components/skills/SkillsList';
 import requestServer, { SERVER_BASE_URL } from '../../utils/requestServer';
 import useAsync from '../../utils/useAsync';
 
 import type { OrganizationVolunteerProfileResponse } from '../../../../server/src/api/types';
+import type { PostingWithContext } from '../../../../server/src/types';
 
-const formatExperienceDateRange = (startValue: Date | string, endValue?: Date | string) => {
-  const startDate = new Date(startValue);
-  const endDate = endValue ? new Date(endValue) : null;
-
-  const startText = Number.isNaN(startDate.getTime())
-    ? 'Date unavailable'
-    : startDate.toLocaleDateString(undefined, {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-      });
-
-  if (!endDate || Number.isNaN(endDate.getTime())) return startText;
-
-  const endText = endDate.toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
-
-  return `${startText} - ${endText}`;
-};
+const toDateString = (value: Date) => value.toISOString().slice(0, 10);
+const toTimeString = (value: Date) => `${String(value.getHours()).padStart(2, '0')}:${String(value.getMinutes()).padStart(2, '0')}`;
 
 function OrganizationVolunteerProfile() {
   const { volunteerId } = useParams<{ volunteerId: string }>();
@@ -124,6 +106,44 @@ function OrganizationVolunteerProfile() {
     if (profile.volunteer.gender === 'male') return 'badge-info';
     if (profile.volunteer.gender === 'female') return 'badge-secondary';
     return 'badge-accent';
+  }, [profile]);
+
+  const experiencePostings = useMemo<PostingWithContext[]>(() => {
+    if (!profile) return [];
+
+    return profile.completed_experiences.map((experience) => {
+      const startDate = new Date(experience.start_timestamp);
+      const endDate = experience.end_timestamp ? new Date(experience.end_timestamp) : null;
+      const safeStartDate = Number.isNaN(startDate.getTime()) ? new Date() : startDate;
+      const safeEndDate = endDate && !Number.isNaN(endDate.getTime()) ? endDate : null;
+
+      return {
+        id: experience.posting_id,
+        organization_id: experience.organization_id,
+        title: experience.posting_title,
+        description: '',
+        latitude: undefined,
+        longitude: undefined,
+        max_volunteers: undefined,
+        start_date: toDateString(safeStartDate),
+        start_time: toTimeString(safeStartDate),
+        end_date: safeEndDate ? toDateString(safeEndDate) : undefined,
+        end_time: safeEndDate ? toTimeString(safeEndDate) : undefined,
+        minimum_age: undefined,
+        automatic_acceptance: true,
+        is_closed: true,
+        location_name: experience.location_name,
+        created_at: safeStartDate,
+        updated_at: safeStartDate,
+        crisis_id: undefined,
+        skills: [],
+        organization_name: experience.organization_name,
+        organization_logo_path: undefined,
+        crisis_name: experience.crisis_name,
+        enrollment_count: 1,
+        application_status: 'registered',
+      };
+    });
   }, [profile]);
 
   const viewCv = async () => {
@@ -331,36 +351,8 @@ function OrganizationVolunteerProfile() {
                     )
                   : (
                       <div className="mt-4 space-y-3">
-                        {profile.completed_experiences.map(experience => (
-                          <div key={experience.enrollment_id} className="rounded-lg border border-base-300 p-4">
-                            <div className="flex flex-wrap items-center justify-between gap-2">
-                              <Link to={`/posting/${experience.posting_id}`} className="font-semibold text-base text-primary hover:underline">
-                                {experience.posting_title}
-                              </Link>
-                              <span className="badge badge-success">Present</span>
-                            </div>
-
-                            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm opacity-80">
-                              <span className="inline-flex items-center gap-1">
-                                <Building2 size={14} />
-                                {experience.organization_name}
-                              </span>
-                              <span className="inline-flex items-center gap-1">
-                                <MapPin size={14} />
-                                {experience.location_name}
-                              </span>
-                              <span className="inline-flex items-center gap-1">
-                                <Calendar size={14} />
-                                {formatExperienceDateRange(experience.start_timestamp, experience.end_timestamp)}
-                              </span>
-                            </div>
-
-                            {experience.crisis_name && (
-                              <span className="badge badge-accent badge-outline mt-3">
-                                {experience.crisis_name}
-                              </span>
-                            )}
-                          </div>
+                        {experiencePostings.map(posting => (
+                          <PostingList key={posting.id} posting={posting} showCrisis={false} />
                         ))}
                       </div>
                     )}
