@@ -171,7 +171,6 @@ function OrganizationVolunteerProfile() {
       <div className="p-6 md:container mx-auto">
         <PageHeader
           title={volunteerName || 'Volunteer'}
-          subtitle="Volunteer profile details visible to organizations."
           icon={FileText}
           showBack
           defaultBackTo="/organization"
