@@ -6,15 +6,25 @@ import type { WithGeneratedID } from './shared.js';
 
 export const enrollmentApplicationDateSchema = zod.object({
   id: idSchema,
-  application_id: zod.number().optional(),
-  date: zod.string().refine(str => !isNaN(Date.parse(str)), { message: 'Invalid date format' }),
+  application_id: zod.number(),
+  date: zod.coerce.date({
+    error: (issue) => {
+      if (issue.code === 'invalid_type') return 'Date is required';
+      return 'Invalid date format';
+    },
+  }),
 });
 
 export type EnrollmentApplicationDate = zod.infer<typeof enrollmentApplicationDateSchema>;
 export type EnrollmentApplicationDateTable = WithGeneratedID<EnrollmentApplicationDate>;
 
 export const newEnrollmentApplicationDateSchema = zod.object({
-  date: zod.string().refine(str => !isNaN(Date.parse(str)), { message: 'Invalid date format' }),
+  date: zod.coerce.date({
+    error: (issue) => {
+      if (issue.code === 'invalid_type') return 'Date is required';
+      return 'Invalid date format';
+    },
+  }),
 }).strict();
 export type NewEnrollmentApplicationDate = zod.infer<typeof newEnrollmentApplicationDateSchema>;
 

@@ -6,8 +6,8 @@ import type { WithGeneratedIDAndCreatedAt } from './shared.js';
 
 export const volunteerReportSchema = zod.object({
   id: idSchema,
-  reported_volunteer_id: zod.number().optional(),
-  reporter_organization_id: zod.number().optional(),
+  reported_volunteer_id: zod.number(),
+  reporter_organization_id: zod.number(),
   title: zod.string().trim().min(1, 'Title is required').max(128, 'Title must be at most 128 characters'),
   message: zod.string().trim().min(1, 'Message is required'),
   created_at: zod.date(),

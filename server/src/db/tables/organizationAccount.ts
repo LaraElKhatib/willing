@@ -18,8 +18,8 @@ export const organizationAccountSchema = zod.object({
   logo_path: zod.string().optional(),
   certificate_info_id: zod.number().nullable().optional(),
   org_vector: zod.string().optional(),
-  is_disabled: zod.boolean().optional(),
-  is_deleted: zod.boolean().optional(),
+  is_disabled: zod.boolean(),
+  is_deleted: zod.boolean(),
   updated_at: zod.date(),
   created_at: zod.date(),
 });

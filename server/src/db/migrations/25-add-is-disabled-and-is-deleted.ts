@@ -3,14 +3,14 @@ import { Kysely } from 'kysely';
 export async function up(db: Kysely<unknown>): Promise<void> {
   await db.schema
     .alterTable('organization_account')
-    .addColumn('is_disabled', 'boolean')
-    .addColumn('is_deleted', 'boolean')
+    .addColumn('is_disabled', 'boolean', col => col.notNull().defaultTo(false))
+    .addColumn('is_deleted', 'boolean', col => col.notNull().defaultTo(false))
     .execute();
 
   await db.schema
     .alterTable('volunteer_account')
-    .addColumn('is_disabled', 'boolean')
-    .addColumn('is_deleted', 'boolean')
+    .addColumn('is_disabled', 'boolean', col => col.notNull().defaultTo(false))
+    .addColumn('is_deleted', 'boolean', col => col.notNull().defaultTo(false))
     .execute();
 }
 

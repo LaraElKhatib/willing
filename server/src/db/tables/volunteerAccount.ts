@@ -21,8 +21,8 @@ export const volunteerAccountSchema = zod.object({
   privacy: zod.enum(['public', 'private']),
   profile_vector: zod.string().optional(),
   experience_vector: zod.string().optional(),
-  is_disabled: zod.boolean().optional(),
-  is_deleted: zod.boolean().optional(),
+  is_disabled: zod.boolean(),
+  is_deleted: zod.boolean(),
   updated_at: zod.date(),
   created_at: zod.date(),
 });

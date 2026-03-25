@@ -3,7 +3,7 @@ import { Kysely } from 'kysely';
 export async function up(db: Kysely<unknown>): Promise<void> {
   await db.schema
     .alterTable('organization_posting')
-    .addColumn('allows_partial_attendance', 'boolean')
+    .addColumn('allows_partial_attendance', 'boolean', col => col.notNull().defaultTo(false))
     .execute();
 }
 

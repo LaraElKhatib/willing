@@ -7,11 +7,11 @@ export async function up(db: Kysely<unknown>): Promise<void> {
     .addColumn('first_name', 'varchar(64)', col => col.notNull())
     .addColumn('last_name', 'varchar(64)', col => col.notNull())
     .addColumn('password', 'varchar(256)', col => col.notNull())
-    .addColumn('email', 'varchar(128)', col => col.notNull())
+    .addColumn('email', 'varchar(128)', col => col.notNull().unique())
     .addColumn('gender', 'varchar(64)', col => col.notNull())
     .addColumn('date_of_birth', 'date', col => col.notNull())
     .addColumn('created_at', 'timestamp', col => col.notNull().defaultTo(sql`now()`))
-    .addColumn('token', 'varchar', col => col.notNull())
+    .addColumn('token', 'varchar', col => col.notNull().unique())
     .execute();
 }
 
