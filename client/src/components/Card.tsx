@@ -48,7 +48,7 @@ function Card({
                 <Link
                   to={link}
                 >
-                  <div className={`flex items-center gap-2 ${description ? '' : (children ? 'mb-3' : 'mb-1')}`}>
+                  <div className={`flex items-center gap-2 ${description ? '' : (children ? 'mb-3' : 'mb-0')}`}>
                     <h5 className={`font-bold text-lg inline-flex items-center gap-2 text-${coloredText ? color : ''} ${link ? `link link-hover link-${color}` : ``}`}>
                       {Icon && <Icon size={17} className={`text-${color}`} />}
                       {title}
@@ -65,7 +65,7 @@ function Card({
               )
             : (
                 <div>
-                  <div className={`flex items-center gap-2 ${description ? '' : (children ? 'mb-3' : 'mb-1')}`}>
+                  <div className={`flex items-center gap-2 ${description ? '' : (children ? 'mb-3' : 'mb-0')}`}>
                     <h5 className={`font-bold text-lg inline-flex items-center gap-2 text-${coloredText ? color : ''}`}>
                       {Icon && <Icon size={17} className={'text-' + color} />}
                       {title}
