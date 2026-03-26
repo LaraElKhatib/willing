@@ -14,6 +14,7 @@ import { Link } from 'react-router-dom';
 
 import AuthContext from '../auth/AuthContext';
 import Button from '../components/Button';
+import Card from '../components/Card';
 import { volunteerSignupSchema, type VolunteerSignupFormData } from '../schemas/volunteer';
 import { executeAndShowError, FormField, FormRootError } from '../utils/formUtils';
 
@@ -51,8 +52,8 @@ export default function VolunteerCreate() {
           </p>
         </div>
 
-        <div className="card bg-base-100 w-full max-w-lg shadow-2xl">
-          <form className="card-body" onSubmit={handleSubmit}>
+        <Card>
+          <form onSubmit={handleSubmit}>
             <div className="flex gap-4">
               <div className="flex-1">
                 <FormField
@@ -147,7 +148,7 @@ export default function VolunteerCreate() {
               </span>
             </div>
           </form>
-        </div>
+        </Card>
       </div>
     </div>
   );

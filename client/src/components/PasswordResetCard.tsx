@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { CheckCircle, LockKeyhole, Save } from 'lucide-react';
+import { CheckCircle, LockIcon, LockKeyhole, Save } from 'lucide-react';
 import { useContext } from 'react';
 import { useForm } from 'react-hook-form';
 import zod from 'zod';
@@ -43,7 +43,11 @@ function PasswordResetCard() {
   });
 
   return (
-    <Card>
+    <Card
+      title="Change Password"
+      description="Update your credentials to maintain account security."
+      Icon={LockIcon}
+    >
       <form onSubmit={onSubmit}>
         <FormField
           form={form}

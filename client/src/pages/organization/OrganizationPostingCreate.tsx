@@ -5,6 +5,7 @@ import { useForm, useWatch } from 'react-hook-form';
 import { useNavigate } from 'react-router';
 
 import Button from '../../components/Button.tsx';
+import Card from '../../components/Card.tsx';
 import PageHeader from '../../components/layout/PageHeader';
 import LocationPicker from '../../components/LocationPicker';
 import SkillsInput from '../../components/skills/SkillsInput';
@@ -129,9 +130,9 @@ export default function OrganizationPostingCreate() {
           defaultBackTo="/organization"
         />
 
-        <div className="card bg-base-100 w-full shadow-2xl">
+        <Card>
           <form
-            className="card-body space-y-6"
+            className="space-y-6"
             onSubmit={(e) => {
               console.log('Form onSubmit event fired, form errors:', form.formState.errors);
               submit(e);
@@ -355,7 +356,7 @@ export default function OrganizationPostingCreate() {
               Create Posting
             </Button>
           </form>
-        </div>
+        </Card>
       </div>
     </div>
   );

@@ -7,6 +7,7 @@ import AuthContext from '../auth/AuthContext';
 import Button from '../components/Button';
 import { loginFormSchema, type LoginFormData } from '../schemas/auth';
 import { executeAndShowError, FormField, FormRootError } from '../utils/formUtils';
+import Card from '../components/Card';
 
 function AdminLogin() {
   const auth = useContext(AuthContext);
@@ -34,9 +35,8 @@ function AdminLogin() {
             Authorized access only. This portal is restricted to system administrators for platform oversight and maintenance. Please log in to proceed to your secure dashboard.
           </p>
         </div>
-        <div className="card bg-base-100 w-full max-w-lg shrink-0 shadow-2xl">
+        <Card>
           <form
-            className="card-body"
             onSubmit={handleSubmit}
           >
             <FormField
@@ -67,7 +67,7 @@ function AdminLogin() {
               Login
             </Button>
           </form>
-        </div>
+        </Card>
       </div>
     </div>
   );

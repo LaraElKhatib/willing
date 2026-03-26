@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { Link, useSearchParams } from 'react-router-dom';
 
 import Button from '../components/Button';
+import Card from '../components/Card';
 import LinkButton from '../components/LinkButton';
 import {
   forgotPasswordRequestSchema,
@@ -58,17 +59,17 @@ function ForgotPasswordPage() {
     return (
       <div className="flex-1 hero bg-base-200">
         <div className="hero-content text-center">
-          <div className="card bg-base-100 shadow-2xl max-w-lg w-full">
-            <div className="card-body items-center">
-              <h2 className="card-title text-2xl">Check your email</h2>
+          <Card>
+            <div className="flex flex-col gap-4 w-full max-w-lg">
+              <h2 className="font-bold text-2xl">Check your email</h2>
               <p className="opacity-80">
                 If an account exists with that email, we've sent you a password reset link. Check your inbox and follow the link to reset your password.
               </p>
-              <LinkButton color="primary" className="mt-3" to="/login" Icon={LogIn}>
+              <LinkButton color="primary" className="mx-auto" to="/login" Icon={LogIn} layout="wide">
                 Back to login
               </LinkButton>
             </div>
-          </div>
+          </Card>
         </div>
       </div>
     );
@@ -78,17 +79,17 @@ function ForgotPasswordPage() {
     return (
       <div className="flex-1 hero bg-base-200">
         <div className="hero-content text-center">
-          <div className="card bg-base-100 shadow-2xl max-w-lg w-full">
-            <div className="card-body items-center">
+          <Card>
+            <div className="max-w-lg w-full flex flex-col items-center gap-4">
               <h2 className="card-title text-2xl">Password reset successful</h2>
               <p className="opacity-80">
                 Your password has been updated. You can now log in with your new password.
               </p>
-              <LinkButton color="primary" className="mt-3" to="/login" Icon={LogIn}>
+              <LinkButton color="primary" className="mt-2" to="/login" Icon={LogIn} layout="wide">
                 Go to login
               </LinkButton>
             </div>
-          </div>
+          </Card>
         </div>
       </div>
     );
@@ -106,71 +107,73 @@ function ForgotPasswordPage() {
           </p>
         </div>
 
-        <div className="card bg-base-100 w-full max-w-lg shrink-0 shadow-2xl">
-          {!resetKey
-            ? (
-                <form className="card-body" onSubmit={submitRequest}>
-                  <FormField
-                    form={requestForm}
-                    label="Email"
-                    name="email"
-                    type="email"
-                    Icon={Mail}
-                  />
+        <Card>
+          <div className="w-full max-w-lg">
+            {!resetKey
+              ? (
+                  <form onSubmit={submitRequest}>
+                    <FormField
+                      form={requestForm}
+                      label="Email"
+                      name="email"
+                      type="email"
+                      Icon={Mail}
+                    />
 
-                  <FormRootError form={requestForm} />
+                    <FormRootError form={requestForm} />
 
-                  <div className="card-actions justify-between items-center mt-4">
-                    <Link to="/login" className="link link-hover">
-                      Back to login
-                    </Link>
-                    <Button
-                      color="primary"
-                      type="submit"
-                      loading={requestForm.formState.isSubmitting}
-                      Icon={Send}
-                    >
-                      Send Link
-                    </Button>
-                  </div>
-                </form>
-              )
-            : (
-                <form className="card-body" onSubmit={submitReset}>
-                  <FormField
-                    form={resetForm}
-                    label="New Password"
-                    name="password"
-                    type="password"
-                    Icon={LockKeyhole}
-                  />
+                    <div className="card-actions justify-between items-center mt-4">
+                      <Link to="/login" className="link link-hover">
+                        Back to login
+                      </Link>
+                      <Button
+                        color="primary"
+                        type="submit"
+                        loading={requestForm.formState.isSubmitting}
+                        Icon={Send}
+                      >
+                        Send Link
+                      </Button>
+                    </div>
+                  </form>
+                )
+              : (
+                  <form onSubmit={submitReset}>
+                    <FormField
+                      form={resetForm}
+                      label="New Password"
+                      name="password"
+                      type="password"
+                      Icon={LockKeyhole}
+                    />
 
-                  <FormField
-                    form={resetForm}
-                    label="Confirm Password"
-                    name="confirmPassword"
-                    type="password"
-                    Icon={CheckCircle}
-                  />
-
-                  <FormRootError form={resetForm} />
-
-                  <div className="card-actions justify-between items-center mt-4">
-                    <Link to="/login" className="link link-hover">
-                      Back to login
-                    </Link>
-                    <Button
-                      color="primary"
-                      type="submit"
-                      loading={resetForm.formState.isSubmitting}
+                    <FormField
+                      form={resetForm}
+                      label="Confirm Password"
+                      name="confirmPassword"
+                      type="password"
                       Icon={CheckCircle}
-                    >
-                      Reset Password
-                    </Button>
-                  </div>
-                </form>
-              )}
-        </div>
+                    />
+
+                    <FormRootError form={resetForm} />
+
+                    <div className="card-actions justify-between items-center mt-4">
+                      <Link to="/login" className="link link-hover">
+                        Back to login
+                      </Link>
+                      <Button
+                        color="primary"
+                        type="submit"
+                        loading={resetForm.formState.isSubmitting}
+                        Icon={CheckCircle}
+                      >
+                        Reset Password
+                      </Button>
+                    </div>
+                  </form>
+                )}
+          </div>
+        </Card>
       </div>
     </div>
   );

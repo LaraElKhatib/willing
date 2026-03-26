@@ -11,6 +11,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useVolunteer } from '../../auth/useUsers';
+import Button from '../../components/Button';
 import Card from '../../components/Card';
 import PageHeader from '../../components/layout/PageHeader';
 import Loading from '../../components/Loading';
@@ -404,17 +405,19 @@ function VolunteerCertificateRequest() {
             </Card>
 
             {certificateGeneratedAt && (
-              <div className="card bg-base-100 shadow-md mt-4 no-print">
-                <div className="card-body">
-                  <div className="flex items-center justify-between gap-3">
-                    <h5 className="font-bold text-lg">Certificate Preview</h5>
-                    <button className="btn btn-outline" onClick={downloadCertificateAsPdf}>
-                      <Download size={16} />
-                      Download as PDF
-                    </button>
-                  </div>
-                </div>
-              </div>
+              <Card
+                title="Certificate Preview"
+                right={(
+                  <Button
+                    style="outline"
+                    onClick={downloadCertificateAsPdf}
+                    Icon={Download}
+                  >
+                    Download as PDF
+                  </Button>
+                )}
+              >
+              </Card>
             )}
 
             {certificateGeneratedAt && (

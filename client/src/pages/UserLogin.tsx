@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom';
 
 import AuthContext from '../auth/AuthContext';
 import Button from '../components/Button';
+import Card from '../components/Card';
 import { loginFormSchema, type LoginFormData } from '../schemas/auth';
 import { executeAndShowError, FormField, FormRootError } from '../utils/formUtils';
 
@@ -33,55 +34,57 @@ function UserLoginPage() {
           </p>
         </div>
 
-        <div className="card bg-base-100 w-full max-w-lg shrink-0 shadow-2xl">
-          <form
-            className="card-body"
-            onSubmit={submit}
-          >
-            <FormField
-              form={form}
-              label="Email"
-              name="email"
-              type="email"
-              Icon={Mail}
-            />
-
-            <FormField
-              form={form}
-              label="Password"
-              name="password"
-              type="password"
-              Icon={LockKeyhole}
-            />
-
-            <div className="text-right">
-              <Link to="/forgot-password" className="link link-hover text-sm">
-                Forgot password?
-              </Link>
-            </div>
-
-            <FormRootError form={form} />
-
-            <Button
-              color="primary"
-              className="mt-4"
-              type="submit"
-              loading={form.formState.isSubmitting}
-              Icon={LogIn}
+        <div className="w-full max-w-lg shrink-0">
+          <Card>
+            <form
+              onSubmit={submit}
             >
-              Login
-            </Button>
+              <FormField
+                form={form}
+                label="Email"
+                name="email"
+                type="email"
+                Icon={Mail}
+              />
 
-            <div className="text-center mt-4">
-              <span className="text-sm">
-                Don&apos;t have an account?
-                {' '}
-                <Link to="/volunteer/create" className="link link-primary">
-                  Sign up
+              <FormField
+                form={form}
+                label="Password"
+                name="password"
+                type="password"
+                Icon={LockKeyhole}
+              />
+
+              <div className="text-right">
+                <Link to="/forgot-password" className="link link-hover text-sm">
+                  Forgot password?
                 </Link>
-              </span>
-            </div>
-          </form>
+              </div>
+
+              <FormRootError form={form} />
+
+              <Button
+                color="primary"
+                className="mt-4"
+                layout="block"
+                type="submit"
+                loading={form.formState.isSubmitting}
+                Icon={LogIn}
+              >
+                Login
+              </Button>
+
+              <div className="text-center mt-4">
+                <span className="text-sm">
+                  Don&apos;t have an account?
+                  {' '}
+                  <Link to="/volunteer/create" className="link link-primary">
+                    Sign up
+                  </Link>
+                </span>
+              </div>
+            </form>
+          </Card>
         </div>
       </div>
     </div>

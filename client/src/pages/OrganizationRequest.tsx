@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react';
 import { useForm } from 'react-hook-form';
 
 import Button from '../components/Button';
+import Card from '../components/Card';
 import LinkButton from '../components/LinkButton';
 import LocationPicker from '../components/LocationPicker';
 import { organizationRequestFormSchema, type OrganizationRequestFormData } from '../schemas/organization';
@@ -85,8 +86,8 @@ export default function OrganizationRequestPage() {
           </p>
         </div>
 
-        <div className="card bg-base-100 w-full max-w-lg shrink-0 shadow-2xl">
-          <form className="card-body" onSubmit={handleSubmit}>
+        <Card>
+          <form onSubmit={handleSubmit}>
             <FormField
               form={form}
               label="Organization name"
@@ -146,7 +147,7 @@ export default function OrganizationRequestPage() {
               Request Account
             </Button>
           </form>
-        </div>
+        </Card>
       </div>
     </div>
   );
