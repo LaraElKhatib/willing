@@ -67,7 +67,11 @@ async function seed() {
         location_name: 'Tripoli',
         password: passwordHash,
       },
-    ])
+    ].map(org => ({
+      ...org,
+      is_disabled: false,
+      is_deleted: false,
+    })))
     .returning(['id', 'name'])
     .execute();
 
@@ -117,7 +121,6 @@ async function seed() {
         gender: 'male',
         date_of_birth: '1998-03-15',
         description: 'Experienced in field logistics and heavy lifting. Reliable in high-pressure environments.',
-        privacy: 'public',
       },
       {
         first_name: 'Aya',
@@ -127,7 +130,6 @@ async function seed() {
         gender: 'female',
         date_of_birth: '2000-07-22',
         description: 'Former student tutor with strong communication skills and a passion for education.',
-        privacy: 'public',
       },
       {
         first_name: 'Jad',
@@ -137,7 +139,6 @@ async function seed() {
         gender: 'male',
         date_of_birth: '1996-11-04',
         description: 'Paramedic student with first aid certification and crisis response training.',
-        privacy: 'public',
       },
       {
         first_name: 'Hala',
@@ -147,7 +148,6 @@ async function seed() {
         gender: 'female',
         date_of_birth: '1994-01-30',
         description: 'Social worker background. Comfortable with elderly care and emotional support.',
-        privacy: 'public',
       },
       {
         first_name: 'Tarek',
@@ -157,7 +157,6 @@ async function seed() {
         gender: 'male',
         date_of_birth: '2001-09-18',
         description: 'Environmentally conscious and physically fit. Loves outdoor community work.',
-        privacy: 'public',
       },
       {
         first_name: 'Nina',
@@ -167,7 +166,6 @@ async function seed() {
         gender: 'female',
         date_of_birth: '2002-05-11',
         description: 'Art teacher background. Great with children and creative activities.',
-        privacy: 'public',
       },
       {
         first_name: 'Marc',
@@ -177,7 +175,6 @@ async function seed() {
         gender: 'male',
         date_of_birth: '1999-12-01',
         description: 'Software developer who volunteers for tech literacy programs and remote support.',
-        privacy: 'public',
       },
       {
         first_name: 'Rana',
@@ -187,7 +184,6 @@ async function seed() {
         gender: 'female',
         date_of_birth: '1997-08-25',
         description: 'Catering background. Expert in food prep and community kitchen coordination.',
-        privacy: 'public',
       },
       {
         first_name: 'Ziad',
@@ -197,7 +193,6 @@ async function seed() {
         gender: 'male',
         date_of_birth: '2003-02-14',
         description: 'Detail-oriented and great at organizing and sorting donated supplies.',
-        privacy: 'public',
       },
       {
         first_name: 'Maya',
@@ -207,9 +202,13 @@ async function seed() {
         gender: 'female',
         date_of_birth: '2001-06-06',
         description: 'Flexible volunteer. Prefers to keep profile private.',
-        privacy: 'private',
       },
-    ])
+    ].map(volunteer => ({
+      ...volunteer,
+      gender: volunteer.gender as 'male' | 'female' | 'other',
+      is_disabled: false,
+      is_deleted: false,
+    })))
     .returning(['id', 'email'])
     .execute();
 
@@ -279,7 +278,7 @@ async function seed() {
 
   const buildTemporalFields = (startIsoUtc: string, endIsoUtc?: string) => {
     const start = new Date(startIsoUtc);
-    const end = endIsoUtc ? new Date(endIsoUtc) : undefined;
+    const end = endIsoUtc ? new Date(endIsoUtc) : start;
 
     const formatDate = (value: Date) => {
       const year = value.getUTCFullYear();
@@ -298,8 +297,8 @@ async function seed() {
     return {
       start_date: formatDate(start),
       start_time: formatTime(start),
-      end_date: end ? formatDate(end) : undefined,
-      end_time: end ? formatTime(end) : undefined,
+      end_date: formatDate(end),
+      end_time: formatTime(end),
     };
   };
 
@@ -615,7 +614,10 @@ async function seed() {
         is_closed: true,
       },
 
-    ])
+    ].map(posting => ({
+      ...posting,
+      allows_partial_attendance: false,
+    })))
     .returning(['id', 'title'])
     .execute();
 

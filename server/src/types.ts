@@ -55,7 +55,7 @@ export type PostingEnrollment = {
 
 export type PostingApplication = Omit<
   VolunteerAccountWithoutPassword,
-    'id' | 'description' | 'privacy'
+    'id' | 'description'
 > & {
   skills: VolunteerSkill[];
   volunteer_id: number;

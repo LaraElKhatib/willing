@@ -45,7 +45,6 @@ export const getVolunteerProfile = async (volunteerId: number): Promise<Voluntee
         'gender',
         'cv_path',
         'description',
-        'privacy',
       ] as const)
       .where('id', '=', volunteerId)
       .executeTakeFirstOrThrow(),
@@ -147,7 +146,6 @@ export const getVolunteerProfile = async (volunteerId: number): Promise<Voluntee
       email: volunteer.email,
       date_of_birth: volunteer.date_of_birth,
       gender: volunteer.gender,
-      privacy: volunteer.privacy,
       cv_path: volunteer.cv_path,
       description: volunteer.description ?? '',
     },
