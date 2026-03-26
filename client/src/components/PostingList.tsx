@@ -116,7 +116,7 @@ function PostingList({ posting, showCrisis = true, variant = 'volunteer' }: Post
 
   return (
 
-    <div className="overflow-visible">
+    <div className="relative overflow-visible">
       {showCrisis && posting.crisis_name && posting.crisis_id && (
         <Link
           to={`/volunteer/crises/${posting.crisis_id}/postings`}
