@@ -1,6 +1,5 @@
 import { AlertCircle, ArrowRight, ClipboardCheck, LayoutDashboard } from 'lucide-react';
 import { useCallback } from 'react';
-import { Link } from 'react-router';
 
 import Card from '../../components/Card';
 import PageContainer from '../../components/layout/PageContainer';
