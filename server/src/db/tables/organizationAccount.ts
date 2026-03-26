@@ -33,7 +33,7 @@ export type OrganizationAccountTable = WithGeneratedIDAndTimestamps<
 export const newOrganizationAccountSchema = organizationAccountSchema.omit({ id: true, certificate_info_id: true, org_vector: true, is_disabled: true, is_deleted: true, created_at: true, updated_at: true }).strict();
 export type NewOrganizationAccount = zod.infer<typeof newOrganizationAccountSchema>;
 
-export const organizationAccountUpdate = organizationAccountSchema.omit({ password: true, certificate_info_id: true, org_vector: true, is_disabled: true, is_deleted: true, created_at: true, updated_at: true });
+export const organizationAccountUpdate = organizationAccountSchema.omit({ password: true, certificate_info_id: true, org_vector: true, is_disabled: true, is_deleted: true, created_at: true, updated_at: true }).partial().strict();
 export type OrganizationAccountWithoutPassword = zod.infer<typeof organizationAccountUpdate>;
 
 export const organizationAccountWithoutPasswordAndVectorSchema = organizationAccountSchema.omit({
