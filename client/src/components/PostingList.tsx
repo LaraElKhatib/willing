@@ -143,9 +143,9 @@ function PostingList({ posting, showCrisis = true, variant = 'volunteer' }: Post
           </div>
 
           <div className="min-w-0 flex-1 relative">
-            <div className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] xl:grid-rows-2">
+            <div className={`grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 ${variant === 'organization' ? 'xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] xl:grid-rows-2' : 'lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] lg:grid-rows-2'}`}>
               <div
-                className={`min-w-0 xl:row-span-2 xl:flex xl:self-stretch xl:flex-col ${variant === 'volunteer' && hasOrganizationName ? 'xl:justify-start' : 'xl:justify-center'}`}
+                className={`min-w-0 ${variant === 'organization' ? 'xl:row-span-2 xl:flex xl:self-stretch xl:flex-col' : 'lg:row-span-2 lg:flex lg:self-stretch lg:flex-col'} ${variant === 'organization' ? (hasOrganizationName ? 'xl:justify-start' : 'xl:justify-center') : (hasOrganizationName ? 'lg:justify-start' : 'lg:justify-center')}`}
               >
                 <div className="flex min-w-0 items-center gap-2">
                   <Link
@@ -171,32 +171,32 @@ function PostingList({ posting, showCrisis = true, variant = 'volunteer' }: Post
                 )}
               </div>
 
-              <span className="-ml-8 hidden items-center gap-1.5 justify-self-start text-sm opacity-70 xl:inline-flex">
+              <span className={`-ml-8 hidden items-center gap-1.5 justify-self-start text-sm opacity-70 ${variant === 'organization' ? 'xl:inline-flex' : 'lg:inline-flex'}`}>
                 <Calendar size={14} className="shrink-0 text-primary" />
                 Date
               </span>
 
-              <span className="-ml-8 hidden items-center gap-1.5 justify-self-start text-sm opacity-70 xl:inline-flex">
+              <span className={`-ml-8 hidden items-center gap-1.5 justify-self-start text-sm opacity-70 ${variant === 'organization' ? 'xl:inline-flex' : 'lg:inline-flex'}`}>
                 <Clock size={14} className="shrink-0 text-primary" />
                 Time
               </span>
 
-              <span className="-ml-8 hidden items-center gap-1.5 justify-self-start text-sm opacity-70 xl:inline-flex">
+              <span className={`-ml-8 hidden items-center gap-1.5 justify-self-start text-sm opacity-70 ${variant === 'organization' ? 'xl:inline-flex' : 'lg:inline-flex'}`}>
                 <MapPin size={14} className="shrink-0 text-primary" />
                 Location
               </span>
 
-              <span className="-ml-8 hidden min-w-0 truncate justify-self-start pr-1 text-xs font-medium text-base-content xl:block">{hasEndDate ? `${startDateStr} - ${endDateStr}` : startDateStr}</span>
+              <span className={`-ml-8 hidden min-w-0 truncate justify-self-start pr-1 text-xs font-medium text-base-content ${variant === 'organization' ? 'xl:block' : 'lg:block'}`}>{hasEndDate ? `${startDateStr} - ${endDateStr}` : startDateStr}</span>
 
-              <span className="-ml-8 hidden min-w-0 truncate justify-self-start pr-1 text-xs font-medium text-base-content xl:block">{hasEndDate ? `${startTimeStr} - ${endTimeStr}` : startTimeStr}</span>
+              <span className={`-ml-8 hidden min-w-0 truncate justify-self-start pr-1 text-xs font-medium text-base-content ${variant === 'organization' ? 'xl:block' : 'lg:block'}`}>{hasEndDate ? `${startTimeStr} - ${endTimeStr}` : startTimeStr}</span>
 
-              <span className="-ml-8 hidden min-w-0 truncate justify-self-start text-xs font-medium text-base-content xl:block">{locationText}</span>
+              <span className={`-ml-8 hidden min-w-0 truncate justify-self-start text-xs font-medium text-base-content ${variant === 'organization' ? 'xl:block' : 'lg:block'}`}>{locationText}</span>
             </div>
           </div>
         </div>
 
         <div className="collapse-content pt-0">
-          <div className="mb-3 space-y-1 text-sm lg:hidden">
+          <div className={`mb-3 space-y-1 text-sm ${variant === 'organization' ? 'xl:hidden' : 'lg:hidden'}`}>
             <div className="inline-flex items-center gap-2">
               <Calendar size={14} className="text-primary" />
               <span className="opacity-70">Date:</span>
