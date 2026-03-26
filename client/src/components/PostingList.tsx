@@ -157,13 +157,17 @@ function PostingList({ posting, showCrisis = true, variant = 'volunteer' }: Post
                     <ExternalLink size={14} />
                   </Link>
 
+                  {variant === 'organization' && (
+                    <div className="shrink-0 opacity-100 block 2xl:hidden">{statusTag}</div>
+                  )}
+
                   {variant === 'volunteer' && (
                     <div className="shrink-0 opacity-100 block lg:hidden 2xl:block">{statusTag}</div>
                   )}
                 </div>
 
                 {variant === 'organization' && (
-                  <div className="mt-1 shrink-0 opacity-100">{statusTag}</div>
+                  <div className="mt-1 shrink-0 opacity-100 hidden 2xl:block">{statusTag}</div>
                 )}
 
                 {variant === 'volunteer' && (
