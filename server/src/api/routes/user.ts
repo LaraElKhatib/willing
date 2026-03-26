@@ -40,7 +40,6 @@ const volunteerLoginColumns = [
   'gender',
   'cv_path',
   'description',
-  'privacy',
 ] as const;
 
 const forgotPasswordRequestSchema = zod.object({

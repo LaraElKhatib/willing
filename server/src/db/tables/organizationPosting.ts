@@ -2,7 +2,7 @@ import zod from 'zod';
 
 import { idSchema, latitudeSchema, longitudeSchema } from '../../schemas/index.js';
 
-import type { WithGeneratedIDAndTimestamps } from './shared.js';
+import type { WithGeneratedColumns, WithGeneratedIDAndTimestamps } from './shared.js';
 
 export const organizationPostingSchema = zod.object({
   id: idSchema,
@@ -15,11 +15,12 @@ export const organizationPostingSchema = zod.object({
   max_volunteers: zod.number().optional(),
   start_date: zod.preprocess(val => val ? new Date(val as string) : val, zod.date({ message: 'Start date must be valid' })),
   start_time: zod.string().min(1, 'Start time is required'),
-  end_date: zod.preprocess(val => val ? new Date(val as string) : undefined, zod.date({ message: 'End date must be valid' })).optional(),
-  end_time: zod.string().optional(),
+  end_date: zod.preprocess(val => val ? new Date(val as string) : val, zod.date({ message: 'End date must be valid' })),
+  end_time: zod.string().min(1, 'End time is required'),
   minimum_age: zod.number().optional(),
   automatic_acceptance: zod.boolean().default(true),
   is_closed: zod.boolean().default(false),
+  allows_partial_attendance: zod.boolean().default(false),
   location_name: zod.string().min(2, 'Location must be longer than 2 characters'),
   opportunity_vector: zod.string().optional(),
   posting_context_vector: zod.string().optional(),
@@ -29,7 +30,9 @@ export const organizationPostingSchema = zod.object({
 
 export type OrganizationPosting = zod.infer<typeof organizationPostingSchema>;
 
-export type OrganizationPostingTable = WithGeneratedIDAndTimestamps<OrganizationPosting>;
+export type OrganizationPostingTable = WithGeneratedIDAndTimestamps<
+  WithGeneratedColumns<OrganizationPosting, 'allows_partial_attendance'>
+>;
 
 export const newOrganizationPostingSchema = organizationPostingSchema
   .omit({ id: true, opportunity_vector: true, posting_context_vector: true, created_at: true, updated_at: true, organization_id: true })
@@ -44,5 +47,6 @@ export type NewOrganizationPosting = zod.infer<typeof newOrganizationPostingSche
 export const organizationPostingWithoutVectorsSchema = organizationPostingSchema.omit({
   opportunity_vector: true,
   posting_context_vector: true,
+  allows_partial_attendance: true,
 });
 export type OrganizationPostingWithoutVectors = zod.infer<typeof organizationPostingWithoutVectorsSchema>;

@@ -101,7 +101,6 @@ const ensureVolunteer = async () => {
       date_of_birth: '2000-01-01',
       gender: 'other',
       description: 'Volunteer used for embedding verification.',
-      privacy: 'public',
     })
     .returning('id')
     .executeTakeFirstOrThrow();

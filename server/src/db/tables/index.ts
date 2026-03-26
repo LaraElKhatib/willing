@@ -2,32 +2,41 @@ import type { AdminAccountTable } from './adminAccount.js';
 import type { CrisisTable } from './crisis.js';
 import type { EnrollmentTable } from './enrollment.js';
 import type { EnrollmentApplicationTable } from './enrollmentApplication.js';
+import type { EnrollmentApplicationDateTable } from './enrollmentApplicationDate.js';
 import type { OrganizationAccountTable } from './organizationAccount.js';
 import type { OrganizationCertificateInfoTable } from './organizationCertificateInfo.js';
 import type { OrganizationPostingTable } from './organizationPosting.js';
+import type { OrganizationReportTable } from './organizationReport.js';
 import type { OrganizationRequestTable } from './organizationRequest.js';
 import type { PasswordResetTokenTable } from './passwordResetToken.js';
 import type { PlatformCertificateSettingsTable } from './platformCertificateSettings.js';
 import type { PostingSkillTable } from './postingSkill.js';
 import type { VolunteerAccountTable } from './volunteerAccount.js';
+import type { VolunteerPendingAccountTable } from './volunteerPendingAccount.js';
+import type { VolunteerReportTable } from './volunteerReport.js';
 import type { VolunteerSkillTable } from './volunteerSkill.js';
 
 export * from './adminAccount.js';
 export * from './crisis.js';
 export * from './enrollmentApplication.js';
+export * from './enrollmentApplicationDate.js';
 export * from './enrollment.js';
 export * from './organizationAccount.js';
 export * from './organizationCertificateInfo.js';
 export * from './organizationPosting.js';
+export * from './organizationReport.js';
 export * from './organizationRequest.js';
 export * from './passwordResetToken.js';
 export * from './postingSkill.js';
 export * from './volunteerAccount.js';
+export * from './volunteerPendingAccount.js';
+export * from './volunteerReport.js';
 export * from './platformCertificateSettings.js';
 export * from './volunteerSkill.js';
 
 export interface Database {
   volunteer_account: VolunteerAccountTable;
+  volunteer_pending_account: VolunteerPendingAccountTable;
   organization_request: OrganizationRequestTable;
   organization_account: OrganizationAccountTable;
   admin_account: AdminAccountTable;
@@ -38,6 +47,9 @@ export interface Database {
   password_reset_token: PasswordResetTokenTable;
   enrollment: EnrollmentTable;
   enrollment_application: EnrollmentApplicationTable;
+  enrollment_application_date: EnrollmentApplicationDateTable;
+  organization_report: OrganizationReportTable;
+  volunteer_report: VolunteerReportTable;
   organization_certificate_info: OrganizationCertificateInfoTable;
   platform_certificate_settings: PlatformCertificateSettingsTable;
 }
