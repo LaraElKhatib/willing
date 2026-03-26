@@ -35,7 +35,7 @@ export type OrganizationPostingTable = WithGeneratedIDAndTimestamps<
 >;
 
 export const newOrganizationPostingSchema = organizationPostingSchema
-  .omit({ id: true, opportunity_vector: true, posting_context_vector: true, allows_partial_attendance: true, created_at: true, updated_at: true, organization_id: true })
+  .omit({ id: true, opportunity_vector: true, posting_context_vector: true, created_at: true, updated_at: true, organization_id: true })
   .extend({
     skills: zod
       .array(zod.string().min(1, 'Skill name is required'))
