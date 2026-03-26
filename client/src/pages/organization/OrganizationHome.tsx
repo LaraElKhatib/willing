@@ -4,7 +4,7 @@ import { useCallback, useMemo } from 'react';
 import Alert from '../../components/Alert';
 import PageHeader from '../../components/layout/PageHeader';
 import LinkButton from '../../components/LinkButton';
-import PostingCard from '../../components/PostingCard';
+import PostingCollection from '../../components/postings/PostingCollection';
 import {
   buildSharedPostingQuery,
   hasSharedAdvancedPostingFilters,
@@ -17,6 +17,7 @@ import {
   type SharedPostingFilterFields,
 } from '../../components/postings/postingFilterConfig';
 import PostingFiltersCard from '../../components/postings/PostingFiltersCard';
+import PostingViewModeToggle from '../../components/postings/PostingViewModeToggle';
 import { FormField } from '../../utils/formUtils';
 import requestServer from '../../utils/requestServer';
 import useAsync from '../../utils/useAsync';
@@ -162,13 +163,16 @@ function OrganizationHome() {
             )
           }
           actions={(
-            <LinkButton
-              color="primary"
-              to="/organization/posting"
-              Icon={Plus}
-            >
-              Create New Posting
-            </LinkButton>
+            <div className="flex gap-2 items-center">
+              <PostingViewModeToggle />
+              <LinkButton
+                color="primary"
+                to="/organization/posting"
+                Icon={Plus}
+              >
+                Create New Posting
+              </LinkButton>
+            </div>
           )}
         />
 
@@ -273,14 +277,10 @@ function OrganizationHome() {
         )}
 
         {!loading && postingsWithContext.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {postingsWithContext.map(posting => (
-              <PostingCard
-                key={posting.id}
-                posting={posting}
-              />
-            ))}
-          </div>
+          <PostingCollection
+            postings={postingsWithContext}
+            cardsContainerClassName="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+          />
         )}
       </div>
     </div>
