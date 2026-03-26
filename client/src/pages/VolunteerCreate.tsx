@@ -15,6 +15,7 @@ import { Link } from 'react-router-dom';
 import AuthContext from '../auth/AuthContext';
 import Button from '../components/Button';
 import Card from '../components/Card';
+import Hero from '../components/layout/Hero';
 import { volunteerSignupSchema, type VolunteerSignupFormData } from '../schemas/volunteer';
 import { executeAndShowError, FormField, FormRootError } from '../utils/formUtils';
 
@@ -43,113 +44,108 @@ export default function VolunteerCreate() {
   });
 
   return (
-    <div className="hero bg-base-200 grow">
-      <div className="hero-content flex-col lg:flex-row-reverse gap-8">
-        <div className="text-center lg:text-left">
-          <h1 className="text-5xl font-bold">Volunteer Registration</h1>
-          <p className="py-6">
-            Fill out the form to register as a volunteer.
-          </p>
-        </div>
+    <Hero
+      title="Volunteer Registration"
+      description="Fill out the form to register as a volunteer."
+    >
+      <Card>
+        <form onSubmit={handleSubmit}>
+          <div className="flex gap-4">
+            <div className="flex-1">
+              <FormField
+                form={form}
+                label="First Name"
+                name="first_name"
+                type="text"
+                Icon={User}
+              />
+            </div>
+            <div className="flex-1">
+              <FormField
+                form={form}
+                label="Last Name"
+                name="last_name"
+                type="text"
+                Icon={User}
+              />
+            </div>
+          </div>
 
-        <Card>
-          <form onSubmit={handleSubmit}>
-            <div className="flex gap-4">
+          <FormField
+            form={form}
+            label="Email"
+            name="email"
+            type="email"
+            Icon={Mail}
+          />
+
+          <FormField
+            form={form}
+            label="Password"
+            name="password"
+            type="password"
+            Icon={LockKeyhole}
+          />
+
+          <FormField
+            form={form}
+            label="Confirm Password"
+            name="confirmPassword"
+            type="password"
+            Icon={CheckCircle2}
+          />
+
+          <div className="flex gap-4">
+            <div className="flex-1">
+              <FormField
+                form={form}
+                label="Date of Birth"
+                name="date_of_birth"
+                type="date"
+                Icon={Calendar}
+              />
+            </div>
+            <div className="flex-1">
               <div className="flex-1">
                 <FormField
                   form={form}
-                  label="First Name"
-                  name="first_name"
-                  type="text"
-                  Icon={User}
-                />
-              </div>
-              <div className="flex-1">
-                <FormField
-                  form={form}
-                  label="Last Name"
-                  name="last_name"
-                  type="text"
-                  Icon={User}
+                  label="Gender"
+                  name="gender"
+                  Icon={UserCircle}
+                  selectOptions={[
+                    { label: 'Male', value: 'male' },
+                    { label: 'Female', value: 'female' },
+                    { label: 'Other', value: 'other' },
+                  ]}
                 />
               </div>
             </div>
+          </div>
 
-            <FormField
-              form={form}
-              label="Email"
-              name="email"
-              type="email"
-              Icon={Mail}
-            />
+          <FormRootError form={form} />
 
-            <FormField
-              form={form}
-              label="Password"
-              name="password"
-              type="password"
-              Icon={LockKeyhole}
-            />
+          <Button
+            type="submit"
+            color="primary"
+            layout="block"
+            loading={form.formState.isSubmitting}
+            Icon={UserPlus}
+            className="mt-4"
+          >
+            Register
+          </Button>
 
-            <FormField
-              form={form}
-              label="Confirm Password"
-              name="confirmPassword"
-              type="password"
-              Icon={CheckCircle2}
-            />
-
-            <div className="flex gap-4">
-              <div className="flex-1">
-                <FormField
-                  form={form}
-                  label="Date of Birth"
-                  name="date_of_birth"
-                  type="date"
-                  Icon={Calendar}
-                />
-              </div>
-              <div className="flex-1">
-                <div className="flex-1">
-                  <FormField
-                    form={form}
-                    label="Gender"
-                    name="gender"
-                    Icon={UserCircle}
-                    selectOptions={[
-                      { label: 'Male', value: 'male' },
-                      { label: 'Female', value: 'female' },
-                      { label: 'Other', value: 'other' },
-                    ]}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <FormRootError form={form} />
-
-            <Button
-              type="submit"
-              color="primary"
-              loading={form.formState.isSubmitting}
-              Icon={UserPlus}
-              className="mt-4"
-            >
-              Register
-            </Button>
-
-            <div className="text-center mt-4">
-              <span className="text-sm">
-                Already have an account?
-                {' '}
-                <Link to="/login" className="link link-primary">
-                  Log in
-                </Link>
-              </span>
-            </div>
-          </form>
-        </Card>
-      </div>
-    </div>
+          <div className="text-center mt-4">
+            <span className="text-sm">
+              Already have an account?
+              {' '}
+              <Link to="/login" className="link link-primary">
+                Log in
+              </Link>
+            </span>
+          </div>
+        </form>
+      </Card>
+    </Hero>
   );
 }

@@ -74,6 +74,10 @@
   --noise: 0;
 }
 
+body {
+  background: var(--color-base-200)
+}
+
 .leaflet-control-attribution {
   border-top-left-radius: 0.5rem;
   padding: 4px 12px !important;
