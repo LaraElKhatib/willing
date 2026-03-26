@@ -20,8 +20,8 @@ export const volunteerAccountSchema = zod.object({
   description: zod.string().max(500, 'Description must be less than 500 characters').optional(),
   profile_vector: zod.string().optional(),
   experience_vector: zod.string().optional(),
-  is_disabled: zod.boolean(),
-  is_deleted: zod.boolean(),
+  is_disabled: zod.boolean().default(false),
+  is_deleted: zod.boolean().default(false),
   updated_at: zod.date(),
   created_at: zod.date(),
 });
