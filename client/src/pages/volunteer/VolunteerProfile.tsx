@@ -26,6 +26,7 @@ import { z } from 'zod';
 import { volunteerAccountSchema } from '../../../../server/src/db/tables';
 import Alert from '../../components/Alert';
 import Button from '../../components/Button';
+import Card from '../../components/Card';
 import ColumnLayout from '../../components/layout/ColumnLayout';
 import PageHeader from '../../components/layout/PageHeader';
 import LinkButton from '../../components/LinkButton';
@@ -475,331 +476,322 @@ function VolunteerProfile() {
         <div className="mt-4">
           <ColumnLayout
             sidebar={(
-              <div className="card bg-base-100 shadow-md mt-4">
-                <div className="card-body">
-                  <div className="flex items-center gap-4">
-                    <div className="avatar">
-                      {avatarUrl
-                        ? (
-                            <div className="rounded-full w-20">
-                              <img src={avatarUrl} alt={`${volunteerName} avatar`} />
-                            </div>
-                          )
-                        : (
-                            <div className="bg-primary text-primary-content rounded-full w-20 flex items-center justify-center">
-                              <span className="text-2xl">{initials || 'V'}</span>
-                            </div>
-                          )}
-                    </div>
-                    <div>
-                      <h4 className="text-xl font-bold">{volunteerName}</h4>
-                      <div className="mt-1">
-                        <span className={`badge badge-sm gap-1 ${genderBadgeStyles}`}>
-                          {formValues.gender === 'male' && <Mars size={12} />}
-                          {formValues.gender === 'female' && <Venus size={12} />}
-                          {formValues.gender === 'other' && <span className="font-bold">*</span>}
-                          {formattedGender}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="divider my-4" />
-
-                  {isEditMode
-                    ? (
-                        <div className="space-y-3">
-                          <div className={saving ? 'pointer-events-none opacity-70' : ''}>
-                            <FormField form={form} name="first_name" label="First Name" />
-                          </div>
-                          <div className={saving ? 'pointer-events-none opacity-70' : ''}>
-                            <FormField form={form} name="last_name" label="Last Name" />
-                          </div>
-                          <div className={saving ? 'pointer-events-none opacity-70' : ''}>
-                            <FormField
-                              form={form}
-                              name="gender"
-                              label="Gender"
-                              selectOptions={[
-                                { label: 'Male', value: 'male' },
-                                { label: 'Female', value: 'female' },
-                                { label: 'Other', value: 'other' },
-                              ]}
-                            />
-                          </div>
-                          <div className={saving ? 'pointer-events-none opacity-70' : ''}>
-                            <div className="space-y-1">
-                              <label className="text-sm font-medium">Email</label>
-                              <div className="input input-bordered w-full flex items-center gap-2 opacity-80">
-                                <Mail size={16} />
-                                <span className="truncate">{profile.volunteer.email}</span>
-                              </div>
-                            </div>
-                          </div>
-                          <div className={saving ? 'pointer-events-none opacity-70' : ''}>
-                            <FormField
-                              form={form}
-                              name="date_of_birth"
-                              label="Date of Birth"
-                              type="date"
-                              Icon={Calendar}
-                            />
-                          </div>
-                        </div>
-                      )
-                    : (
-                        <div className="space-y-2 text-sm">
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="opacity-70 flex items-center gap-2">
-                              <Mail size={14} />
-                              Email
-                            </span>
-                            <span className="font-medium text-right break-all">
-                              {profile.volunteer.email}
-                            </span>
-                          </div>
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="opacity-70 flex items-center gap-2">
-                              <Calendar size={14} />
-                              Date of Birth
-                            </span>
-                            <span className="font-medium text-right">{formattedDateOfBirth}</span>
-                          </div>
-                        </div>
-                      )}
-
-                  <div className="mt-4">
-                    <label className="text-sm opacity-70 mb-2 block">Description</label>
-                    {isEditMode
+              <Card>
+                <div className="flex items-center gap-4">
+                  <div className="avatar">
+                    {avatarUrl
                       ? (
-                          <>
-                            <textarea
-                              id="volunteer-description"
-                              className="textarea textarea-bordered w-full"
-                              {...form.register('description')}
-                              disabled={saving}
-                              rows={4}
-                              maxLength={DESCRIPTION_MAX_LENGTH}
-                            />
-                            <p
-                              className={`block min-h-5 text-xs mt-1 ${
-                                form.formState.errors.description ? 'text-error' : 'invisible'
-                              }`}
-                            >
-                              {form.formState.errors.description?.message || 'placeholder'}
-                            </p>
-                            <p className="text-xs opacity-60 mt-1 text-right">
-                              {formValues.description?.length || 0}
-                              /
-                              {DESCRIPTION_MAX_LENGTH}
-                            </p>
-                          </>
+                          <div className="rounded-full w-20">
+                            <img src={avatarUrl} alt={`${volunteerName} avatar`} />
+                          </div>
                         )
                       : (
-                          <p className="text-sm opacity-80 whitespace-pre-wrap wrap-break-word">
-                            {formValues.description || 'No description added yet.'}
-                          </p>
+                          <div className="bg-primary text-primary-content rounded-full w-20 flex items-center justify-center">
+                            <span className="text-2xl">{initials || 'V'}</span>
+                          </div>
                         )}
                   </div>
+                  <div>
+                    <h4 className="text-xl font-bold">{volunteerName}</h4>
+                    <div className="mt-1">
+                      <span className={`badge badge-sm gap-1 ${genderBadgeStyles}`}>
+                        {formValues.gender === 'male' && <Mars size={12} />}
+                        {formValues.gender === 'female' && <Venus size={12} />}
+                        {formValues.gender === 'other' && <span className="font-bold">*</span>}
+                        {formattedGender}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            )}
-          >
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-0 gap-y-3">
-              <div className="stat place-items-center bg-base-100 shadow-md rounded-2xl sm:rounded-l-2xl sm:rounded-r-none">
-                <div className="stat-title text-base">Completed Postings</div>
-                <div className="stat-value text-2xl text-primary/80 inline-flex w-full items-center justify-center gap-2">
-                  <Users className="h-6 w-6 shrink-0 stroke-current" />
-                  <span>{profile.experience_stats.total_completed_experiences}</span>
-                </div>
-              </div>
-              <div className="stat place-items-center bg-base-100 shadow-md rounded-2xl sm:rounded-none">
-                <div className="stat-title text-base">Hours Completed</div>
-                <div className="stat-value text-2xl text-primary/80 inline-flex w-full items-center justify-center gap-2">
-                  <Clock3 className="h-6 w-6 shrink-0 stroke-current" />
-                  <span>{totalCompletedHours.toFixed(1)}</span>
-                </div>
-              </div>
-              <div className="stat place-items-center bg-base-100 shadow-md rounded-2xl sm:rounded-r-2xl sm:rounded-l-none">
-                <div className="stat-title text-base">Organizations</div>
-                <div className="stat-value text-2xl text-primary/80 inline-flex w-full items-center justify-center gap-2">
-                  <Building2 className="h-6 w-6 shrink-0 stroke-current" />
-                  <span>{profile.experience_stats.organizations_supported}</span>
-                </div>
-              </div>
-            </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-0 gap-y-3">
-              <div className="stat place-items-center bg-base-100 shadow-md rounded-2xl sm:rounded-l-2xl sm:rounded-r-none">
-                <div className="stat-title text-base">Crisis-Related</div>
-                <div className="stat-value text-2xl text-primary/80 inline-flex w-full items-center justify-center gap-2">
-                  <AlertTriangle className="h-6 w-6 shrink-0 stroke-current" />
-                  <span>{profile.experience_stats.crisis_related_experiences}</span>
-                </div>
-              </div>
-              <div className="stat place-items-center bg-base-100 shadow-md rounded-2xl sm:rounded-none">
-                <div className="stat-title text-base">Total Skills Used</div>
-                <div className="stat-value text-2xl text-primary/80 inline-flex w-full items-center justify-center gap-2">
-                  <Brain className="h-6 w-6 shrink-0 stroke-current" />
-                  <span>{profile.experience_stats.total_skills_used}</span>
-                </div>
-              </div>
-              <div className="stat place-items-center bg-base-100 shadow-md rounded-2xl sm:rounded-r-2xl sm:rounded-l-none">
-                <div className="stat-title text-base">Most Volunteered Crisis</div>
-                <div className="stat-value text-lg text-primary/80 inline-flex w-full items-center justify-center gap-2 px-2">
-                  <span className="max-w-full truncate text-center">{profile.experience_stats.most_volunteered_crisis ?? 'N/A'}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="card bg-base-100 shadow-md mt-4">
-              <div className="card-body">
-                <h5 className="font-bold text-lg">Skills</h5>
-                <p className="text-sm opacity-70 mt-1">Add skills to highlight your expertise.</p>
+                <div className="divider my-4" />
 
                 {isEditMode
                   ? (
-                      <SkillsInput skills={skills} setSkills={setSkills} />
-                    )
-                  : (
-                      <SkillsList skills={skills} enableLimit={false} />
-                    )}
-              </div>
-            </div>
-
-            <div className="card bg-base-100 shadow-md">
-              <div className="card-body">
-                <h5 className="font-bold text-lg">Previous Experiences</h5>
-                <p className="text-sm opacity-70 mt-1">
-                  Past volunteering experiences completed through the platform.
-                </p>
-
-                {profile.completed_experiences.length === 0
-                  ? (
-                      <div className="alert alert-soft mt-4">
-                        <span className="text-sm">No completed experiences to show yet.</span>
-                      </div>
-                    )
-                  : (
-                      <div className="mt-4 space-y-3">
-                        {visibleCompletedExperiences.map(experience => (
-                          <div key={experience.enrollment_id} className="rounded-lg border border-base-300 p-4">
-                            <div className="flex flex-wrap items-center justify-between gap-2">
-                              <Link to={`/posting/${experience.posting_id}`} className="font-semibold text-base text-primary hover:underline">
-                                {experience.posting_title}
-                              </Link>
-                              <span className="badge badge-success">Present</span>
-                            </div>
-
-                            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm opacity-80">
-                              <span className="inline-flex items-center gap-1">
-                                <Building2 size={14} />
-                                {experience.organization_name}
-                              </span>
-                              <span className="inline-flex items-center gap-1">
-                                <MapPin size={14} />
-                                {experience.location_name}
-                              </span>
-                              <span className="inline-flex items-center gap-1">
-                                <Calendar size={14} />
-                                {formatExperienceDateRange(experience.start_timestamp, experience.end_timestamp)}
-                              </span>
-                            </div>
-
-                            {experience.crisis_name && (
-                              <span className="badge badge-accent badge-outline mt-3">
-                                {experience.crisis_name}
-                              </span>
-                            )}
-                          </div>
-                        ))}
-
-                        {hasHiddenCompletedExperiences && (
-                          <div className="flex justify-center pt-1">
-                            <button
-                              type="button"
-                              className="badge badge-outline badge-primary px-4 py-3"
-                              onClick={() => setShowAllExperiences(current => !current)}
-                            >
-                              {showAllExperiences
-                                ? 'Show less'
-                                : `Show more (${profile.completed_experiences.length - 2} more)`}
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    )}
-              </div>
-            </div>
-
-            <div className="card bg-base-100 shadow-md">
-              <div className="card-body">
-                <h5 className="font-bold text-lg">CV</h5>
-                <p className="text-sm opacity-70 mt-1">
-                  Upload your CV as a PDF with up to 3 pages.
-                </p>
-
-                <div className="mt-4 flex flex-col gap-3">
-                  {profile.volunteer.cv_path
-                    ? (
-                        <div className="flex flex-wrap items-center gap-3">
-                          <Button
-                            color="primary"
-                            type="button"
-                            style="soft"
-                            onClick={onViewCv}
-                            disabled={cvBusy}
-                            Icon={FileText}
-                          >
-                            View Current CV
-                          </Button>
-
-                          <Button
-                            type="button"
-                            color="error"
-                            style="soft"
-                            onClick={onDeleteCv}
-                            disabled={cvBusy}
-                            Icon={Trash2}
-                          >
-                            Remove CV
-                          </Button>
+                      <div className="space-y-3">
+                        <div className={saving ? 'pointer-events-none opacity-70' : ''}>
+                          <FormField form={form} name="first_name" label="First Name" />
                         </div>
+                        <div className={saving ? 'pointer-events-none opacity-70' : ''}>
+                          <FormField form={form} name="last_name" label="Last Name" />
+                        </div>
+                        <div className={saving ? 'pointer-events-none opacity-70' : ''}>
+                          <FormField
+                            form={form}
+                            name="gender"
+                            label="Gender"
+                            selectOptions={[
+                              { label: 'Male', value: 'male' },
+                              { label: 'Female', value: 'female' },
+                              { label: 'Other', value: 'other' },
+                            ]}
+                          />
+                        </div>
+                        <div className={saving ? 'pointer-events-none opacity-70' : ''}>
+                          <div className="space-y-1">
+                            <label className="text-sm font-medium">Email</label>
+                            <div className="input input-bordered w-full flex items-center gap-2 opacity-80">
+                              <Mail size={16} />
+                              <span className="truncate">{profile.volunteer.email}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className={saving ? 'pointer-events-none opacity-70' : ''}>
+                          <FormField
+                            form={form}
+                            name="date_of_birth"
+                            label="Date of Birth"
+                            type="date"
+                            Icon={Calendar}
+                          />
+                        </div>
+                      </div>
+                    )
+                  : (
+                      <div className="space-y-2 text-sm">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="opacity-70 flex items-center gap-2">
+                            <Mail size={14} />
+                            Email
+                          </span>
+                          <span className="font-medium text-right break-all">
+                            {profile.volunteer.email}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="opacity-70 flex items-center gap-2">
+                            <Calendar size={14} />
+                            Date of Birth
+                          </span>
+                          <span className="font-medium text-right">{formattedDateOfBirth}</span>
+                        </div>
+                      </div>
+                    )}
+
+                <div className="mt-4">
+                  <label className="text-sm opacity-70 mb-2 block">Description</label>
+                  {isEditMode
+                    ? (
+                        <>
+                          <textarea
+                            id="volunteer-description"
+                            className="textarea textarea-bordered w-full"
+                            {...form.register('description')}
+                            disabled={saving}
+                            rows={4}
+                            maxLength={DESCRIPTION_MAX_LENGTH}
+                          />
+                          <p
+                            className={`block min-h-5 text-xs mt-1 ${
+                              form.formState.errors.description ? 'text-error' : 'invisible'
+                            }`}
+                          >
+                            {form.formState.errors.description?.message || 'placeholder'}
+                          </p>
+                          <p className="text-xs opacity-60 mt-1 text-right">
+                            {formValues.description?.length || 0}
+                            /
+                            {DESCRIPTION_MAX_LENGTH}
+                          </p>
+                        </>
                       )
                     : (
-                        <Alert style="soft">
-                          No CV uploaded yet.
-                        </Alert>
+                        <p className="text-sm opacity-80 whitespace-pre-wrap wrap-break-word">
+                          {formValues.description || 'No description added yet.'}
+                        </p>
                       )}
-
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="application/pdf,.pdf"
-                    className="hidden"
-                    onChange={onUploadCv}
-                    disabled={cvBusy}
-                  />
-
-                  <div className="flex flex-wrap items-center gap-3">
-                    <Button
-                      type="button"
-                      style="outline"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={cvBusy}
-                      Icon={Upload}
-                    >
-                      Upload CV
-                    </Button>
-
-                    <span className="text-xs opacity-60">
-                      PDF only, up to 3 pages, up to 5MB.
-                    </span>
+                </div>
+              </Card>
+            )}
+          >
+            <Card padding={false}>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-0 gap-y-3">
+                <div className="stat place-items-center">
+                  <div className="stat-title text-base">Completed Postings</div>
+                  <div className="stat-value text-2xl text-primary/80 inline-flex w-full items-center justify-center gap-2">
+                    <Users className="h-6 w-6 shrink-0 stroke-current" />
+                    <span>{profile.experience_stats.total_completed_experiences}</span>
+                  </div>
+                </div>
+                <div className="stat place-items-center">
+                  <div className="stat-title text-base">Hours Completed</div>
+                  <div className="stat-value text-2xl text-primary/80 inline-flex w-full items-center justify-center gap-2">
+                    <Clock3 className="h-6 w-6 shrink-0 stroke-current" />
+                    <span>{totalCompletedHours.toFixed(1)}</span>
+                  </div>
+                </div>
+                <div className="stat place-items-center">
+                  <div className="stat-title text-base">Organizations</div>
+                  <div className="stat-value text-2xl text-primary/80 inline-flex w-full items-center justify-center gap-2">
+                    <Building2 className="h-6 w-6 shrink-0 stroke-current" />
+                    <span>{profile.experience_stats.organizations_supported}</span>
                   </div>
                 </div>
               </div>
-            </div>
+            </Card>
 
+            <Card padding={false}>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-0 gap-y-3">
+                <div className="stat place-items-center">
+                  <div className="stat-title text-base">Crisis-Related</div>
+                  <div className="stat-value text-2xl text-primary/80 inline-flex w-full items-center justify-center gap-2">
+                    <AlertTriangle className="h-6 w-6 shrink-0 stroke-current" />
+                    <span>{profile.experience_stats.crisis_related_experiences}</span>
+                  </div>
+                </div>
+                <div className="stat place-items-center">
+                  <div className="stat-title text-base">Total Skills Used</div>
+                  <div className="stat-value text-2xl text-primary/80 inline-flex w-full items-center justify-center gap-2">
+                    <Brain className="h-6 w-6 shrink-0 stroke-current" />
+                    <span>{profile.experience_stats.total_skills_used}</span>
+                  </div>
+                </div>
+                <div className="stat place-items-center">
+                  <div className="stat-title text-base">Most Volunteered Crisis</div>
+                  <div className="stat-value text-lg text-primary/80 inline-flex w-full items-center justify-center gap-2 px-2">
+                    <span className="max-w-full truncate text-center">{profile.experience_stats.most_volunteered_crisis ?? 'N/A'}</span>
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            <Card
+              title="Skills"
+              description="Add skills to highlight your expertise."
+            >
+              {isEditMode
+                ? (
+                    <SkillsInput skills={skills} setSkills={setSkills} />
+                  )
+                : (
+                    <SkillsList skills={skills} enableLimit={false} />
+                  )}
+            </Card>
+
+            <Card
+              title="Previous Experiences"
+              description="Past volunteering experiences completed through the platform."
+            >
+              {profile.completed_experiences.length === 0
+                ? (
+                    <div className="alert alert-soft mt-4">
+                      <span className="text-sm">No completed experiences to show yet.</span>
+                    </div>
+                  )
+                : (
+                    <div className="mt-4 space-y-3">
+                      {visibleCompletedExperiences.map(experience => (
+                        <div key={experience.enrollment_id} className="rounded-lg border border-base-300 p-4">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <Link to={`/posting/${experience.posting_id}`} className="font-semibold text-base text-primary hover:underline">
+                              {experience.posting_title}
+                            </Link>
+                            <span className="badge badge-success">Present</span>
+                          </div>
+
+                          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm opacity-80">
+                            <span className="inline-flex items-center gap-1">
+                              <Building2 size={14} />
+                              {experience.organization_name}
+                            </span>
+                            <span className="inline-flex items-center gap-1">
+                              <MapPin size={14} />
+                              {experience.location_name}
+                            </span>
+                            <span className="inline-flex items-center gap-1">
+                              <Calendar size={14} />
+                              {formatExperienceDateRange(experience.start_timestamp, experience.end_timestamp)}
+                            </span>
+                          </div>
+
+                          {experience.crisis_name && (
+                            <span className="badge badge-accent badge-outline mt-3">
+                              {experience.crisis_name}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+
+                      {hasHiddenCompletedExperiences && (
+                        <div className="flex justify-center pt-1">
+                          <button
+                            type="button"
+                            className="badge badge-outline badge-primary px-4 py-3"
+                            onClick={() => setShowAllExperiences(current => !current)}
+                          >
+                            {showAllExperiences
+                              ? 'Show less'
+                              : `Show more (${profile.completed_experiences.length - 2} more)`}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+            </Card>
+
+            <Card
+              title="CV"
+              description="Upload your CV as a PDF with up to 3 pages."
+            >
+              <div className="flex flex-col gap-3">
+                {profile.volunteer.cv_path
+                  ? (
+                      <div className="flex flex-wrap items-center gap-3">
+                        <Button
+                          color="primary"
+                          type="button"
+                          style="soft"
+                          onClick={onViewCv}
+                          disabled={cvBusy}
+                          Icon={FileText}
+                        >
+                          View Current CV
+                        </Button>
+
+                        <Button
+                          type="button"
+                          color="error"
+                          style="soft"
+                          onClick={onDeleteCv}
+                          disabled={cvBusy}
+                          Icon={Trash2}
+                        >
+                          Remove CV
+                        </Button>
+                      </div>
+                    )
+                  : (
+                      <Alert style="soft">
+                        No CV uploaded yet.
+                      </Alert>
+                    )}
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="application/pdf,.pdf"
+                  className="hidden"
+                  onChange={onUploadCv}
+                  disabled={cvBusy}
+                />
+
+                <div className="flex flex-wrap items-center gap-3">
+                  <Button
+                    type="button"
+                    style="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={cvBusy}
+                    Icon={Upload}
+                  >
+                    Upload CV
+                  </Button>
+
+                  <span className="text-xs opacity-60">
+                    PDF only, up to 3 pages, up to 5MB.
+                  </span>
+                </div>
+              </div>
+            </Card>
           </ColumnLayout>
         </div>
       </div>

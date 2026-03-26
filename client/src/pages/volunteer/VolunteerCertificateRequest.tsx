@@ -11,6 +11,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useVolunteer } from '../../auth/useUsers';
+import Card from '../../components/Card';
 import PageHeader from '../../components/layout/PageHeader';
 import Loading from '../../components/Loading';
 import requestServer, { SERVER_BASE_URL } from '../../utils/requestServer';
@@ -303,114 +304,104 @@ function VolunteerCertificateRequest() {
         {!loading && !error && (
           <>
             <div className="grid gap-4 mt-4 md:grid-cols-3 no-print">
-              <div className="card bg-base-100 border border-base-300 shadow-sm">
-                <div className="card-body">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm opacity-70">Total Volunteering Hours</p>
-                      <p className="text-3xl font-bold mt-1">{formatHours(totalHours)}</p>
-                    </div>
-                    <div className="rounded-full bg-primary/10 p-2 text-primary">
-                      <Award size={18} />
-                    </div>
+              <Card>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm opacity-70">Total Volunteering Hours</p>
+                    <p className="text-3xl font-bold mt-1">{formatHours(totalHours)}</p>
+                  </div>
+                  <div className="rounded-full bg-primary/10 p-2 text-primary">
+                    <Award size={18} />
                   </div>
                 </div>
-              </div>
-              <div className="card bg-base-100 border border-base-300 shadow-sm">
-                <div className="card-body">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm opacity-70">Organizations Involved</p>
-                      <p className="text-3xl font-bold mt-1">{rankedOrganizations.length}</p>
-                    </div>
-                    <div className="rounded-full bg-secondary/10 p-2 text-secondary">
-                      <Building size={18} />
-                    </div>
+              </Card>
+              <Card>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm opacity-70">Organizations Involved</p>
+                    <p className="text-3xl font-bold mt-1">{rankedOrganizations.length}</p>
+                  </div>
+                  <div className="rounded-full bg-secondary/10 p-2 text-secondary">
+                    <Building size={18} />
                   </div>
                 </div>
-              </div>
-              <div className="card bg-base-100 border border-base-300 shadow-sm">
-                <div className="card-body">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm opacity-70">Eligible Organizations</p>
-                      <p className="text-3xl font-bold mt-1">{eligibleOrganizations.length}</p>
-                    </div>
-                    <div className="rounded-full bg-success/10 p-2 text-success">
-                      <Users size={18} />
-                    </div>
+              </Card>
+              <Card>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm opacity-70">Eligible Organizations</p>
+                    <p className="text-3xl font-bold mt-1">{eligibleOrganizations.length}</p>
+                  </div>
+                  <div className="rounded-full bg-success/10 p-2 text-success">
+                    <Users size={18} />
                   </div>
                 </div>
-              </div>
+              </Card>
             </div>
 
-            <div className="card bg-base-100 shadow-md mt-4 no-print">
-              <div className="card-body">
-                <h5 className="font-bold text-lg">Select Organizations (Max 4)</h5>
-                <p className="text-sm opacity-70">
-                  Ranked by your attended hours. Only organizations meeting threshold and certificate settings are selectable.
-                </p>
-
-                {selectionError && (
-                  <div className="alert alert-error mt-3">
-                    <AlertCircle size={16} />
-                    <span>{selectionError}</span>
-                  </div>
-                )}
-
-                <div className="space-y-2 mt-3">
-                  {organizationsWithEligibility.map((organization, index) => {
-                    const selected = selectedOrganizationIds.includes(organization.id);
-
-                    return (
-                      <label
-                        key={organization.id}
-                        className={`flex items-center justify-between gap-3 rounded-box border p-3 ${
-                          organization.eligible ? 'cursor-pointer border-base-300' : 'opacity-60 border-base-300'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className="badge badge-ghost">{`#${index + 1}`}</span>
-                          <div>
-                            <p className="font-semibold">{organization.name}</p>
-                            <p className="text-sm opacity-70">
-                              Hours:
-                              {' '}
-                              {formatHours(organization.hours)}
-                              {' '}
-                              |
-                              {' '}
-                              Threshold:
-                              {' '}
-                              {organization.hours_threshold ?? '-'}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          {organization.eligible
-                            ? <span className="badge badge-success">Eligible</span>
-                            : <span className="badge badge-ghost">Not eligible</span>}
-                          <input
-                            type="checkbox"
-                            className="checkbox checkbox-primary"
-                            checked={selected}
-                            disabled={!organization.eligible}
-                            onChange={() => toggleOrganization(organization.id, organization.eligible)}
-                          />
-                        </div>
-                      </label>
-                    );
-                  })}
+            <Card
+              title="Select Organizations (Max 4)"
+              description="Ranked by your attended hours. Only organizations meeting threshold and certificate settings are selectable."
+            >
+              {selectionError && (
+                <div className="alert alert-error mt-3">
+                  <AlertCircle size={16} />
+                  <span>{selectionError}</span>
                 </div>
+              )}
 
-                <div className="mt-4">
-                  <button className="btn btn-primary" onClick={createCertificate}>
-                    <FileText size={16} />
-                    Create Certificate
-                  </button>
-                </div>
+              <div className="space-y-2 mt-3">
+                {organizationsWithEligibility.map((organization, index) => {
+                  const selected = selectedOrganizationIds.includes(organization.id);
+
+                  return (
+                    <label
+                      key={organization.id}
+                      className={`flex items-center justify-between gap-3 rounded-box border p-3 ${
+                        organization.eligible ? 'cursor-pointer border-base-300' : 'opacity-60 border-base-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="badge badge-ghost">{`#${index + 1}`}</span>
+                        <div>
+                          <p className="font-semibold">{organization.name}</p>
+                          <p className="text-sm opacity-70">
+                            Hours:
+                            {' '}
+                            {formatHours(organization.hours)}
+                            {' '}
+                            |
+                            {' '}
+                            Threshold:
+                            {' '}
+                            {organization.hours_threshold ?? '-'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        {organization.eligible
+                          ? <span className="badge badge-success">Eligible</span>
+                          : <span className="badge badge-ghost">Not eligible</span>}
+                        <input
+                          type="checkbox"
+                          className="checkbox checkbox-primary"
+                          checked={selected}
+                          disabled={!organization.eligible}
+                          onChange={() => toggleOrganization(organization.id, organization.eligible)}
+                        />
+                      </div>
+                    </label>
+                  );
+                })}
               </div>
-            </div>
+
+              <div className="mt-4">
+                <button className="btn btn-primary" onClick={createCertificate}>
+                  <FileText size={16} />
+                  Create Certificate
+                </button>
+              </div>
+            </Card>
 
             {certificateGeneratedAt && (
               <div className="card bg-base-100 shadow-md mt-4 no-print">

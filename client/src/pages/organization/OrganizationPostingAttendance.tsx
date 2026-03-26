@@ -4,6 +4,7 @@ import { useParams } from 'react-router';
 
 import Alert from '../../components/Alert';
 import Button from '../../components/Button';
+import Card from '../../components/Card';
 import PageHeader from '../../components/layout/PageHeader';
 import Loading from '../../components/Loading';
 import VolunteerInfoCollapse from '../../components/VolunteerInfoCollapse';
@@ -319,71 +320,69 @@ function OrganizationPostingAttendance() {
           )}
         />
 
-        <div className="card bg-base-100 shadow-md mt-4">
-          <div className="card-body">
-            <h4 className="text-xl font-bold mb-3">
-              Registered Volunteers
-              {' '}
-              <span className="badge badge-primary">{data.enrollments.length}</span>
-            </h4>
-            <div className="mb-4 grid gap-2 md:grid-cols-[1fr_auto]">
-              <input
-                type="text"
-                className="input input-bordered w-full"
-                placeholder="Search by name or email"
-                value={searchTerm}
-                onChange={event => setSearchTerm(event.target.value)}
-              />
-              <select
-                className="select select-bordered"
-                value={sortBy}
-                onChange={event => setSortBy(event.target.value as typeof sortBy)}
-              >
-                <option value="name_asc">Name A-Z</option>
-                <option value="name_desc">Name Z-A</option>
-                <option value="attended_first">Present First</option>
-                <option value="absent_first">Absent First</option>
-              </select>
-            </div>
-
-            {data.enrollments.length === 0 && (
-              <Alert>
-                No enrolled volunteers to track yet.
-              </Alert>
-            )}
-
-            {data.enrollments.length > 0 && filteredAndSortedEnrollments.length === 0 && (
-              <Alert>
-                No volunteers match this search.
-              </Alert>
-            )}
-
-            {data.enrollments.length > 0 && filteredAndSortedEnrollments.length > 0 && (
-              <div className="space-y-2">
-                {filteredAndSortedEnrollments.map(volunteer => (
-                  <VolunteerInfoCollapse
-                    key={volunteer.enrollment_id}
-                    volunteer={volunteer}
-                    actions={(
-                      <label className="flex items-center gap-2">
-                        <span className={`badge ${volunteer.attended ? 'badge-success' : 'badge-ghost'}`}>
-                          {volunteer.attended ? 'Present' : 'Absent'}
-                        </span>
-                        <input
-                          type="checkbox"
-                          className="toggle toggle-success"
-                          checked={volunteer.attended}
-                          disabled={saving}
-                          onChange={() => void toggleAttendance(volunteer)}
-                        />
-                      </label>
-                    )}
-                  />
-                ))}
-              </div>
-            )}
+        <Card
+          title="Registered Volunteers"
+          right={
+            <span className="badge badge-primary">{data.enrollments.length}</span>
+          }
+        >
+          <div className="mb-4 grid gap-2 md:grid-cols-[1fr_auto]">
+            <input
+              type="text"
+              className="input input-bordered w-full"
+              placeholder="Search by name or email"
+              value={searchTerm}
+              onChange={event => setSearchTerm(event.target.value)}
+            />
+            <select
+              className="select select-bordered"
+              value={sortBy}
+              onChange={event => setSortBy(event.target.value as typeof sortBy)}
+            >
+              <option value="name_asc">Name A-Z</option>
+              <option value="name_desc">Name Z-A</option>
+              <option value="attended_first">Present First</option>
+              <option value="absent_first">Absent First</option>
+            </select>
           </div>
-        </div>
+
+          {data.enrollments.length === 0 && (
+            <Alert>
+              No enrolled volunteers to track yet.
+            </Alert>
+          )}
+
+          {data.enrollments.length > 0 && filteredAndSortedEnrollments.length === 0 && (
+            <Alert>
+              No volunteers match this search.
+            </Alert>
+          )}
+
+          {data.enrollments.length > 0 && filteredAndSortedEnrollments.length > 0 && (
+            <div className="space-y-2">
+              {filteredAndSortedEnrollments.map(volunteer => (
+                <VolunteerInfoCollapse
+                  key={volunteer.enrollment_id}
+                  volunteer={volunteer}
+                  actions={(
+                    <label className="flex items-center gap-2">
+                      <span className={`badge ${volunteer.attended ? 'badge-success' : 'badge-ghost'}`}>
+                        {volunteer.attended ? 'Present' : 'Absent'}
+                      </span>
+                      <input
+                        type="checkbox"
+                        className="toggle toggle-success"
+                        checked={volunteer.attended}
+                        disabled={saving}
+                        onChange={() => void toggleAttendance(volunteer)}
+                      />
+                    </label>
+                  )}
+                />
+              ))}
+            </div>
+          )}
+        </Card>
       </div>
     </div>
   );

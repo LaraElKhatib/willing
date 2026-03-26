@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AlertCircle, Pencil, Pin, PinOff, Plus, RotateCcw, Save, Search, SlidersHorizontal, Trash2, X } from 'lucide-react';
+import { AlertCircle, Pencil, Pin, PinIcon, PinOff, Plus, RotateCcw, Save, Search, SlidersHorizontal, Trash2, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useForm } from 'react-hook-form';
 import zod from 'zod';
@@ -7,6 +7,7 @@ import zod from 'zod';
 import { newCrisisSchema } from '../../../../server/src/db/tables';
 import Alert from '../../components/Alert';
 import Button from '../../components/Button';
+import Card from '../../components/Card';
 import ColumnLayout from '../../components/layout/ColumnLayout';
 import PageHeader from '../../components/layout/PageHeader';
 import useNotifications from '../../notifications/useNotifications';
@@ -314,40 +315,39 @@ function AdminCrises() {
         <ColumnLayout
           stickySidebar
           sidebar={(
-            <div className="card border border-primary/20 bg-base-100 shadow-sm">
-              <div className="card-body">
-                <h3 className="card-title text-base">Create Crisis</h3>
-                <p className="text-sm opacity-70">Add a new crisis entry.</p>
+            <Card
+              title="Create Crisis"
+              description="Add a new crisis tag."
+            >
+              <form className="mt-2 space-y-4" onSubmit={onCreateCrisis}>
+                <FormField
+                  form={crisisForm}
+                  name="name"
+                  label="Crisis Name"
+                  placeholder="Crisis name"
+                  Icon={AlertCircle}
+                />
+                <FormField
+                  form={crisisForm}
+                  name="description"
+                  label="Description (Optional)"
+                  type="textarea"
+                />
 
-                <form className="mt-2 space-y-4" onSubmit={onCreateCrisis}>
-                  <FormField
-                    form={crisisForm}
-                    name="name"
-                    label="Crisis Name"
-                    placeholder="Crisis name"
-                    Icon={AlertCircle}
-                  />
-                  <FormField
-                    form={crisisForm}
-                    name="description"
-                    label="Description (Optional)"
-                    type="textarea"
-                  />
+                <Button
+                  color="primary"
+                  type="submit"
+                  loading={isCreatingCrisis}
+                  Icon={Plus}
+                  layout="block"
+                >
+                  Add Crisis
+                </Button>
+              </form>
 
-                  <Button
-                    color="primary"
-                    type="submit"
-                    loading={isCreatingCrisis}
-                    Icon={Plus}
-                    layout="block"
-                  >
-                    Add Crisis
-                  </Button>
-                </form>
+              <FormRootError form={crisisForm} />
 
-                <FormRootError form={crisisForm} />
-              </div>
-            </div>
+            </Card>
           )}
         >
           <section>
@@ -356,11 +356,9 @@ function AdminCrises() {
               {crisisCountBadge}
             </div>
 
-            <div className="mb-4 rounded-box border border-base-300 bg-base-100 p-4 shadow-sm">
-              <div className="mb-4">
-                <h3 className="text-lg font-semibold">Filters</h3>
-              </div>
-
+            <Card
+              title="Filters"
+            >
               <form className="space-y-4" onSubmit={applyFilters}>
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
                   <div className="lg:min-w-0 lg:flex-1">
@@ -433,7 +431,7 @@ function AdminCrises() {
                   </div>
                 )}
               </form>
-            </div>
+            </Card>
 
             {!crises
               ? (
@@ -449,103 +447,93 @@ function AdminCrises() {
                     </Alert>
                   )
                 : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {crises.map(crisis => (
-                        <div
+                        <Card
                           key={crisis.id}
-                          className="card border border-base-300 bg-base-100 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+                          title={crisis.name}
+                          description={editingCrisisId === crisis.id ? undefined : crisis.description || 'No description set'}
+                          right={
+                            crisis.pinned
+                            && <span className="badge badge-secondary">Pinned</span>
+                          }
+                          Icon={AlertCircle}
                         >
-                          <div className="card-body">
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="flex items-center gap-2">
-                                <div className="h-8 w-8 rounded-full bg-primary/15 text-primary flex items-center justify-center">
-                                  <AlertCircle size={16} />
-                                </div>
-                                <h4 className="font-bold text-lg leading-tight">{crisis.name}</h4>
-                              </div>
-                              {crisis.pinned && <span className="badge badge-secondary">Pinned</span>}
-                            </div>
 
-                            {editingCrisisId === crisis.id
-                              ? (
-                                  <div className="space-y-3 mt-2">
-                                    <input
-                                      value={editingName}
-                                      onChange={event => setEditingName(event.target.value)}
-                                      className="input input-bordered w-full"
-                                      placeholder="Crisis name"
-                                    />
-                                    <textarea
-                                      value={editingDescription}
-                                      onChange={event => setEditingDescription(event.target.value)}
-                                      className="textarea textarea-bordered w-full"
-                                      placeholder="Description (optional)"
-                                      rows={3}
-                                    />
-                                    <div className="flex flex-row-reverse flex-wrap gap-2">
-                                      <Button
-                                        color="primary"
-                                        type="button"
-                                        onClick={() => onSaveEdit(crisis.id)}
-                                        disabled={actionBusyId === crisis.id}
-                                        Icon={Save}
-                                      >
-                                        Save
-                                      </Button>
-                                      <Button
-                                        type="button"
-                                        color="ghost"
-                                        onClick={onCancelEdit}
-                                        disabled={actionBusyId === crisis.id}
-                                        Icon={X}
-                                      >
-                                        Cancel
-                                      </Button>
-                                    </div>
+                          {editingCrisisId === crisis.id
+                            ? (
+                                <div className="">
+                                  <input
+                                    value={editingName}
+                                    onChange={event => setEditingName(event.target.value)}
+                                    className="input input-bordered w-full"
+                                    placeholder="Crisis name"
+                                  />
+                                  <textarea
+                                    value={editingDescription}
+                                    onChange={event => setEditingDescription(event.target.value)}
+                                    className="textarea textarea-bordered w-full"
+                                    placeholder="Description (optional)"
+                                    rows={3}
+                                  />
+                                  <div className="flex flex-row-reverse flex-wrap gap-2">
+                                    <Button
+                                      color="primary"
+                                      type="button"
+                                      onClick={() => onSaveEdit(crisis.id)}
+                                      disabled={actionBusyId === crisis.id}
+                                      Icon={Save}
+                                    >
+                                      Save
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      color="ghost"
+                                      onClick={onCancelEdit}
+                                      disabled={actionBusyId === crisis.id}
+                                      Icon={X}
+                                    >
+                                      Cancel
+                                    </Button>
                                   </div>
-                                )
-                              : (
-                                  <>
-                                    <p className="text-sm opacity-70 mt-2 whitespace-pre-wrap wrap-break-word">
-                                      {crisis.description || 'No description set'}
-                                    </p>
-                                    <div className="card-actions justify-end mt-2">
-                                      <Button
-                                        type="button"
-                                        style="outline"
-                                        size="sm"
-                                        onClick={() => onTogglePin(crisis.id, crisis.pinned)}
-                                        disabled={actionBusyId === crisis.id}
-                                        Icon={crisis.pinned ? PinOff : Pin}
-                                      >
-                                        {crisis.pinned ? 'Unpin' : 'Pin'}
-                                      </Button>
-                                      <Button
-                                        type="button"
-                                        style="outline"
-                                        size="sm"
-                                        onClick={() => onStartEdit(crisis.id, crisis.name, crisis.description)}
-                                        disabled={actionBusyId === crisis.id}
-                                        Icon={Pencil}
-                                      >
-                                        Edit
-                                      </Button>
-                                      <Button
-                                        type="button"
-                                        style="outline"
-                                        color="error"
-                                        size="sm"
-                                        onClick={() => onDelete(crisis.id, crisis.name)}
-                                        disabled={actionBusyId === crisis.id}
-                                        Icon={Trash2}
-                                      >
-                                        Delete
-                                      </Button>
-                                    </div>
-                                  </>
-                                )}
-                          </div>
-                        </div>
+                                </div>
+                              )
+                            : (
+                                <div className="flex justify-end gap-2">
+                                  <Button
+                                    type="button"
+                                    style="outline"
+                                    size="sm"
+                                    onClick={() => onTogglePin(crisis.id, crisis.pinned)}
+                                    disabled={actionBusyId === crisis.id}
+                                    Icon={crisis.pinned ? PinOff : Pin}
+                                  >
+                                    {crisis.pinned ? 'Unpin' : 'Pin'}
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    style="outline"
+                                    size="sm"
+                                    onClick={() => onStartEdit(crisis.id, crisis.name, crisis.description)}
+                                    disabled={actionBusyId === crisis.id}
+                                    Icon={Pencil}
+                                  >
+                                    Edit
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    style="outline"
+                                    color="error"
+                                    size="sm"
+                                    onClick={() => onDelete(crisis.id, crisis.name)}
+                                    disabled={actionBusyId === crisis.id}
+                                    Icon={Trash2}
+                                  >
+                                    Delete
+                                  </Button>
+                                </div>
+                              )}
+                        </Card>
                       ))}
                     </div>
                   )}

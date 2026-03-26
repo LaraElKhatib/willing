@@ -2,6 +2,7 @@ import { ClipboardCheck, Inbox, RotateCcw, Search } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 
 import Button from '../../components/Button';
+import Card from '../../components/Card';
 import PageHeader from '../../components/layout/PageHeader';
 import OrganizationRequestReviewCard from '../../components/OrganizationRequestReviewCard';
 import requestServer from '../../utils/requestServer';
@@ -159,69 +160,68 @@ function AdminRequests() {
           }
         />
 
-        <div className="mb-6 rounded-box border border-base-300 bg-base-100 p-4 shadow-sm">
-          <div className="mb-4">
-            <h3 className="text-lg font-semibold">Filters</h3>
-          </div>
-
-          <form className="space-y-4" onSubmit={applyFilters}>
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
-              <div className="lg:min-w-0 lg:flex-1">
-                <label className="label" htmlFor="organization-requests-search">
-                  <span className="label-text">Search</span>
-                </label>
-                <label className="input input-bordered flex w-full items-center gap-2">
-                  <Search className="h-4 w-4 opacity-70" />
-                  <input
-                    id="organization-requests-search"
-                    type="text"
-                    className="w-full min-w-0"
-                    placeholder="Search name, email, location"
-                    value={filters.search}
-                    onChange={event => setFilters(prev => ({ ...prev, search: event.target.value }))}
-                  />
-                </label>
-              </div>
-
-              <div className="lg:w-64">
-                <label className="label" htmlFor="organization-requests-sort">
-                  <span className="label-text">Sort By</span>
-                </label>
-                <select
-                  id="organization-requests-sort"
-                  className="select select-bordered w-full"
-                  value={selectedSortOption.value}
-                  onChange={event => onSortChange(event.target.value as OrganizationRequestSortOptionValue)}
-                >
-                  {organizationRequestSortOptions.map(option => (
-                    <option key={option.value} value={option.value}>{option.label}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="lg:w-40">
-                <Button color="primary" type="submit" disabled={!hasPendingChanges} layout="block">Search</Button>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-3">
-              <Button type="button" color="ghost" onClick={resetFilters} disabled={!hasAnyChangesFromDefault} Icon={RotateCcw}>Reset</Button>
-            </div>
-          </form>
-        </div>
-
         {sortedOrganizationRequests
           ? (sortedOrganizationRequests.length > 0
               ? (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6">
-                    {sortedOrganizationRequests.map((request, index) => (
-                      <OrganizationRequestReviewCard
-                        request={request}
-                        refreshOrganizationRequests={refreshCurrentRequests}
-                        key={`${activeFilters.sortBy}-${activeFilters.sortDir}-${index}-${request.id}`}
-                      />
-                    ))}
-                  </div>
+                  <>
+                    <Card
+                      title="Filters"
+                    >
+                      <form className="space-y-4" onSubmit={applyFilters}>
+                        <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
+                          <div className="lg:min-w-0 lg:flex-1">
+                            <label className="label" htmlFor="organization-requests-search">
+                              <span className="label-text">Search</span>
+                            </label>
+                            <label className="input input-bordered flex w-full items-center gap-2">
+                              <Search className="h-4 w-4 opacity-70" />
+                              <input
+                                id="organization-requests-search"
+                                type="text"
+                                className="w-full min-w-0"
+                                placeholder="Search name, email, location"
+                                value={filters.search}
+                                onChange={event => setFilters(prev => ({ ...prev, search: event.target.value }))}
+                              />
+                            </label>
+                          </div>
+
+                          <div className="lg:w-64">
+                            <label className="label" htmlFor="organization-requests-sort">
+                              <span className="label-text">Sort By</span>
+                            </label>
+                            <select
+                              id="organization-requests-sort"
+                              className="select select-bordered w-full"
+                              value={selectedSortOption.value}
+                              onChange={event => onSortChange(event.target.value as OrganizationRequestSortOptionValue)}
+                            >
+                              {organizationRequestSortOptions.map(option => (
+                                <option key={option.value} value={option.value}>{option.label}</option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div className="lg:w-40">
+                            <Button color="primary" type="submit" disabled={!hasPendingChanges} layout="block">Search</Button>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap gap-3">
+                          <Button type="button" color="ghost" onClick={resetFilters} disabled={!hasAnyChangesFromDefault} Icon={RotateCcw}>Reset</Button>
+                        </div>
+                      </form>
+                    </Card>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6">
+                      {sortedOrganizationRequests.map((request, index) => (
+                        <OrganizationRequestReviewCard
+                          request={request}
+                          refreshOrganizationRequests={refreshCurrentRequests}
+                          key={`${activeFilters.sortBy}-${activeFilters.sortDir}-${index}-${request.id}`}
+                        />
+                      ))}
+                    </div>
+                  </>
                 )
               : (
                   <div className="hero bg-base-200 rounded-box p-10">

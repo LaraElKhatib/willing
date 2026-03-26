@@ -2,7 +2,9 @@ import { AlertCircle, ArrowRight, ClipboardCheck, LayoutDashboard } from 'lucide
 import { useCallback } from 'react';
 import { Link } from 'react-router';
 
+import Card from '../../components/Card';
 import PageHeader from '../../components/layout/PageHeader';
+import LinkButton from '../../components/LinkButton';
 import requestServer from '../../utils/requestServer';
 import useAsync from '../../utils/useAsync';
 
@@ -37,71 +39,64 @@ function AdminHome() {
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-          <div className="card bg-base-100 shadow-md">
-            <div className="card-body">
-              <div className="flex items-center justify-between">
-                <h3 className="card-title">
-                  <ClipboardCheck size={20} />
-                  Organization Requests
-                </h3>
-                {!organizationRequests
-                  ? <div className="skeleton w-16 h-6" />
-                  : (
-                      <span className="badge badge-primary">
-                        {organizationRequests.length}
-                        {' '}
-                        Pending
-                      </span>
-                    )}
-              </div>
-
-              <p className="text-sm opacity-70">
-                Review incoming organization applications and approve or reject requests.
-              </p>
-
-              <div className="card-actions justify-end">
-                <Link to="/admin/requests" className="btn btn-outline btn-sm">
-                  Open Requests
-                  <ArrowRight size={14} />
-                </Link>
-              </div>
-            </div>
-          </div>
-
-          <div className="card bg-base-100 shadow-md">
-            <div className="card-body">
-              <div className="flex items-center justify-between">
-                <h3 className="card-title">
-                  <AlertCircle size={20} />
-                  Crises
-                </h3>
-                {!crises
-                  ? <div className="skeleton w-16 h-6" />
-                  : (
-                      <span className="badge badge-secondary">
-                        {crises.length}
-                        {' '}
-                        Total
-                      </span>
-                    )}
-              </div>
-
-              <p className="text-sm opacity-70">
-                {crises === undefined
-                  ? 'Loading pinned crises...'
-                  : pinnedCrises.length > 0
-                    ? `Pinned (${pinnedCrises.length}): ${pinnedCrises.map(crisis => crisis.name).join(', ')}`
-                    : 'No pinned crisis at the moment.'}
-              </p>
-
-              <div className="card-actions justify-end">
-                <Link to="/admin/crises" className="btn btn-outline btn-sm">
-                  Open Crises
-                  <ArrowRight size={14} />
-                </Link>
-              </div>
-            </div>
-          </div>
+          <Card
+            title="Organization Requests"
+            description="Review incoming organization applications and approve or reject requests."
+            Icon={ClipboardCheck}
+            right={
+              !organizationRequests
+                ? <div className="skeleton w-16 h-6" />
+                : (
+                    <span className="badge badge-primary">
+                      {organizationRequests.length}
+                      {' '}
+                      Pending
+                    </span>
+                  )
+            }
+          >
+            <LinkButton
+              to="/admin/requests"
+              style="outline"
+              size="sm"
+              Icon={ArrowRight}
+              className="ml-auto"
+            >
+              Open Requests
+            </LinkButton>
+          </Card>
+          <Card
+            title="Crisis"
+            description={
+              crises === undefined
+                ? 'Loading pinned crises...'
+                : pinnedCrises.length > 0
+                  ? `Pinned (${pinnedCrises.length}): ${pinnedCrises.map(crisis => crisis.name).join(', ')}`
+                  : 'No pinned crisis at the moment.'
+            }
+            Icon={AlertCircle}
+            right={
+              !crises
+                ? <div className="skeleton w-16 h-6" />
+                : (
+                    <span className="badge badge-secondary">
+                      {crises.length}
+                      {' '}
+                      Total
+                    </span>
+                  )
+            }
+          >
+            <LinkButton
+              to="/admin/crises"
+              style="outline"
+              size="sm"
+              Icon={ArrowRight}
+              className="ml-auto"
+            >
+              Open Crises
+            </LinkButton>
+          </Card>
         </div>
       </div>
     </div>
