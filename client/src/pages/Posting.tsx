@@ -50,6 +50,7 @@ import { useOrganization } from '../utils/useUsers.ts';
 import type {
   OrganizationCrisisResponse,
   OrganizationCrisesResponse,
+  OrganizationGetMeResponse,
   OrganizationPostingApplicationsReponse,
   OrganizationPostingEnrollmentsResponse,
   OrganizationPostingResponse,
@@ -359,17 +360,34 @@ function PostingPage() {
       postingResponse.posting.longitude ?? 35.477959277880416,
     ]);
 
-    setPostingOrganization(account
-      ? {
-          id: account.id,
-          name: account.name,
-          logoPath: account.logo_path,
-        }
-      : {
-          id: postingResponse.posting.organization_id,
-          name: 'Organization',
-          logoPath: postingResponse.posting.organization_logo_path,
-        });
+    let organizationId = postingResponse.posting.organization_id;
+    let organizationName = account?.name ?? 'Organization';
+    let organizationLogoPath = account?.logo_path ?? postingResponse.posting.organization_logo_path;
+
+    try {
+      const meResponse = await requestServer<OrganizationGetMeResponse>('/organization/me', { includeJwt: true });
+      organizationId = meResponse.organization.id;
+      organizationName = meResponse.organization.name;
+      organizationLogoPath = meResponse.organization.logo_path;
+    } catch {
+      try {
+        const organizationResponse = await requestServer<OrganizationProfileResponse>(
+          `/organization/${postingResponse.posting.organization_id}`,
+          { includeJwt: false },
+        );
+        organizationId = organizationResponse.organization.id;
+        organizationName = organizationResponse.organization.name;
+        organizationLogoPath = organizationResponse.organization.logo_path;
+      } catch {
+        // Keep fallback values from auth context/posting response.
+      }
+    }
+
+    setPostingOrganization({
+      id: organizationId,
+      name: organizationName,
+      logoPath: organizationLogoPath,
+    });
 
     form.reset({
       title: postingResponse.posting.title,
