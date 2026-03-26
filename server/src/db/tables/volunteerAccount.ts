@@ -3,7 +3,7 @@ import zod from 'zod';
 import { emailSchema, idSchema, passwordSchema } from '../../schemas/index.js';
 import { genderSchema } from '../../types.js';
 
-import type { WithGeneratedIDAndTimestamps } from './shared.js';
+import type { WithGeneratedColumns, WithGeneratedIDAndTimestamps } from './shared.js';
 
 export const volunteerAccountSchema = zod.object({
   id: idSchema,
@@ -27,7 +27,9 @@ export const volunteerAccountSchema = zod.object({
 });
 export type VolunteerAccount = zod.infer<typeof volunteerAccountSchema>;
 
-export type VolunteerAccountTable = WithGeneratedIDAndTimestamps<VolunteerAccount>;
+export type VolunteerAccountTable = WithGeneratedIDAndTimestamps<
+  WithGeneratedColumns<VolunteerAccount, 'is_disabled' | 'is_deleted'>
+>;
 
 export const newVolunteerAccountSchema = volunteerAccountSchema.omit({
   id: true,

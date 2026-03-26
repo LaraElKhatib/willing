@@ -67,11 +67,7 @@ async function seed() {
         location_name: 'Tripoli',
         password: passwordHash,
       },
-    ].map(org => ({
-      ...org,
-      is_disabled: false,
-      is_deleted: false,
-    })))
+    ])
     .returning(['id', 'name'])
     .execute();
 
@@ -206,8 +202,6 @@ async function seed() {
     ].map(volunteer => ({
       ...volunteer,
       gender: volunteer.gender as 'male' | 'female' | 'other',
-      is_disabled: false,
-      is_deleted: false,
     })))
     .returning(['id', 'email'])
     .execute();
@@ -613,11 +607,7 @@ async function seed() {
         automatic_acceptance: true,
         is_closed: true,
       },
-
-    ].map(posting => ({
-      ...posting,
-      allows_partial_attendance: false,
-    })))
+    ])
     .returning(['id', 'title'])
     .execute();
 

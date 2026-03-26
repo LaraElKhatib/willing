@@ -77,8 +77,6 @@ volunteerRouter.post('/create', async (req, res: Response<VolunteerCreateRespons
   const insertBody = {
     ...body,
     password: hashedPassword,
-    is_disabled: false,
-    is_deleted: false,
   };
 
   const newVolunteer = await database
@@ -130,17 +128,13 @@ volunteerRouter.get('/certificate', async (req, res: Response<VolunteerCertifica
     .where('id', '=', volunteerId)
     .executeTakeFirstOrThrow();
 
-  const hoursPerPostingExpr = sql<number>`CASE
-    WHEN organization_posting.end_date IS NULL OR organization_posting.end_time IS NULL
-      THEN 0
-    ELSE GREATEST(
-      0,
-      EXTRACT(EPOCH FROM (
-        (organization_posting.end_date + organization_posting.end_time)
-        - (organization_posting.start_date + organization_posting.start_time)
-      )) / 3600.0
-    )
-  END`;
+  const hoursPerPostingExpr = sql<number>`GREATEST(
+    0,
+    EXTRACT(EPOCH FROM (
+      (organization_posting.end_date + organization_posting.end_time)
+      - (organization_posting.start_date + organization_posting.start_time)
+    )) / 3600.0
+  )`;
 
   const totalHoursRow = await database
     .selectFrom('enrollment')

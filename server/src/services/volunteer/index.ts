@@ -72,6 +72,7 @@ export const getVolunteerProfile = async (volunteerId: number): Promise<Voluntee
       .select(
         sql<Date | null>`
           case
+            organization_posting.end_date + organization_posting.end_time::time
             when organization_posting.end_date is null then null
             else organization_posting.end_date + coalesce(organization_posting.end_time, organization_posting.start_time)::time
           end

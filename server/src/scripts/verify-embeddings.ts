@@ -33,8 +33,6 @@ const ensureOrganization = async () => {
       longitude: 35.5018,
       location_name: 'Beirut',
       password: TEST_PASSWORD_HASH,
-      is_disabled: false,
-      is_deleted: false,
     })
     .returning('id')
     .executeTakeFirstOrThrow();
@@ -69,7 +67,6 @@ const ensurePosting = async (organizationId: number) => {
       minimum_age: 18,
       automatic_acceptance: true,
       is_closed: false,
-      allows_partial_attendance: false,
     })
     .returning('id')
     .executeTakeFirstOrThrow();
@@ -104,8 +101,6 @@ const ensureVolunteer = async () => {
       date_of_birth: '2000-01-01',
       gender: 'other',
       description: 'Volunteer used for embedding verification.',
-      is_disabled: false,
-      is_deleted: false,
     })
     .returning('id')
     .executeTakeFirstOrThrow();

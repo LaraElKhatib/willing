@@ -2,7 +2,7 @@ import zod from 'zod';
 
 import { idSchema, latitudeSchema, longitudeSchema } from '../../schemas/index.js';
 
-import type { WithGeneratedIDAndTimestamps } from './shared.js';
+import type { WithGeneratedColumns, WithGeneratedIDAndTimestamps } from './shared.js';
 
 export const organizationPostingSchema = zod.object({
   id: idSchema,
@@ -30,7 +30,9 @@ export const organizationPostingSchema = zod.object({
 
 export type OrganizationPosting = zod.infer<typeof organizationPostingSchema>;
 
-export type OrganizationPostingTable = WithGeneratedIDAndTimestamps<OrganizationPosting>;
+export type OrganizationPostingTable = WithGeneratedIDAndTimestamps<
+  WithGeneratedColumns<OrganizationPosting, 'allows_partial_attendance'>
+>;
 
 export const newOrganizationPostingSchema = organizationPostingSchema
   .omit({ id: true, opportunity_vector: true, posting_context_vector: true, allows_partial_attendance: true, created_at: true, updated_at: true, organization_id: true })

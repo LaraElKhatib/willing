@@ -2,7 +2,7 @@ import zod from 'zod';
 
 import { emailSchema, idSchema, latitudeSchema, longitudeSchema, passwordSchema, websiteSchema } from '../../schemas/index.js';
 
-import type { WithGeneratedIDAndTimestamps } from './shared.js';
+import type { WithGeneratedColumns, WithGeneratedIDAndTimestamps } from './shared.js';
 
 export const organizationAccountSchema = zod.object({
   id: idSchema,
@@ -26,7 +26,9 @@ export const organizationAccountSchema = zod.object({
 
 export type OrganizationAccount = zod.infer<typeof organizationAccountSchema>;
 
-export type OrganizationAccountTable = WithGeneratedIDAndTimestamps<OrganizationAccount>;
+export type OrganizationAccountTable = WithGeneratedIDAndTimestamps<
+  WithGeneratedColumns<OrganizationAccount, 'is_disabled' | 'is_deleted'>
+>;
 
 export const newOrganizationAccountSchema = organizationAccountSchema.omit({ id: true, certificate_info_id: true, org_vector: true, is_disabled: true, is_deleted: true, created_at: true, updated_at: true }).strict();
 export type NewOrganizationAccount = zod.infer<typeof newOrganizationAccountSchema>;
