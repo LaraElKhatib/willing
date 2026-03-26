@@ -1,8 +1,9 @@
-import { Building2, Globe, Inbox, Mail, MapPin, Phone } from 'lucide-react';
+import { Building2, ClipboardList, Globe, Mail, MapPin, Phone } from 'lucide-react';
 import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 
 import Card from '../components/Card';
+import EmptyState from '../components/EmptyState';
 import ColumnLayout from '../components/layout/ColumnLayout';
 import PageContainer from '../components/layout/PageContainer';
 import PageHeader from '../components/layout/PageHeader';
@@ -211,18 +212,11 @@ function OrganizationProfile() {
 
             {postingsWithContext.length === 0
               ? (
-                  <div className="hero bg-base-200 rounded-box p-10">
-                    <div className="hero-content text-center">
-                      <div className="max-w-md flex flex-col items-center">
-                        { /* FIND_WHAT_ICON_TO_PUT_HERE */ }
-                        <Inbox size={64} className="opacity-20 mb-4" />
-                        <p className="py-2 font-bold opacity-80">FIND_WHAT_TEXT_TO_PUT_HERE</p>
-                        <p className="pb-6 opacity-60">
-                          This organization has no active postings at the moment.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+                  <EmptyState
+                    Icon={ClipboardList}
+                    title="No active opportunities right now"
+                    description="This organization has no active postings at the moment."
+                  />
                 )
               : (
                   <PostingCollection

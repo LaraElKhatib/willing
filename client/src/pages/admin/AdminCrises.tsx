@@ -5,9 +5,9 @@ import { useForm } from 'react-hook-form';
 import zod from 'zod';
 
 import { newCrisisSchema } from '../../../../server/src/db/tables';
-import Alert from '../../components/Alert';
 import Button from '../../components/Button';
 import Card from '../../components/Card';
+import EmptyState from '../../components/EmptyState';
 import ColumnLayout from '../../components/layout/ColumnLayout';
 import PageContainer from '../../components/layout/PageContainer';
 import PageHeader from '../../components/layout/PageHeader';
@@ -442,9 +442,11 @@ function AdminCrises() {
               )
             : crises.length === 0
               ? (
-                  <Alert style="soft">
-                    No crises added yet.
-                  </Alert>
+                  <EmptyState
+                    Icon={AlertCircle}
+                    title="No crises added yet"
+                    description="Create a crisis to help organizations tag urgent opportunities."
+                  />
                 )
               : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

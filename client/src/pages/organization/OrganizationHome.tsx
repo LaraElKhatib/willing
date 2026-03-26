@@ -1,6 +1,7 @@
-import { ClipboardList, Inbox, Plus } from 'lucide-react';
+import { ClipboardList, Plus } from 'lucide-react';
 import { useCallback, useMemo } from 'react';
 
+import EmptyState from '../../components/EmptyState';
 import PageContainer from '../../components/layout/PageContainer';
 import PageHeader from '../../components/layout/PageHeader';
 import LinkButton from '../../components/LinkButton';
@@ -267,16 +268,11 @@ function OrganizationHome() {
       )}
 
       {!loading && (!postings || postings.length === 0) && (
-        <div className="hero bg-base-200 rounded-box p-10">
-          <div className="hero-content text-center">
-            <div className="max-w-md flex flex-col items-center">
-              {/* FIND_WHAT_ICON_TO_PUT_HERE */}
-              <Inbox size={64} className="opacity-20 mb-4" />
-              <p className="py-2 font-bold opacity-80">FIND_WHAT_TEXT_TO_PUT_HERE</p>
-              <p className="pb-6 opacity-60">No postings yet. Create your first posting to get started!</p>
-            </div>
-          </div>
-        </div>
+        <EmptyState
+          Icon={ClipboardList}
+          title="No postings yet"
+          description="Create your first posting to start receiving volunteer applications."
+        />
       )}
 
       {!loading && postingsWithContext.length > 0 && (

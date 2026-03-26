@@ -3,13 +3,14 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react
 
 import Button from '../../components/Button';
 import Card from '../../components/Card';
+import EmptyState from '../../components/EmptyState';
+import PageContainer from '../../components/layout/PageContainer';
 import PageHeader from '../../components/layout/PageHeader';
 import OrganizationRequestReviewCard from '../../components/OrganizationRequestReviewCard';
 import requestServer from '../../utils/requestServer';
 import useAsync from '../../utils/useAsync';
 
 import type { AdminOrganizationRequestsResponse } from '../../../../server/src/api/types';
-import PageContainer from '../../components/layout/PageContainer';
 
 type OrganizationRequestSortBy = 'created_at' | 'name';
 type OrganizationRequestSortDir = 'asc' | 'desc';
@@ -224,15 +225,11 @@ function AdminRequests() {
                 </>
               )
             : (
-                <div className="hero bg-base-200 rounded-box p-10">
-                  <div className="hero-content text-center">
-                    <div className="max-w-md flex flex-col items-center">
-                      <Inbox size={64} className="opacity-20 mb-4" />
-                      <p className="py-2 font-bold opacity-80">All caught up!</p>
-                      <p className="pb-6 opacity-60">No organization requests found at this time.</p>
-                    </div>
-                  </div>
-                </div>
+                <EmptyState
+                  Icon={Inbox}
+                  title="All caught up!"
+                  description="No organization requests found at this time."
+                />
               )
           )
         : (
