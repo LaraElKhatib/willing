@@ -35,7 +35,6 @@ const volunteerResponseColumns = [
   'gender',
   'cv_path',
   'description',
-  'privacy',
 ] as const;
 
 const volunteerProfileUserUpdateSchema = volunteerAccountSchema.omit({
@@ -78,7 +77,6 @@ volunteerRouter.post('/create', async (req, res: Response<VolunteerCreateRespons
   const insertBody = {
     ...body,
     password: hashedPassword,
-    privacy: 'public' as const,
   };
 
   const newVolunteer = await database
@@ -130,17 +128,13 @@ volunteerRouter.get('/certificate', async (req, res: Response<VolunteerCertifica
     .where('id', '=', volunteerId)
     .executeTakeFirstOrThrow();
 
-  const hoursPerPostingExpr = sql<number>`CASE
-    WHEN organization_posting.end_date IS NULL OR organization_posting.end_time IS NULL
-      THEN 0
-    ELSE GREATEST(
-      0,
-      EXTRACT(EPOCH FROM (
-        (organization_posting.end_date + organization_posting.end_time)
-        - (organization_posting.start_date + organization_posting.start_time)
-      )) / 3600.0
-    )
-  END`;
+  const hoursPerPostingExpr = sql<number>`GREATEST(
+    0,
+    EXTRACT(EPOCH FROM (
+      (organization_posting.end_date + organization_posting.end_time)
+      - (organization_posting.start_date + organization_posting.start_time)
+    )) / 3600.0
+  )`;
 
   const totalHoursRow = await database
     .selectFrom('enrollment')
@@ -276,7 +270,6 @@ volunteerRouter.put('/profile', async (req, res: Response<VolunteerProfileRespon
       'gender',
       'cv_path',
       'description',
-      'privacy',
     ])
     .where('id', '=', volunteerId)
     .executeTakeFirstOrThrow();
@@ -312,8 +305,6 @@ volunteerRouter.put('/profile', async (req, res: Response<VolunteerProfileRespon
     if (body.gender !== undefined) volunteerUpdate.gender = body.gender;
     if (body.cv_path !== undefined) volunteerUpdate.cv_path = body.cv_path;
     if (body.description !== undefined) volunteerUpdate.description = body.description;
-    if (body.privacy !== undefined) volunteerUpdate.privacy = body.privacy;
-
     if (Object.keys(volunteerUpdate).length > 0) {
       await trx
         .updateTable('volunteer_account')

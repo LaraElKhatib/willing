@@ -7,8 +7,6 @@ import {
   Clock3,
   Edit3,
   MapPin,
-  Globe,
-  Lock,
   Mail,
   Mars,
   Venus,
@@ -34,7 +32,6 @@ import LinkButton from '../../components/LinkButton';
 import Loading from '../../components/Loading';
 import SkillsInput from '../../components/skills/SkillsInput';
 import SkillsList from '../../components/skills/SkillsList';
-import { ToggleButton } from '../../components/ToggleButton';
 import useNotifications from '../../notifications/useNotifications';
 import { FormField } from '../../utils/formUtils';
 import requestServer, { SERVER_BASE_URL } from '../../utils/requestServer';
@@ -139,7 +136,6 @@ function VolunteerProfile() {
       date_of_birth: '',
       gender: 'male',
       description: '',
-      privacy: 'public',
     },
   });
 
@@ -157,7 +153,6 @@ function VolunteerProfile() {
       date_of_birth: getDateInputValue(response.volunteer.date_of_birth),
       gender: response.volunteer.gender,
       description: response.volunteer.description ?? '',
-      privacy: response.volunteer.privacy === 'private' ? 'private' : 'public',
     });
   }, [form]);
 
@@ -181,7 +176,6 @@ function VolunteerProfile() {
       gender: 'male' | 'female' | 'other';
       description: string;
       skills: string[];
-      privacy: 'public' | 'private';
     }) => requestServer<VolunteerProfileResponse>('/volunteer/profile', {
       method: 'PUT',
       body: data,
@@ -305,7 +299,6 @@ function VolunteerProfile() {
         gender: data.gender,
         description: data.description,
         skills,
-        privacy: data.privacy,
       });
 
       setProfile(response);
@@ -316,7 +309,6 @@ function VolunteerProfile() {
         date_of_birth: getDateInputValue(response.volunteer.date_of_birth),
         gender: response.volunteer.gender,
         description: response.volunteer.description ?? '',
-        privacy: response.volunteer.privacy === 'private' ? 'private' : 'public',
       });
       notifications.push({
         type: 'success',
@@ -336,7 +328,6 @@ function VolunteerProfile() {
       date_of_birth: getDateInputValue(profile.volunteer.date_of_birth),
       gender: profile.volunteer.gender,
       description: profile.volunteer.description ?? '',
-      privacy: profile.volunteer.privacy === 'private' ? 'private' : 'public',
     });
     setSkills(profile.skills);
     setIsEditMode(false);
@@ -809,51 +800,6 @@ function VolunteerProfile() {
               </div>
             </div>
 
-            <div className="card bg-base-100 shadow-md">
-              <div className="card-body">
-                <h5 className="font-bold text-lg">Privacy Setting</h5>
-                <p className="text-sm opacity-70 mb-4">Profile visibility preference.</p>
-                {isEditMode
-                  ? (
-                      <ToggleButton
-                        form={form}
-                        name="privacy"
-                        label="Visibility"
-                        disabled={saving}
-                        options={[
-                          {
-                            value: 'public',
-                            label: 'Public',
-                            description: 'Your profile is public',
-                            Icon: Globe,
-                            btnColor: 'btn-primary',
-                          },
-                          {
-                            value: 'private',
-                            label: 'Private',
-                            description: 'Your profile is private',
-                            Icon: Lock,
-                            btnColor: 'btn-secondary',
-                          },
-                        ]}
-                      />
-                    )
-                  : (
-                      <span
-                        className={`badge gap-2 ${
-                          formValues.privacy === 'private' ? 'badge-secondary' : 'badge-primary'
-                        }`}
-                      >
-                        {formValues.privacy === 'private'
-                          ? <Lock size={12} />
-                          : <Globe size={12} />}
-                        {formValues.privacy === 'private'
-                          ? 'Private'
-                          : 'Public'}
-                      </span>
-                    )}
-              </div>
-            </div>
           </ColumnLayout>
         </div>
       </div>
