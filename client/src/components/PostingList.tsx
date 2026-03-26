@@ -156,18 +156,25 @@ function PostingList({ posting, showCrisis = true, variant = 'volunteer' }: Post
                     <span className="truncate text-lg font-semibold leading-tight text-primary">{posting.title}</span>
                     <ExternalLink size={14} />
                   </Link>
-
-                  <div className="shrink-0 opacity-100">{statusTag}</div>
                 </div>
 
-                {variant === 'volunteer' && posting.organization_name && (
-                  <Link
-                    to={`/organization/${posting.organization_id}`}
-                    onClick={event => event.stopPropagation()}
-                    className="pointer-events-auto text-primary link link-hover no-underline hover:underline text-xs mt-1 self-start"
-                  >
-                    {posting.organization_name}
-                  </Link>
+                {variant === 'organization' && (
+                  <div className="mt-1 shrink-0 opacity-100">{statusTag}</div>
+                )}
+
+                {variant === 'volunteer' && (
+                  <div className="mt-1 flex min-w-0 items-center gap-2">
+                    {posting.organization_name && (
+                      <Link
+                        to={`/organization/${posting.organization_id}`}
+                        onClick={event => event.stopPropagation()}
+                        className="pointer-events-auto text-primary link link-hover no-underline hover:underline text-xs self-start"
+                      >
+                        {posting.organization_name}
+                      </Link>
+                    )}
+                    <div className="shrink-0 opacity-100">{statusTag}</div>
+                  </div>
                 )}
               </div>
 
