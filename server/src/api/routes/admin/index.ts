@@ -162,6 +162,8 @@ adminRouter.post('/reviewOrganizationRequest', async (req, res: Response<AdminOr
         longitude: Number(organizationRequest.longitude),
         location_name: organizationRequest.location_name,
         password: await bcrypt.hash(password, 10),
+        is_disabled: false,
+        is_deleted: false,
       })
       .returning(organizationPrivateResponseColumns)
       .executeTakeFirst();
