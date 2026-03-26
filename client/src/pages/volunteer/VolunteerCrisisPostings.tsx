@@ -75,18 +75,16 @@ function VolunteerCrisisPostings() {
   };
 
   return (
-    <div className="grow bg-base-200">
-      <PostingSearchView
-        title={resolvedCrisis?.name ?? 'Crisis'}
-        subtitle={subtitle}
-        icon={AlertCircle}
-        showBack
-        defaultBackTo="/volunteer"
-        fetchUrl="/volunteer/posting"
-        filterPostings={filterPostingsByCrisis}
-        emptyMessage="No postings found for this crisis yet."
-      />
-    </div>
+    <PostingSearchView
+      title={resolvedCrisis?.name ?? 'Crisis'}
+      subtitle={subtitle}
+      icon={AlertCircle}
+      showBack
+      defaultBackTo="/volunteer"
+      fetchUrl="/volunteer/posting"
+      filterPostings={filterPostingsByCrisis}
+      emptyMessage="No postings found for this crisis yet."
+    />
   );
 }
 

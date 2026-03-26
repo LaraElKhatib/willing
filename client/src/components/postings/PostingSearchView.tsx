@@ -20,6 +20,7 @@ import PageHeader from '../layout/PageHeader.tsx';
 import Loading from '../Loading.tsx';
 import PostingCard from '../PostingCard.tsx';
 import PostingFiltersCard from './PostingFiltersCard.tsx';
+import PageContainer from '../layout/PageContainer.tsx';
 
 import type { VolunteerPostingSearchResponse, VolunteerEnrollmentsResponse } from '../../../../server/src/api/types.ts';
 import type { PostingWithContext } from '../../../../server/src/types.ts';
@@ -152,7 +153,7 @@ function PostingSearchView({
   }, [fetchPostings]);
 
   return (
-    <div className="p-6 md:container mx-auto">
+    <PageContainer>
       <PageHeader
         title={title}
         subtitle={subtitle}
@@ -258,7 +259,7 @@ function PostingSearchView({
                 ))}
               </div>
             )}
-    </div>
+    </PageContainer>
   );
 }
 

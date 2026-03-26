@@ -1,9 +1,10 @@
-import { Building2, Globe, Mail, MapPin, Phone } from 'lucide-react';
+import { Building2, Globe, Inbox, Mail, MapPin, Phone } from 'lucide-react';
 import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 
 import Card from '../components/Card';
 import ColumnLayout from '../components/layout/ColumnLayout';
+import PageContainer from '../components/layout/PageContainer';
 import PageHeader from '../components/layout/PageHeader';
 import LocationPicker from '../components/LocationPicker';
 import PostingCollection from '../components/postings/PostingCollection';
@@ -58,182 +59,183 @@ function OrganizationProfile() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-base-200">
-      <div className="grow">
-        <div className="p-6 md:container mx-auto">
-          <PageHeader
-            title="Organization Profile"
-            subtitle="View organization details and available opportunities"
-            icon={Building2}
-            showBack
-            defaultBackTo="/"
-          />
+    <PageContainer>
+      <PageHeader
+        title="Organization Profile"
+        subtitle="View organization details and available opportunities"
+        icon={Building2}
+        showBack
+        defaultBackTo="/"
+      />
 
-          {error && <div className="mb-4 text-sm text-base-content/70">Unable to load organization profile.</div>}
+      {error && <div className="mb-4 text-sm text-base-content/70">Unable to load organization profile.</div>}
 
-          {loading && (
-            <div className="flex justify-center py-12">
-              <span className="loading loading-spinner loading-lg"></span>
-            </div>
-          )}
+      {loading && (
+        <div className="flex justify-center py-12">
+          <span className="loading loading-spinner loading-lg"></span>
+        </div>
+      )}
 
-          {!loading && data && (
-            <ColumnLayout
-              sidebar={(
-                <>
-                  <Card>
-                    <div className="flex flex-col items-center text-center">
-                      <div className="bg-linear-to-br from-primary to-primary/70 text-primary-content rounded-full w-24 h-24 flex items-center justify-center mb-4">
-                        <span className="text-4xl font-bold">
-                          {data.organization.name.charAt(0).toUpperCase()}
-                        </span>
-                      </div>
-                      <h2 className="text-2xl font-bold">
-                        {data.organization.name}
-                      </h2>
-                    </div>
-
-                    <div className="divider my-4" />
-
-                    <div className="space-y-4">
-                      {data.organization.location_name && (
-                        <div className="flex gap-3">
-                          <MapPin
-                            size={20}
-                            className="text-primary shrink-0 mt-0.5"
-                          />
-                          <div className="flex-1">
-                            <p className="text-xs opacity-70 font-semibold mb-0.5">
-                              LOCATION
-                            </p>
-                            <p className="text-sm">
-                              {data.organization.location_name}
-                            </p>
-                          </div>
-                        </div>
-                      )}
-
-                      {data.organization.email && (
-                        <div className="flex gap-3">
-                          <Mail
-                            size={20}
-                            className="text-primary shrink-0 mt-0.5"
-                          />
-                          <div className="flex-1">
-                            <p className="text-xs opacity-70 font-semibold mb-0.5">
-                              EMAIL
-                            </p>
-                            <a
-                              href={`mailto:${data.organization.email}`}
-                              className="link link-primary text-sm break-all"
-                            >
-                              {data.organization.email}
-                            </a>
-                          </div>
-                        </div>
-                      )}
-
-                      {data.organization.phone_number && (
-                        <div className="flex gap-3">
-                          <Phone
-                            size={20}
-                            className="text-primary shrink-0 mt-0.5"
-                          />
-                          <div className="flex-1">
-                            <p className="text-xs opacity-70 font-semibold mb-0.5">
-                              PHONE
-                            </p>
-                            <a
-                              href={`tel:${data.organization.phone_number}`}
-                              className="link link-primary text-sm"
-                            >
-                              {data.organization.phone_number}
-                            </a>
-                          </div>
-                        </div>
-                      )}
-
-                      {data.organization.url && (
-                        <div className="flex gap-3">
-                          <Globe
-                            size={20}
-                            className="text-primary shrink-0 mt-0.5"
-                          />
-                          <div className="flex-1">
-                            <p className="text-xs opacity-70 font-semibold mb-0.5">
-                              WEBSITE
-                            </p>
-                            <a
-                              href={data.organization.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="link link-primary text-sm break-all"
-                            >
-                              {data.organization.url}
-                            </a>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </Card>
-
-                  {(data.organization.latitude && data.organization.longitude) && (
-                    <Card
-                      title="Location"
-                      description="Organization location on map."
-                      Icon={MapPin}
-                    >
-                      <LocationPicker
-                        position={[
-                          data.organization.latitude,
-                          data.organization.longitude,
-                        ]}
-                        setPosition={() => {}}
-                        readOnly={true}
-                      />
-                    </Card>
-                  )}
-                </>
-              )}
-            >
-              <div>
-                <div className="flex flex-wrap items-center gap-2 mb-6">
-                  <h3 className="text-2xl font-bold tracking-tight">
-                    Postings
-                  </h3>
-                  <span className="badge badge-lg badge-primary">
-                    {postingsWithContext.length}
-                  </span>
-
-                  <div className="ml-auto">
-                    <PostingViewModeToggle />
+      {!loading && data && (
+        <ColumnLayout
+          sidebar={(
+            <>
+              <Card>
+                <div className="flex flex-col items-center text-center">
+                  <div className="bg-linear-to-br from-primary to-primary/70 text-primary-content rounded-full w-24 h-24 flex items-center justify-center mb-4">
+                    <span className="text-4xl font-bold">
+                      {data.organization.name.charAt(0).toUpperCase()}
+                    </span>
                   </div>
+                  <h2 className="text-2xl font-bold">
+                    {data.organization.name}
+                  </h2>
                 </div>
 
-                {postingsWithContext.length === 0
-                  ? (
-                      <div className="card bg-base-100 shadow-md border border-base-200">
-                        <div className="card-body flex flex-col items-center justify-center py-12">
-                          <p className="text-center opacity-70">
-                            This organization has no active postings at the moment.
-                          </p>
-                        </div>
-                      </div>
-                    )
-                  : (
-                      <PostingCollection
-                        postings={postingsWithContext}
-                        variant="organization"
-                        cardsContainerClassName="grid grid-cols-1 gap-6 md:grid-cols-2"
-                        listContainerClassName="space-y-4"
+                <div className="divider my-4" />
+
+                <div className="space-y-4">
+                  {data.organization.location_name && (
+                    <div className="flex gap-3">
+                      <MapPin
+                        size={20}
+                        className="text-primary shrink-0 mt-0.5"
                       />
-                    )}
-              </div>
-            </ColumnLayout>
+                      <div className="flex-1">
+                        <p className="text-xs opacity-70 font-semibold mb-0.5">
+                          LOCATION
+                        </p>
+                        <p className="text-sm">
+                          {data.organization.location_name}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {data.organization.email && (
+                    <div className="flex gap-3">
+                      <Mail
+                        size={20}
+                        className="text-primary shrink-0 mt-0.5"
+                      />
+                      <div className="flex-1">
+                        <p className="text-xs opacity-70 font-semibold mb-0.5">
+                          EMAIL
+                        </p>
+                        <a
+                          href={`mailto:${data.organization.email}`}
+                          className="link link-primary text-sm break-all"
+                        >
+                          {data.organization.email}
+                        </a>
+                      </div>
+                    </div>
+                  )}
+
+                  {data.organization.phone_number && (
+                    <div className="flex gap-3">
+                      <Phone
+                        size={20}
+                        className="text-primary shrink-0 mt-0.5"
+                      />
+                      <div className="flex-1">
+                        <p className="text-xs opacity-70 font-semibold mb-0.5">
+                          PHONE
+                        </p>
+                        <a
+                          href={`tel:${data.organization.phone_number}`}
+                          className="link link-primary text-sm"
+                        >
+                          {data.organization.phone_number}
+                        </a>
+                      </div>
+                    </div>
+                  )}
+
+                  {data.organization.url && (
+                    <div className="flex gap-3">
+                      <Globe
+                        size={20}
+                        className="text-primary shrink-0 mt-0.5"
+                      />
+                      <div className="flex-1">
+                        <p className="text-xs opacity-70 font-semibold mb-0.5">
+                          WEBSITE
+                        </p>
+                        <a
+                          href={data.organization.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="link link-primary text-sm break-all"
+                        >
+                          {data.organization.url}
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </Card>
+
+              {(data.organization.latitude && data.organization.longitude) && (
+                <Card
+                  title="Location"
+                  description="Organization location on map."
+                  Icon={MapPin}
+                >
+                  <LocationPicker
+                    position={[
+                      data.organization.latitude,
+                      data.organization.longitude,
+                    ]}
+                    setPosition={() => {}}
+                    readOnly={true}
+                  />
+                </Card>
+              )}
+            </>
           )}
-        </div>
-      </div>
-    </div>
+        >
+          <div>
+            <div className="flex flex-wrap items-center gap-2 mb-6">
+              <h3 className="text-2xl font-bold tracking-tight">
+                Postings
+              </h3>
+              <span className="badge badge-lg badge-primary">
+                {postingsWithContext.length}
+              </span>
+
+              <div className="ml-auto">
+                <PostingViewModeToggle />
+              </div>
+            </div>
+
+            {postingsWithContext.length === 0
+              ? (
+                  <div className="hero bg-base-200 rounded-box p-10">
+                    <div className="hero-content text-center">
+                      <div className="max-w-md flex flex-col items-center">
+                        { /* FIND_WHAT_ICON_TO_PUT_HERE */ }
+                        <Inbox size={64} className="opacity-20 mb-4" />
+                        <p className="py-2 font-bold opacity-80">FIND_WHAT_TEXT_TO_PUT_HERE</p>
+                        <p className="pb-6 opacity-60">
+                          This organization has no active postings at the moment.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )
+              : (
+                  <PostingCollection
+                    postings={postingsWithContext}
+                    variant="organization"
+                    cardsContainerClassName="grid grid-cols-1 gap-6 md:grid-cols-2"
+                    listContainerClassName="space-y-4"
+                  />
+                )}
+          </div>
+        </ColumnLayout>
+      )}
+    </PageContainer>
   );
 }
 

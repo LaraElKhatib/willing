@@ -6,6 +6,7 @@ import { useForm } from 'react-hook-form';
 import { newPlatformCertificateSettingsSchema } from '../../../../server/src/db/tables';
 import Alert from '../../components/Alert';
 import Card from '../../components/Card';
+import PageContainer from '../../components/layout/PageContainer';
 import PageHeader from '../../components/layout/PageHeader';
 import Loading from '../../components/Loading';
 import PasswordResetCard from '../../components/PasswordResetCard';
@@ -145,81 +146,77 @@ function AdminSettings() {
   };
 
   return (
-    <div className="grow bg-base-200">
-      <div className="p-6 md:container mx-auto">
-        <div className="mx-auto w-full max-w-5xl min-w-0">
-          <PageHeader
-            title="Settings"
-            subtitle="Manage admin security and platform certificate signatory settings."
-            icon={Lock}
-          />
+    <PageContainer>
+      <PageHeader
+        title="Settings"
+        subtitle="Manage admin security and platform certificate signatory settings."
+        icon={Lock}
+      />
+
+      {loading && (
+        <div className="flex justify-center mt-8">
+          <Loading size="xl" />
         </div>
+      )}
 
-        {loading && (
-          <div className="flex justify-center mt-8">
-            <Loading size="xl" />
-          </div>
-        )}
+      {error && (
+        <div>
+          <Alert color="error">
+            {error.message || 'Failed to load settings.'}
+          </Alert>
+          <button className="btn btn-outline mt-3" onClick={() => { void trigger(); }}>
+            Retry
+          </button>
+        </div>
+      )}
 
-        {error && (
-          <div className="mt-4">
-            <Alert color="error">
-              {error.message || 'Failed to load settings.'}
-            </Alert>
-            <button className="btn btn-outline mt-3" onClick={() => { void trigger(); }}>
-              Retry
-            </button>
-          </div>
-        )}
+      {!loading && !error && (
+        <>
+          <PasswordResetCard />
 
-        {!loading && !error && (
-          <div className="mt-4 flex flex-col items-center gap-6">
-            <PasswordResetCard />
+          <Card
+            title="Website Certificate Signatory"
+            description="These values appear on all newly generated volunteer certificates."
+            Icon={Signature}
+          >
+            <FormRootError form={form} />
 
-            <Card
-              title="Website Certificate Signatory"
-              description="These values appear on all newly generated volunteer certificates."
-              Icon={Signature}
-            >
-              <FormRootError form={form} />
+            <div className="grid gap-4 mt-2">
+              <FormField form={form} name="signatory_name" label="Signatory Name" Icon={UserRound} />
+              <FormField form={form} name="signatory_position" label="Signatory Position" Icon={Signature} />
 
-              <div className="grid gap-4 mt-2">
-                <FormField form={form} name="signatory_name" label="Signatory Name" Icon={UserRound} />
-                <FormField form={form} name="signatory_position" label="Signatory Position" Icon={Signature} />
-
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Signature Image</label>
-                  <SignatureUploadField
-                    busy={signatureBusy}
-                    hasSignature={Boolean(settings?.signature_path)}
-                    previewUrl={signatureUrl}
-                    emptyMessage="No platform signature uploaded yet."
-                    uploadLabel="Upload Signature"
-                    drawLabel="Draw Signature"
-                    fileNamePrefix="platform-signature-drawn"
-                    onUploadFile={uploadSignatureFile}
-                    onDelete={deleteSignature}
-                    onError={message => notifications.push({ type: 'error', message })}
-                  />
-                </div>
-
-                <div>
-                  <button
-                    type="button"
-                    className="btn btn-primary gap-2"
-                    onClick={saveTextSettings}
-                    disabled={form.formState.isSubmitting || signatureBusy}
-                  >
-                    <Save size={14} />
-                    {form.formState.isSubmitting ? 'Saving...' : 'Save Signatory Settings'}
-                  </button>
-                </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Signature Image</label>
+                <SignatureUploadField
+                  busy={signatureBusy}
+                  hasSignature={Boolean(settings?.signature_path)}
+                  previewUrl={signatureUrl}
+                  emptyMessage="No platform signature uploaded yet."
+                  uploadLabel="Upload Signature"
+                  drawLabel="Draw Signature"
+                  fileNamePrefix="platform-signature-drawn"
+                  onUploadFile={uploadSignatureFile}
+                  onDelete={deleteSignature}
+                  onError={message => notifications.push({ type: 'error', message })}
+                />
               </div>
-            </Card>
-          </div>
-        )}
-      </div>
-    </div>
+
+              <div>
+                <button
+                  type="button"
+                  className="btn btn-primary gap-2"
+                  onClick={saveTextSettings}
+                  disabled={form.formState.isSubmitting || signatureBusy}
+                >
+                  <Save size={14} />
+                  {form.formState.isSubmitting ? 'Saving...' : 'Save Signatory Settings'}
+                </button>
+              </div>
+            </div>
+          </Card>
+        </>
+      )}
+    </PageContainer>
   );
 }
 

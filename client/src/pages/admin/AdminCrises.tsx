@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AlertCircle, Pencil, Pin, PinIcon, PinOff, Plus, RotateCcw, Save, Search, SlidersHorizontal, Trash2, X } from 'lucide-react';
+import { AlertCircle, Pencil, Pin, PinOff, Plus, RotateCcw, Save, Search, SlidersHorizontal, Trash2, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useForm } from 'react-hook-form';
 import zod from 'zod';
@@ -9,6 +9,7 @@ import Alert from '../../components/Alert';
 import Button from '../../components/Button';
 import Card from '../../components/Card';
 import ColumnLayout from '../../components/layout/ColumnLayout';
+import PageContainer from '../../components/layout/PageContainer';
 import PageHeader from '../../components/layout/PageHeader';
 import useNotifications from '../../notifications/useNotifications';
 import { executeAndShowError, FormField, FormRootError } from '../../utils/formUtils';
@@ -304,243 +305,241 @@ function AdminCrises() {
   };
 
   return (
-    <div className="grow bg-base-200">
-      <div className="p-6 md:container mx-auto">
-        <PageHeader
-          title="Crisis Management"
-          subtitle="Create, edit, delete, and pin crises according to the current situation."
-          icon={AlertCircle}
-        />
+    <PageContainer>
+      <PageHeader
+        title="Crisis Management"
+        subtitle="Create, edit, delete, and pin crises according to the current situation."
+        icon={AlertCircle}
+      />
 
-        <ColumnLayout
-          stickySidebar
-          sidebar={(
-            <Card
-              title="Create Crisis"
-              description="Add a new crisis tag."
-            >
-              <form className="mt-2 space-y-4" onSubmit={onCreateCrisis}>
-                <FormField
-                  form={crisisForm}
-                  name="name"
-                  label="Crisis Name"
-                  placeholder="Crisis name"
-                  Icon={AlertCircle}
-                />
-                <FormField
-                  form={crisisForm}
-                  name="description"
-                  label="Description (Optional)"
-                  type="textarea"
-                />
+      <ColumnLayout
+        stickySidebar
+        sidebar={(
+          <Card
+            title="Create Crisis"
+            description="Add a new crisis tag."
+          >
+            <form className="mt-2 space-y-4" onSubmit={onCreateCrisis}>
+              <FormField
+                form={crisisForm}
+                name="name"
+                label="Crisis Name"
+                placeholder="Crisis name"
+                Icon={AlertCircle}
+              />
+              <FormField
+                form={crisisForm}
+                name="description"
+                label="Description (Optional)"
+                type="textarea"
+              />
 
+              <Button
+                color="primary"
+                type="submit"
+                loading={isCreatingCrisis}
+                Icon={Plus}
+                layout="block"
+              >
+                Add Crisis
+              </Button>
+            </form>
+
+            <FormRootError form={crisisForm} />
+
+          </Card>
+        )}
+      >
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-semibold">Existing Crises</h3>
+            {crisisCountBadge}
+          </div>
+
+          <Card
+            title="Filters"
+          >
+            <form className="space-y-4" onSubmit={applyFilters}>
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
+                <div className="lg:min-w-0 lg:flex-1">
+                  <label className="label" htmlFor="admin-crises-search">
+                    <span className="label-text">Search</span>
+                  </label>
+                  <label className="input input-bordered flex w-full items-center gap-2">
+                    <Search className="h-4 w-4 opacity-70" />
+                    <input
+                      id="admin-crises-search"
+                      type="text"
+                      className="w-full min-w-0"
+                      placeholder="Search crisis name or description"
+                      value={filters.search}
+                      onChange={event => setFilters(prev => ({ ...prev, search: event.target.value }))}
+                    />
+                  </label>
+                </div>
+
+                <div className="lg:w-64">
+                  <label className="label" htmlFor="admin-crises-sort">
+                    <span className="label-text">Sort By</span>
+                  </label>
+                  <select
+                    id="admin-crises-sort"
+                    className="select select-bordered w-full"
+                    value={selectedSortOption.value}
+                    onChange={event => onSortChange(event.target.value as CrisisSortOptionValue)}
+                  >
+                    {crisisSortOptions.map(option => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="lg:w-40">
+                  <Button color="primary" type="submit" disabled={!hasPendingChanges} layout="block">Search</Button>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-3">
                 <Button
-                  color="primary"
-                  type="submit"
-                  loading={isCreatingCrisis}
-                  Icon={Plus}
-                  layout="block"
+                  type="button"
+                  color={hasAdvancedFiltersApplied || showAdvancedSearch ? 'secondary' : 'ghost'}
+                  onClick={() => setShowAdvancedSearch(prev => !prev)}
+                  Icon={SlidersHorizontal}
                 >
-                  Add Crisis
+                  Advanced Search
                 </Button>
-              </form>
 
-              <FormRootError form={crisisForm} />
+                <Button type="button" color="ghost" onClick={resetFilters} disabled={!hasAnyChangesFromDefault} Icon={RotateCcw}>Reset</Button>
+              </div>
 
-            </Card>
-          )}
-        >
-          <section>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-semibold">Existing Crises</h3>
-              {crisisCountBadge}
-            </div>
-
-            <Card
-              title="Filters"
-            >
-              <form className="space-y-4" onSubmit={applyFilters}>
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
-                  <div className="lg:min-w-0 lg:flex-1">
-                    <label className="label" htmlFor="admin-crises-search">
-                      <span className="label-text">Search</span>
-                    </label>
-                    <label className="input input-bordered flex w-full items-center gap-2">
-                      <Search className="h-4 w-4 opacity-70" />
-                      <input
-                        id="admin-crises-search"
-                        type="text"
-                        className="w-full min-w-0"
-                        placeholder="Search crisis name or description"
-                        value={filters.search}
-                        onChange={event => setFilters(prev => ({ ...prev, search: event.target.value }))}
-                      />
-                    </label>
-                  </div>
-
-                  <div className="lg:w-64">
-                    <label className="label" htmlFor="admin-crises-sort">
-                      <span className="label-text">Sort By</span>
-                    </label>
+              {showAdvancedSearch && (
+                <div className="rounded-box border border-base-300 bg-base-200/40 p-4">
+                  <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                     <select
-                      id="admin-crises-sort"
                       className="select select-bordered w-full"
-                      value={selectedSortOption.value}
-                      onChange={event => onSortChange(event.target.value as CrisisSortOptionValue)}
+                      value={filters.pinned}
+                      onChange={event => setFilters(prev => ({
+                        ...prev,
+                        pinned: event.target.value as CrisisFilters['pinned'],
+                      }))}
                     >
-                      {crisisSortOptions.map(option => (
-                        <option key={option.value} value={option.value}>{option.label}</option>
-                      ))}
+                      <option value="all">Pinned State: All</option>
+                      <option value="pinned">Pinned State: Pinned</option>
+                      <option value="unpinned">Pinned State: Unpinned</option>
                     </select>
                   </div>
-
-                  <div className="lg:w-40">
-                    <Button color="primary" type="submit" disabled={!hasPendingChanges} layout="block">Search</Button>
-                  </div>
                 </div>
+              )}
+            </form>
+          </Card>
 
-                <div className="flex flex-wrap gap-3">
-                  <Button
-                    type="button"
-                    color={hasAdvancedFiltersApplied || showAdvancedSearch ? 'secondary' : 'ghost'}
-                    onClick={() => setShowAdvancedSearch(prev => !prev)}
-                    Icon={SlidersHorizontal}
-                  >
-                    Advanced Search
-                  </Button>
-
-                  <Button type="button" color="ghost" onClick={resetFilters} disabled={!hasAnyChangesFromDefault} Icon={RotateCcw}>Reset</Button>
+          {!crises
+            ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="skeleton h-24 rounded-box" />
+                  <div className="skeleton h-24 rounded-box" />
                 </div>
-
-                {showAdvancedSearch && (
-                  <div className="rounded-box border border-base-300 bg-base-200/40 p-4">
-                    <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-                      <select
-                        className="select select-bordered w-full"
-                        value={filters.pinned}
-                        onChange={event => setFilters(prev => ({
-                          ...prev,
-                          pinned: event.target.value as CrisisFilters['pinned'],
-                        }))}
+              )
+            : crises.length === 0
+              ? (
+                  <Alert style="soft">
+                    No crises added yet.
+                  </Alert>
+                )
+              : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {crises.map(crisis => (
+                      <Card
+                        key={crisis.id}
+                        title={crisis.name}
+                        description={editingCrisisId === crisis.id ? undefined : crisis.description || 'No description set'}
+                        right={
+                          crisis.pinned
+                          && <span className="badge badge-secondary">Pinned</span>
+                        }
+                        Icon={AlertCircle}
                       >
-                        <option value="all">Pinned State: All</option>
-                        <option value="pinned">Pinned State: Pinned</option>
-                        <option value="unpinned">Pinned State: Unpinned</option>
-                      </select>
-                    </div>
+
+                        {editingCrisisId === crisis.id
+                          ? (
+                              <div className="">
+                                <input
+                                  value={editingName}
+                                  onChange={event => setEditingName(event.target.value)}
+                                  className="input input-bordered w-full"
+                                  placeholder="Crisis name"
+                                />
+                                <textarea
+                                  value={editingDescription}
+                                  onChange={event => setEditingDescription(event.target.value)}
+                                  className="textarea textarea-bordered w-full"
+                                  placeholder="Description (optional)"
+                                  rows={3}
+                                />
+                                <div className="flex flex-row-reverse flex-wrap gap-2">
+                                  <Button
+                                    color="primary"
+                                    type="button"
+                                    onClick={() => onSaveEdit(crisis.id)}
+                                    disabled={actionBusyId === crisis.id}
+                                    Icon={Save}
+                                  >
+                                    Save
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    color="ghost"
+                                    onClick={onCancelEdit}
+                                    disabled={actionBusyId === crisis.id}
+                                    Icon={X}
+                                  >
+                                    Cancel
+                                  </Button>
+                                </div>
+                              </div>
+                            )
+                          : (
+                              <div className="flex justify-end gap-2">
+                                <Button
+                                  type="button"
+                                  style="outline"
+                                  size="sm"
+                                  onClick={() => onTogglePin(crisis.id, crisis.pinned)}
+                                  disabled={actionBusyId === crisis.id}
+                                  Icon={crisis.pinned ? PinOff : Pin}
+                                >
+                                  {crisis.pinned ? 'Unpin' : 'Pin'}
+                                </Button>
+                                <Button
+                                  type="button"
+                                  style="outline"
+                                  size="sm"
+                                  onClick={() => onStartEdit(crisis.id, crisis.name, crisis.description)}
+                                  disabled={actionBusyId === crisis.id}
+                                  Icon={Pencil}
+                                >
+                                  Edit
+                                </Button>
+                                <Button
+                                  type="button"
+                                  style="outline"
+                                  color="error"
+                                  size="sm"
+                                  onClick={() => onDelete(crisis.id, crisis.name)}
+                                  disabled={actionBusyId === crisis.id}
+                                  Icon={Trash2}
+                                >
+                                  Delete
+                                </Button>
+                              </div>
+                            )}
+                      </Card>
+                    ))}
                   </div>
                 )}
-              </form>
-            </Card>
-
-            {!crises
-              ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="skeleton h-24 rounded-box" />
-                    <div className="skeleton h-24 rounded-box" />
-                  </div>
-                )
-              : crises.length === 0
-                ? (
-                    <Alert style="soft">
-                      No crises added yet.
-                    </Alert>
-                  )
-                : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {crises.map(crisis => (
-                        <Card
-                          key={crisis.id}
-                          title={crisis.name}
-                          description={editingCrisisId === crisis.id ? undefined : crisis.description || 'No description set'}
-                          right={
-                            crisis.pinned
-                            && <span className="badge badge-secondary">Pinned</span>
-                          }
-                          Icon={AlertCircle}
-                        >
-
-                          {editingCrisisId === crisis.id
-                            ? (
-                                <div className="">
-                                  <input
-                                    value={editingName}
-                                    onChange={event => setEditingName(event.target.value)}
-                                    className="input input-bordered w-full"
-                                    placeholder="Crisis name"
-                                  />
-                                  <textarea
-                                    value={editingDescription}
-                                    onChange={event => setEditingDescription(event.target.value)}
-                                    className="textarea textarea-bordered w-full"
-                                    placeholder="Description (optional)"
-                                    rows={3}
-                                  />
-                                  <div className="flex flex-row-reverse flex-wrap gap-2">
-                                    <Button
-                                      color="primary"
-                                      type="button"
-                                      onClick={() => onSaveEdit(crisis.id)}
-                                      disabled={actionBusyId === crisis.id}
-                                      Icon={Save}
-                                    >
-                                      Save
-                                    </Button>
-                                    <Button
-                                      type="button"
-                                      color="ghost"
-                                      onClick={onCancelEdit}
-                                      disabled={actionBusyId === crisis.id}
-                                      Icon={X}
-                                    >
-                                      Cancel
-                                    </Button>
-                                  </div>
-                                </div>
-                              )
-                            : (
-                                <div className="flex justify-end gap-2">
-                                  <Button
-                                    type="button"
-                                    style="outline"
-                                    size="sm"
-                                    onClick={() => onTogglePin(crisis.id, crisis.pinned)}
-                                    disabled={actionBusyId === crisis.id}
-                                    Icon={crisis.pinned ? PinOff : Pin}
-                                  >
-                                    {crisis.pinned ? 'Unpin' : 'Pin'}
-                                  </Button>
-                                  <Button
-                                    type="button"
-                                    style="outline"
-                                    size="sm"
-                                    onClick={() => onStartEdit(crisis.id, crisis.name, crisis.description)}
-                                    disabled={actionBusyId === crisis.id}
-                                    Icon={Pencil}
-                                  >
-                                    Edit
-                                  </Button>
-                                  <Button
-                                    type="button"
-                                    style="outline"
-                                    color="error"
-                                    size="sm"
-                                    onClick={() => onDelete(crisis.id, crisis.name)}
-                                    disabled={actionBusyId === crisis.id}
-                                    Icon={Trash2}
-                                  >
-                                    Delete
-                                  </Button>
-                                </div>
-                              )}
-                        </Card>
-                      ))}
-                    </div>
-                  )}
-          </section>
-        </ColumnLayout>
-      </div>
-    </div>
+        </section>
+      </ColumnLayout>
+    </PageContainer>
   );
 }
 

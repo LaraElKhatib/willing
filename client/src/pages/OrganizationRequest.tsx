@@ -55,8 +55,8 @@ export default function OrganizationRequestPage() {
     return (
       <div className="grow hero bg-base-200">
         <div className="hero-content text-center">
-          <div className="card bg-base-100 shadow-2xl max-w-lg w-full">
-            <div className="card-body items-center">
+          <Card>
+            <div className="flex flex-col gap-4 items-center">
               <h2 className="card-title text-2xl">Request submitted</h2>
               <p className="opacity-80">
                 Your organization request was sent successfully. Our team will review it and contact you.
@@ -64,13 +64,14 @@ export default function OrganizationRequestPage() {
               <LinkButton
                 color="primary"
                 className="mt-3"
+                layout="wide"
                 to="/"
                 Icon={Home}
               >
                 Go back home
               </LinkButton>
             </div>
-          </div>
+          </Card>
         </div>
       </div>
     );

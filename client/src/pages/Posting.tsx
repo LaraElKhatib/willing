@@ -33,6 +33,7 @@ import Button from '../components/Button.tsx';
 import Card from '../components/Card.tsx';
 import CustomMessageModal from '../components/CustomMessageModal.tsx';
 import ColumnLayout from '../components/layout/ColumnLayout.tsx';
+import PageContainer from '../components/layout/PageContainer.tsx';
 import PageHeader from '../components/layout/PageHeader.tsx';
 import LinkButton from '../components/LinkButton.tsx';
 import Loading from '../components/Loading.tsx';
@@ -746,7 +747,7 @@ function PostingPage() {
   }
 
   return (
-    <div className="grow bg-base-200">
+    <PageContainer>
       <CustomMessageModal
         open={isApplyModalOpen}
         submitting={applying}
@@ -754,448 +755,365 @@ function PostingPage() {
         onSubmit={submitApplication}
         placeholder="You can add an optional message to tell the organization why you're interested in this opportunity"
       />
-      <div className="p-6 md:container mx-auto">
-        <PageHeader
-          title="Posting Details"
-          subtitle={isVolunteerView ? 'Review details before applying' : 'View and manage your posting'}
-          icon={ListChecks}
-          showBack
-          defaultBackTo={isVolunteerView ? '/volunteer' : '/organization'}
-          actions={!isVolunteerView && (isEditMode
-            ? (
-                <>
-                  <Button style="outline" onClick={onCancelEdit} disabled={saving} Icon={X}>
-                    Cancel
-                  </Button>
-                  <Button color="primary" onClick={onSave} loading={saving} Icon={Save}>
-                    Save Changes
-                  </Button>
-                </>
-              )
-            : (
-                <>
-                  <LinkButton
-                    to={`/organization/posting/${posting.id}/attendance`}
-                    color="info"
-                    style="outline"
-                    disabled={!canOpenAttendancePage}
-                    Icon={ListChecks}
-                  >
-                    Attendance
-                  </LinkButton>
-                  <Button
-                    color="primary"
-                    onClick={() => setIsEditMode(true)}
-                    style="outline"
-                    Icon={Edit3}
-                  >
-                    Edit
-                  </Button>
-                  <Button
-                    color={posting?.is_closed ? 'success' : 'warning'}
-                    onClick={onToggleClosed}
-                    disabled={!posting}
-                    loading={togglingClosed}
-                    Icon={posting?.is_closed ? LockOpen : Lock}
-                  >
-                    {posting?.is_closed ? 'Reopen' : 'Close'}
-                  </Button>
-                  <Button
-                    color="error"
-                    onClick={onDelete}
-                    loading={deleting}
-                    Icon={Trash2}
-                  >
-                    Delete
-                  </Button>
-                </>
-              )
-          )}
-        />
 
-        <div className="mt-6">
-          <ColumnLayout
-            sidebar={(
+      <PageHeader
+        title="Posting Details"
+        subtitle={isVolunteerView ? 'Review details before applying' : 'View and manage your posting'}
+        icon={ListChecks}
+        showBack
+        defaultBackTo={isVolunteerView ? '/volunteer' : '/organization'}
+        actions={!isVolunteerView && (isEditMode
+          ? (
               <>
-                <Card
-                  title={formValues.title}
-                  right={
-                    isVolunteerView && postingOrganization && (
-                      <Link
-                        to={`/organization/${postingOrganization.id}`}
-                        className="link link-primary link-hover font-medium text-sm inline-flex items-center gap-1.5 shrink-0"
-                      >
-                        <Building2 size={14} />
-                        <span>{postingOrganization.name}</span>
-                      </Link>
-                    )
-                  }
-                >
-
-                  {isEditMode
-                    ? (
-                        <div className="space-y-4">
-                          <FormField
-                            form={form}
-                            label="Title"
-                            name="title"
-                            type="text"
-                            placeholder="Enter posting title"
-                            Icon={Edit3}
-                          />
-                          <FormField
-                            form={form}
-                            label="Description"
-                            name="description"
-                            type="textarea"
-                            placeholder="Describe the opportunity"
-                          />
-                          <FormField
-                            form={form}
-                            label="Location Name"
-                            name="location_name"
-                            type="text"
-                            placeholder="e.g. Downtown Community Center"
-                            Icon={MapPin}
-                          />
-                          <FormField
-                            form={form}
-                            label="Max Volunteers"
-                            name="max_volunteers"
-                            type="number"
-                            placeholder="Optional"
-                            Icon={Users}
-                          />
-                          <FormField
-                            form={form}
-                            label="Min Age"
-                            name="minimum_age"
-                            type="number"
-                            placeholder="Optional"
-                            Icon={ShieldCheck}
-                          />
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <fieldset className="fieldset w-full">
-                              <label className="label">
-                                <span className="label-text font-medium">Start Date</span>
-                              </label>
-                              <input
-                                type="date"
-                                className={`input input-bordered w-full focus:input-primary ${form.formState.errors.start_timestamp ? 'input-error' : ''}`}
-                                value={startDateTimeParts.date}
-                                onChange={(event) => {
-                                  const nextValue = combineDateAndTime(event.target.value, startDateTimeParts.time);
-                                  form.setValue('start_timestamp', nextValue, {
-                                    shouldDirty: true,
-                                    shouldTouch: true,
-                                    shouldValidate: true,
-                                  });
-                                }}
-                              />
-                              {form.formState.errors.start_timestamp?.message && (
-                                <p className="text-error text-sm mt-1">{form.formState.errors.start_timestamp.message as string}</p>
-                              )}
-                            </fieldset>
-
-                            <fieldset className="fieldset w-full">
-                              <label className="label">
-                                <span className="label-text font-medium">Start Time</span>
-                              </label>
-                              <input
-                                type="time"
-                                className="input input-bordered w-full focus:input-primary"
-                                value={startDateTimeParts.time}
-                                onChange={(event) => {
-                                  const nextValue = combineDateAndTime(startDateTimeParts.date, event.target.value);
-                                  form.setValue('start_timestamp', nextValue, {
-                                    shouldDirty: true,
-                                    shouldTouch: true,
-                                    shouldValidate: true,
-                                  });
-                                }}
-                              />
-                            </fieldset>
-
-                            <fieldset className="fieldset w-full">
-                              <label className="label">
-                                <span className="label-text font-medium">End Date</span>
-                              </label>
-                              <input
-                                type="date"
-                                className="input input-bordered w-full focus:input-primary"
-                                value={endDateTimeParts.date}
-                                onChange={(event) => {
-                                  const nextValue = combineDateAndTime(event.target.value, endDateTimeParts.time);
-                                  form.setValue('end_timestamp', nextValue || undefined, {
-                                    shouldDirty: true,
-                                    shouldTouch: true,
-                                    shouldValidate: true,
-                                  });
-                                }}
-                              />
-                            </fieldset>
-
-                            <fieldset className="fieldset w-full">
-                              <label className="label">
-                                <span className="label-text font-medium">End Time</span>
-                              </label>
-                              <input
-                                type="time"
-                                className="input input-bordered w-full focus:input-primary"
-                                value={endDateTimeParts.time}
-                                onChange={(event) => {
-                                  const nextValue = combineDateAndTime(endDateTimeParts.date, event.target.value);
-                                  form.setValue('end_timestamp', nextValue || undefined, {
-                                    shouldDirty: true,
-                                    shouldTouch: true,
-                                    shouldValidate: true,
-                                  });
-                                }}
-                              />
-                            </fieldset>
-                          </div>
-                        </div>
-                      )
-                    : (
-                        <div className="space-y-4">
-                          <div>
-                            <label className="text-xs font-semibold opacity-70 uppercase">Description</label>
-                            <p className="text-sm opacity-80 whitespace-pre-wrap">{formValues.description}</p>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <MapPin size={16} className="text-primary" />
-                            <span className="text-sm">{formValues.location_name}</span>
-                          </div>
-                          <div className={`grid gap-4 ${formValues.end_timestamp ? 'sm:grid-cols-2' : 'grid-cols-1'}`}>
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-2">
-                                <Calendar size={16} className="text-primary" />
-                                <div>
-                                  <p className="text-xs opacity-70 font-semibold">START DATE</p>
-                                  <span className="text-xs">{formattedStartDate}</span>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <Clock size={16} className="text-primary" />
-                                <div>
-                                  <p className="text-xs opacity-70 font-semibold">START TIME</p>
-                                  <span className="text-xs">{formattedStartTime}</span>
-                                </div>
-                              </div>
-                            </div>
-                            {formValues.end_timestamp && (
-                              <div className="space-y-2">
-                                <div className="flex items-center gap-2">
-                                  <Calendar size={16} className="text-primary" />
-                                  <div>
-                                    <p className="text-xs opacity-70 font-semibold">END DATE</p>
-                                    <span className="text-xs">{formattedEndDate}</span>
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <Clock size={16} className="text-primary" />
-                                  <div>
-                                    <p className="text-xs opacity-70 font-semibold">END TIME</p>
-                                    <span className="text-xs">{formattedEndTime}</span>
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                          <div className="space-y-2">
-                            {formValues.max_volunteers
-                              ? (
-                                  <div className="flex items-center gap-2">
-                                    <Users size={16} className="text-primary" />
-                                    <div>
-                                      <p className="text-xs opacity-70 font-semibold">MAX VOLUNTEERS</p>
-                                      <span className="text-sm">{formValues.max_volunteers}</span>
-                                    </div>
-                                  </div>
-                                )
-                              : null}
-                            {formValues.minimum_age && (
-                              <div className="flex items-center gap-2">
-                                <Cake size={16} className="text-primary" />
-                                <div>
-                                  <p className="text-xs opacity-70 font-semibold">MIN AGE</p>
-                                  <span className="text-sm">
-                                    {formValues.minimum_age}
-                                    +
-                                  </span>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                </Card>
-
-                <Card
-                  title={isEditMode ? 'Crisis Tag' : selectedCrisisName || 'Crisis Tag'}
-                  description={isEditMode ? 'Add a crisis tag to this posting.' : selectedCrisis?.description || 'No crisis description provided.'}
-                  link={isVolunteerView ? `/volunteer/crises/${selectedCrisisId}/postings` : undefined}
-                  color="accent"
-                  coloredText={true}
-                  Icon={AlertTriangle}
-                >
-                  {isEditMode && (
-                    <fieldset className="fieldset">
-                      <label className="label">
-                        <span className="label-text font-medium">Selected Crisis</span>
-                      </label>
-                      <select
-                        className="select select-bordered w-full"
-                        value={selectedCrisisId?.toString() ?? ''}
-                        onChange={(event) => {
-                          const value = event.target.value;
-                          setSelectedCrisisId(value ? Number(value) : undefined);
-                        }}
-                        disabled={saving || loadingCrises}
-                      >
-                        <option value="">No crisis tag</option>
-                        {availableCrises.map(crisis => (
-                          <option key={crisis.id} value={crisis.id.toString()}>
-                            {crisis.name}
-                            {!crisis.pinned ? ' (Unpinned)' : ''}
-                          </option>
-                        ))}
-                      </select>
-                      {loadingCrises && <span className="label-text-alt opacity-70">Loading crisis tags...</span>}
-                      {crisesError && <span className="label-text-alt text-error">{crisesError.message}</span>}
-                    </fieldset>
-                  )}
-                </Card>
-
-                <Card
-                  title="Status"
-                  description="Posting visibility."
-                  color={isOpen ? 'primary' : 'secondary'}
-                  Icon={isOpen ? LockOpen : Lock}
-                >
-                  {isEditMode
-                    ? (
-                        <ToggleButton
-                          form={form}
-                          name="automatic_acceptance"
-                          label="Posting Type"
-                          disabled={saving}
-                          options={[
-                            {
-                              value: true,
-                              label: 'Open Posting',
-                              description: 'Volunteers are accepted automatically.',
-                              Icon: LockOpen,
-                              btnColor: 'btn-primary',
-                            },
-                            {
-                              value: false,
-                              label: 'Review-Based',
-                              description: 'Volunteers must be approved by the organization.',
-                              Icon: Lock,
-                              btnColor: 'btn-secondary',
-                            },
-                          ]}
-                        />
-                      )
-                    : (
-                        <span className={`badge gap-2 ${posting?.is_closed ? 'badge-error' : isOpen ? 'badge-primary' : 'badge-secondary'}`}>
-                          {posting?.is_closed ? <Lock size={12} /> : isOpen ? <LockOpen size={12} /> : <Lock size={12} />}
-                          {posting?.is_closed ? 'Closed' : isPostingFull ? 'Full' : isOpen ? 'Open' : 'Review Based'}
-                        </span>
-                      )}
-                  <p className="text-xs opacity-70 mt-2">
-                    {posting?.is_closed
-                      ? 'This posting is closed and no longer accepting applications.'
-                      : isOpen
-                        ? 'Volunteers are accepted automatically.'
-                        : 'Volunteers must be accepted by the organization.'}
-                  </p>
-                </Card>
-
-                {!isVolunteerView && (
-                  <Card
-                    title="Location"
-                    description={isEditMode ? 'Pick the location on the map.' : 'Posting location on map.'}
-                    Icon={MapPin}
-                  >
-                    <LocationPicker
-                      position={position}
-                      setPosition={onMapPositionPick}
-                      readOnly={!isEditMode}
-                    />
-                  </Card>
-                )}
+                <Button style="outline" onClick={onCancelEdit} disabled={saving} Icon={X}>
+                  Cancel
+                </Button>
+                <Button color="primary" onClick={onSave} loading={saving} Icon={Save}>
+                  Save Changes
+                </Button>
               </>
-            )}
-          >
-            {isVolunteerView && (
-              <Card
-                title="Application Status"
-                Icon={ShieldCheck}
-              >
+            )
+          : (
+              <>
+                <LinkButton
+                  to={`/organization/posting/${posting.id}/attendance`}
+                  color="info"
+                  style="outline"
+                  disabled={!canOpenAttendancePage}
+                  Icon={ListChecks}
+                >
+                  Attendance
+                </LinkButton>
+                <Button
+                  color="primary"
+                  onClick={() => setIsEditMode(true)}
+                  style="outline"
+                  Icon={Edit3}
+                >
+                  Edit
+                </Button>
+                <Button
+                  color={posting?.is_closed ? 'success' : 'warning'}
+                  onClick={onToggleClosed}
+                  disabled={!posting}
+                  loading={togglingClosed}
+                  Icon={posting?.is_closed ? LockOpen : Lock}
+                >
+                  {posting?.is_closed ? 'Reopen' : 'Close'}
+                </Button>
+                <Button
+                  color="error"
+                  onClick={onDelete}
+                  loading={deleting}
+                  Icon={Trash2}
+                >
+                  Delete
+                </Button>
+              </>
+            )
+        )}
+      />
 
-                <span className={`badge mt-1 w-fit ${applicationStatus.badgeClassName}`}>
-                  {applicationStatus.label}
-                </span>
-                <p className="text-sm opacity-70 mt-2">
-                  {applicationStatus.description}
-                </p>
-
-                <div className="mt-3 flex justify-end">
-                  {isEnrolled
-                    ? (
-                        <Button
-                          color="error"
-                          style="outline"
-                          onClick={withdrawApplication}
-                          loading={withdrawing}
-                          Icon={SquareArrowRight}
-                        >
-                          Leave Position
-                        </Button>
-                      )
-                    : hasPendingApplication
-                      ? (
-                          <Button
-                            color="error"
-                            style="outline"
-                            onClick={withdrawApplication}
-                            loading={withdrawing}
-                            Icon={SquareArrowRight}
-                          >
-                            Withdraw Application
-                          </Button>
-                        )
-                      : (
-                          <Button
-                            color="primary"
-                            onClick={openApplyModal}
-                            loading={applying}
-                            Icon={Send}
-                          >
-                            Apply
-                          </Button>
-                        )}
-                </div>
-              </Card>
-            )}
-
+      <ColumnLayout
+        sidebar={(
+          <>
             <Card
-              title="Required Skills"
-              description="Skills needed for this opportunity."
-              Icon={Tag}
+              title={formValues.title}
+              right={
+                isVolunteerView && postingOrganization && (
+                  <Link
+                    to={`/organization/${postingOrganization.id}`}
+                    className="link link-primary link-hover font-medium text-sm inline-flex items-center gap-1.5 shrink-0"
+                  >
+                    <Building2 size={14} />
+                    <span>{postingOrganization.name}</span>
+                  </Link>
+                )
+              }
             >
+
               {isEditMode
                 ? (
-                    <SkillsInput skills={skills} setSkills={setSkills} />
+                    <div className="space-y-4">
+                      <FormField
+                        form={form}
+                        label="Title"
+                        name="title"
+                        type="text"
+                        placeholder="Enter posting title"
+                        Icon={Edit3}
+                      />
+                      <FormField
+                        form={form}
+                        label="Description"
+                        name="description"
+                        type="textarea"
+                        placeholder="Describe the opportunity"
+                      />
+                      <FormField
+                        form={form}
+                        label="Location Name"
+                        name="location_name"
+                        type="text"
+                        placeholder="e.g. Downtown Community Center"
+                        Icon={MapPin}
+                      />
+                      <FormField
+                        form={form}
+                        label="Max Volunteers"
+                        name="max_volunteers"
+                        type="number"
+                        placeholder="Optional"
+                        Icon={Users}
+                      />
+                      <FormField
+                        form={form}
+                        label="Min Age"
+                        name="minimum_age"
+                        type="number"
+                        placeholder="Optional"
+                        Icon={ShieldCheck}
+                      />
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <fieldset className="fieldset w-full">
+                          <label className="label">
+                            <span className="label-text font-medium">Start Date</span>
+                          </label>
+                          <input
+                            type="date"
+                            className={`input input-bordered w-full focus:input-primary ${form.formState.errors.start_timestamp ? 'input-error' : ''}`}
+                            value={startDateTimeParts.date}
+                            onChange={(event) => {
+                              const nextValue = combineDateAndTime(event.target.value, startDateTimeParts.time);
+                              form.setValue('start_timestamp', nextValue, {
+                                shouldDirty: true,
+                                shouldTouch: true,
+                                shouldValidate: true,
+                              });
+                            }}
+                          />
+                          {form.formState.errors.start_timestamp?.message && (
+                            <p className="text-error text-sm mt-1">{form.formState.errors.start_timestamp.message as string}</p>
+                          )}
+                        </fieldset>
+
+                        <fieldset className="fieldset w-full">
+                          <label className="label">
+                            <span className="label-text font-medium">Start Time</span>
+                          </label>
+                          <input
+                            type="time"
+                            className="input input-bordered w-full focus:input-primary"
+                            value={startDateTimeParts.time}
+                            onChange={(event) => {
+                              const nextValue = combineDateAndTime(startDateTimeParts.date, event.target.value);
+                              form.setValue('start_timestamp', nextValue, {
+                                shouldDirty: true,
+                                shouldTouch: true,
+                                shouldValidate: true,
+                              });
+                            }}
+                          />
+                        </fieldset>
+
+                        <fieldset className="fieldset w-full">
+                          <label className="label">
+                            <span className="label-text font-medium">End Date</span>
+                          </label>
+                          <input
+                            type="date"
+                            className="input input-bordered w-full focus:input-primary"
+                            value={endDateTimeParts.date}
+                            onChange={(event) => {
+                              const nextValue = combineDateAndTime(event.target.value, endDateTimeParts.time);
+                              form.setValue('end_timestamp', nextValue || undefined, {
+                                shouldDirty: true,
+                                shouldTouch: true,
+                                shouldValidate: true,
+                              });
+                            }}
+                          />
+                        </fieldset>
+
+                        <fieldset className="fieldset w-full">
+                          <label className="label">
+                            <span className="label-text font-medium">End Time</span>
+                          </label>
+                          <input
+                            type="time"
+                            className="input input-bordered w-full focus:input-primary"
+                            value={endDateTimeParts.time}
+                            onChange={(event) => {
+                              const nextValue = combineDateAndTime(endDateTimeParts.date, event.target.value);
+                              form.setValue('end_timestamp', nextValue || undefined, {
+                                shouldDirty: true,
+                                shouldTouch: true,
+                                shouldValidate: true,
+                              });
+                            }}
+                          />
+                        </fieldset>
+                      </div>
+                    </div>
                   )
                 : (
-                    <SkillsList skills={posting.skills} enableLimit={false} />
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-xs font-semibold opacity-70 uppercase">Description</label>
+                        <p className="text-sm opacity-80 whitespace-pre-wrap">{formValues.description}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <MapPin size={16} className="text-primary" />
+                        <span className="text-sm">{formValues.location_name}</span>
+                      </div>
+                      <div className={`grid gap-4 ${formValues.end_timestamp ? 'sm:grid-cols-2' : 'grid-cols-1'}`}>
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Calendar size={16} className="text-primary" />
+                            <div>
+                              <p className="text-xs opacity-70 font-semibold">START DATE</p>
+                              <span className="text-xs">{formattedStartDate}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Clock size={16} className="text-primary" />
+                            <div>
+                              <p className="text-xs opacity-70 font-semibold">START TIME</p>
+                              <span className="text-xs">{formattedStartTime}</span>
+                            </div>
+                          </div>
+                        </div>
+                        {formValues.end_timestamp && (
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <Calendar size={16} className="text-primary" />
+                              <div>
+                                <p className="text-xs opacity-70 font-semibold">END DATE</p>
+                                <span className="text-xs">{formattedEndDate}</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Clock size={16} className="text-primary" />
+                              <div>
+                                <p className="text-xs opacity-70 font-semibold">END TIME</p>
+                                <span className="text-xs">{formattedEndTime}</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        {formValues.max_volunteers
+                          ? (
+                              <div className="flex items-center gap-2">
+                                <Users size={16} className="text-primary" />
+                                <div>
+                                  <p className="text-xs opacity-70 font-semibold">MAX VOLUNTEERS</p>
+                                  <span className="text-sm">{formValues.max_volunteers}</span>
+                                </div>
+                              </div>
+                            )
+                          : null}
+                        {formValues.minimum_age && (
+                          <div className="flex items-center gap-2">
+                            <Cake size={16} className="text-primary" />
+                            <div>
+                              <p className="text-xs opacity-70 font-semibold">MIN AGE</p>
+                              <span className="text-sm">
+                                {formValues.minimum_age}
+                                +
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   )}
             </Card>
 
-            {isVolunteerView && (
+            <Card
+              title={isEditMode ? 'Crisis Tag' : selectedCrisisName || 'Crisis Tag'}
+              description={isEditMode ? 'Add a crisis tag to this posting.' : selectedCrisis?.description || 'No crisis description provided.'}
+              link={isVolunteerView ? `/volunteer/crises/${selectedCrisisId}/postings` : undefined}
+              color="accent"
+              coloredText={true}
+              Icon={AlertTriangle}
+            >
+              {isEditMode && (
+                <fieldset className="fieldset">
+                  <label className="label">
+                    <span className="label-text font-medium">Selected Crisis</span>
+                  </label>
+                  <select
+                    className="select select-bordered w-full"
+                    value={selectedCrisisId?.toString() ?? ''}
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      setSelectedCrisisId(value ? Number(value) : undefined);
+                    }}
+                    disabled={saving || loadingCrises}
+                  >
+                    <option value="">No crisis tag</option>
+                    {availableCrises.map(crisis => (
+                      <option key={crisis.id} value={crisis.id.toString()}>
+                        {crisis.name}
+                        {!crisis.pinned ? ' (Unpinned)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                  {loadingCrises && <span className="label-text-alt opacity-70">Loading crisis tags...</span>}
+                  {crisesError && <span className="label-text-alt text-error">{crisesError.message}</span>}
+                </fieldset>
+              )}
+            </Card>
+
+            <Card
+              title="Status"
+              description="Posting visibility."
+              color={isOpen ? 'primary' : 'secondary'}
+              Icon={isOpen ? LockOpen : Lock}
+            >
+              {isEditMode
+                ? (
+                    <ToggleButton
+                      form={form}
+                      name="automatic_acceptance"
+                      label="Posting Type"
+                      disabled={saving}
+                      options={[
+                        {
+                          value: true,
+                          label: 'Open Posting',
+                          description: 'Volunteers are accepted automatically.',
+                          Icon: LockOpen,
+                          btnColor: 'btn-primary',
+                        },
+                        {
+                          value: false,
+                          label: 'Review-Based',
+                          description: 'Volunteers must be approved by the organization.',
+                          Icon: Lock,
+                          btnColor: 'btn-secondary',
+                        },
+                      ]}
+                    />
+                  )
+                : (
+                    <span className={`badge gap-2 ${posting?.is_closed ? 'badge-error' : isOpen ? 'badge-primary' : 'badge-secondary'}`}>
+                      {posting?.is_closed ? <Lock size={12} /> : isOpen ? <LockOpen size={12} /> : <Lock size={12} />}
+                      {posting?.is_closed ? 'Closed' : isPostingFull ? 'Full' : isOpen ? 'Open' : 'Review Based'}
+                    </span>
+                  )}
+              <p className="text-xs opacity-70 mt-2">
+                {posting?.is_closed
+                  ? 'This posting is closed and no longer accepting applications.'
+                  : isOpen
+                    ? 'Volunteers are accepted automatically.'
+                    : 'Volunteers must be accepted by the organization.'}
+              </p>
+            </Card>
+
+            {!isVolunteerView && (
               <Card
                 title="Location"
                 description={isEditMode ? 'Pick the location on the map.' : 'Posting location on map.'}
@@ -1208,87 +1126,167 @@ function PostingPage() {
                 />
               </Card>
             )}
+          </>
+        )}
+      >
+        {isVolunteerView && (
+          <Card
+            title="Application Status"
+            Icon={ShieldCheck}
+          >
 
-            {!isVolunteerView && !isOpen && (
-              <Card
-                title="Enrollment Applications"
-                description="Enrollment applications description."
-                right={
-                  <span className="badge badge-primary">{applications.length}</span>
-                }
-              >
-                {applications.length === 0
+            <span className={`badge mt-1 w-fit ${applicationStatus.badgeClassName}`}>
+              {applicationStatus.label}
+            </span>
+            <p className="text-sm opacity-70 mt-2">
+              {applicationStatus.description}
+            </p>
+
+            <div className="mt-3 flex justify-end">
+              {isEnrolled
+                ? (
+                    <Button
+                      color="error"
+                      style="outline"
+                      onClick={withdrawApplication}
+                      loading={withdrawing}
+                      Icon={SquareArrowRight}
+                    >
+                      Leave Position
+                    </Button>
+                  )
+                : hasPendingApplication
                   ? (
-                      <Alert>
-                        No pending applications.
-                      </Alert>
+                      <Button
+                        color="error"
+                        style="outline"
+                        onClick={withdrawApplication}
+                        loading={withdrawing}
+                        Icon={SquareArrowRight}
+                      >
+                        Withdraw Application
+                      </Button>
                     )
                   : (
-                      <div className="space-y-2">
-                        {applications.map(app => (
-                          <VolunteerInfoCollapse
-                            key={app.application_id}
-                            volunteer={app}
-                            actions={(
-                              <>
-                                <Button
-                                  color="success"
-                                  style="soft"
-                                  onClick={() => acceptApplication(app.application_id)}
-                                  loading={processingApplicationId === app.application_id}
-                                  Icon={Check}
-                                >
-                                  Accept
-                                </Button>
-                                <Button
-                                  color="error"
-                                  style="soft"
-                                  onClick={() => rejectApplication(app.application_id)}
-                                  loading={processingApplicationId === app.application_id}
-                                  Icon={X}
-                                >
-                                  Reject
-                                </Button>
-                              </>
-                            )}
-                          />
-                        ))}
-                      </div>
+                      <Button
+                        color="primary"
+                        onClick={openApplyModal}
+                        loading={applying}
+                        Icon={Send}
+                      >
+                        Apply
+                      </Button>
                     )}
-              </Card>
-            )}
+            </div>
+          </Card>
+        )}
 
-            {!isVolunteerView && (
-              <Card
-                title="Enrolled Volunteers"
-                // description="Enrolled volunteers description"
-                right={
-                  <span className="badge badge-primary">{enrollments.length}</span>
-                }
-              >
+        <Card
+          title="Required Skills"
+          description="Skills needed for this opportunity."
+          Icon={Tag}
+        >
+          {isEditMode
+            ? (
+                <SkillsInput skills={skills} setSkills={setSkills} />
+              )
+            : (
+                <SkillsList skills={posting.skills} enableLimit={false} />
+              )}
+        </Card>
 
-                {enrollments.length === 0
-                  ? (
-                      <Alert>
-                        No volunteers have enrolled yet.
-                      </Alert>
-                    )
-                  : (
-                      <div className="space-y-2">
-                        {enrollments.map(volunteer => (
-                          <VolunteerInfoCollapse
-                            key={volunteer.enrollment_id}
-                            volunteer={volunteer}
-                          />
-                        ))}
-                      </div>
-                    )}
-              </Card>
-            )}
-          </ColumnLayout>
-        </div>
-      </div>
-    </div>
+        {isVolunteerView && (
+          <Card
+            title="Location"
+            description={isEditMode ? 'Pick the location on the map.' : 'Posting location on map.'}
+            Icon={MapPin}
+          >
+            <LocationPicker
+              position={position}
+              setPosition={onMapPositionPick}
+              readOnly={!isEditMode}
+            />
+          </Card>
+        )}
+
+        {!isVolunteerView && !isOpen && (
+          <Card
+            title="Enrollment Applications"
+            description="Enrollment applications description."
+            right={
+              <span className="badge badge-primary">{applications.length}</span>
+            }
+          >
+            {applications.length === 0
+              ? (
+                  <Alert>
+                    No pending applications.
+                  </Alert>
+                )
+              : (
+                  <div className="space-y-2">
+                    {applications.map(app => (
+                      <VolunteerInfoCollapse
+                        key={app.application_id}
+                        volunteer={app}
+                        actions={(
+                          <>
+                            <Button
+                              color="success"
+                              style="soft"
+                              onClick={() => acceptApplication(app.application_id)}
+                              loading={processingApplicationId === app.application_id}
+                              Icon={Check}
+                            >
+                              Accept
+                            </Button>
+                            <Button
+                              color="error"
+                              style="soft"
+                              onClick={() => rejectApplication(app.application_id)}
+                              loading={processingApplicationId === app.application_id}
+                              Icon={X}
+                            >
+                              Reject
+                            </Button>
+                          </>
+                        )}
+                      />
+                    ))}
+                  </div>
+                )}
+          </Card>
+        )}
+
+        {!isVolunteerView && (
+          <Card
+            title="Enrolled Volunteers"
+            // description="Enrolled volunteers description"
+            right={
+              <span className="badge badge-primary">{enrollments.length}</span>
+            }
+          >
+
+            {enrollments.length === 0
+              ? (
+                  <Alert>
+                    No volunteers have enrolled yet.
+                  </Alert>
+                )
+              : (
+                  <div className="space-y-2">
+                    {enrollments.map(volunteer => (
+                      <VolunteerInfoCollapse
+                        key={volunteer.enrollment_id}
+                        volunteer={volunteer}
+                      />
+                    ))}
+                  </div>
+                )}
+          </Card>
+        )}
+      </ColumnLayout>
+    </PageContainer>
   );
 }
 

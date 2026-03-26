@@ -4,7 +4,7 @@ import PageContainer from '../../components/layout/PageContainer';
 import PageHeader from '../../components/layout/PageHeader';
 import PasswordResetCard from '../../components/PasswordResetCard';
 
-function VolunteerSettings() {
+function OrganizationSettings() {
   return (
     <PageContainer>
       <PageHeader
@@ -12,10 +12,9 @@ function VolunteerSettings() {
         subtitle="Update your credentials to maintain account security."
         icon={Lock}
       />
-
       <PasswordResetCard />
     </PageContainer>
   );
 }
 
-export default VolunteerSettings;
+export default OrganizationSettings;

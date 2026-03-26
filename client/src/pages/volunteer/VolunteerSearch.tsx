@@ -56,18 +56,16 @@ function VolunteerSearch() {
   }
 
   return (
-    <div className="grow bg-base-200">
-      <PostingSearchView
-        title="Search Opportunities"
-        subtitle="Browse all postings and filter them down by dates, location, or skills."
-        enableCrisisFilter
-        filterPostings={filterPostings}
-        crisisOptions={pinnedCrises?.map(crisis => ({
-          id: crisis.id,
-          name: crisis.name,
-        })) ?? []}
-      />
-    </div>
+    <PostingSearchView
+      title="Search Opportunities"
+      subtitle="Browse all postings and filter them down by dates, location, or skills."
+      enableCrisisFilter
+      filterPostings={filterPostings}
+      crisisOptions={pinnedCrises?.map(crisis => ({
+        id: crisis.id,
+        name: crisis.name,
+      })) ?? []}
+    />
   );
 }
 

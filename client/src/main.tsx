@@ -22,7 +22,7 @@ import OrganizationHome from './pages/organization/OrganizationHome';
 import OrganizationPostingAttendance from './pages/organization/OrganizationPostingAttendance';
 import OrganizationPostingCreate from './pages/organization/OrganizationPostingCreate';
 import OrganizationOwnProfile from './pages/organization/OrganizationProfile';
-import OrganizationSettings from './pages/organization/VolunteerSettings';
+import OrganizationSettings from './pages/organization/OrganizationSettings';
 import OrganizationProfile from './pages/OrganizationProfile';
 import OrganizationRequest from './pages/OrganizationRequest';
 import Posting from './pages/Posting';
