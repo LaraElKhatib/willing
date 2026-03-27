@@ -50,6 +50,7 @@ export type PostingEnrollment = {
   email: string;
   date_of_birth: string;
   gender: Gender;
+  cv_path?: string | null;
   skills: VolunteerSkill[];
 };
 
