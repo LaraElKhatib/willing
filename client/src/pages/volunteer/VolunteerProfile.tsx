@@ -6,7 +6,6 @@ import {
   Calendar,
   Clock3,
   Edit3,
-  MapPin,
   Mail,
   Mars,
   Venus,
@@ -65,6 +64,8 @@ const profileFormSchema = volunteerAccountSchema.omit({
   experience_vector: true,
   created_at: true,
   updated_at: true,
+  is_disabled: true,
+  is_deleted: true,
 }).extend({
   description: z.string().max(
     DESCRIPTION_MAX_LENGTH,
