@@ -108,7 +108,7 @@ export async function sendVolunteerApplicationAcceptedEmail(opts: {
   organizationName: string;
   postingTitle: string;
 }) {
-  const subject = 'You are in! Your volunteering application was accepted';
+  const subject = 'You\'re in! Your volunteering application was accepted';
 
   const { html, text } = buildEmailBody({
     title: 'Application Accepted - Congratulations!',
