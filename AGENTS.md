@@ -207,6 +207,10 @@ All components are in `client/src/components/`. **Use these instead of recreatin
 - **`SkillsList`**: Skill badge list. Required prop: `skills`. Optional props: `action`, `enableLimit` (default `true`), `limit` (default `5`).
 - **`SkillsInput`**: Controlled skill-entry input with add/remove behavior. Required props: `skills`, `setSkills`.
 
+### Home Components (`client/src/components/home/`)
+
+- **`StatsCarousel`**: In `client/src/components/home/StatsCarousel.tsx`; used in `HomePage` for the active stats carousel with navigation and keyboard controls.
+
 ### Posting Components (`client/src/components/postings/` + shared posting cards)
 
 - **`PostingCard`**: Standard volunteer opportunity card (title, description, location, dates, constraints, skills). Required prop: `posting`. Optional prop: `organization`.

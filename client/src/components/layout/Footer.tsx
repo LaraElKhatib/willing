@@ -1,6 +1,6 @@
 function Footer() {
   return (
-    <footer className="footer sm:footer-horizontal p-10 bg-base-300 mt-20">
+    <footer className="footer sm:footer-horizontal p-10 bg-base-300">
       <nav>
         <h6 className="footer-title">Willing</h6>
         <p className="max-w-xs opacity-70">

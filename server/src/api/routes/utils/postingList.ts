@@ -186,7 +186,20 @@ export const matchesPostingSearch = <T extends PostingSearchLike>(posting: T, se
     ...posting.skills.map(skill => skill.name),
   ].flatMap(tokenizeSearchField);
 
-  return terms.every(term => searchableTokens.includes(term));
+  const searchableText = normalizeSearchText([
+    posting.title,
+    posting.description,
+    posting.location_name,
+    posting.organization_name ?? '',
+    ...posting.skills.map(skill => skill.name),
+  ].join(' '));
+
+  const normalizedSearchableText = searchableText.replace(/\s+/g, '');
+
+  return terms.every(term => (
+    searchableTokens.some(token => token.includes(term))
+    || normalizedSearchableText.includes(term)
+  ));
 };
 
 export const sortPostingsBySharedSort = <T extends PostingSortLike>(

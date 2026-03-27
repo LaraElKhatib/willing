@@ -132,7 +132,8 @@ function PostingSearchView({
     if (activeFilters.hideFull) query.append('hide_full', 'true');
     if (activeFilters.crisisId !== 'all') query.append('crisis_id', activeFilters.crisisId);
 
-    const url = query.size > 0 ? `${baseUrl}?${query.toString()}` : baseUrl;
+    const separator = baseUrl.includes('?') ? '&' : '?';
+    const url = query.size > 0 ? `${baseUrl}${separator}${query.toString()}` : baseUrl;
 
     setLoading(true);
     setError(null);
@@ -257,8 +258,9 @@ function PostingSearchView({
           : (
               <PostingCollection
                 postings={postings}
+                showCrisis
                 cardsContainerClassName="grid grid-cols-1 gap-6 lg:grid-cols-2 2xl:grid-cols-3"
-                listContainerClassName="space-y-3"
+                listContainerClassName="space-y-4"
               />
             )}
     </PageContainer>
