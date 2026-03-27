@@ -18,6 +18,8 @@ import {
   OrganizationRequestResponse,
   OrganizationResetPasswordResponse,
   OrganizationUpdateProfileResponse,
+  OrganizationVolunteerCvDownloadResponse,
+  OrganizationVolunteerProfileResponse,
   OrganizationUploadLogoResponse,
 } from './index.types.js';
 import postingRouter from './posting.js';
@@ -27,8 +29,9 @@ import { newOrganizationRequestSchema, organizationAccountSchema, PostingSkill }
 import { recomputeOrganizationVector } from '../../../services/embeddings/updates.js';
 import { sendAdminOrganizationRequestEmail } from '../../../services/smtp/emails.js';
 import { orgLogoMulter } from '../../../services/uploads/orgLogo.js';
-import { ORG_LOGO_UPLOAD_DIR, ORG_SIGNATURE_UPLOAD_DIR } from '../../../services/uploads/paths.js';
+import { CV_UPLOAD_DIR, ORG_LOGO_UPLOAD_DIR, ORG_SIGNATURE_UPLOAD_DIR } from '../../../services/uploads/paths.js';
 import uploadSingle from '../../../services/uploads/uploadSingle.js';
+import { getVolunteerProfile } from '../../../services/volunteer/index.js';
 import { authorizeOnly } from '../../authorization.js';
 
 const organizationRouter = Router();
@@ -94,6 +97,28 @@ const organizationProfileUpdateSchema = organizationAccountSchema.omit({
 }).partial();
 
 const isSameNullableNumber = (left: number | undefined, right: number | undefined) => (left ?? null) === (right ?? null);
+
+const hasVolunteerRelationshipWithOrganization = async (organizationId: number, volunteerId: number) => {
+  const relatedApplication = await database
+    .selectFrom('enrollment_application')
+    .innerJoin('organization_posting', 'organization_posting.id', 'enrollment_application.posting_id')
+    .select('enrollment_application.id')
+    .where('enrollment_application.volunteer_id', '=', volunteerId)
+    .where('organization_posting.organization_id', '=', organizationId)
+    .executeTakeFirst();
+
+  if (relatedApplication) return true;
+
+  const relatedEnrollment = await database
+    .selectFrom('enrollment')
+    .innerJoin('organization_posting', 'organization_posting.id', 'enrollment.posting_id')
+    .select('enrollment.id')
+    .where('enrollment.volunteer_id', '=', volunteerId)
+    .where('organization_posting.organization_id', '=', organizationId)
+    .executeTakeFirst();
+
+  return Boolean(relatedEnrollment);
+};
 
 organizationRouter.post('/request', async (req, res: Response<OrganizationRequestResponse>) => {
   const body = newOrganizationRequestSchema.parse(req.body);
@@ -307,6 +332,58 @@ organizationRouter.get('/me', async (req, res: Response<OrganizationGetMeRespons
     .executeTakeFirstOrThrow();
 
   res.json({ organization });
+});
+
+organizationRouter.get('/volunteer/:id', async (req, res: Response<OrganizationVolunteerProfileResponse>) => {
+  const { id: volunteerId } = zod.object({
+    id: zod.coerce.number().int().positive('Volunteer ID must be a positive number'),
+  }).parse(req.params);
+
+  const organizationId = req.userJWT!.id;
+
+  const hasRelationship = await hasVolunteerRelationshipWithOrganization(organizationId, volunteerId);
+  if (!hasRelationship) {
+    res.status(403);
+    throw new Error('You can only view profiles of volunteers related to your postings.');
+  }
+
+  const profile = await getVolunteerProfile(volunteerId);
+  res.json({ profile });
+});
+
+organizationRouter.get('/volunteer/:id/cv', async (req, res: Response<OrganizationVolunteerCvDownloadResponse>, next) => {
+  const { id: volunteerId } = zod.object({
+    id: zod.coerce.number().int().positive('Volunteer ID must be a positive number'),
+  }).parse(req.params);
+
+  const organizationId = req.userJWT!.id;
+  const hasRelationship = await hasVolunteerRelationshipWithOrganization(organizationId, volunteerId);
+  if (!hasRelationship) {
+    res.status(403);
+    throw new Error('You can only access CVs of volunteers related to your postings.');
+  }
+
+  const volunteer = await database
+    .selectFrom('volunteer_account')
+    .select(['id', 'cv_path', 'first_name', 'last_name'])
+    .where('id', '=', volunteerId)
+    .executeTakeFirstOrThrow();
+
+  if (!volunteer.cv_path) {
+    res.status(404);
+    throw new Error('Volunteer CV not found');
+  }
+
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader(
+    'Content-Disposition',
+    `attachment; filename="${volunteer.first_name}-${volunteer.last_name}-cv.pdf"`,
+  );
+
+  res.sendFile(volunteer.cv_path, { root: CV_UPLOAD_DIR }, (error) => {
+    if (!error) return;
+    next(error);
+  });
 });
 
 organizationRouter.put('/profile', async (req, res: Response<OrganizationUpdateProfileResponse>) => {
