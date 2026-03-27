@@ -61,7 +61,6 @@ const profileFormSchema = volunteerAccountSchema.omit({
   id: true,
   password: true,
   email: true,
-  privacy: true,
   profile_vector: true,
   experience_vector: true,
   created_at: true,
