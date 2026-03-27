@@ -20,7 +20,6 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { useForm } from 'react-hook-form';
-import { Link } from 'react-router';
 import { z } from 'zod';
 
 import { volunteerAccountSchema } from '../../../../server/src/db/tables';
@@ -30,6 +29,7 @@ import ColumnLayout from '../../components/layout/ColumnLayout';
 import PageHeader from '../../components/layout/PageHeader';
 import LinkButton from '../../components/LinkButton';
 import Loading from '../../components/Loading';
+import PostingList from '../../components/PostingList';
 import SkillsInput from '../../components/skills/SkillsInput';
 import SkillsList from '../../components/skills/SkillsList';
 import useNotifications from '../../notifications/useNotifications';
@@ -38,8 +38,24 @@ import requestServer, { SERVER_BASE_URL } from '../../utils/requestServer';
 import useAsync from '../../utils/useAsync';
 
 import type { VolunteerProfileResponse } from '../../../../server/src/api/types';
+import type { PostingWithContext } from '../../../../server/src/types';
 
 const DESCRIPTION_MAX_LENGTH = 300;
+
+const DATE_ONLY_REGEX = /^(\d{4})-(\d{2})-(\d{2})/;
+
+const getDateParts = (value: string) => {
+  const match = value.match(DATE_ONLY_REGEX);
+  if (!match) return null;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+
+  if (!year || month < 1 || month > 12 || day < 1 || day > 31) return null;
+
+  return { year, month, day };
+};
 
 const profileFormSchema = volunteerAccountSchema.omit({
   id: true,
@@ -59,35 +75,13 @@ const profileFormSchema = volunteerAccountSchema.omit({
 type ProfileFormData = z.infer<typeof profileFormSchema>;
 
 const getDateInputValue = (value: string) => {
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return '';
-  return parsed.toISOString().slice(0, 10);
+  const dateParts = getDateParts(value);
+  if (!dateParts) return '';
+  return `${dateParts.year}-${String(dateParts.month).padStart(2, '0')}-${String(dateParts.day).padStart(2, '0')}`;
 };
 
-const formatExperienceDateRange = (startValue: Date | string, endValue?: Date | string) => {
-  const startDate = new Date(startValue);
-  const endDate = endValue ? new Date(endValue) : null;
-
-  const startText = Number.isNaN(startDate.getTime())
-    ? 'Date unavailable'
-    : startDate.toLocaleDateString(undefined, {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-      });
-
-  if (!endDate || Number.isNaN(endDate.getTime())) {
-    return startText;
-  }
-
-  const endText = endDate.toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
-
-  return `${startText} - ${endText}`;
-};
+const toDateString = (value: Date) => value.toISOString().slice(0, 10);
+const toTimeString = (value: Date) => `${String(value.getHours()).padStart(2, '0')}:${String(value.getMinutes()).padStart(2, '0')}`;
 
 const DEFAULT_SINGLE_DAY_HOURS = 5;
 
@@ -172,7 +166,6 @@ function VolunteerProfile() {
     async (data: {
       first_name: string;
       last_name: string;
-      date_of_birth: string;
       gender: 'male' | 'female' | 'other';
       description: string;
       skills: string[];
@@ -245,7 +238,10 @@ function VolunteerProfile() {
   const formattedDateOfBirth = useMemo(() => {
     if (!formValues.date_of_birth) return '-';
 
-    const parsed = new Date(formValues.date_of_birth);
+    const dateParts = getDateParts(formValues.date_of_birth);
+    if (!dateParts) return formValues.date_of_birth;
+
+    const parsed = new Date(dateParts.year, dateParts.month - 1, dateParts.day);
     if (Number.isNaN(parsed.getTime())) return formValues.date_of_birth;
 
     return parsed.toLocaleDateString(undefined, {
@@ -273,6 +269,42 @@ function VolunteerProfile() {
     return profile.completed_experiences.slice(0, 2);
   }, [profile, showAllExperiences]);
 
+  const visibleExperiencePostings = useMemo<PostingWithContext[]>(() => (
+    visibleCompletedExperiences.map((experience) => {
+      const startDate = new Date(experience.start_timestamp);
+      const endDate = experience.end_timestamp ? new Date(experience.end_timestamp) : null;
+      const safeStartDate = Number.isNaN(startDate.getTime()) ? new Date() : startDate;
+      const safeEndDate = endDate && !Number.isNaN(endDate.getTime()) ? endDate : null;
+
+      return {
+        id: experience.posting_id,
+        organization_id: experience.organization_id,
+        title: experience.posting_title,
+        description: '',
+        latitude: undefined,
+        longitude: undefined,
+        max_volunteers: undefined,
+        start_date: toDateString(safeStartDate),
+        start_time: toTimeString(safeStartDate),
+        end_date: safeEndDate ? toDateString(safeEndDate) : undefined,
+        end_time: safeEndDate ? toTimeString(safeEndDate) : undefined,
+        minimum_age: undefined,
+        automatic_acceptance: true,
+        is_closed: true,
+        location_name: experience.location_name,
+        created_at: safeStartDate,
+        updated_at: safeStartDate,
+        crisis_id: undefined,
+        skills: [],
+        organization_name: experience.organization_name,
+        organization_logo_path: undefined,
+        crisis_name: experience.crisis_name,
+        enrollment_count: 1,
+        application_status: 'registered',
+      };
+    })
+  ), [visibleCompletedExperiences]);
+
   const hasHiddenCompletedExperiences = useMemo(() => {
     if (!profile) return false;
     return profile.completed_experiences.length >= 3;
@@ -295,7 +327,6 @@ function VolunteerProfile() {
       const response = await updateProfile({
         first_name: data.first_name,
         last_name: data.last_name,
-        date_of_birth: data.date_of_birth,
         gender: data.gender,
         description: data.description,
         skills,
@@ -537,13 +568,13 @@ function VolunteerProfile() {
                             </div>
                           </div>
                           <div className={saving ? 'pointer-events-none opacity-70' : ''}>
-                            <FormField
-                              form={form}
-                              name="date_of_birth"
-                              label="Date of Birth"
-                              type="date"
-                              Icon={Calendar}
-                            />
+                            <div className="space-y-1">
+                              <label className="text-sm font-medium">Date of Birth</label>
+                              <div className="input input-bordered w-full flex items-center gap-2 opacity-80">
+                                <Calendar size={16} />
+                                <span>{formattedDateOfBirth}</span>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       )
@@ -569,7 +600,7 @@ function VolunteerProfile() {
                       )}
 
                   <div className="mt-4">
-                    <label className="text-sm opacity-70 mb-2 block">Description</label>
+                    <label className="text-sm font-semibold text-base-content mb-2 block">Description</label>
                     {isEditMode
                       ? (
                           <>
@@ -682,36 +713,8 @@ function VolunteerProfile() {
                     )
                   : (
                       <div className="mt-4 space-y-3">
-                        {visibleCompletedExperiences.map(experience => (
-                          <div key={experience.enrollment_id} className="rounded-lg border border-base-300 p-4">
-                            <div className="flex flex-wrap items-center justify-between gap-2">
-                              <Link to={`/posting/${experience.posting_id}`} className="font-semibold text-base text-primary hover:underline">
-                                {experience.posting_title}
-                              </Link>
-                              <span className="badge badge-success">Present</span>
-                            </div>
-
-                            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm opacity-80">
-                              <span className="inline-flex items-center gap-1">
-                                <Building2 size={14} />
-                                {experience.organization_name}
-                              </span>
-                              <span className="inline-flex items-center gap-1">
-                                <MapPin size={14} />
-                                {experience.location_name}
-                              </span>
-                              <span className="inline-flex items-center gap-1">
-                                <Calendar size={14} />
-                                {formatExperienceDateRange(experience.start_timestamp, experience.end_timestamp)}
-                              </span>
-                            </div>
-
-                            {experience.crisis_name && (
-                              <span className="badge badge-accent badge-outline mt-3">
-                                {experience.crisis_name}
-                              </span>
-                            )}
-                          </div>
+                        {visibleExperiencePostings.map(posting => (
+                          <PostingList key={posting.id} posting={posting} showCrisis={false} />
                         ))}
 
                         {hasHiddenCompletedExperiences && (

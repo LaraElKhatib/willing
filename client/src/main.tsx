@@ -22,11 +22,13 @@ import OrganizationHome from './pages/organization/OrganizationHome';
 import OrganizationPostingAttendance from './pages/organization/OrganizationPostingAttendance';
 import OrganizationPostingCreate from './pages/organization/OrganizationPostingCreate';
 import OrganizationOwnProfile from './pages/organization/OrganizationProfile';
+import OrganizationVolunteerProfile from './pages/organization/OrganizationVolunteerProfile';
 import OrganizationSettings from './pages/organization/VolunteerSettings';
 import OrganizationProfile from './pages/OrganizationProfile';
 import OrganizationRequest from './pages/OrganizationRequest';
 import Posting from './pages/Posting';
 import UserLogin from './pages/UserLogin';
+import VolunteerCertificateRequest from './pages/volunteer/VolunteerCertificateRequest';
 import VolunteerCrisisPostings from './pages/volunteer/VolunteerCrisisPostings';
 import VolunteerEnrollments from './pages/volunteer/VolunteerEnrollments';
 import VolunteerHome from './pages/volunteer/VolunteerHome';
@@ -68,10 +70,12 @@ createRoot(document.getElementById('root')!).render(
                 <Route path="posting/:id/attendance" element={<OrganizationPostingAttendance />} />
                 <Route path="profile" element={<OrganizationOwnProfile />} />
                 <Route path="settings" element={<OrganizationSettings />} />
+                <Route path="volunteer/:volunteerId" element={<OrganizationVolunteerProfile />} />
               </Route>
 
               <Route path="volunteer" element={<VolunteerPage />}>
                 <Route index element={<VolunteerHome />} />
+                <Route path="certificate" element={<VolunteerCertificateRequest />} />
                 <Route path="enrollments" element={<VolunteerEnrollments />} />
                 <Route path="crises/:crisisId/postings" element={<VolunteerCrisisPostings />} />
                 <Route path="profile" element={<VolunteerProfile />} />
@@ -79,10 +83,9 @@ createRoot(document.getElementById('root')!).render(
                 <Route path="settings" element={<VolunteerSettings />} />
               </Route>
 
-              <Route path="organization/:id" element={<OrganizationProfile />} />
-
               <Route path="/" element={<SharedPage roles={['volunteer', 'organization']} />}>
                 <Route path="posting/:id" element={<Posting />} />
+                <Route path="organization/:id" element={<OrganizationProfile />} />
               </Route>
 
               <Route path="*" element={<NotFoundPage />} />

@@ -7,7 +7,7 @@ import PageHeader from '../components/layout/PageHeader';
 import LocationPicker from '../components/LocationPicker';
 import PostingCollection from '../components/postings/PostingCollection';
 import PostingViewModeToggle from '../components/postings/PostingViewModeToggle';
-import requestServer from '../utils/requestServer';
+import requestServer, { SERVER_BASE_URL } from '../utils/requestServer';
 import useAsync from '../utils/useAsync';
 
 import type { OrganizationProfileResponse } from '../../../server/src/api/types';
@@ -83,10 +83,26 @@ function OrganizationProfile() {
                   <div className="card bg-base-100 shadow-md border border-base-200">
                     <div className="card-body">
                       <div className="flex flex-col items-center text-center">
-                        <div className="bg-linear-to-br from-primary to-primary/70 text-primary-content rounded-full w-24 h-24 flex items-center justify-center mb-4">
-                          <span className="text-4xl font-bold">
-                            {data.organization.name.charAt(0).toUpperCase()}
-                          </span>
+                        <div className="avatar mb-4">
+                          {data.organization.logo_path
+                            ? (
+                                <div
+                                  className={`w-24 h-24 rounded-full overflow-hidden ring-1 ring-base-300 ${data.organization.logo_path.toLowerCase().endsWith('.png') ? 'bg-white' : 'bg-base-100'} flex items-center justify-center`}
+                                >
+                                  <img
+                                    src={`${SERVER_BASE_URL}/organization/${data.organization.id}/logo`}
+                                    alt={`${data.organization.name} logo`}
+                                    className="h-full w-full object-contain"
+                                  />
+                                </div>
+                              )
+                            : (
+                                <div className="bg-linear-to-br from-primary to-primary/70 text-primary-content rounded-full w-24 h-24 flex items-center justify-center">
+                                  <span className="text-4xl font-bold">
+                                    {data.organization.name.charAt(0).toUpperCase()}
+                                  </span>
+                                </div>
+                              )}
                         </div>
                         <h2 className="text-2xl font-bold">
                           {data.organization.name}

@@ -43,13 +43,14 @@ import VolunteerInfoCollapse from '../components/VolunteerInfoCollapse.tsx';
 import useNotifications from '../notifications/useNotifications';
 import { organizationPostingEditFormSchema, type OrganizationPostingEditFormData } from '../schemas/posting';
 import { executeAndShowError, FormField } from '../utils/formUtils.tsx';
-import requestServer from '../utils/requestServer.ts';
+import requestServer, { SERVER_BASE_URL } from '../utils/requestServer.ts';
 import useAsync from '../utils/useAsync';
 import { useOrganization } from '../utils/useUsers.ts';
 
 import type {
   OrganizationCrisisResponse,
   OrganizationCrisesResponse,
+  OrganizationGetMeResponse,
   OrganizationPostingApplicationsReponse,
   OrganizationPostingEnrollmentsResponse,
   OrganizationPostingResponse,
@@ -160,7 +161,7 @@ function PostingPage() {
   const [isApplyModalOpen, setIsApplyModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [postingEnrollmentCount, setPostingEnrollmentCount] = useState(0);
-  const [postingOrganization, setPostingOrganization] = useState<{ id: number; name: string } | null>(null);
+  const [postingOrganization, setPostingOrganization] = useState<{ id: number; name: string; logoPath?: string | null } | null>(null);
   const notifications = useNotifications();
 
   const form = useForm<OrganizationPostingEditFormData>({
@@ -296,11 +297,13 @@ function PostingPage() {
         setPostingOrganization({
           id: organizationResponse.organization.id,
           name: organizationResponse.organization.name,
+          logoPath: organizationResponse.organization.logo_path,
         });
       } catch {
         setPostingOrganization({
           id: postingResponse.posting.organization_id,
           name: 'Organization',
+          logoPath: postingResponse.posting.organization_logo_path,
         });
       }
 
@@ -357,15 +360,34 @@ function PostingPage() {
       postingResponse.posting.longitude ?? 35.477959277880416,
     ]);
 
-    setPostingOrganization(account
-      ? {
-          id: account.id,
-          name: account.name,
-        }
-      : {
-          id: postingResponse.posting.organization_id,
-          name: 'Organization',
-        });
+    let organizationId = postingResponse.posting.organization_id;
+    let organizationName = account?.name ?? 'Organization';
+    let organizationLogoPath = account?.logo_path ?? postingResponse.posting.organization_logo_path;
+
+    try {
+      const meResponse = await requestServer<OrganizationGetMeResponse>('/organization/me', { includeJwt: true });
+      organizationId = meResponse.organization.id;
+      organizationName = meResponse.organization.name;
+      organizationLogoPath = meResponse.organization.logo_path;
+    } catch {
+      try {
+        const organizationResponse = await requestServer<OrganizationProfileResponse>(
+          `/organization/${postingResponse.posting.organization_id}`,
+          { includeJwt: false },
+        );
+        organizationId = organizationResponse.organization.id;
+        organizationName = organizationResponse.organization.name;
+        organizationLogoPath = organizationResponse.organization.logo_path;
+      } catch {
+        // Keep fallback values from auth context/posting response.
+      }
+    }
+
+    setPostingOrganization({
+      id: organizationId,
+      name: organizationName,
+      logoPath: organizationLogoPath,
+    });
 
     form.reset({
       title: postingResponse.posting.title,
@@ -818,17 +840,40 @@ function PostingPage() {
               <>
                 <div className="card bg-base-100 shadow-md">
                   <div className="card-body">
-                    <div className="flex items-center justify-between gap-4 mb-4">
-                      <h4 className="text-xl font-bold">{formValues.title}</h4>
-                      {isVolunteerView && postingOrganization && (
-                        <Link
-                          to={`/organization/${postingOrganization.id}`}
-                          className="link link-primary link-hover font-medium text-sm inline-flex items-center gap-1.5 shrink-0"
-                        >
-                          <Building2 size={14} />
-                          <span>{postingOrganization.name}</span>
+                    <div className="flex items-start gap-3 mb-4">
+                      {postingOrganization && (
+                        <Link to={`/organization/${postingOrganization.id}`} className="shrink-0">
+                          <div className="avatar avatar-placeholder">
+                            {postingOrganization.logoPath
+                              ? (
+                                  <div className={`w-12 h-12 rounded-full overflow-hidden ring-1 ring-base-300 ${postingOrganization.logoPath.toLowerCase().endsWith('.png') ? 'bg-white' : 'bg-base-100'} flex items-center justify-center`}>
+                                    <img
+                                      src={`${SERVER_BASE_URL}/organization/${postingOrganization.id}/logo`}
+                                      alt={`${postingOrganization.name} logo`}
+                                      className="h-full w-full object-contain"
+                                    />
+                                  </div>
+                                )
+                              : (
+                                  <div className="bg-primary text-primary-content w-12 h-12 rounded-full flex items-center justify-center">
+                                    <Building2 size={18} />
+                                  </div>
+                                )}
+                          </div>
                         </Link>
                       )}
+
+                      <div className="min-w-0">
+                        <h4 className="text-xl font-bold truncate">{formValues.title}</h4>
+                        {postingOrganization && (
+                          <Link
+                            to={`/organization/${postingOrganization.id}`}
+                            className="text-primary text-xs hover:underline"
+                          >
+                            {postingOrganization.name}
+                          </Link>
+                        )}
+                      </div>
                     </div>
 
                     {isEditMode
@@ -1302,6 +1347,7 @@ function PostingPage() {
                             <VolunteerInfoCollapse
                               key={app.application_id}
                               volunteer={app}
+                              profileLink={`/organization/volunteer/${app.volunteer_id}`}
                               actions={(
                                 <>
                                   <Button
@@ -1353,6 +1399,7 @@ function PostingPage() {
                             <VolunteerInfoCollapse
                               key={volunteer.enrollment_id}
                               volunteer={volunteer}
+                              profileLink={`/organization/volunteer/${volunteer.volunteer_id}`}
                             />
                           ))}
                         </div>
