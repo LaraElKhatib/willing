@@ -133,11 +133,6 @@ function VolunteerInfoCollapse({ volunteer, actions, profileLink }: VolunteerInf
                 </>
               )}
         </div>
-        {actions && (
-          <div className="flex gap-2 items-center pointer-events-auto" onClick={e => e.stopPropagation()}>
-            {actions}
-          </div>
-        )}
         {hasCv && (
           <div className="pointer-events-auto" onClick={event => event.stopPropagation()}>
             <IconButton
@@ -151,6 +146,11 @@ function VolunteerInfoCollapse({ volunteer, actions, profileLink }: VolunteerInf
               aria-label="View CV"
               title="View CV"
             />
+          </div>
+        )}
+        {actions && (
+          <div className="flex gap-2 items-center pointer-events-auto" onClick={e => e.stopPropagation()}>
+            {actions}
           </div>
         )}
       </div>
