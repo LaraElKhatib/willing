@@ -15,12 +15,13 @@ import {
 import { FormField } from '../../utils/formUtils.tsx';
 import requestServer from '../../utils/requestServer.ts';
 import useAsync from '../../utils/useAsync';
+import CalendarInfo from '../CalendarInfo.tsx';
 import EmptyState from '../EmptyState.tsx';
+import PageContainer from '../layout/PageContainer.tsx';
 import PageHeader from '../layout/PageHeader.tsx';
 import Loading from '../Loading.tsx';
 import PostingCollection from './PostingCollection.tsx';
 import PostingFiltersCard from './PostingFiltersCard.tsx';
-import PageContainer from '../layout/PageContainer.tsx';
 
 import type { VolunteerPostingSearchResponse, VolunteerEnrollmentsResponse } from '../../../../server/src/api/types.ts';
 import type { PostingWithContext } from '../../../../server/src/types.ts';
@@ -180,19 +181,29 @@ function PostingSearchView({
         getHasAdvancedFiltersApplied={values => hasSharedAdvancedPostingFilters(values) || values.hideFull || values.crisisId !== 'all'}
         renderAdvancedFields={form => (
           <>
-            <FormField
-              form={form}
-              name="startDateFrom"
-              label="Start After (Inclusive)"
-              type="date"
-            />
-
-            <FormField
-              form={form}
-              name="endDateTo"
-              label="End By (Inclusive)"
-              type="date"
-            />
+            <div className="lg:col-span-2">
+              <CalendarInfo
+                selectionMode="range"
+                rangeLabel="Start After (Inclusive) -> End By (Inclusive)"
+                rangeValue={{
+                  from: form.watch('startDateFrom') ?? '',
+                  to: form.watch('endDateTo') ?? '',
+                }}
+                onRangeChange={({ from, to }) => {
+                  form.setValue('startDateFrom', from, {
+                    shouldDirty: true,
+                    shouldTouch: true,
+                    shouldValidate: true,
+                  });
+                  form.setValue('endDateTo', to, {
+                    shouldDirty: true,
+                    shouldTouch: true,
+                    shouldValidate: true,
+                  });
+                }}
+                className="w-full"
+              />
+            </div>
 
             <FormField
               form={form}

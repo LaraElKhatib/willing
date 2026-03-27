@@ -1,6 +1,7 @@
 import { ClipboardList, Plus } from 'lucide-react';
 import { useCallback, useMemo } from 'react';
 
+import CalendarInfo from '../../components/CalendarInfo';
 import EmptyState from '../../components/EmptyState';
 import PageContainer from '../../components/layout/PageContainer';
 import PageHeader from '../../components/layout/PageHeader';
@@ -243,19 +244,29 @@ function OrganizationHome() {
               />
             </div>
 
-            <FormField
-              form={form}
-              name="startDateFrom"
-              label="Start After (Inclusive)"
-              type="date"
-            />
-
-            <FormField
-              form={form}
-              name="endDateTo"
-              label="End By (Inclusive)"
-              type="date"
-            />
+            <div className="lg:col-span-2">
+              <CalendarInfo
+                selectionMode="range"
+                rangeLabel="Start After (Inclusive) -> End By (Inclusive)"
+                rangeValue={{
+                  from: form.watch('startDateFrom') ?? '',
+                  to: form.watch('endDateTo') ?? '',
+                }}
+                onRangeChange={({ from, to }) => {
+                  form.setValue('startDateFrom', from, {
+                    shouldDirty: true,
+                    shouldTouch: true,
+                    shouldValidate: true,
+                  });
+                  form.setValue('endDateTo', to, {
+                    shouldDirty: true,
+                    shouldTouch: true,
+                    shouldValidate: true,
+                  });
+                }}
+                className="w-full"
+              />
+            </div>
 
             <FormField
               form={form}

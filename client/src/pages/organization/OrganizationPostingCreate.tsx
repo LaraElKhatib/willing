@@ -5,6 +5,7 @@ import { useForm, useWatch } from 'react-hook-form';
 import { useNavigate } from 'react-router';
 
 import Button from '../../components/Button.tsx';
+import CalendarInfo from '../../components/CalendarInfo';
 import Card from '../../components/Card.tsx';
 import PageContainer from '../../components/layout/PageContainer.tsx';
 import PageHeader from '../../components/layout/PageHeader';
@@ -176,26 +177,32 @@ export default function OrganizationPostingCreate() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <fieldset className="fieldset w-full">
-                    <label className="label">
-                      <span className="label-text font-medium">Start Date</span>
-                    </label>
-                    <input
-                      type="date"
-                      className={`input input-bordered w-full focus:input-primary ${form.formState.errors.start_date ? 'input-error' : ''}`}
-                      value={startDate}
-                      onChange={(event) => {
-                        form.setValue('start_date', event.target.value, {
+                  <div className="md:col-span-2">
+                    <CalendarInfo
+                      selectionMode="range"
+                      rangeLabel="Date Range"
+                      rangeValue={{ from: startDate, to: endDate }}
+                      onRangeChange={({ from, to }) => {
+                        form.setValue('start_date', from, {
+                          shouldDirty: true,
+                          shouldTouch: true,
+                          shouldValidate: true,
+                        });
+                        form.setValue('end_date', to, {
                           shouldDirty: true,
                           shouldTouch: true,
                           shouldValidate: true,
                         });
                       }}
+                      className="w-full"
                     />
                     {form.formState.errors.start_date?.message && (
                       <p className="text-error text-sm mt-1">{form.formState.errors.start_date.message as string}</p>
                     )}
-                  </fieldset>
+                    {form.formState.errors.end_date?.message && (
+                      <p className="text-error text-sm mt-1">{form.formState.errors.end_date.message as string}</p>
+                    )}
+                  </div>
 
                   <fieldset className="fieldset w-full">
                     <label className="label">
@@ -207,24 +214,6 @@ export default function OrganizationPostingCreate() {
                       value={startTime}
                       onChange={(event) => {
                         form.setValue('start_time', event.target.value, {
-                          shouldDirty: true,
-                          shouldTouch: true,
-                          shouldValidate: true,
-                        });
-                      }}
-                    />
-                  </fieldset>
-
-                  <fieldset className="fieldset w-full">
-                    <label className="label">
-                      <span className="label-text font-medium">End Date</span>
-                    </label>
-                    <input
-                      type="date"
-                      className="input input-bordered w-full focus:input-primary"
-                      value={endDate}
-                      onChange={(event) => {
-                        form.setValue('end_date', event.target.value, {
                           shouldDirty: true,
                           shouldTouch: true,
                           shouldValidate: true,
