@@ -289,7 +289,6 @@ function PostingCard({ posting, showCrisis = true }: PostingCardProps) {
         )}
       </div>
     </Card>
-    // </article>
   );
 }
 
