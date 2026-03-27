@@ -81,7 +81,6 @@ const getDateInputValue = (value: string) => {
   return `${dateParts.year}-${String(dateParts.month).padStart(2, '0')}-${String(dateParts.day).padStart(2, '0')}`;
 };
 
-const toDateString = (value: Date) => value.toISOString().slice(0, 10);
 const toTimeString = (value: Date) => `${String(value.getHours()).padStart(2, '0')}:${String(value.getMinutes()).padStart(2, '0')}`;
 
 const DEFAULT_SINGLE_DAY_HOURS = 5;
@@ -285,10 +284,10 @@ function VolunteerProfile() {
         latitude: undefined,
         longitude: undefined,
         max_volunteers: undefined,
-        start_date: toDateString(safeStartDate),
+        start_date: safeStartDate,
         start_time: toTimeString(safeStartDate),
-        end_date: safeEndDate ? toDateString(safeEndDate) : undefined,
-        end_time: safeEndDate ? toTimeString(safeEndDate) : undefined,
+        end_date: safeEndDate || safeStartDate,
+        end_time: safeEndDate ? toTimeString(safeEndDate) : toTimeString(safeStartDate),
         minimum_age: undefined,
         automatic_acceptance: true,
         is_closed: true,
@@ -715,7 +714,13 @@ function VolunteerProfile() {
                   : (
                       <div className="mt-4 space-y-3">
                         {visibleExperiencePostings.map(posting => (
-                          <PostingList key={posting.id} posting={posting} showCrisis={false} />
+                          <PostingList
+                            key={posting.id}
+                            posting={posting}
+                            showCrisis={false}
+                            variant="organization"
+                            compactOrganizationLayout
+                          />
                         ))}
 
                         {hasHiddenCompletedExperiences && (

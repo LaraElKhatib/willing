@@ -351,7 +351,13 @@ function OrganizationVolunteerProfile() {
                   : (
                       <div className="mt-4 space-y-3">
                         {experiencePostings.map(posting => (
-                          <PostingList key={posting.id} posting={posting} showCrisis={false} />
+                          <PostingList
+                            key={posting.id}
+                            posting={posting}
+                            showCrisis={false}
+                            variant="organization"
+                            compactOrganizationLayout
+                          />
                         ))}
                       </div>
                     )}

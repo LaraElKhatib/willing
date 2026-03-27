@@ -1,5 +1,4 @@
 import { AlertCircle, Ban, Building2, Cake, Calendar, Clock, ExternalLink, LockOpen, MapPin, Users } from 'lucide-react';
-import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 
 import SkillsList from './skills/SkillsList';
@@ -47,11 +46,8 @@ function PostingList({
   variant = 'volunteer',
   compactOrganizationLayout = false,
 }: PostingListProps) {
-  const MAXIMIZED_TOLERANCE_PX = 24;
   const postingDetailsPath = `/posting/${posting.id}`;
   const hasOrganizationName = Boolean(posting.organization_name);
-  const useMaximizedOutsideMeta = variant === 'organization' && compactOrganizationLayout;
-  const [isWindowMaximized, setIsWindowMaximized] = useState(false);
 
   const startDt = normalizeTimestamp(posting.start_date);
   const endDt = normalizeTimestamp(posting.end_date);
@@ -129,67 +125,30 @@ function PostingList({
                 </span>
               );
 
-  useEffect(() => {
-    if (!useMaximizedOutsideMeta) return;
-
-    const updateMaximizedState = () => {
-      const isMaximizedByInner = window.innerWidth >= window.screen.availWidth - MAXIMIZED_TOLERANCE_PX;
-      const isMaximizedByOuter = window.outerWidth >= window.screen.availWidth - MAXIMIZED_TOLERANCE_PX;
-      setIsWindowMaximized(isMaximizedByInner || isMaximizedByOuter);
-    };
-
-    updateMaximizedState();
-    window.addEventListener('resize', updateMaximizedState);
-
-    return () => {
-      window.removeEventListener('resize', updateMaximizedState);
-    };
-  }, [useMaximizedOutsideMeta]);
-
-  const organizationMetaGridClasses = useMaximizedOutsideMeta
-    ? (isWindowMaximized
-        ? 'grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] grid-rows-2'
-        : '')
-    : compactOrganizationLayout
-      ? 'min-[1700px]:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] min-[1700px]:grid-rows-2'
-      : '2xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] 2xl:grid-rows-2';
-  const organizationTitleColumnClasses = useMaximizedOutsideMeta
-    ? (isWindowMaximized ? 'row-span-2 flex self-stretch flex-col' : '')
-    : compactOrganizationLayout
-      ? 'min-[1700px]:row-span-2 min-[1700px]:flex min-[1700px]:self-stretch min-[1700px]:flex-col'
-      : '2xl:row-span-2 2xl:flex 2xl:self-stretch 2xl:flex-col';
-  const organizationTitleAlignmentClasses = useMaximizedOutsideMeta
-    ? (isWindowMaximized
-        ? (hasOrganizationName ? 'justify-start' : 'justify-center')
-        : '')
-    : compactOrganizationLayout
-      ? (hasOrganizationName ? 'min-[1700px]:justify-start' : 'min-[1700px]:justify-center')
-      : (hasOrganizationName ? '2xl:justify-start' : '2xl:justify-center');
-  const organizationHeaderMetaVisibleClass = useMaximizedOutsideMeta
-    ? (isWindowMaximized ? 'inline-flex' : 'hidden')
-    : compactOrganizationLayout
-      ? 'min-[1700px]:inline-flex'
-      : '2xl:inline-flex';
-  const organizationHeaderValueVisibleClass = useMaximizedOutsideMeta
-    ? (isWindowMaximized ? 'block' : 'hidden')
-    : compactOrganizationLayout
-      ? 'min-[1700px]:block'
-      : '2xl:block';
-  const organizationCollapsedMetaHiddenClass = useMaximizedOutsideMeta
-    ? (isWindowMaximized ? 'hidden' : '')
-    : compactOrganizationLayout
-      ? 'min-[1700px]:hidden'
-      : '2xl:hidden';
-  const organizationTagInlineClass = useMaximizedOutsideMeta
-    ? (isWindowMaximized ? 'hidden' : 'block')
-    : compactOrganizationLayout
-      ? 'block min-[1700px]:hidden'
-      : 'block 2xl:hidden';
-  const organizationTagBelowClass = useMaximizedOutsideMeta
-    ? (isWindowMaximized ? 'block' : 'hidden')
-    : compactOrganizationLayout
-      ? 'hidden min-[1700px]:block'
-      : 'hidden 2xl:block';
+  const organizationMetaGridClasses = compactOrganizationLayout
+    ? 'min-[1700px]:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] min-[1700px]:grid-rows-2'
+    : '2xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] 2xl:grid-rows-2';
+  const organizationTitleColumnClasses = compactOrganizationLayout
+    ? 'min-[1700px]:row-span-2 min-[1700px]:flex min-[1700px]:self-stretch min-[1700px]:flex-col'
+    : '2xl:row-span-2 2xl:flex 2xl:self-stretch 2xl:flex-col';
+  const organizationTitleAlignmentClasses = compactOrganizationLayout
+    ? (hasOrganizationName ? 'min-[1700px]:justify-start' : 'min-[1700px]:justify-center')
+    : (hasOrganizationName ? '2xl:justify-start' : '2xl:justify-center');
+  const outsideMetaLabelVisibleClass = variant === 'organization'
+    ? (compactOrganizationLayout ? 'min-[1700px]:inline-flex' : '2xl:inline-flex')
+    : 'lg:inline-flex';
+  const outsideMetaValueVisibleClass = variant === 'organization'
+    ? (compactOrganizationLayout ? 'min-[1700px]:block' : '2xl:block')
+    : 'lg:block';
+  const insideMetaVisibleClass = variant === 'organization'
+    ? (compactOrganizationLayout ? 'block min-[1700px]:hidden' : '2xl:hidden')
+    : 'lg:hidden';
+  const organizationTagInlineClass = compactOrganizationLayout
+    ? 'block min-[1700px]:hidden'
+    : 'block 2xl:hidden';
+  const organizationTagBelowClass = compactOrganizationLayout
+    ? 'hidden min-[1700px]:block'
+    : 'hidden 2xl:block';
 
   return (
 
@@ -275,32 +234,32 @@ function PostingList({
                 )}
               </div>
 
-              <span className={`-ml-8 hidden items-center gap-1.5 justify-self-start text-sm opacity-70 ${variant === 'organization' ? organizationHeaderMetaVisibleClass : 'lg:inline-flex'}`}>
+              <span className={`-ml-8 hidden items-center gap-1.5 justify-self-start text-sm opacity-70 ${outsideMetaLabelVisibleClass}`}>
                 <Calendar size={14} className="shrink-0 text-primary" />
                 Date
               </span>
 
-              <span className={`-ml-8 hidden items-center gap-1.5 justify-self-start text-sm opacity-70 ${variant === 'organization' ? organizationHeaderMetaVisibleClass : 'lg:inline-flex'}`}>
+              <span className={`-ml-8 hidden items-center gap-1.5 justify-self-start text-sm opacity-70 ${outsideMetaLabelVisibleClass}`}>
                 <Clock size={14} className="shrink-0 text-primary" />
                 Time
               </span>
 
-              <span className={`-ml-8 hidden items-center gap-1.5 justify-self-start text-sm opacity-70 ${variant === 'organization' ? organizationHeaderMetaVisibleClass : 'lg:inline-flex'}`}>
+              <span className={`-ml-8 hidden items-center gap-1.5 justify-self-start text-sm opacity-70 ${outsideMetaLabelVisibleClass}`}>
                 <MapPin size={14} className="shrink-0 text-primary" />
                 Location
               </span>
 
-              <span className={`-ml-8 hidden min-w-0 truncate justify-self-start pr-1 text-xs font-medium text-base-content ${variant === 'organization' ? organizationHeaderValueVisibleClass : 'lg:block'}`}>{hasEndDate ? `${startDateStr} - ${endDateStr}` : startDateStr}</span>
+              <span className={`-ml-8 hidden min-w-0 truncate justify-self-start pr-1 text-xs font-medium text-base-content ${outsideMetaValueVisibleClass}`}>{hasEndDate ? `${startDateStr} - ${endDateStr}` : startDateStr}</span>
 
-              <span className={`-ml-8 hidden min-w-0 truncate justify-self-start pr-1 text-xs font-medium text-base-content ${variant === 'organization' ? organizationHeaderValueVisibleClass : 'lg:block'}`}>{hasEndDate ? `${startTimeStr} - ${endTimeStr}` : startTimeStr}</span>
+              <span className={`-ml-8 hidden min-w-0 truncate justify-self-start pr-1 text-xs font-medium text-base-content ${outsideMetaValueVisibleClass}`}>{hasEndDate ? `${startTimeStr} - ${endTimeStr}` : startTimeStr}</span>
 
-              <span className={`-ml-8 hidden min-w-0 truncate justify-self-start text-xs font-medium text-base-content ${variant === 'organization' ? organizationHeaderValueVisibleClass : 'lg:block'}`}>{locationText}</span>
+              <span className={`-ml-8 hidden min-w-0 truncate justify-self-start text-xs font-medium text-base-content ${outsideMetaValueVisibleClass}`}>{locationText}</span>
             </div>
           </div>
         </div>
 
         <div className="collapse-content pt-0">
-          <div className={`mb-3 space-y-1 text-sm ${variant === 'organization' ? organizationCollapsedMetaHiddenClass : 'lg:hidden'}`}>
+          <div className={`mb-3 space-y-1 text-sm ${insideMetaVisibleClass}`}>
             <div className="inline-flex items-center gap-2">
               <Calendar size={14} className="text-primary" />
               <span className="opacity-70">Date:</span>
