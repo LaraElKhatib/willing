@@ -80,6 +80,7 @@ const organizationPostingResponseColumns = [
   'organization_posting.minimum_age',
   'organization_posting.automatic_acceptance',
   'organization_posting.is_closed',
+  'organization_posting.allows_partial_attendance',
   'organization_posting.location_name',
   'organization_posting.created_at',
   'organization_posting.updated_at',
