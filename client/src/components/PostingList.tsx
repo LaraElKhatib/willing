@@ -121,7 +121,7 @@ function PostingList({ posting, showCrisis = true, variant = 'volunteer' }: Post
 
   return (
 
-    <div className="overflow-visible">
+    <div className="relative overflow-visible">
       {showCrisis && posting.crisis_name && posting.crisis_id && (
         <Link
           to={`/volunteer/crises/${posting.crisis_id}/postings`}
@@ -160,9 +160,9 @@ function PostingList({ posting, showCrisis = true, variant = 'volunteer' }: Post
           </div>
 
           <div className="min-w-0 flex-1 relative">
-            <div className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] lg:grid-rows-2">
+            <div className={`grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 ${variant === 'organization' ? '2xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] 2xl:grid-rows-2' : 'lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] lg:grid-rows-2'}`}>
               <div
-                className={`min-w-0 lg:row-span-2 lg:flex lg:self-stretch lg:flex-col ${variant === 'volunteer' && hasOrganizationName ? 'lg:justify-start' : 'lg:justify-center'}`}
+                className={`min-w-0 ${variant === 'organization' ? '2xl:row-span-2 2xl:flex 2xl:self-stretch 2xl:flex-col' : 'lg:row-span-2 lg:flex lg:self-stretch lg:flex-col'} ${variant === 'organization' ? (hasOrganizationName ? '2xl:justify-start' : '2xl:justify-center') : (hasOrganizationName ? 'lg:justify-start' : 'lg:justify-center')}`}
               >
                 <div className="flex min-w-0 items-center gap-2">
                   <Link
@@ -174,46 +174,61 @@ function PostingList({ posting, showCrisis = true, variant = 'volunteer' }: Post
                     <ExternalLink size={14} />
                   </Link>
 
-                  <div className="shrink-0 opacity-100">{statusTag}</div>
+                  {variant === 'organization' && (
+                    <div className="shrink-0 opacity-100 block 2xl:hidden">{statusTag}</div>
+                  )}
+
+                  {variant === 'volunteer' && (
+                    <div className="shrink-0 opacity-100 block lg:hidden 2xl:block">{statusTag}</div>
+                  )}
                 </div>
 
-                {variant === 'volunteer' && posting.organization_name && (
-                  <Link
-                    to={`/organization/${posting.organization_id}`}
-                    onClick={event => event.stopPropagation()}
-                    className="pointer-events-auto text-primary link link-hover no-underline hover:underline text-xs mt-1 self-start"
-                  >
-                    {posting.organization_name}
-                  </Link>
+                {variant === 'organization' && (
+                  <div className="mt-1 shrink-0 opacity-100 hidden 2xl:block">{statusTag}</div>
+                )}
+
+                {variant === 'volunteer' && (
+                  <div className="mt-1 flex min-w-0 items-center gap-2">
+                    {posting.organization_name && (
+                      <Link
+                        to={`/organization/${posting.organization_id}`}
+                        onClick={event => event.stopPropagation()}
+                        className="pointer-events-auto text-primary link link-hover no-underline hover:underline text-xs self-start"
+                      >
+                        {posting.organization_name}
+                      </Link>
+                    )}
+                    <div className="shrink-0 opacity-100 hidden lg:block 2xl:hidden">{statusTag}</div>
+                  </div>
                 )}
               </div>
 
-              <span className="-ml-8 hidden items-center gap-1.5 justify-self-start text-sm opacity-70 lg:inline-flex">
+              <span className={`-ml-8 hidden items-center gap-1.5 justify-self-start text-sm opacity-70 ${variant === 'organization' ? '2xl:inline-flex' : 'lg:inline-flex'}`}>
                 <Calendar size={14} className="shrink-0 text-primary" />
                 Date
               </span>
 
-              <span className="-ml-8 hidden items-center gap-1.5 justify-self-start text-sm opacity-70 lg:inline-flex">
+              <span className={`-ml-8 hidden items-center gap-1.5 justify-self-start text-sm opacity-70 ${variant === 'organization' ? '2xl:inline-flex' : 'lg:inline-flex'}`}>
                 <Clock size={14} className="shrink-0 text-primary" />
                 Time
               </span>
 
-              <span className="-ml-8 hidden items-center gap-1.5 justify-self-start text-sm opacity-70 lg:inline-flex">
+              <span className={`-ml-8 hidden items-center gap-1.5 justify-self-start text-sm opacity-70 ${variant === 'organization' ? '2xl:inline-flex' : 'lg:inline-flex'}`}>
                 <MapPin size={14} className="shrink-0 text-primary" />
                 Location
               </span>
 
-              <span className="-ml-8 hidden min-w-0 truncate justify-self-start pr-1 text-xs font-medium text-base-content lg:block">{hasEndDate ? `${startDateStr} - ${endDateStr}` : startDateStr}</span>
+              <span className={`-ml-8 hidden min-w-0 truncate justify-self-start pr-1 text-xs font-medium text-base-content ${variant === 'organization' ? '2xl:block' : 'lg:block'}`}>{hasEndDate ? `${startDateStr} - ${endDateStr}` : startDateStr}</span>
 
-              <span className="-ml-8 hidden min-w-0 truncate justify-self-start pr-1 text-xs font-medium text-base-content lg:block">{hasEndDate ? `${startTimeStr} - ${endTimeStr}` : startTimeStr}</span>
+              <span className={`-ml-8 hidden min-w-0 truncate justify-self-start pr-1 text-xs font-medium text-base-content ${variant === 'organization' ? '2xl:block' : 'lg:block'}`}>{hasEndDate ? `${startTimeStr} - ${endTimeStr}` : startTimeStr}</span>
 
-              <span className="-ml-8 hidden min-w-0 truncate justify-self-start text-xs font-medium text-base-content lg:block">{locationText}</span>
+              <span className={`-ml-8 hidden min-w-0 truncate justify-self-start text-xs font-medium text-base-content ${variant === 'organization' ? '2xl:block' : 'lg:block'}`}>{locationText}</span>
             </div>
           </div>
         </div>
 
         <div className="collapse-content pt-0">
-          <div className="mb-3 space-y-1 text-sm lg:hidden">
+          <div className={`mb-3 space-y-1 text-sm ${variant === 'organization' ? '2xl:hidden' : 'lg:hidden'}`}>
             <div className="inline-flex items-center gap-2">
               <Calendar size={14} className="text-primary" />
               <span className="opacity-70">Date:</span>

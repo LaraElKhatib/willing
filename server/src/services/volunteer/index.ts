@@ -45,7 +45,6 @@ export const getVolunteerProfile = async (volunteerId: number): Promise<Voluntee
         'gender',
         'cv_path',
         'description',
-        'privacy',
       ] as const)
       .where('id', '=', volunteerId)
       .executeTakeFirstOrThrow(),
@@ -72,11 +71,7 @@ export const getVolunteerProfile = async (volunteerId: number): Promise<Voluntee
       )
       .select(
         sql<Date | null>`
-          case
-            when organization_posting.end_date is null then null
-            else organization_posting.end_date + coalesce(organization_posting.end_time, organization_posting.start_time)::time
-          end
-        `.as('end_timestamp'),
+      organization_posting.end_date + organization_posting.end_time::time`.as('end_timestamp'),
       )
       .select('crisis.name as crisis_name')
       .where('enrollment.volunteer_id', '=', volunteerId)
@@ -147,7 +142,6 @@ export const getVolunteerProfile = async (volunteerId: number): Promise<Voluntee
       email: volunteer.email,
       date_of_birth: volunteer.date_of_birth,
       gender: volunteer.gender,
-      privacy: volunteer.privacy,
       cv_path: volunteer.cv_path,
       description: volunteer.description ?? '',
     },

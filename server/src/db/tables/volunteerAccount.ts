@@ -3,7 +3,7 @@ import zod from 'zod';
 import { emailSchema, idSchema, passwordSchema } from '../../schemas/index.js';
 import { genderSchema } from '../../types.js';
 
-import type { WithGeneratedIDAndTimestamps } from './shared.js';
+import type { WithGeneratedColumns, WithGeneratedIDAndTimestamps } from './shared.js';
 
 export const volunteerAccountSchema = zod.object({
   id: idSchema,
@@ -18,23 +18,27 @@ export const volunteerAccountSchema = zod.object({
   gender: genderSchema,
   cv_path: zod.string().trim().max(256, 'CV path must be at most 256 characters').optional(),
   description: zod.string().max(500, 'Description must be less than 500 characters').optional(),
-  privacy: zod.enum(['public', 'private']),
   profile_vector: zod.string().optional(),
   experience_vector: zod.string().optional(),
+  is_disabled: zod.boolean().default(false),
+  is_deleted: zod.boolean().default(false),
   updated_at: zod.date(),
   created_at: zod.date(),
 });
 export type VolunteerAccount = zod.infer<typeof volunteerAccountSchema>;
 
-export type VolunteerAccountTable = WithGeneratedIDAndTimestamps<VolunteerAccount>;
+export type VolunteerAccountTable = WithGeneratedIDAndTimestamps<
+  WithGeneratedColumns<VolunteerAccount, 'is_disabled' | 'is_deleted'>
+>;
 
 export const newVolunteerAccountSchema = volunteerAccountSchema.omit({
   id: true,
-  privacy: true,
   cv_path: true,
   description: true,
   profile_vector: true,
   experience_vector: true,
+  is_disabled: true,
+  is_deleted: true,
   created_at: true,
   updated_at: true,
 }).strict();
@@ -44,6 +48,8 @@ export const volunteerAccountWithoutPasswordSchema = volunteerAccountSchema.omit
   password: true,
   profile_vector: true,
   experience_vector: true,
+  is_disabled: true,
+  is_deleted: true,
   created_at: true,
   updated_at: true,
 });
