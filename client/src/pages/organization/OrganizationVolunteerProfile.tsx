@@ -8,7 +8,8 @@ import IconButton from '../../components/IconButton';
 import ColumnLayout from '../../components/layout/ColumnLayout';
 import PageHeader from '../../components/layout/PageHeader';
 import Loading from '../../components/Loading';
-import PostingList from '../../components/PostingList';
+import PostingCollection from '../../components/postings/PostingCollection';
+import PostingViewModeToggle from '../../components/postings/PostingViewModeToggle';
 import SkillsList from '../../components/skills/SkillsList';
 import requestServer, { SERVER_BASE_URL } from '../../utils/requestServer';
 import useAsync from '../../utils/useAsync';
@@ -360,9 +361,16 @@ function OrganizationVolunteerProfile() {
                     )
                   : (
                       <div className="mt-4 space-y-3">
-                        {experiencePostings.map(posting => (
-                          <PostingList key={posting.id} posting={posting} showCrisis={false} />
-                        ))}
+                        <div className="flex justify-end">
+                          <PostingViewModeToggle />
+                        </div>
+
+                        <PostingCollection
+                          postings={experiencePostings}
+                          showCrisis={false}
+                          cardsContainerClassName="grid grid-cols-1 gap-6"
+                          listContainerClassName="space-y-3"
+                        />
                       </div>
                     )}
               </div>

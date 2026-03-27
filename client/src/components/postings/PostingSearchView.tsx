@@ -18,7 +18,7 @@ import useAsync from '../../utils/useAsync';
 import EmptyState from '../EmptyState.tsx';
 import PageHeader from '../layout/PageHeader.tsx';
 import Loading from '../Loading.tsx';
-import PostingCard from '../PostingCard.tsx';
+import PostingCollection from './PostingCollection.tsx';
 import PostingFiltersCard from './PostingFiltersCard.tsx';
 import PageContainer from '../layout/PageContainer.tsx';
 
@@ -50,6 +50,7 @@ type PostingSearchViewProps = {
   subtitle: string;
   icon?: LucideIcon;
   badge?: ReactNode;
+  actions?: ReactNode;
   showBack?: boolean;
   defaultBackTo?: string;
   initialFilters?: Partial<PostingSearchFilters>;
@@ -92,6 +93,7 @@ function PostingSearchView({
   subtitle,
   icon = TextSearch,
   badge,
+  actions,
   showBack = false,
   defaultBackTo,
   initialFilters,
@@ -159,6 +161,7 @@ function PostingSearchView({
         subtitle={subtitle}
         icon={icon}
         badge={badge}
+        actions={actions}
         showBack={showBack}
         defaultBackTo={defaultBackTo}
       />
@@ -252,14 +255,11 @@ function PostingSearchView({
               />
             )
           : (
-              <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 2xl:grid-cols-3">
-                {postings.map(posting => (
-                  <PostingCard
-                    key={posting.id}
-                    posting={posting}
-                  />
-                ))}
-              </div>
+              <PostingCollection
+                postings={postings}
+                cardsContainerClassName="grid grid-cols-1 gap-6 lg:grid-cols-2 2xl:grid-cols-3"
+                listContainerClassName="space-y-3"
+              />
             )}
     </PageContainer>
   );

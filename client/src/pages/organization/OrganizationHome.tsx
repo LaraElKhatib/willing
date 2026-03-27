@@ -175,13 +175,16 @@ function OrganizationHome() {
           )
         }
         actions={(
-          <LinkButton
-            color="primary"
-            to="/organization/posting"
-            Icon={Plus}
-          >
-            Create New Posting
-          </LinkButton>
+          <div className="flex gap-2 items-center">
+            <PostingViewModeToggle />
+            <LinkButton
+              color="primary"
+              to="/organization/posting"
+              Icon={Plus}
+            >
+              Create New Posting
+            </LinkButton>
+          </div>
         )}
       />
 

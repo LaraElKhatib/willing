@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
 
 import PostingSearchView from '../../components/postings/PostingSearchView.tsx';
+import PostingViewModeToggle from '../../components/postings/PostingViewModeToggle.tsx';
 import requestServer from '../../utils/requestServer';
 
 import type {
@@ -79,6 +80,7 @@ function VolunteerCrisisPostings() {
       title={resolvedCrisis?.name ?? 'Crisis'}
       subtitle={subtitle}
       icon={AlertCircle}
+      actions={<PostingViewModeToggle />}
       showBack
       defaultBackTo="/volunteer"
       fetchUrl="/volunteer/posting"
