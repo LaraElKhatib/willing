@@ -247,7 +247,7 @@ function OrganizationHome() {
             <div className="lg:col-span-2">
               <CalendarInfo
                 selectionMode="range"
-                rangeLabel="Start After (Inclusive) -> End By (Inclusive)"
+                rangeLabel="Date Range"
                 rangeValue={{
                   from: form.watch('startDateFrom') ?? '',
                   to: form.watch('endDateTo') ?? '',
