@@ -3,7 +3,6 @@ import {
   User,
   Mail,
   LockKeyhole,
-  Calendar,
   UserCircle,
   UserPlus,
   CheckCircle2,
@@ -102,7 +101,6 @@ export default function VolunteerCreate() {
                 label="Date of Birth"
                 name="date_of_birth"
                 type="date"
-                Icon={Calendar}
               />
             </div>
             <div className="flex-1">
