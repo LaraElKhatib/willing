@@ -1,6 +1,6 @@
 import { sendEmail } from './mailer.js';
+import { buildEmailBody } from './template.js';
 import config from '../../config.js';
-import db from '../../db/index.js';
 import { OrganizationRequest } from '../../db/tables/index.js';
 
 export async function sendOrganizationAcceptanceEmail(
@@ -9,33 +9,40 @@ export async function sendOrganizationAcceptanceEmail(
 ) {
   const to = organizationRequest.email;
 
-  const subject = 'Your organization request was accepted';
+  const subject = 'Welcome to Willing!';
+  const loginUrl = `${config.CLIENT_URL}/login`;
 
-  const text
-    = `Hello ${organizationRequest.name},\n\n`
-      + `Your organization request has been accepted.\n\n`
-      + `Credentials:\n`
-      + `    Email: ${to}\n`
-      + `    Temporary password: ${password}\n\n`
-      + `Login: ${config.CLIENT_URL}/login\n\n`
-      + `Please change your password after logging in.\n\n`
-      + `Willing Team`;
+  const { html, text } = buildEmailBody({
+    title: 'Welcome to Willing!',
+    intro: `Hello ${organizationRequest.name}, your organization request was approved.`,
+    rows: [
+      { label: 'Email', value: to },
+      { label: 'Temporary password', value: password },
+    ],
+    paragraphs: ['We are excited to have you on Willing. Please change your password after your first login.'],
+    ctaLabel: 'Go to Login',
+    ctaUrl: loginUrl,
+    tone: 'success',
+  });
 
-  await sendEmail({ to, subject, text });
+  await sendEmail({ to, subject, text, html });
 }
 
 export async function sendPasswordResetEmail(to: string, name: string, resetToken: string) {
   const subject = 'Reset your Willing password';
   const resetUrl = `${config.CLIENT_URL}/forgot-password?key=${encodeURIComponent(resetToken)}`;
 
-  const text
-    = `Hello ${name},\n\n`
-      + 'We received a request to reset your password.\n\n'
-      + `Reset link: ${resetUrl}\n\n`
-      + 'If you did not request a password reset, you can ignore this email.\n\n'
-      + 'Willing Team';
+  const { html, text } = buildEmailBody({
+    title: 'Password Reset Request',
+    intro: `Hello ${name}, we received a request to reset your password.`,
+    paragraphs: ['If this was you, use the button below to set a new password.'],
+    ctaLabel: 'Reset Password',
+    ctaUrl: resetUrl,
+    note: 'If you did not request this, you can safely ignore this email.',
+    tone: 'primary',
+  });
 
-  await sendEmail({ to, subject, text });
+  await sendEmail({ to, subject, text, html });
 }
 
 export async function sendOrganizationRejectionEmail(
@@ -44,42 +51,55 @@ export async function sendOrganizationRejectionEmail(
 ) {
   const to = organizationRequest.email;
 
-  const subject = 'Your organization request was rejected';
+  const subject = 'Your organization request was not approved';
 
-  const reasonBlock
-    = reason && reason.trim().length
-      ? `Reason: ${reason.trim()}\n\n`
-      : '';
+  const rows = reason && reason.trim().length
+    ? [{ label: 'Reason', value: reason.trim() }]
+    : undefined;
 
-  const text
-    = `Hello ${organizationRequest.name},\n\n`
-      + `Your organization request has been rejected.\n\n`
-      + reasonBlock
-      + `If you believe this was a mistake, you can submit a new request with updated information.\n`
-      + 'For any extra questions, please contact us at willing.app.lb@gmail.com.\n\n'
-      + `Willing Team`;
+  const { html, text } = buildEmailBody({
+    title: 'Organization Request Rejected',
+    intro: `Hello ${organizationRequest.name}, your organization request was not approved.`,
+    ...(rows ? { rows } : {}),
+    paragraphs: ['You can submit a new request with updated information if needed.'],
+    note: `For any extra questions, contact ${config.SMTP_USER}.`,
+    tone: 'error',
+  });
 
-  await sendEmail({ to, subject, text });
+  await sendEmail({ to, subject, text, html });
 }
 
 export async function sendAdminOrganizationRequestEmail(
   organizationRequest: OrganizationRequest,
+  adminEmails: string[],
 ) {
-  const subject = 'New organization request submitted!';
+  if (adminEmails.length === 0) {
+    throw new Error('No admin emails were provided.');
+  }
 
-  const text
-    = `A new organization request has been submitted.\n\n`
-      + `Organization name: ${organizationRequest.name}\n`
-      + `Organization email: ${organizationRequest.email}\n`
-      + `Phone: ${organizationRequest.phone_number ?? '—'}\n`
-      + `Website: ${organizationRequest.url ?? '—'}\n`
-      + `Location: ${organizationRequest.location_name}\n\n`
-      + `Review it in the admin dashboard: ${config.CLIENT_URL + '/admin'}`;
-  const emails = (await db.selectFrom('admin_account').select(['email']).execute()).map(row => row.email);
+  const subject = 'New organization request to review';
+
+  const reviewUrl = `${config.CLIENT_URL}/admin`;
+  const { html, text } = buildEmailBody({
+    title: 'New Organization Request Submitted',
+    intro: 'A new organization request is ready for review in the admin dashboard.',
+    rows: [
+      { label: 'Organization name', value: organizationRequest.name },
+      { label: 'Organization email', value: organizationRequest.email },
+      { label: 'Phone', value: organizationRequest.phone_number ?? '—' },
+      { label: 'Website', value: organizationRequest.url ?? '—' },
+      { label: 'Location', value: organizationRequest.location_name },
+    ],
+    ctaLabel: 'Review Request',
+    ctaUrl: reviewUrl,
+    tone: 'accent',
+  });
+
   await sendEmail({
-    to: emails.join(', '),
+    to: adminEmails.join(', '),
     subject,
     text,
+    html,
   });
 }
 export async function sendVolunteerApplicationAcceptedEmail(opts: {
@@ -88,16 +108,20 @@ export async function sendVolunteerApplicationAcceptedEmail(opts: {
   organizationName: string;
   postingTitle: string;
 }) {
-  const subject = 'Your volunteering application was accepted';
+  const subject = 'You\'re in! Your volunteering application was accepted';
 
-  const text
-    = `Hello ${opts.volunteerName},\n\n`
-      + 'Good news. Your application for the volunteering position below was accepted.\n\n'
-      + `Organization: ${opts.organizationName}\n`
-      + `Position: ${opts.postingTitle}\n\n`
-      + `Willing Team`;
+  const { html, text } = buildEmailBody({
+    title: 'Application Accepted - Congratulations!',
+    intro: `Hello ${opts.volunteerName}, your volunteering application was accepted.`,
+    rows: [
+      { label: 'Organization', value: opts.organizationName },
+      { label: 'Posting', value: opts.postingTitle },
+    ],
+    paragraphs: ['Congratulations! Thank you for stepping up to help your community.'],
+    tone: 'success',
+  });
 
-  await sendEmail({ to: opts.volunteerEmail, subject, text });
+  await sendEmail({ to: opts.volunteerEmail, subject, text, html });
 }
 
 export async function sendVolunteerApplicationRejectedEmail(opts: {
@@ -106,14 +130,18 @@ export async function sendVolunteerApplicationRejectedEmail(opts: {
   organizationName: string;
   postingTitle: string;
 }) {
-  const subject = 'Your volunteering application was not accepted';
+  const subject = 'Update on your volunteer application';
 
-  const text
-    = `Hello ${opts.volunteerName},\n\n`
-      + 'Your application for the volunteering position below was not accepted.\n\n'
-      + `Organization: ${opts.organizationName}\n`
-      + `Position: ${opts.postingTitle}\n\n`
-      + `Willing Team`;
+  const { html, text } = buildEmailBody({
+    title: 'Application Not Accepted',
+    intro: `Hello ${opts.volunteerName}, your volunteering application was not accepted this time.`,
+    rows: [
+      { label: 'Organization', value: opts.organizationName },
+      { label: 'Posting', value: opts.postingTitle },
+    ],
+    note: 'Keep an eye on new opportunities that match your skills.',
+    tone: 'error',
+  });
 
-  await sendEmail({ to: opts.volunteerEmail, subject, text });
+  await sendEmail({ to: opts.volunteerEmail, subject, text, html });
 }
