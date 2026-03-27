@@ -15,6 +15,7 @@ export const getPostingEnrollments = async (postingId: number): Promise<PostingE
       'volunteer_account.email',
       'volunteer_account.date_of_birth',
       'volunteer_account.gender',
+      'volunteer_account.cv_path',
     ])
     .where('enrollment.posting_id', '=', postingId)
     .orderBy('volunteer_account.last_name', 'asc')
@@ -38,8 +39,24 @@ export const getPostingEnrollments = async (postingId: number): Promise<PostingE
     skillsByVolunteerId.get(skill.volunteer_id)!.push(skill);
   });
 
-  return enrollments.map(enrollment => ({
-    ...enrollment,
-    skills: skillsByVolunteerId.get(enrollment.volunteer_id) || [],
-  }));
+  return enrollments.map((enrollment) => {
+    const payload: PostingEnrollment = {
+      enrollment_id: enrollment.enrollment_id,
+      volunteer_id: enrollment.volunteer_id,
+      message: enrollment.message,
+      attended: enrollment.attended,
+      first_name: enrollment.first_name,
+      last_name: enrollment.last_name,
+      email: enrollment.email,
+      date_of_birth: enrollment.date_of_birth,
+      gender: enrollment.gender,
+      skills: skillsByVolunteerId.get(enrollment.volunteer_id) || [],
+    };
+
+    if (enrollment.cv_path !== undefined) {
+      payload.cv_path = enrollment.cv_path;
+    }
+
+    return payload;
+  });
 };
