@@ -16,7 +16,6 @@ import useAsync from '../../utils/useAsync';
 import type { OrganizationVolunteerProfileResponse } from '../../../../server/src/api/types';
 import type { PostingWithContext } from '../../../../server/src/types';
 
-const toDateString = (value: Date) => value.toISOString().slice(0, 10);
 const toTimeString = (value: Date) => `${String(value.getHours()).padStart(2, '0')}:${String(value.getMinutes()).padStart(2, '0')}`;
 
 function OrganizationVolunteerProfile() {
@@ -125,10 +124,10 @@ function OrganizationVolunteerProfile() {
         latitude: undefined,
         longitude: undefined,
         max_volunteers: undefined,
-        start_date: toDateString(safeStartDate),
+        start_date: safeStartDate,
         start_time: toTimeString(safeStartDate),
-        end_date: safeEndDate ? toDateString(safeEndDate) : undefined,
-        end_time: safeEndDate ? toTimeString(safeEndDate) : undefined,
+        end_date: safeEndDate || safeStartDate,
+        end_time: safeEndDate ? toTimeString(safeEndDate) : toTimeString(safeStartDate),
         minimum_age: undefined,
         automatic_acceptance: true,
         is_closed: true,
