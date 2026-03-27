@@ -71,40 +71,12 @@ const getDateInputValue = (value: Date | string) => {
   return `${year}-${month}-${day}`;
 };
 
-const getPreferredDateTimeInputValue = (
-  dateValue: Date | string | undefined,
-  timeValue: string | undefined,
-) => {
-  if (dateValue) {
-    const datePart = getDateInputValue(dateValue);
-    if (datePart) {
-      const timePart = (timeValue ?? '').slice(0, 5) || '00:00';
-      return `${datePart}T${timePart}`;
-    }
-  }
-
-  return '';
-};
+const getTimeInputValue = (timeValue: string | undefined) => (timeValue ?? '').slice(0, 5);
 
 const getPostingStartDateTime = (posting: PostingWithSkills) => {
   const datePart = getDateInputValue(posting.start_date);
   const timePart = (posting.start_time ?? '').slice(0, 5) || '00:00';
   return new Date(`${datePart}T${timePart}`);
-};
-
-const splitDateTimeInput = (value?: string) => {
-  if (!value) return { date: '', time: '' };
-
-  const [datePart, timePart] = value.split('T');
-  return {
-    date: datePart ?? '',
-    time: (timePart ?? '').slice(0, 5),
-  };
-};
-
-const combineDateAndTime = (date: string, time: string) => {
-  if (!date) return '';
-  return `${date}T${time || '00:00'}`;
 };
 
 const formatDisplayDate = (value?: string) => {
@@ -172,6 +144,7 @@ function PostingPage() {
     defaultValues: {
       automatic_acceptance: true,
       is_closed: false,
+      allows_partial_attendance: false,
     },
   });
 
@@ -180,10 +153,10 @@ function PostingPage() {
     name: 'automatic_acceptance',
     defaultValue: true,
   });
-  const startTimestamp = useWatch({ control: form.control, name: 'start_timestamp' }) ?? '';
-  const endTimestamp = useWatch({ control: form.control, name: 'end_timestamp' }) ?? '';
-  const startDateTimeParts = splitDateTimeInput(startTimestamp);
-  const endDateTimeParts = splitDateTimeInput(endTimestamp);
+  const startDate = useWatch({ control: form.control, name: 'start_date' }) ?? '';
+  const startTime = useWatch({ control: form.control, name: 'start_time' }) ?? '';
+  const endDate = useWatch({ control: form.control, name: 'end_date' }) ?? '';
+  const endTime = useWatch({ control: form.control, name: 'end_time' }) ?? '';
 
   const selectedCrisisName = useMemo(() => {
     if (selectedCrisisId == null) return null;
@@ -312,18 +285,15 @@ function PostingPage() {
         title: postingResponse.posting.title,
         description: postingResponse.posting.description,
         location_name: postingResponse.posting.location_name,
-        start_timestamp: getPreferredDateTimeInputValue(
-          postingResponse.posting.start_date,
-          postingResponse.posting.start_time,
-        ),
-        end_timestamp: getPreferredDateTimeInputValue(
-          postingResponse.posting.end_date,
-          postingResponse.posting.end_time,
-        ) || undefined,
+        start_date: getDateInputValue(postingResponse.posting.start_date),
+        start_time: getTimeInputValue(postingResponse.posting.start_time),
+        end_date: postingResponse.posting.end_date ? getDateInputValue(postingResponse.posting.end_date) : '',
+        end_time: getTimeInputValue(postingResponse.posting.end_time),
         max_volunteers: postingResponse.posting.max_volunteers?.toString() ?? undefined,
         minimum_age: postingResponse.posting.minimum_age?.toString() ?? undefined,
         automatic_acceptance: postingResponse.posting.automatic_acceptance,
         is_closed: postingResponse.posting.is_closed,
+        allows_partial_attendance: postingResponse.posting.allows_partial_attendance,
       });
 
       return;
@@ -363,13 +333,13 @@ function PostingPage() {
 
     let organizationId = postingResponse.posting.organization_id;
     let organizationName = account?.name ?? 'Organization';
-    let organizationLogoPath = account?.logo_path ?? postingResponse.posting.organization_logo_path;
+    let organizationLogoPath = account?.logo_path;
 
     try {
       const meResponse = await requestServer<OrganizationGetMeResponse>('/organization/me', { includeJwt: true });
-      organizationId = meResponse.organization.id;
-      organizationName = meResponse.organization.name;
-      organizationLogoPath = meResponse.organization.logo_path;
+      organizationId = meResponse.organization.id ?? organizationId;
+      organizationName = meResponse.organization.name ?? organizationName;
+      organizationLogoPath = meResponse.organization.logo_path ?? organizationLogoPath;
     } catch {
       try {
         const organizationResponse = await requestServer<OrganizationProfileResponse>(
@@ -394,18 +364,15 @@ function PostingPage() {
       title: postingResponse.posting.title,
       description: postingResponse.posting.description,
       location_name: postingResponse.posting.location_name,
-      start_timestamp: getPreferredDateTimeInputValue(
-        postingResponse.posting.start_date,
-        postingResponse.posting.start_time,
-      ),
-      end_timestamp: getPreferredDateTimeInputValue(
-        postingResponse.posting.end_date,
-        postingResponse.posting.end_time,
-      ) || undefined,
+      start_date: getDateInputValue(postingResponse.posting.start_date),
+      start_time: getTimeInputValue(postingResponse.posting.start_time),
+      end_date: postingResponse.posting.end_date ? getDateInputValue(postingResponse.posting.end_date) : '',
+      end_time: getTimeInputValue(postingResponse.posting.end_time),
       max_volunteers: postingResponse.posting.max_volunteers?.toString() ?? undefined,
       minimum_age: postingResponse.posting.minimum_age?.toString() ?? undefined,
       automatic_acceptance: postingResponse.posting.automatic_acceptance,
       is_closed: postingResponse.posting.is_closed,
+      allows_partial_attendance: postingResponse.posting.allows_partial_attendance,
     });
   }, [id, form, isVolunteerView, account]);
 
@@ -503,10 +470,10 @@ function PostingPage() {
           is_closed: data.is_closed,
           skills: skills.length > 0 ? skills : undefined,
           crisis_id: selectedCrisisId ?? null,
-          start_date: data.start_timestamp ? data.start_timestamp.split('T')[0] : undefined,
-          start_time: data.start_timestamp ? data.start_timestamp.split('T')[1] : undefined,
-          end_date: data.end_timestamp ? data.end_timestamp.split('T')[0] : undefined,
-          end_time: data.end_timestamp ? data.end_timestamp.split('T')[1] : undefined,
+          start_date: data.start_date,
+          start_time: data.start_time,
+          end_date: data.end_date,
+          end_time: data.end_time,
         };
 
         const response = await updatePosting(id, payload);
@@ -537,8 +504,10 @@ function PostingPage() {
       title: posting.title,
       description: posting.description,
       location_name: posting.location_name,
-      start_timestamp: getPreferredDateTimeInputValue(posting.start_date, posting.start_time),
-      end_timestamp: getPreferredDateTimeInputValue(posting.end_date, posting.end_time) || undefined,
+      start_date: getDateInputValue(posting.start_date),
+      start_time: getTimeInputValue(posting.start_time),
+      end_date: posting.end_date ? getDateInputValue(posting.end_date) : '',
+      end_time: getTimeInputValue(posting.end_time),
       max_volunteers: posting.max_volunteers?.toString() ?? undefined,
       minimum_age: posting.minimum_age?.toString() ?? undefined,
       automatic_acceptance: posting.automatic_acceptance,
@@ -681,10 +650,10 @@ function PostingPage() {
 
   const formValues = form.watch();
 
-  const formattedStartDate = useMemo(() => formatDisplayDate(startDateTimeParts.date), [startDateTimeParts.date]);
-  const formattedStartTime = useMemo(() => formatDisplayTime(startDateTimeParts.time), [startDateTimeParts.time]);
-  const formattedEndDate = useMemo(() => formatDisplayDate(endDateTimeParts.date), [endDateTimeParts.date]);
-  const formattedEndTime = useMemo(() => formatDisplayTime(endDateTimeParts.time), [endDateTimeParts.time]);
+  const formattedStartDate = useMemo(() => formatDisplayDate(startDate), [startDate]);
+  const formattedStartTime = useMemo(() => formatDisplayTime(startTime), [startTime]);
+  const formattedEndDate = useMemo(() => formatDisplayDate(endDate), [endDate]);
+  const formattedEndTime = useMemo(() => formatDisplayTime(endTime), [endTime]);
 
   const applicationStatus = useMemo(() => {
     if (isEnrolled) {
@@ -925,19 +894,18 @@ function PostingPage() {
                           </label>
                           <input
                             type="date"
-                            className={`input input-bordered w-full focus:input-primary ${form.formState.errors.start_timestamp ? 'input-error' : ''}`}
-                            value={startDateTimeParts.date}
+                            className={`input input-bordered w-full focus:input-primary ${form.formState.errors.start_date ? 'input-error' : ''}`}
+                            value={startDate}
                             onChange={(event) => {
-                              const nextValue = combineDateAndTime(event.target.value, startDateTimeParts.time);
-                              form.setValue('start_timestamp', nextValue, {
+                              form.setValue('start_date', event.target.value, {
                                 shouldDirty: true,
                                 shouldTouch: true,
                                 shouldValidate: true,
                               });
                             }}
                           />
-                          {form.formState.errors.start_timestamp?.message && (
-                            <p className="text-error text-sm mt-1">{form.formState.errors.start_timestamp.message as string}</p>
+                          {form.formState.errors.start_date?.message && (
+                            <p className="text-error text-sm mt-1">{form.formState.errors.start_date.message as string}</p>
                           )}
                         </fieldset>
 
@@ -948,10 +916,9 @@ function PostingPage() {
                           <input
                             type="time"
                             className="input input-bordered w-full focus:input-primary"
-                            value={startDateTimeParts.time}
+                            value={startTime}
                             onChange={(event) => {
-                              const nextValue = combineDateAndTime(startDateTimeParts.date, event.target.value);
-                              form.setValue('start_timestamp', nextValue, {
+                              form.setValue('start_time', event.target.value, {
                                 shouldDirty: true,
                                 shouldTouch: true,
                                 shouldValidate: true,
@@ -967,10 +934,9 @@ function PostingPage() {
                           <input
                             type="date"
                             className="input input-bordered w-full focus:input-primary"
-                            value={endDateTimeParts.date}
+                            value={endDate}
                             onChange={(event) => {
-                              const nextValue = combineDateAndTime(event.target.value, endDateTimeParts.time);
-                              form.setValue('end_timestamp', nextValue || undefined, {
+                              form.setValue('end_date', event.target.value, {
                                 shouldDirty: true,
                                 shouldTouch: true,
                                 shouldValidate: true,
@@ -986,10 +952,9 @@ function PostingPage() {
                           <input
                             type="time"
                             className="input input-bordered w-full focus:input-primary"
-                            value={endDateTimeParts.time}
+                            value={endTime}
                             onChange={(event) => {
-                              const nextValue = combineDateAndTime(endDateTimeParts.date, event.target.value);
-                              form.setValue('end_timestamp', nextValue || undefined, {
+                              form.setValue('end_time', event.target.value, {
                                 shouldDirty: true,
                                 shouldTouch: true,
                                 shouldValidate: true,
@@ -1010,7 +975,7 @@ function PostingPage() {
                         <MapPin size={16} className="text-primary" />
                         <span className="text-sm">{formValues.location_name}</span>
                       </div>
-                      <div className={`grid gap-4 ${formValues.end_timestamp ? 'sm:grid-cols-2' : 'grid-cols-1'}`}>
+                      <div className={`grid gap-4 ${formValues.end_date ? 'sm:grid-cols-2' : 'grid-cols-1'}`}>
                         <div className="space-y-2">
                           <div className="flex items-center gap-2">
                             <Calendar size={16} className="text-primary" />
@@ -1027,7 +992,7 @@ function PostingPage() {
                             </div>
                           </div>
                         </div>
-                        {formValues.end_timestamp && (
+                        {formValues.end_date && (
                           <div className="space-y-2">
                             <div className="flex items-center gap-2">
                               <Calendar size={16} className="text-primary" />

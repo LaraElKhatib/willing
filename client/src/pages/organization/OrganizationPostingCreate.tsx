@@ -18,21 +18,6 @@ import { useOrganization } from '../../utils/useUsers';
 
 import type { OrganizationCrisesResponse, OrganizationPostingCreateResponse } from '../../../../server/src/api/types';
 
-const splitDateTimeInput = (value?: string) => {
-  if (!value) return { date: '', time: '' };
-
-  const [datePart, timePart] = value.split('T');
-  return {
-    date: datePart ?? '',
-    time: (timePart ?? '').slice(0, 5),
-  };
-};
-
-const combineDateAndTime = (date: string, time: string) => {
-  if (!date) return '';
-  return `${date}T${time || '00:00'}`;
-};
-
 export default function OrganizationPostingCreate() {
   const account = useOrganization();
   const navigate = useNavigate();
@@ -52,10 +37,10 @@ export default function OrganizationPostingCreate() {
   const [crisesError, setCrisesError] = useState<string | null>(null);
   const [loadingCrises, setLoadingCrises] = useState(true);
   const [position, setPosition] = useState<[number, number]>([33.90192863620578, 35.477959277880416]);
-  const startTimestamp = useWatch({ control: form.control, name: 'start_timestamp' }) ?? '';
-  const endTimestamp = useWatch({ control: form.control, name: 'end_timestamp' }) ?? '';
-  const startDateTimeParts = splitDateTimeInput(startTimestamp);
-  const endDateTimeParts = splitDateTimeInput(endTimestamp);
+  const startDate = useWatch({ control: form.control, name: 'start_date' }) ?? '';
+  const startTime = useWatch({ control: form.control, name: 'start_time' }) ?? '';
+  const endDate = useWatch({ control: form.control, name: 'end_date' }) ?? '';
+  const endTime = useWatch({ control: form.control, name: 'end_time' }) ?? '';
 
   useEffect(() => {
     const loadCrises = async () => {
@@ -89,10 +74,10 @@ export default function OrganizationPostingCreate() {
         location_name: data.location_name.trim(),
         latitude: position[0],
         longitude: position[1],
-        start_date: data.start_timestamp.split('T')[0],
-        start_time: data.start_timestamp.split('T')[1],
-        end_date: data.end_timestamp ? data.end_timestamp.split('T')[0] : undefined,
-        end_time: data.end_timestamp ? data.end_timestamp.split('T')[1] : undefined,
+        start_date: data.start_date,
+        start_time: data.start_time,
+        end_date: data.end_date,
+        end_time: data.end_time,
         max_volunteers: data.max_volunteers ? Number(data.max_volunteers) : undefined,
         minimum_age: data.minimum_age ? Number(data.minimum_age) : undefined,
         automatic_acceptance: data.automatic_acceptance,
@@ -197,19 +182,18 @@ export default function OrganizationPostingCreate() {
                     </label>
                     <input
                       type="date"
-                      className={`input input-bordered w-full focus:input-primary ${form.formState.errors.start_timestamp ? 'input-error' : ''}`}
-                      value={startDateTimeParts.date}
+                      className={`input input-bordered w-full focus:input-primary ${form.formState.errors.start_date ? 'input-error' : ''}`}
+                      value={startDate}
                       onChange={(event) => {
-                        const nextValue = combineDateAndTime(event.target.value, startDateTimeParts.time);
-                        form.setValue('start_timestamp', nextValue, {
+                        form.setValue('start_date', event.target.value, {
                           shouldDirty: true,
                           shouldTouch: true,
                           shouldValidate: true,
                         });
                       }}
                     />
-                    {form.formState.errors.start_timestamp?.message && (
-                      <p className="text-error text-sm mt-1">{form.formState.errors.start_timestamp.message as string}</p>
+                    {form.formState.errors.start_date?.message && (
+                      <p className="text-error text-sm mt-1">{form.formState.errors.start_date.message as string}</p>
                     )}
                   </fieldset>
 
@@ -220,10 +204,9 @@ export default function OrganizationPostingCreate() {
                     <input
                       type="time"
                       className="input input-bordered w-full focus:input-primary"
-                      value={startDateTimeParts.time}
+                      value={startTime}
                       onChange={(event) => {
-                        const nextValue = combineDateAndTime(startDateTimeParts.date, event.target.value);
-                        form.setValue('start_timestamp', nextValue, {
+                        form.setValue('start_time', event.target.value, {
                           shouldDirty: true,
                           shouldTouch: true,
                           shouldValidate: true,
@@ -239,10 +222,9 @@ export default function OrganizationPostingCreate() {
                     <input
                       type="date"
                       className="input input-bordered w-full focus:input-primary"
-                      value={endDateTimeParts.date}
+                      value={endDate}
                       onChange={(event) => {
-                        const nextValue = combineDateAndTime(event.target.value, endDateTimeParts.time);
-                        form.setValue('end_timestamp', nextValue || undefined, {
+                        form.setValue('end_date', event.target.value, {
                           shouldDirty: true,
                           shouldTouch: true,
                           shouldValidate: true,
@@ -258,10 +240,9 @@ export default function OrganizationPostingCreate() {
                     <input
                       type="time"
                       className="input input-bordered w-full focus:input-primary"
-                      value={endDateTimeParts.time}
+                      value={endTime}
                       onChange={(event) => {
-                        const nextValue = combineDateAndTime(endDateTimeParts.date, event.target.value);
-                        form.setValue('end_timestamp', nextValue || undefined, {
+                        form.setValue('end_time', event.target.value, {
                           shouldDirty: true,
                           shouldTouch: true,
                           shouldValidate: true,

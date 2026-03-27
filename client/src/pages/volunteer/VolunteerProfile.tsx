@@ -83,16 +83,26 @@ const getDateInputValue = (value: string) => {
   return `${dateParts.year}-${String(dateParts.month).padStart(2, '0')}-${String(dateParts.day).padStart(2, '0')}`;
 };
 
-const toDateString = (value: Date) => value.toISOString().slice(0, 10);
 const toTimeString = (value: Date) => `${String(value.getHours()).padStart(2, '0')}:${String(value.getMinutes()).padStart(2, '0')}`;
+const toDateFromParts = (dateValue: Date | string, timeValue?: string) => {
+  const datePart = getDateInputValue(String(dateValue));
+  if (!datePart) return new Date(Number.NaN);
+  const timePart = (timeValue ?? '00:00').slice(0, 5) || '00:00';
+  return new Date(`${datePart}T${timePart}`);
+};
 
 const DEFAULT_SINGLE_DAY_HOURS = 5;
 
-const getExperienceDurationInHours = (startValue: Date | string, endValue?: Date | string) => {
-  const startDate = new Date(startValue);
+const getExperienceDurationInHours = (
+  startDateValue: Date | string,
+  startTimeValue: string,
+  endDateValue?: Date | string,
+  endTimeValue?: string,
+) => {
+  const startDate = toDateFromParts(startDateValue, startTimeValue);
   if (Number.isNaN(startDate.getTime())) return 0;
 
-  const endDate = endValue ? new Date(endValue) : null;
+  const endDate = endDateValue ? toDateFromParts(endDateValue, endTimeValue) : null;
   if (!endDate || Number.isNaN(endDate.getTime())) return DEFAULT_SINGLE_DAY_HOURS;
 
   const startDay = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
@@ -274,8 +284,8 @@ function VolunteerProfile() {
 
   const visibleExperiencePostings = useMemo<PostingWithContext[]>(() => (
     visibleCompletedExperiences.map((experience) => {
-      const startDate = new Date(experience.start_timestamp);
-      const endDate = experience.end_timestamp ? new Date(experience.end_timestamp) : null;
+      const startDate = toDateFromParts(experience.start_date, experience.start_time);
+      const endDate = experience.end_date ? toDateFromParts(experience.end_date, experience.end_time) : null;
       const safeStartDate = Number.isNaN(startDate.getTime()) ? new Date() : startDate;
       const safeEndDate = endDate && !Number.isNaN(endDate.getTime()) ? endDate : null;
 
@@ -287,13 +297,14 @@ function VolunteerProfile() {
         latitude: undefined,
         longitude: undefined,
         max_volunteers: undefined,
-        start_date: toDateString(safeStartDate),
+        start_date: safeStartDate,
         start_time: toTimeString(safeStartDate),
-        end_date: safeEndDate ? toDateString(safeEndDate) : undefined,
-        end_time: safeEndDate ? toTimeString(safeEndDate) : undefined,
+        end_date: safeEndDate ?? safeStartDate,
+        end_time: safeEndDate ? toTimeString(safeEndDate) : toTimeString(safeStartDate),
         minimum_age: undefined,
         automatic_acceptance: true,
         is_closed: true,
+        allows_partial_attendance: false,
         location_name: experience.location_name,
         created_at: safeStartDate,
         updated_at: safeStartDate,
@@ -317,7 +328,12 @@ function VolunteerProfile() {
     if (!profile) return 0;
 
     return profile.completed_experiences.reduce((total, experience) => (
-      total + getExperienceDurationInHours(experience.start_timestamp, experience.end_timestamp)
+      total + getExperienceDurationInHours(
+        experience.start_date,
+        experience.start_time,
+        experience.end_date,
+        experience.end_time,
+      )
     ), 0);
   }, [profile]);
 

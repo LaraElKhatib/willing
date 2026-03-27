@@ -16,12 +16,14 @@ export const organizationPostingFormSchema = newOrganizationPostingSchema
   .extend({
     latitude: z.number().optional(),
     longitude: z.number().optional(),
-    start_timestamp: z.string().min(1, 'Start date is required'),
-    end_timestamp: z.string().optional(),
+    start_date: z.string().min(1, 'Start date is required'),
+    start_time: z.string().min(1, 'Start time is required'),
+    end_date: z.string().min(1, 'End date is required'),
+    end_time: z.string().min(1, 'End time is required'),
     max_volunteers: z.string().optional(),
     minimum_age: z.string().optional(),
     automatic_acceptance: z.boolean(),
-    allows_partial_attendance: z.boolean(),
+    allows_partial_attendance: z.boolean().optional(),
   });
 
 export type OrganizationPostingFormData = z.infer<typeof organizationPostingFormSchema>;
@@ -38,11 +40,14 @@ export const organizationPostingEditFormSchema = newOrganizationPostingSchema
   .extend({
     latitude: z.number().optional(),
     longitude: z.number().optional(),
-    start_timestamp: z.string().min(1, 'Start date is required'),
-    end_timestamp: z.string().optional(),
+    start_date: z.string().min(1, 'Start date is required'),
+    start_time: z.string().min(1, 'Start time is required'),
+    end_date: z.string().min(1, 'End date is required'),
+    end_time: z.string().min(1, 'End time is required'),
     max_volunteers: z.string().optional(),
     minimum_age: z.string().optional(),
     automatic_acceptance: z.boolean(),
+    allows_partial_attendance: z.boolean().optional(),
     is_closed: z.boolean(),
   });
 
