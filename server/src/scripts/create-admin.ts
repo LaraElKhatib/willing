@@ -5,7 +5,7 @@ import database from '../db/index.js';
 await database.insertInto('admin_account').values({
   first_name: 'John',
   last_name: 'Doe',
-  email: 'admin@willing.com',
+  email: 'admin@willing.social',
   password: await bcrypt.hash('changeme', 10),
 }).execute();
 

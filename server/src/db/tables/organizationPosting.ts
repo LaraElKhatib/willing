@@ -47,6 +47,5 @@ export type NewOrganizationPosting = zod.infer<typeof newOrganizationPostingSche
 export const organizationPostingWithoutVectorsSchema = organizationPostingSchema.omit({
   opportunity_vector: true,
   posting_context_vector: true,
-  allows_partial_attendance: true,
 });
 export type OrganizationPostingWithoutVectors = zod.infer<typeof organizationPostingWithoutVectorsSchema>;

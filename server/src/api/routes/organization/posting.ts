@@ -63,6 +63,7 @@ const organizationPostingResponseColumns = [
   'organization_posting.minimum_age',
   'organization_posting.automatic_acceptance',
   'organization_posting.is_closed',
+  'organization_posting.allows_partial_attendance',
   'organization_posting.location_name',
   'organization_posting.created_at',
   'organization_posting.updated_at',
@@ -398,6 +399,7 @@ postingRouter.put('/:id', async (req, res: Response<OrganizationPostingUpdateRes
     if (body.minimum_age !== undefined) postingFields.minimum_age = body.minimum_age;
     if (body.automatic_acceptance !== undefined) postingFields.automatic_acceptance = body.automatic_acceptance;
     if (body.is_closed !== undefined) postingFields.is_closed = body.is_closed;
+    if (body.allows_partial_attendance !== undefined) postingFields.allows_partial_attendance = body.allows_partial_attendance;
     if (body.location_name !== undefined) postingFields.location_name = body.location_name;
     if (body.crisis_id !== undefined) postingFields.crisis_id = body.crisis_id;
 

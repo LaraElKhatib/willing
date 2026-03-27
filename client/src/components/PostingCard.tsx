@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 
 import Card from './Card';
 import SkillsList from './skills/SkillsList';
+import { SERVER_BASE_URL } from '../utils/requestServer';
 
 import type { PostingWithContext } from '../../../server/src/types';
 
@@ -62,6 +63,10 @@ function PostingCard({ posting, showCrisis = true }: PostingCardProps) {
         .map((word: string) => word[0]?.toUpperCase() ?? '')
         .join('')
     : '';
+  const organizationLogoUrl = posting.organization_logo_path
+    ? `${SERVER_BASE_URL}/organization/${posting.organization_id}/logo`
+    : null;
+  const organizationLogoIsPng = posting.organization_logo_path?.toLowerCase().endsWith('.png') ?? false;
 
   const volunteerFilled = posting.enrollment_count ?? 0;
   const volunteerPercent = posting.max_volunteers ? Math.round((volunteerFilled / posting.max_volunteers) * 100) : 0;
@@ -89,11 +94,23 @@ function PostingCard({ posting, showCrisis = true }: PostingCardProps) {
         <div className="flex items-center gap-3 min-w-0">
           <Link to={`/organization/${posting.organization_id}`} className="shrink-0">
             <div className="avatar avatar-placeholder">
-              <div className="bg-primary text-primary-content w-12 rounded-full">
-                {organizationInitials
-                  ? <span className="text-md font-semibold">{organizationInitials}</span>
-                  : <Building2 size={18} />}
-              </div>
+              {organizationLogoUrl
+                ? (
+                    <div className={`w-12 h-12 rounded-full overflow-hidden ring-1 ring-base-300 ${organizationLogoIsPng ? 'bg-white' : 'bg-base-100'} flex items-center justify-center`}>
+                      <img
+                        src={organizationLogoUrl}
+                        alt={`${posting.organization_name ?? 'Organization'} logo`}
+                        className="h-full w-full object-contain"
+                      />
+                    </div>
+                  )
+                : (
+                    <div className="bg-primary text-primary-content w-12 rounded-full">
+                      {organizationInitials
+                        ? <span className="text-md font-semibold">{organizationInitials}</span>
+                        : <Building2 size={18} />}
+                    </div>
+                  )}
             </div>
           </Link>
 

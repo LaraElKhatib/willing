@@ -15,7 +15,8 @@
     "lint:check": "eslint .",
     "type:check": "tsc --noEmit",
     "seed": "tsc && node dist/scripts/seed.js",
-    "verify-embeddings": "tsc && node dist/scripts/verify-embeddings.js"
+    "verify-embeddings": "tsc && node dist/scripts/verify-embeddings.js",
+    "test-smtp": "tsc && node dist/scripts/test-smtp.js"
   },
   "devDependencies": {
     "@stylistic/eslint-plugin": "^5.7.1",
