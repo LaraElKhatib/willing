@@ -83,7 +83,7 @@ function VolunteerCrisisPostings() {
       actions={<PostingViewModeToggle />}
       showBack
       defaultBackTo="/volunteer"
-      fetchUrl="/volunteer/posting"
+      fetchUrl="/volunteer/posting?include_applied=true"
       filterPostings={filterPostingsByCrisis}
       emptyMessage="No postings found for this crisis yet."
     />
