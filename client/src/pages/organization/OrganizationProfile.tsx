@@ -498,13 +498,13 @@ function OrganizationProfile() {
                 {logoUrl
                   ? (
                       <div
-                              className={`w-20 h-20 rounded-full overflow-hidden ring-1 ring-base-300 ${profile.organization.logo_path.toLowerCase().endsWith('.png') ? 'bg-white' : 'bg-base-100'} flex items-center justify-center`}
-                            >
+                        className={`w-20 h-20 rounded-full overflow-hidden ring-1 ring-base-300 ${profile.organization.logo_path.toLowerCase().endsWith('.png') ? 'bg-white' : 'bg-base-100'} flex items-center justify-center`}
+                      >
                         <img
-                                src={logoUrl}
-                                alt={`${profile.organization.name} logo`}
-                                className="h-full w-full object-contain"
-                              />
+                          src={logoUrl}
+                          alt={`${profile.organization.name} logo`}
+                          className="h-full w-full object-contain"
+                        />
                       </div>
                     )
                   : (
