@@ -6,7 +6,7 @@ function Navbar({ center, right }: { center?: ReactNode; right?: ReactNode }) {
 
   return (
     <div className="shrink-0 sticky top-0 z-9999">
-      <div className="navbar bg-base-100 shadow-md relative">
+      <div className="navbar bg-base-100 shadow-sm relative border-b border-base-300">
         <div className="navbar-start">
           {center && (
             <button

@@ -49,7 +49,7 @@ function CustomMessageModal({
 
   return (
     <div className={`modal ${open ? 'modal-open' : ''}`}>
-      <div className="modal-box">
+      <div className="modal-box border border-base-300">
         <div className="flex items-center justify-between mb-2">
           <h3 className="font-bold text-lg">Add a message</h3>
           <IconButton

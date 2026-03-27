@@ -22,8 +22,8 @@ import OrganizationHome from './pages/organization/OrganizationHome';
 import OrganizationPostingAttendance from './pages/organization/OrganizationPostingAttendance';
 import OrganizationPostingCreate from './pages/organization/OrganizationPostingCreate';
 import OrganizationOwnProfile from './pages/organization/OrganizationProfile';
+import OrganizationSettings from './pages/organization/OrganizationSettings';
 import OrganizationVolunteerProfile from './pages/organization/OrganizationVolunteerProfile';
-import OrganizationSettings from './pages/organization/VolunteerSettings';
 import OrganizationProfile from './pages/OrganizationProfile';
 import OrganizationRequest from './pages/OrganizationRequest';
 import Posting from './pages/Posting';
@@ -79,6 +79,7 @@ createRoot(document.getElementById('root')!).render(
                 <Route path="enrollments" element={<VolunteerEnrollments />} />
                 <Route path="crises/:crisisId/postings" element={<VolunteerCrisisPostings />} />
                 <Route path="profile" element={<VolunteerProfile />} />
+                <Route path="certificate" element={<VolunteerCertificateRequest />} />
                 <Route path="search" element={<VolunteerSearch />} />
                 <Route path="settings" element={<VolunteerSettings />} />
               </Route>

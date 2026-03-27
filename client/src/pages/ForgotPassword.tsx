@@ -5,6 +5,8 @@ import { useForm } from 'react-hook-form';
 import { Link, useSearchParams } from 'react-router-dom';
 
 import Button from '../components/Button';
+import Card from '../components/Card';
+import Hero from '../components/layout/Hero';
 import LinkButton from '../components/LinkButton';
 import {
   forgotPasswordRequestSchema,
@@ -56,60 +58,48 @@ function ForgotPasswordPage() {
 
   if (!resetKey && requestSent) {
     return (
-      <div className="flex-1 hero bg-base-200">
-        <div className="hero-content text-center">
-          <div className="card bg-base-100 shadow-2xl max-w-lg w-full">
-            <div className="card-body items-center">
-              <h2 className="card-title text-2xl">Check your email</h2>
-              <p className="opacity-80">
-                If an account exists with that email, we've sent you a password reset link. Check your inbox and follow the link to reset your password.
-              </p>
-              <LinkButton color="primary" className="mt-3" to="/login" Icon={LogIn}>
-                Back to login
-              </LinkButton>
-            </div>
-          </div>
-        </div>
-      </div>
+      <Hero>
+        <Card>
+          <h2 className="font-bold text-2xl text-center">Check your email</h2>
+          <p className="opacity-80">
+            If an account exists with that email, we've sent you a password reset link. Check your inbox and follow the link to reset your password.
+          </p>
+          <LinkButton color="primary" className="mx-auto" to="/login" Icon={LogIn} layout="wide">
+            Back to login
+          </LinkButton>
+        </Card>
+      </Hero>
     );
   }
 
   if (resetKey && resetComplete) {
     return (
-      <div className="flex-1 hero bg-base-200">
-        <div className="hero-content text-center">
-          <div className="card bg-base-100 shadow-2xl max-w-lg w-full">
-            <div className="card-body items-center">
-              <h2 className="card-title text-2xl">Password reset successful</h2>
-              <p className="opacity-80">
-                Your password has been updated. You can now log in with your new password.
-              </p>
-              <LinkButton color="primary" className="mt-3" to="/login" Icon={LogIn}>
-                Go to login
-              </LinkButton>
-            </div>
-          </div>
-        </div>
-      </div>
+      <Hero>
+        <Card>
+          <h2 className="font-bold text-2xl text-center">Password reset successful</h2>
+          <p className="opacity-80">
+            Your password has been updated. You can now log in with your new password.
+          </p>
+          <LinkButton color="primary" className="mt-2" to="/login" Icon={LogIn} layout="wide">
+            Go to login
+          </LinkButton>
+        </Card>
+      </Hero>
     );
   }
 
   return (
-    <div className="grow hero bg-base-200">
-      <div className="hero-content flex-col lg:flex-row-reverse gap-8">
-        <div className="text-center lg:text-left max-w-md">
-          <h1 className="text-5xl font-bold">Forgot Password</h1>
-          <p className="py-6">
-            {resetKey
-              ? 'Set a new password for your account to regain access.'
-              : 'Enter your email address and we\'ll send you a link to reset your password.'}
-          </p>
-        </div>
-
-        <div className="card bg-base-100 w-full max-w-lg shrink-0 shadow-2xl">
+    <Hero
+      title="Forgot Password"
+      description={resetKey
+        ? 'Set a new password for your account to regain access.'
+        : 'Enter your email address and we\'ll send you a link to reset your password.'}
+    >
+      <Card>
+        <div className="w-full max-w-lg">
           {!resetKey
             ? (
-                <form className="card-body" onSubmit={submitRequest}>
+                <form onSubmit={submitRequest}>
                   <FormField
                     form={requestForm}
                     label="Email"
@@ -136,7 +126,7 @@ function ForgotPasswordPage() {
                 </form>
               )
             : (
-                <form className="card-body" onSubmit={submitReset}>
+                <form onSubmit={submitReset}>
                   <FormField
                     form={resetForm}
                     label="New Password"
@@ -171,8 +161,8 @@ function ForgotPasswordPage() {
                 </form>
               )}
         </div>
-      </div>
-    </div>
+      </Card>
+    </Hero>
   );
 }
 

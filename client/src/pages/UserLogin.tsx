@@ -6,6 +6,8 @@ import { Link } from 'react-router-dom';
 
 import AuthContext from '../auth/AuthContext';
 import Button from '../components/Button';
+import Card from '../components/Card';
+import Hero from '../components/layout/Hero';
 import { loginFormSchema, type LoginFormData } from '../schemas/auth';
 import { executeAndShowError, FormField, FormRootError } from '../utils/formUtils';
 
@@ -24,18 +26,13 @@ function UserLoginPage() {
   });
 
   return (
-    <div className="flex-1 hero bg-base-200">
-      <div className="hero-content flex-col lg:flex-row-reverse gap-8">
-        <div className="text-center lg:text-left">
-          <h1 className="text-5xl font-bold">User Login</h1>
-          <p className="py-6">
-            Welcome! Please log in to access your account.
-          </p>
-        </div>
-
-        <div className="card bg-base-100 w-full max-w-lg shrink-0 shadow-2xl">
+    <>
+      <Hero
+        title="Login"
+        description="Welcome! Please log in to access your account."
+      >
+        <Card>
           <form
-            className="card-body"
             onSubmit={submit}
           >
             <FormField
@@ -65,6 +62,7 @@ function UserLoginPage() {
             <Button
               color="primary"
               className="mt-4"
+              layout="block"
               type="submit"
               loading={form.formState.isSubmitting}
               Icon={LogIn}
@@ -82,9 +80,9 @@ function UserLoginPage() {
               </span>
             </div>
           </form>
-        </div>
-      </div>
-    </div>
+        </Card>
+      </Hero>
+    </>
   );
 }
 

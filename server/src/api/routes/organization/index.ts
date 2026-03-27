@@ -71,8 +71,6 @@ const organizationPostingResponseColumns = [
   'organization_posting.latitude',
   'organization_posting.longitude',
   'organization_posting.max_volunteers',
-  sql<Date>`(organization_posting.start_date + organization_posting.start_time)`.as('start_timestamp'),
-  sql<Date | undefined>`CASE WHEN organization_posting.end_date IS NULL OR organization_posting.end_time IS NULL THEN NULL ELSE (organization_posting.end_date + organization_posting.end_time) END`.as('end_timestamp'),
   'organization_posting.start_date',
   'organization_posting.start_time',
   'organization_posting.end_date',

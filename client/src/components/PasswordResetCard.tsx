@@ -1,10 +1,11 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { CheckCircle, LockKeyhole, Save } from 'lucide-react';
+import { CheckCircle, LockIcon, LockKeyhole, Save } from 'lucide-react';
 import { useContext } from 'react';
 import { useForm } from 'react-hook-form';
 import zod from 'zod';
 
 import Button from './Button';
+import Card from './Card';
 import { passwordSchema } from '../../../server/src/schemas';
 import AuthContext from '../auth/AuthContext';
 import useNotifications from '../notifications/useNotifications';
@@ -42,50 +43,52 @@ function PasswordResetCard() {
   });
 
   return (
-    <div className="card bg-base-100 shadow-md">
-      <div className="card-body">
-        <form onSubmit={onSubmit}>
-          <FormField
-            form={form}
-            label="Current Password"
-            name="currentPassword"
-            type="password"
-            Icon={LockKeyhole}
-          />
+    <Card
+      title="Change Password"
+      description="Update your credentials to maintain account security."
+      Icon={LockIcon}
+    >
+      <form onSubmit={onSubmit}>
+        <FormField
+          form={form}
+          label="Current Password"
+          name="currentPassword"
+          type="password"
+          Icon={LockKeyhole}
+        />
 
-          <FormField
-            form={form}
-            label="New Password"
-            name="newPassword"
-            type="password"
-            Icon={LockKeyhole}
-          />
+        <FormField
+          form={form}
+          label="New Password"
+          name="newPassword"
+          type="password"
+          Icon={LockKeyhole}
+        />
 
-          <FormField
-            form={form}
-            label="Confirm New Password"
-            name="confirmedNewPassword"
-            type="password"
-            Icon={CheckCircle}
-          />
+        <FormField
+          form={form}
+          label="Confirm New Password"
+          name="confirmedNewPassword"
+          type="password"
+          Icon={CheckCircle}
+        />
 
-          <FormRootError form={form} />
+        <FormRootError form={form} />
 
-          <div className="card-actions justify-end mt-6 gap-2">
-            <Button
-              color="primary"
-              type="submit"
-              className="btn btn-primary"
-              loading={form.formState.isSubmitting}
-              Icon={Save}
-            >
-              Update Password
-            </Button>
-          </div>
+        <div className="card-actions justify-end mt-6 gap-2">
+          <Button
+            color="primary"
+            type="submit"
+            className="btn btn-primary"
+            loading={form.formState.isSubmitting}
+            Icon={Save}
+          >
+            Update Password
+          </Button>
+        </div>
 
-        </form>
-      </div>
-    </div>
+      </form>
+    </Card>
   );
 }
 

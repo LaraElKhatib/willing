@@ -4,6 +4,8 @@ import { useCallback, useState } from 'react';
 import { useForm } from 'react-hook-form';
 
 import Button from '../components/Button';
+import Card from '../components/Card';
+import Hero from '../components/layout/Hero';
 import LinkButton from '../components/LinkButton';
 import LocationPicker from '../components/LocationPicker';
 import { organizationRequestFormSchema, type OrganizationRequestFormData } from '../schemas/organization';
@@ -52,102 +54,96 @@ export default function OrganizationRequestPage() {
 
   if (submitted) {
     return (
-      <div className="grow hero bg-base-200">
-        <div className="hero-content text-center">
-          <div className="card bg-base-100 shadow-2xl max-w-lg w-full">
-            <div className="card-body items-center">
-              <h2 className="card-title text-2xl">Request submitted</h2>
-              <p className="opacity-80">
-                Your organization request was sent successfully. Our team will review it and contact you.
-              </p>
-              <LinkButton
-                color="primary"
-                className="mt-3"
-                to="/"
-                Icon={Home}
-              >
-                Go back home
-              </LinkButton>
-            </div>
+      <Hero>
+        <Card>
+          <div className="flex flex-col gap-4 items-center">
+            <h2 className="card-title text-2xl">Request submitted</h2>
+            <p className="opacity-80">
+              Your organization request was sent successfully. Our team will review it and contact you.
+            </p>
+            <LinkButton
+              color="primary"
+              className="mt-3"
+              layout="wide"
+              to="/"
+              Icon={Home}
+            >
+              Go back home
+            </LinkButton>
           </div>
-        </div>
-      </div>
+        </Card>
+      </Hero>
     );
   }
 
   return (
-    <div className="grow hero bg-base-200">
-      <div className="hero-content flex-col lg:flex-row-reverse gap-8">
-        <div className="text-center lg:text-left max-w-md">
-          <h1 className="text-5xl font-bold">Organization Request</h1>
-          <p className="py-6">
-            Submit your organization details to join Willing. Our team will review your request and get back to you.
-          </p>
-        </div>
+    <Hero
+      title="Organization Request"
+      description="Submit your organization details to join Willing. Our team will review your request and get back to you."
+    >
+      <Card>
+        <form onSubmit={handleSubmit}>
+          <FormField
+            form={form}
+            label="Organization name"
+            name="name"
+            type="text"
+            Icon={Building2}
+          />
 
-        <div className="card bg-base-100 w-full max-w-lg shrink-0 shadow-2xl">
-          <form className="card-body" onSubmit={handleSubmit}>
-            <FormField
-              form={form}
-              label="Organization name"
-              name="name"
-              type="text"
-              Icon={Building2}
+          <FormField
+            form={form}
+            label="Email"
+            name="email"
+            type="email"
+            Icon={Mail}
+          />
+
+          <FormField
+            form={form}
+            label="Phone number"
+            name="phone_number"
+            type="tel"
+            Icon={Phone}
+          />
+
+          <FormField
+            form={form}
+            label="Website"
+            name="url"
+            type="url"
+            Icon={Globe}
+          />
+
+          <FormField
+            form={form}
+            label="Location"
+            name="location_name"
+            type="text"
+            Icon={MapPin}
+          />
+
+          <div className="mt-2">
+            <LocationPicker
+              position={position}
+              setPosition={onFormSetPosition}
             />
+          </div>
 
-            <FormField
-              form={form}
-              label="Email"
-              name="email"
-              type="email"
-              Icon={Mail}
-            />
+          <FormRootError form={form} />
 
-            <FormField
-              form={form}
-              label="Phone number"
-              name="phone_number"
-              type="tel"
-              Icon={Phone}
-            />
-
-            <FormField
-              form={form}
-              label="Website"
-              name="url"
-              type="url"
-              Icon={Globe}
-            />
-
-            <FormField
-              form={form}
-              label="Location"
-              name="location_name"
-              type="text"
-              Icon={MapPin}
-            />
-
-            <div className="mt-2">
-              <LocationPicker
-                position={position}
-                setPosition={onFormSetPosition}
-              />
-            </div>
-
-            <FormRootError form={form} />
-
-            <Button
-              color="primary"
-              className="mt-4"
-              type="submit"
-              loading={form.formState.isSubmitting}
-              Icon={Send}
-            >
-              Request Account
-            </Button>
-          </form>
-        </div>
-      </div>
-    </div>
+          <Button
+            color="primary"
+            className="mt-4"
+            layout="block"
+            type="submit"
+            loading={form.formState.isSubmitting}
+            Icon={Send}
+          >
+            Request Account
+          </Button>
+        </form>
+      </Card>
+    </Hero>
   );
 }

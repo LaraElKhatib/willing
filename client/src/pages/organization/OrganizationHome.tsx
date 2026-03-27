@@ -1,7 +1,8 @@
 import { ClipboardList, Plus } from 'lucide-react';
 import { useCallback, useMemo } from 'react';
 
-import Alert from '../../components/Alert';
+import EmptyState from '../../components/EmptyState';
+import PageContainer from '../../components/layout/PageContainer';
 import PageHeader from '../../components/layout/PageHeader';
 import LinkButton from '../../components/LinkButton';
 import PostingCollection from '../../components/postings/PostingCollection';
@@ -159,143 +160,143 @@ function OrganizationHome() {
   }, [organization?.logo_path, organization?.name, organizationMe?.organization.logo_path, organizationMe?.organization.name, postings]);
 
   return (
-    <div className="grow bg-base-200">
-      <div className="p-6 md:container mx-auto">
-        <PageHeader
-          title="My Postings"
-          subtitle="Track, manage, and update your organization opportunities."
-          icon={ClipboardList}
-          badge={
-            postings && (
-              <div className="badge badge-primary">
-                {postings.length}
-                {' '}
-                {postings.length === 1 ? 'Posting' : 'Postings'}
-              </div>
-            )
-          }
-          actions={(
-            <div className="flex gap-2 items-center">
-              <PostingViewModeToggle />
-              <LinkButton
-                color="primary"
-                to="/organization/posting"
-                Icon={Plus}
-              >
-                Create New Posting
-              </LinkButton>
+    <PageContainer>
+      <PageHeader
+        title="My Postings"
+        subtitle="Track, manage, and update your organization opportunities."
+        icon={ClipboardList}
+        badge={
+          postings && (
+            <div className="badge badge-primary">
+              {postings.length}
+              {' '}
+              {postings.length === 1 ? 'Posting' : 'Postings'}
             </div>
-          )}
-        />
-
-        <PostingFiltersCard
-          defaultValues={defaultFormValues}
-          onApply={applyFilters}
-          searchFieldName="search"
-          searchPlaceholder="Search title, description, or location"
-          sortFieldName="sortOption"
-          sortOptions={organizationPostingSortOptions.map(option => ({
-            label: option.label,
-            value: option.value,
-          }))}
-          getHasAdvancedFiltersApplied={values => (
-            hasSharedAdvancedPostingFilters(values)
-            || values.isClosed !== 'all'
-            || values.postingType !== 'all'
-            || values.crisisId !== 'all'
-          )}
-          renderAdvancedFields={form => (
-            <>
-              <FormField
-                form={form}
-                name="isClosed"
-                label="Status"
-                selectOptions={[
-                  { label: 'All statuses', value: 'all' },
-                  { label: 'Open', value: 'open' },
-                  { label: 'Closed', value: 'closed' },
-                ]}
-              />
-
-              <FormField
-                form={form}
-                name="postingType"
-                label="Posting Type"
-                selectOptions={[
-                  { label: 'All posting types', value: 'all' },
-                  { label: 'Open Posting', value: 'open' },
-                  { label: 'Review-Based', value: 'review' },
-                ]}
-              />
-
-              <div className="lg:col-span-2">
-                <FormField
-                  form={form}
-                  name="crisisId"
-                  label="Crisis"
-                  selectOptions={[
-                    { label: 'All Postings', value: 'all' },
-                    ...(crises?.map(crisis => ({
-                      label: crisis.name,
-                      value: String(crisis.id),
-                    })) ?? []),
-                  ]}
-                />
-              </div>
-
-              <FormField
-                form={form}
-                name="startDateFrom"
-                label="Start After (Inclusive)"
-                type="date"
-              />
-
-              <FormField
-                form={form}
-                name="endDateTo"
-                label="End By (Inclusive)"
-                type="date"
-              />
-
-              <FormField
-                form={form}
-                name="startTimeFrom"
-                label="Start Time After"
-                type="time"
-              />
-
-              <FormField
-                form={form}
-                name="endTimeTo"
-                label="End Time By"
-                type="time"
-              />
-            </>
-          )}
-        />
-
-        {error && <div className="mb-4 text-sm text-base-content/70">Unable to load postings.</div>}
-
-        {loading && (
-          <div className="flex justify-center py-8">
-            <span className="loading loading-spinner loading-lg"></span>
+          )
+        }
+        actions={(
+          <div className="flex gap-2 items-center">
+            <PostingViewModeToggle />
+            <LinkButton
+              color="primary"
+              to="/organization/posting"
+              Icon={Plus}
+            >
+              Create New Posting
+            </LinkButton>
           </div>
         )}
+      />
 
-        {!loading && (!postings || postings.length === 0) && (
-          <Alert>
-            No postings yet. Create your first posting to get started!
-          </Alert>
+      <PostingFiltersCard
+        defaultValues={defaultFormValues}
+        onApply={applyFilters}
+        searchFieldName="search"
+        searchPlaceholder="Search title, description, or location"
+        sortFieldName="sortOption"
+        sortOptions={organizationPostingSortOptions.map(option => ({
+          label: option.label,
+          value: option.value,
+        }))}
+        getHasAdvancedFiltersApplied={values => (
+          hasSharedAdvancedPostingFilters(values)
+          || values.isClosed !== 'all'
+          || values.postingType !== 'all'
+          || values.crisisId !== 'all'
         )}
+        renderAdvancedFields={form => (
+          <>
+            <FormField
+              form={form}
+              name="isClosed"
+              label="Status"
+              selectOptions={[
+                { label: 'All statuses', value: 'all' },
+                { label: 'Open', value: 'open' },
+                { label: 'Closed', value: 'closed' },
+              ]}
+            />
 
-        {!loading && postingsWithContext.length > 0 && (
-          <PostingCollection
-            postings={postingsWithContext}
-            cardsContainerClassName="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-          />
+            <FormField
+              form={form}
+              name="postingType"
+              label="Posting Type"
+              selectOptions={[
+                { label: 'All posting types', value: 'all' },
+                { label: 'Open Posting', value: 'open' },
+                { label: 'Review-Based', value: 'review' },
+              ]}
+            />
+
+            <div className="lg:col-span-2">
+              <FormField
+                form={form}
+                name="crisisId"
+                label="Crisis"
+                selectOptions={[
+                  { label: 'All Postings', value: 'all' },
+                  ...(crises?.map(crisis => ({
+                    label: crisis.name,
+                    value: String(crisis.id),
+                  })) ?? []),
+                ]}
+              />
+            </div>
+
+            <FormField
+              form={form}
+              name="startDateFrom"
+              label="Start After (Inclusive)"
+              type="date"
+            />
+
+            <FormField
+              form={form}
+              name="endDateTo"
+              label="End By (Inclusive)"
+              type="date"
+            />
+
+            <FormField
+              form={form}
+              name="startTimeFrom"
+              label="Start Time After"
+              type="time"
+            />
+
+            <FormField
+              form={form}
+              name="endTimeTo"
+              label="End Time By"
+              type="time"
+            />
+          </>
         )}
-      </div>
-    </div>
+      />
+
+      {error && <div className="mb-4 text-sm text-base-content/70">Unable to load postings.</div>}
+
+      {loading && (
+        <div className="flex justify-center py-8">
+          <span className="loading loading-spinner loading-lg"></span>
+        </div>
+      )}
+
+      {!loading && (!postings || postings.length === 0) && (
+        <EmptyState
+          Icon={ClipboardList}
+          title="No postings yet"
+          description="Create your first posting to start receiving volunteer applications."
+        />
+      )}
+
+      {!loading && postingsWithContext.length > 0 && (
+        <PostingCollection
+          postings={postingsWithContext}
+          cardsContainerClassName="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+        />
+      )}
+    </PageContainer>
   );
 }
 
