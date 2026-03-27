@@ -542,6 +542,7 @@ function PostingPage() {
       minimum_age: posting.minimum_age?.toString() ?? undefined,
       automatic_acceptance: posting.automatic_acceptance,
       is_closed: posting.is_closed,
+      allows_partial_attendance: posting.allows_partial_attendance,
     });
     setSkills(posting.skills.map((s: { name: string }) => s.name));
     setSelectedCrisisId(posting.crisis_id ?? undefined);

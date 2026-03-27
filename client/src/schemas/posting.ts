@@ -11,6 +11,7 @@ export const organizationPostingFormSchema = newOrganizationPostingSchema
     end_date: true,
     end_time: true,
     is_closed: true,
+    allows_partial_attendance: true,
   })
   .extend({
     latitude: z.number().optional(),
@@ -20,6 +21,7 @@ export const organizationPostingFormSchema = newOrganizationPostingSchema
     max_volunteers: z.string().optional(),
     minimum_age: z.string().optional(),
     automatic_acceptance: z.boolean(),
+    allows_partial_attendance: z.boolean(),
   });
 
 export type OrganizationPostingFormData = z.infer<typeof organizationPostingFormSchema>;

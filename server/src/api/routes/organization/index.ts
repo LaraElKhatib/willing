@@ -80,6 +80,7 @@ const organizationPostingResponseColumns = [
   'organization_posting.minimum_age',
   'organization_posting.automatic_acceptance',
   'organization_posting.is_closed',
+  'organization_posting.allows_partial_attendance',
   'organization_posting.location_name',
   'organization_posting.created_at',
   'organization_posting.updated_at',
@@ -155,7 +156,13 @@ organizationRouter.post('/request', async (req, res: Response<OrganizationReques
   if (!organization) {
     throw new Error('Failed to create organization request');
   } else {
-    await sendAdminOrganizationRequestEmail(organization);
+    const adminEmails = (await database
+      .selectFrom('admin_account')
+      .select('email')
+      .execute())
+      .map(row => row.email);
+
+    await sendAdminOrganizationRequestEmail(organization, adminEmails);
     res.json({});
   }
 });

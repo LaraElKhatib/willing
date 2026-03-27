@@ -31,7 +31,7 @@ async function seed() {
   await database.insertInto('admin_account').values({
     first_name: 'Admin',
     last_name: 'User',
-    email: 'admin@willing.com',
+    email: 'admin@willing.social',
     password: passwordHash,
   }).execute();
 
@@ -39,7 +39,7 @@ async function seed() {
     .values([
       {
         name: 'Nour Relief',
-        email: 'org1@willing.com',
+        email: 'org1@willing.social',
         phone_number: '+96101234567',
         url: 'https://nourrelief.org',
         latitude: 33.8938,
@@ -49,7 +49,7 @@ async function seed() {
       },
       {
         name: 'Ajialouna',
-        email: 'org2@willing.com',
+        email: 'org2@willing.social',
         phone_number: '+96107654321',
         url: 'https://ajialouna.org.lb',
         latitude: 33.3547,
@@ -59,7 +59,7 @@ async function seed() {
       },
       {
         name: 'Arz Community',
-        email: 'org3@willing.com',
+        email: 'org3@willing.social',
         phone_number: '+96106112233',
         url: 'https://arzcommunity.org',
         latitude: 34.4367,
@@ -78,7 +78,7 @@ async function seed() {
   await database.insertInto('organization_request').values([
     {
       name: 'Watan Foundation',
-      email: 'watan-bekaa@willing.com',
+      email: 'watan-bekaa@willing.social',
       phone_number: '+96108910910',
       url: 'https://watanfoundation.org',
       latitude: 33.8497,
@@ -87,7 +87,7 @@ async function seed() {
     },
     {
       name: 'Shabab Liban',
-      email: 'shababLiban@willing.com',
+      email: 'shababLiban@willing.social',
       phone_number: '+96104542542',
       url: 'https://shababLiban.org',
       latitude: 33.8333,
@@ -96,7 +96,7 @@ async function seed() {
     },
     {
       name: 'Amal Child Care',
-      email: 'amalchildcare@willing.com',
+      email: 'amalchildcare@willing.social',
       phone_number: '+96101480480',
       url: 'https://amalchildcare.org',
       latitude: 33.9000,
@@ -112,7 +112,7 @@ async function seed() {
       {
         first_name: 'Karim',
         last_name: 'Mansour',
-        email: 'vol1@willing.com',
+        email: 'vol1@willing.social',
         password: passwordHash,
         gender: 'male',
         date_of_birth: '1998-03-15',
@@ -121,7 +121,7 @@ async function seed() {
       {
         first_name: 'Aya',
         last_name: 'Sadek',
-        email: 'vol2@willing.com',
+        email: 'vol2@willing.social',
         password: passwordHash,
         gender: 'female',
         date_of_birth: '2000-07-22',
@@ -130,7 +130,7 @@ async function seed() {
       {
         first_name: 'Jad',
         last_name: 'Nassar',
-        email: 'vol3@willing.com',
+        email: 'vol3@willing.social',
         password: passwordHash,
         gender: 'male',
         date_of_birth: '1996-11-04',
@@ -139,7 +139,7 @@ async function seed() {
       {
         first_name: 'Hala',
         last_name: 'Farah',
-        email: 'vol4@willing.com',
+        email: 'vol4@willing.social',
         password: passwordHash,
         gender: 'female',
         date_of_birth: '1994-01-30',
@@ -148,7 +148,7 @@ async function seed() {
       {
         first_name: 'Tarek',
         last_name: 'Slim',
-        email: 'vol5@willing.com',
+        email: 'vol5@willing.social',
         password: passwordHash,
         gender: 'male',
         date_of_birth: '2001-09-18',
@@ -157,7 +157,7 @@ async function seed() {
       {
         first_name: 'Nina',
         last_name: 'Choufany',
-        email: 'vol6@willing.com',
+        email: 'vol6@willing.social',
         password: passwordHash,
         gender: 'female',
         date_of_birth: '2002-05-11',
@@ -166,7 +166,7 @@ async function seed() {
       {
         first_name: 'Marc',
         last_name: 'Hamamji',
-        email: 'vol7@willing.com',
+        email: 'vol7@willing.social',
         password: passwordHash,
         gender: 'male',
         date_of_birth: '1999-12-01',
@@ -175,7 +175,7 @@ async function seed() {
       {
         first_name: 'Rana',
         last_name: 'Saad',
-        email: 'vol8@willing.com',
+        email: 'vol8@willing.social',
         password: passwordHash,
         gender: 'female',
         date_of_birth: '1997-08-25',
@@ -184,7 +184,7 @@ async function seed() {
       {
         first_name: 'Ziad',
         last_name: 'Bou Habib',
-        email: 'vol9@willing.com',
+        email: 'vol9@willing.social',
         password: passwordHash,
         gender: 'male',
         date_of_birth: '2003-02-14',
@@ -193,7 +193,7 @@ async function seed() {
       {
         first_name: 'Maya',
         last_name: 'Tannous',
-        email: 'vol10@willing.com',
+        email: 'vol10@willing.social',
         password: passwordHash,
         gender: 'female',
         date_of_birth: '2001-06-06',
@@ -742,77 +742,77 @@ async function seed() {
 
   await database.insertInto('volunteer_skill').values([
     // vol1 – logistics / physical
-    { volunteer_id: volByEmail.get('vol1@willing.com')!, name: 'Logistics' },
-    { volunteer_id: volByEmail.get('vol1@willing.com')!, name: 'Physical Stamina' },
-    { volunteer_id: volByEmail.get('vol1@willing.com')!, name: 'Packing' },
-    { volunteer_id: volByEmail.get('vol1@willing.com')!, name: 'Teamwork' },
-    { volunteer_id: volByEmail.get('vol1@willing.com')!, name: 'Organisation' },
-    { volunteer_id: volByEmail.get('vol1@willing.com')!, name: 'Safety Awareness' },
+    { volunteer_id: volByEmail.get('vol1@willing.social')!, name: 'Logistics' },
+    { volunteer_id: volByEmail.get('vol1@willing.social')!, name: 'Physical Stamina' },
+    { volunteer_id: volByEmail.get('vol1@willing.social')!, name: 'Packing' },
+    { volunteer_id: volByEmail.get('vol1@willing.social')!, name: 'Teamwork' },
+    { volunteer_id: volByEmail.get('vol1@willing.social')!, name: 'Organisation' },
+    { volunteer_id: volByEmail.get('vol1@willing.social')!, name: 'Safety Awareness' },
 
     // vol2 – teaching / communication
-    { volunteer_id: volByEmail.get('vol2@willing.com')!, name: 'Teaching' },
-    { volunteer_id: volByEmail.get('vol2@willing.com')!, name: 'Communication' },
-    { volunteer_id: volByEmail.get('vol2@willing.com')!, name: 'Patience' },
-    { volunteer_id: volByEmail.get('vol2@willing.com')!, name: 'Explaining Concepts' },
-    { volunteer_id: volByEmail.get('vol2@willing.com')!, name: 'Arabic' },
-    { volunteer_id: volByEmail.get('vol2@willing.com')!, name: 'Active Listening' },
+    { volunteer_id: volByEmail.get('vol2@willing.social')!, name: 'Teaching' },
+    { volunteer_id: volByEmail.get('vol2@willing.social')!, name: 'Communication' },
+    { volunteer_id: volByEmail.get('vol2@willing.social')!, name: 'Patience' },
+    { volunteer_id: volByEmail.get('vol2@willing.social')!, name: 'Explaining Concepts' },
+    { volunteer_id: volByEmail.get('vol2@willing.social')!, name: 'Arabic' },
+    { volunteer_id: volByEmail.get('vol2@willing.social')!, name: 'Active Listening' },
 
     // vol3 – medical / first aid
-    { volunteer_id: volByEmail.get('vol3@willing.com')!, name: 'First Aid' },
-    { volunteer_id: volByEmail.get('vol3@willing.com')!, name: 'Medical Assistance' },
-    { volunteer_id: volByEmail.get('vol3@willing.com')!, name: 'Triage Support' },
-    { volunteer_id: volByEmail.get('vol3@willing.com')!, name: 'Crisis Response' },
-    { volunteer_id: volByEmail.get('vol3@willing.com')!, name: 'Teamwork' },
+    { volunteer_id: volByEmail.get('vol3@willing.social')!, name: 'First Aid' },
+    { volunteer_id: volByEmail.get('vol3@willing.social')!, name: 'Medical Assistance' },
+    { volunteer_id: volByEmail.get('vol3@willing.social')!, name: 'Triage Support' },
+    { volunteer_id: volByEmail.get('vol3@willing.social')!, name: 'Crisis Response' },
+    { volunteer_id: volByEmail.get('vol3@willing.social')!, name: 'Teamwork' },
 
     // vol4 – elderly care / social support
-    { volunteer_id: volByEmail.get('vol4@willing.com')!, name: 'Empathy' },
-    { volunteer_id: volByEmail.get('vol4@willing.com')!, name: 'Emotional Support' },
-    { volunteer_id: volByEmail.get('vol4@willing.com')!, name: 'Active Listening' },
-    { volunteer_id: volByEmail.get('vol4@willing.com')!, name: 'Communication' },
-    { volunteer_id: volByEmail.get('vol4@willing.com')!, name: 'Patience' },
-    { volunteer_id: volByEmail.get('vol4@willing.com')!, name: 'Arabic' },
+    { volunteer_id: volByEmail.get('vol4@willing.social')!, name: 'Empathy' },
+    { volunteer_id: volByEmail.get('vol4@willing.social')!, name: 'Emotional Support' },
+    { volunteer_id: volByEmail.get('vol4@willing.social')!, name: 'Active Listening' },
+    { volunteer_id: volByEmail.get('vol4@willing.social')!, name: 'Communication' },
+    { volunteer_id: volByEmail.get('vol4@willing.social')!, name: 'Patience' },
+    { volunteer_id: volByEmail.get('vol4@willing.social')!, name: 'Arabic' },
 
     // vol5 – environment / outdoors
-    { volunteer_id: volByEmail.get('vol5@willing.com')!, name: 'Physical Stamina' },
-    { volunteer_id: volByEmail.get('vol5@willing.com')!, name: 'Environmental Awareness' },
-    { volunteer_id: volByEmail.get('vol5@willing.com')!, name: 'Teamwork' },
-    { volunteer_id: volByEmail.get('vol5@willing.com')!, name: 'Waste Sorting' },
-    { volunteer_id: volByEmail.get('vol5@willing.com')!, name: 'Safety Awareness' },
+    { volunteer_id: volByEmail.get('vol5@willing.social')!, name: 'Physical Stamina' },
+    { volunteer_id: volByEmail.get('vol5@willing.social')!, name: 'Environmental Awareness' },
+    { volunteer_id: volByEmail.get('vol5@willing.social')!, name: 'Teamwork' },
+    { volunteer_id: volByEmail.get('vol5@willing.social')!, name: 'Waste Sorting' },
+    { volunteer_id: volByEmail.get('vol5@willing.social')!, name: 'Safety Awareness' },
 
     // vol6 – children / creativity
-    { volunteer_id: volByEmail.get('vol6@willing.com')!, name: 'Creativity' },
-    { volunteer_id: volByEmail.get('vol6@willing.com')!, name: 'Storytelling' },
-    { volunteer_id: volByEmail.get('vol6@willing.com')!, name: 'Child Engagement' },
-    { volunteer_id: volByEmail.get('vol6@willing.com')!, name: 'Art' },
-    { volunteer_id: volByEmail.get('vol6@willing.com')!, name: 'Patience' },
-    { volunteer_id: volByEmail.get('vol6@willing.com')!, name: 'Teaching' },
+    { volunteer_id: volByEmail.get('vol6@willing.social')!, name: 'Creativity' },
+    { volunteer_id: volByEmail.get('vol6@willing.social')!, name: 'Storytelling' },
+    { volunteer_id: volByEmail.get('vol6@willing.social')!, name: 'Child Engagement' },
+    { volunteer_id: volByEmail.get('vol6@willing.social')!, name: 'Art' },
+    { volunteer_id: volByEmail.get('vol6@willing.social')!, name: 'Patience' },
+    { volunteer_id: volByEmail.get('vol6@willing.social')!, name: 'Teaching' },
 
     // vol7 – tech / remote support
-    { volunteer_id: volByEmail.get('vol7@willing.com')!, name: 'Remote Support' },
-    { volunteer_id: volByEmail.get('vol7@willing.com')!, name: 'Teaching' },
-    { volunteer_id: volByEmail.get('vol7@willing.com')!, name: 'Problem Solving' },
-    { volunteer_id: volByEmail.get('vol7@willing.com')!, name: 'Communication' },
-    { volunteer_id: volByEmail.get('vol7@willing.com')!, name: 'Explaining Concepts' },
+    { volunteer_id: volByEmail.get('vol7@willing.social')!, name: 'Remote Support' },
+    { volunteer_id: volByEmail.get('vol7@willing.social')!, name: 'Teaching' },
+    { volunteer_id: volByEmail.get('vol7@willing.social')!, name: 'Problem Solving' },
+    { volunteer_id: volByEmail.get('vol7@willing.social')!, name: 'Communication' },
+    { volunteer_id: volByEmail.get('vol7@willing.social')!, name: 'Explaining Concepts' },
 
     // vol8 – food / community kitchen
-    { volunteer_id: volByEmail.get('vol8@willing.com')!, name: 'Cooking' },
-    { volunteer_id: volByEmail.get('vol8@willing.com')!, name: 'Food Preparation' },
-    { volunteer_id: volByEmail.get('vol8@willing.com')!, name: 'Serving' },
-    { volunteer_id: volByEmail.get('vol8@willing.com')!, name: 'Hygiene' },
-    { volunteer_id: volByEmail.get('vol8@willing.com')!, name: 'Teamwork' },
+    { volunteer_id: volByEmail.get('vol8@willing.social')!, name: 'Cooking' },
+    { volunteer_id: volByEmail.get('vol8@willing.social')!, name: 'Food Preparation' },
+    { volunteer_id: volByEmail.get('vol8@willing.social')!, name: 'Serving' },
+    { volunteer_id: volByEmail.get('vol8@willing.social')!, name: 'Hygiene' },
+    { volunteer_id: volByEmail.get('vol8@willing.social')!, name: 'Teamwork' },
 
     // vol9 – sorting / warehousing
-    { volunteer_id: volByEmail.get('vol9@willing.com')!, name: 'Sorting' },
-    { volunteer_id: volByEmail.get('vol9@willing.com')!, name: 'Inventory Handling' },
-    { volunteer_id: volByEmail.get('vol9@willing.com')!, name: 'Attention to Detail' },
-    { volunteer_id: volByEmail.get('vol9@willing.com')!, name: 'Label Checking' },
-    { volunteer_id: volByEmail.get('vol9@willing.com')!, name: 'Accuracy' },
-    { volunteer_id: volByEmail.get('vol9@willing.com')!, name: 'Organisation' },
+    { volunteer_id: volByEmail.get('vol9@willing.social')!, name: 'Sorting' },
+    { volunteer_id: volByEmail.get('vol9@willing.social')!, name: 'Inventory Handling' },
+    { volunteer_id: volByEmail.get('vol9@willing.social')!, name: 'Attention to Detail' },
+    { volunteer_id: volByEmail.get('vol9@willing.social')!, name: 'Label Checking' },
+    { volunteer_id: volByEmail.get('vol9@willing.social')!, name: 'Accuracy' },
+    { volunteer_id: volByEmail.get('vol9@willing.social')!, name: 'Organisation' },
 
     // vol10 – general (fewer skills, private profile)
-    { volunteer_id: volByEmail.get('vol10@willing.com')!, name: 'Communication' },
-    { volunteer_id: volByEmail.get('vol10@willing.com')!, name: 'Teamwork' },
-    { volunteer_id: volByEmail.get('vol10@willing.com')!, name: 'Organisation' },
+    { volunteer_id: volByEmail.get('vol10@willing.social')!, name: 'Communication' },
+    { volunteer_id: volByEmail.get('vol10@willing.social')!, name: 'Teamwork' },
+    { volunteer_id: volByEmail.get('vol10@willing.social')!, name: 'Organisation' },
   ]).execute();
 
   // ─── Enrollment Applications ──────────────────────────────────────────────────
@@ -820,67 +820,67 @@ async function seed() {
   await database.insertInto('enrollment_application').values([
     // Field First Aid Support (org1, review-based)
     {
-      volunteer_id: volByEmail.get('vol3@willing.com')!,
+      volunteer_id: volByEmail.get('vol3@willing.social')!,
       posting_id: postingByTitle.get('First Aid Support')!,
       message: 'Currently completing my paramedic diploma. I have first aid and triage training and am comfortable in high-pressure environments.',
     },
     {
-      volunteer_id: volByEmail.get('vol1@willing.com')!,
+      volunteer_id: volByEmail.get('vol1@willing.social')!,
       posting_id: postingByTitle.get('First Aid Support')!,
       message: 'I completed a 2-day first aid course last year. I am reliable and calm under pressure and would love to support the medical team.',
     },
 
     // Displaced Families Registration (org1, review-based)
     {
-      volunteer_id: volByEmail.get('vol4@willing.com')!,
+      volunteer_id: volByEmail.get('vol4@willing.social')!,
       posting_id: postingByTitle.get('Displaced Families Registration')!,
       message: 'I work as a social worker and speak Arabic fluently. Comfortable conducting intake interviews with empathy and care.',
     },
     {
-      volunteer_id: volByEmail.get('vol2@willing.com')!,
+      volunteer_id: volByEmail.get('vol2@willing.social')!,
       posting_id: postingByTitle.get('Displaced Families Registration')!,
       message: 'Strong communication and data entry skills. Happy to assist with registration and guiding families to services.',
     },
     {
-      volunteer_id: volByEmail.get('vol10@willing.com')!,
+      volunteer_id: volByEmail.get('vol10@willing.social')!,
       posting_id: postingByTitle.get('Displaced Families Registration')!,
       message: 'Available for the full two-day window and comfortable with documentation and interacting with displaced families.',
     },
 
     // War Survivor Psychosocial Support (org1, review-based)
     {
-      volunteer_id: volByEmail.get('vol4@willing.com')!,
+      volunteer_id: volByEmail.get('vol4@willing.social')!,
       posting_id: postingByTitle.get('War Survivor Psychosocial Support')!,
       message: 'Background in social work and mental health support. Familiar with trauma-informed approaches and psychosocial first aid frameworks.',
     },
 
     // Psychological First Aid Sessions (org1, review-based)
     {
-      volunteer_id: volByEmail.get('vol4@willing.com')!,
+      volunteer_id: volByEmail.get('vol4@willing.social')!,
       posting_id: postingByTitle.get('Psychological First Aid Sessions')!,
       message: 'Background in social work and mental health support. Familiar with trauma-informed approaches and psychosocial first aid frameworks.',
     },
 
     // Remote Homework Support Hotline (org2, review-based)
     {
-      volunteer_id: volByEmail.get('vol7@willing.com')!,
+      volunteer_id: volByEmail.get('vol7@willing.social')!,
       posting_id: postingByTitle.get('Remote Homework Support')!,
       message: 'Software developer with a strong maths and science background. Can take evening slots and adapt explanations to different age groups.',
     },
     {
-      volunteer_id: volByEmail.get('vol2@willing.com')!,
+      volunteer_id: volByEmail.get('vol2@willing.social')!,
       posting_id: postingByTitle.get('Remote Homework Support')!,
       message: 'Experienced tutor covering Arabic, English, and general maths. Available multiple afternoons per week.',
     },
 
     // Medical Supplies Inventory & Sorting (org3, review-based)
     {
-      volunteer_id: volByEmail.get('vol9@willing.com')!,
+      volunteer_id: volByEmail.get('vol9@willing.social')!,
       posting_id: postingByTitle.get('Medical Supplies Inventory & Sorting')!,
       message: 'Highly detail-oriented and experienced with inventory systems. Happy to handle medical supplies carefully.',
     },
     {
-      volunteer_id: volByEmail.get('vol1@willing.com')!,
+      volunteer_id: volByEmail.get('vol1@willing.social')!,
       posting_id: postingByTitle.get('Medical Supplies Inventory & Sorting')!,
       message: 'Good with physical organisation and sorting. Can commit to the full morning.',
     },
@@ -893,31 +893,31 @@ async function seed() {
     // ── Approved from review-based postings ────────────────────────────────────
 
     {
-      volunteer_id: volByEmail.get('vol3@willing.com')!,
+      volunteer_id: volByEmail.get('vol3@willing.social')!,
       posting_id: postingByTitle.get('First Aid Support')!,
       message: 'Currently completing my paramedic diploma. I have first aid and triage training and am comfortable in high-pressure environments.',
       attended: false,
     },
     {
-      volunteer_id: volByEmail.get('vol4@willing.com')!,
+      volunteer_id: volByEmail.get('vol4@willing.social')!,
       posting_id: postingByTitle.get('Displaced Families Registration')!,
       message: 'I work as a social worker and speak Arabic fluently. Comfortable conducting intake interviews with empathy and care.',
       attended: false,
     },
     {
-      volunteer_id: volByEmail.get('vol4@willing.com')!,
+      volunteer_id: volByEmail.get('vol4@willing.social')!,
       posting_id: postingByTitle.get('Psychological First Aid Sessions')!,
       message: 'Background in social work and mental health support. Familiar with trauma-informed approaches and psychosocial first aid frameworks.',
       attended: true,
     },
     {
-      volunteer_id: volByEmail.get('vol7@willing.com')!,
+      volunteer_id: volByEmail.get('vol7@willing.social')!,
       posting_id: postingByTitle.get('Remote Homework Support')!,
       message: 'Software developer with a strong maths and science background. Can take evening slots.',
       attended: false,
     },
     {
-      volunteer_id: volByEmail.get('vol9@willing.com')!,
+      volunteer_id: volByEmail.get('vol9@willing.social')!,
       posting_id: postingByTitle.get('Medical Supplies Inventory & Sorting')!,
       message: 'Highly detail-oriented and experienced with inventory systems.',
       attended: false,
@@ -927,13 +927,13 @@ async function seed() {
 
     // Emergency Shelter Setup
     {
-      volunteer_id: volByEmail.get('vol1@willing.com')!,
+      volunteer_id: volByEmail.get('vol1@willing.social')!,
       posting_id: postingByTitle.get('Emergency Shelter Setup')!,
       message: 'Strong with physical tasks and comfortable in challenging field environments.',
       attended: false,
     },
     {
-      volunteer_id: volByEmail.get('vol5@willing.com')!,
+      volunteer_id: volByEmail.get('vol5@willing.social')!,
       posting_id: postingByTitle.get('Emergency Shelter Setup')!,
       message: 'Physically fit and used to outdoor work. Ready to help build and maintain shelters.',
       attended: false,
@@ -941,7 +941,7 @@ async function seed() {
 
     // Mobile Aid Kit Distribution
     {
-      volunteer_id: volByEmail.get('vol1@willing.com')!,
+      volunteer_id: volByEmail.get('vol1@willing.social')!,
       posting_id: postingByTitle.get('Mobile Aid Kit Distribution')!,
       message: 'Good with logistics and comfortable navigating Beirut neighborhoods.',
       attended: false,
@@ -949,13 +949,13 @@ async function seed() {
 
     // Hot Meals for Displaced Families
     {
-      volunteer_id: volByEmail.get('vol8@willing.com')!,
+      volunteer_id: volByEmail.get('vol8@willing.social')!,
       posting_id: postingByTitle.get('Meals for the Displaced')!,
       message: 'Catering background — comfortable with large-scale food prep and service.',
       attended: true,
     },
     {
-      volunteer_id: volByEmail.get('vol3@willing.com')!,
+      volunteer_id: volByEmail.get('vol3@willing.social')!,
       posting_id: postingByTitle.get('Meals for the Displaced')!,
       message: 'Happy to help wherever needed in the kitchen or serving line.',
       attended: false,
@@ -963,13 +963,13 @@ async function seed() {
 
     // Children's Safe Space Activities
     {
-      volunteer_id: volByEmail.get('vol6@willing.com')!,
+      volunteer_id: volByEmail.get('vol6@willing.social')!,
       posting_id: postingByTitle.get('Children\'s Activities')!,
       message: 'Art teacher with lots of experience running activities for children in difficult situations.',
       attended: true,
     },
     {
-      volunteer_id: volByEmail.get('vol2@willing.com')!,
+      volunteer_id: volByEmail.get('vol2@willing.social')!,
       posting_id: postingByTitle.get('Children\'s Activities')!,
       message: 'Love working with children and good at keeping energy positive and structured.',
       attended: false,
@@ -977,13 +977,13 @@ async function seed() {
 
     // Blood Drive Coordination (closed – historical)
     {
-      volunteer_id: volByEmail.get('vol2@willing.com')!,
+      volunteer_id: volByEmail.get('vol2@willing.social')!,
       posting_id: postingByTitle.get('Blood Drive Coordination')!,
       message: 'Happy to help with donor registration and ensure a smooth experience.',
       attended: true,
     },
     {
-      volunteer_id: volByEmail.get('vol4@willing.com')!,
+      volunteer_id: volByEmail.get('vol4@willing.social')!,
       posting_id: postingByTitle.get('Blood Drive Coordination')!,
       message: 'Comfortable handling data entry and supporting donors throughout the process.',
       attended: true,
@@ -991,13 +991,13 @@ async function seed() {
 
     // Emergency Food Parcel Packing
     {
-      volunteer_id: volByEmail.get('vol1@willing.com')!,
+      volunteer_id: volByEmail.get('vol1@willing.social')!,
       posting_id: postingByTitle.get('Emergency Food Packing')!,
       message: 'Comfortable with packing, warehouse work, and team environments.',
       attended: true,
     },
     {
-      volunteer_id: volByEmail.get('vol9@willing.com')!,
+      volunteer_id: volByEmail.get('vol9@willing.social')!,
       posting_id: postingByTitle.get('Emergency Food Packing')!,
       message: 'Good with organisation and repetitive packing tasks.',
       attended: true,
@@ -1005,13 +1005,13 @@ async function seed() {
 
     // Disability-Inclusive Sports Day
     {
-      volunteer_id: volByEmail.get('vol6@willing.com')!,
+      volunteer_id: volByEmail.get('vol6@willing.social')!,
       posting_id: postingByTitle.get('Inclusive Sports Day')!,
       message: 'Great with children and used to inclusive activity settings.',
       attended: false,
     },
     {
-      volunteer_id: volByEmail.get('vol5@willing.com')!,
+      volunteer_id: volByEmail.get('vol5@willing.social')!,
       posting_id: postingByTitle.get('Inclusive Sports Day')!,
       message: 'Physically fit and enthusiastic about inclusive sport.',
       attended: false,
@@ -1019,13 +1019,13 @@ async function seed() {
 
     // Community Kitchen – Saida
     {
-      volunteer_id: volByEmail.get('vol8@willing.com')!,
+      volunteer_id: volByEmail.get('vol8@willing.social')!,
       posting_id: postingByTitle.get('Community Kitchen')!,
       message: 'Catering background. Comfortable with prep, serving, and kitchen hygiene.',
       attended: true,
     },
     {
-      volunteer_id: volByEmail.get('vol3@willing.com')!,
+      volunteer_id: volByEmail.get('vol3@willing.social')!,
       posting_id: postingByTitle.get('Community Kitchen')!,
       message: 'Happy to help wherever needed in the kitchen.',
       attended: false,
@@ -1033,13 +1033,13 @@ async function seed() {
 
     // Winter Clothing Distribution (closed – historical)
     {
-      volunteer_id: volByEmail.get('vol1@willing.com')!,
+      volunteer_id: volByEmail.get('vol1@willing.social')!,
       posting_id: postingByTitle.get('Winter Clothing Distribution')!,
       message: 'Good at sorting and organising. Can commit to the full session.',
       attended: true,
     },
     {
-      volunteer_id: volByEmail.get('vol9@willing.com')!,
+      volunteer_id: volByEmail.get('vol9@willing.social')!,
       posting_id: postingByTitle.get('Winter Clothing Distribution')!,
       message: 'Detail-oriented; experienced with sorting and packing donated goods.',
       attended: true,
@@ -1047,19 +1047,19 @@ async function seed() {
 
     // Wildfire Relief Distribution
     {
-      volunteer_id: volByEmail.get('vol1@willing.com')!,
+      volunteer_id: volByEmail.get('vol1@willing.social')!,
       posting_id: postingByTitle.get('Wildfire Relief Distribution')!,
       message: 'Strong with physical tasks and field logistics.',
       attended: false,
     },
     {
-      volunteer_id: volByEmail.get('vol5@willing.com')!,
+      volunteer_id: volByEmail.get('vol5@willing.social')!,
       posting_id: postingByTitle.get('Wildfire Relief Distribution')!,
       message: 'Physically fit and used to outdoor conditions.',
       attended: false,
     },
     {
-      volunteer_id: volByEmail.get('vol9@willing.com')!,
+      volunteer_id: volByEmail.get('vol9@willing.social')!,
       posting_id: postingByTitle.get('Wildfire Relief Distribution')!,
       message: 'Can help with organising and distributing kits systematically.',
       attended: false,
@@ -1067,13 +1067,13 @@ async function seed() {
 
     // Coastal Cleanup – Tyre
     {
-      volunteer_id: volByEmail.get('vol5@willing.com')!,
+      volunteer_id: volByEmail.get('vol5@willing.social')!,
       posting_id: postingByTitle.get('Coastal Cleanup')!,
       message: 'Passionate about environmental work and comfortable with outdoor physical tasks.',
       attended: false,
     },
     {
-      volunteer_id: volByEmail.get('vol1@willing.com')!,
+      volunteer_id: volByEmail.get('vol1@willing.social')!,
       posting_id: postingByTitle.get('Coastal Cleanup')!,
       message: 'Happy to do heavy lifting and waste sorting alongside the team.',
       attended: false,
@@ -1081,13 +1081,13 @@ async function seed() {
 
     // Children's Art & Story Workshop
     {
-      volunteer_id: volByEmail.get('vol6@willing.com')!,
+      volunteer_id: volByEmail.get('vol6@willing.social')!,
       posting_id: postingByTitle.get('Children\'s Art & Story Workshop')!,
       message: 'Art teacher background with lots of experience running creative sessions for kids.',
       attended: true,
     },
     {
-      volunteer_id: volByEmail.get('vol2@willing.com')!,
+      volunteer_id: volByEmail.get('vol2@willing.social')!,
       posting_id: postingByTitle.get('Children\'s Art & Story Workshop')!,
       message: 'Love storytelling and reading with children. Happy to assist with activities.',
       attended: false,
@@ -1095,19 +1095,19 @@ async function seed() {
 
     // Debris Clearance – Akkar Villages (closed – historical)
     {
-      volunteer_id: volByEmail.get('vol1@willing.com')!,
+      volunteer_id: volByEmail.get('vol1@willing.social')!,
       posting_id: postingByTitle.get('Debris Clearance')!,
       message: 'Ready for physically demanding work. Bringing my own gloves.',
       attended: true,
     },
     {
-      volunteer_id: volByEmail.get('vol5@willing.com')!,
+      volunteer_id: volByEmail.get('vol5@willing.social')!,
       posting_id: postingByTitle.get('Debris Clearance')!,
       message: 'Strong and used to outdoor heavy work.',
       attended: true,
     },
     {
-      volunteer_id: volByEmail.get('vol3@willing.com')!,
+      volunteer_id: volByEmail.get('vol3@willing.social')!,
       posting_id: postingByTitle.get('Debris Clearance')!,
       message: 'Want to help affected families recover.',
       attended: false, // enrolled but did not attend
@@ -1116,13 +1116,13 @@ async function seed() {
     // Ensure minimum 3 enrollments per volunteer
     // vol7 (tech/remote support)
     {
-      volunteer_id: volByEmail.get('vol7@willing.com')!,
+      volunteer_id: volByEmail.get('vol7@willing.social')!,
       posting_id: postingByTitle.get('Emergency Shelter Setup')!,
       message: 'I can support shelter logistics and install relief tents for displaced families.',
       attended: false,
     },
     {
-      volunteer_id: volByEmail.get('vol7@willing.com')!,
+      volunteer_id: volByEmail.get('vol7@willing.social')!,
       posting_id: postingByTitle.get('Medical Supplies Inventory & Sorting')!,
       message: 'Happy to help track and manage inventory in the medical supplies depot.',
       attended: false,
@@ -1130,7 +1130,7 @@ async function seed() {
 
     // vol8 (food/kitchen)
     {
-      volunteer_id: volByEmail.get('vol8@willing.com')!,
+      volunteer_id: volByEmail.get('vol8@willing.social')!,
       posting_id: postingByTitle.get('Inclusive Sports Day')!,
       message: 'Can help coordinate meal breaks and hydration for participants and staff.',
       attended: false,
@@ -1138,19 +1138,19 @@ async function seed() {
 
     // vol10 (private profile)
     {
-      volunteer_id: volByEmail.get('vol10@willing.com')!,
+      volunteer_id: volByEmail.get('vol10@willing.social')!,
       posting_id: postingByTitle.get('Emergency Shelter Setup')!,
       message: 'I am experienced with logistics and can assist with shelter set-up.',
       attended: false,
     },
     {
-      volunteer_id: volByEmail.get('vol10@willing.com')!,
+      volunteer_id: volByEmail.get('vol10@willing.social')!,
       posting_id: postingByTitle.get('Emergency Food Packing')!,
       message: 'Ready to help pack and prepare food parcels for families in need.',
       attended: false,
     },
     {
-      volunteer_id: volByEmail.get('vol10@willing.com')!,
+      volunteer_id: volByEmail.get('vol10@willing.social')!,
       posting_id: postingByTitle.get('Mobile Aid Kit Distribution')!,
       message: 'Available to distribute aid kits across Beirut neighborhoods.',
       attended: false,
@@ -1163,12 +1163,12 @@ async function seed() {
   console.log('Password (all accounts):', PASSWORD_PLAIN);
   console.log('');
   console.log('Admin:');
-  console.log('  admin@willing.com');
+  console.log('  admin@willing.social');
   console.log('');
-  console.log('Organizations (approved): org1@willing.com, org2@willing.com, org3@willing.com');
+  console.log('Organizations (approved): org1@willing.social, org2@willing.social, org3@willing.social');
 
   console.log('');
-  console.log('Volunteers: vol1@willing.com, vol2@willing.com, vol3@willing.com, vol4@willing.com, vol5@willing.com, vol6@willing.com, vol7@willing.com, vol8@willing.com, vol9@willing.com, vol10@willing.com');
+  console.log('Volunteers: vol1@willing.social, vol2@willing.social, vol3@willing.social, vol4@willing.social, vol5@willing.social, vol6@willing.social, vol7@willing.social, vol8@willing.social, vol9@willing.social, vol10@willing.social');
 
   await database.destroy();
 }
