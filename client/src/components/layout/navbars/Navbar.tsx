@@ -5,7 +5,7 @@ function Navbar({ center, right }: { center?: ReactNode; right?: ReactNode }) {
   const [isCenterOpen, setIsCenterOpen] = useState(false);
 
   return (
-    <div className="shrink-0 ssticky ticky top-0 z-9999">
+    <div className="shrink-0 top-0 z-9999">
       <div className="navbar bg-base-100 shadow-sm relative border-b border-base-300">
         <div className="navbar-start">
           {center && (
