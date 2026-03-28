@@ -11,6 +11,7 @@ interface PostingListProps {
   showCrisis?: boolean;
   variant?: 'volunteer' | 'organization';
   compactOrganizationLayout?: boolean;
+  volunteerOutsideMetaAt1700?: boolean;
 }
 
 const normalizeTimestamp = (value: string | Date | undefined | null) => {
@@ -45,6 +46,7 @@ function PostingList({
   showCrisis = true,
   variant = 'volunteer',
   compactOrganizationLayout = false,
+  volunteerOutsideMetaAt1700 = false,
 }: PostingListProps) {
   const postingDetailsPath = `/posting/${posting.id}`;
   const hasOrganizationName = Boolean(posting.organization_name);
@@ -136,19 +138,25 @@ function PostingList({
     : (hasOrganizationName ? '2xl:justify-start' : '2xl:justify-center');
   const outsideMetaLabelVisibleClass = variant === 'organization'
     ? (compactOrganizationLayout ? 'min-[1700px]:inline-flex' : '2xl:inline-flex')
-    : 'lg:inline-flex';
+    : (volunteerOutsideMetaAt1700 ? 'min-[1700px]:inline-flex' : 'lg:inline-flex');
   const outsideMetaValueVisibleClass = variant === 'organization'
     ? (compactOrganizationLayout ? 'min-[1700px]:block' : '2xl:block')
-    : 'lg:block';
+    : (volunteerOutsideMetaAt1700 ? 'min-[1700px]:block' : 'lg:block');
   const insideMetaVisibleClass = variant === 'organization'
     ? (compactOrganizationLayout ? 'block min-[1700px]:hidden' : '2xl:hidden')
-    : 'lg:hidden';
+    : (volunteerOutsideMetaAt1700 ? 'min-[1700px]:hidden' : 'lg:hidden');
   const organizationTagInlineClass = compactOrganizationLayout
     ? 'block min-[1700px]:hidden'
     : 'block 2xl:hidden';
   const organizationTagBelowClass = compactOrganizationLayout
     ? 'hidden min-[1700px]:block'
     : 'hidden 2xl:block';
+  const volunteerTagNearTitleClass = volunteerOutsideMetaAt1700
+    ? 'block min-[1700px]:hidden'
+    : 'block lg:hidden 2xl:block';
+  const volunteerTagNearOrganizationClass = volunteerOutsideMetaAt1700
+    ? 'hidden min-[1700px]:block'
+    : 'hidden lg:block 2xl:hidden';
 
   return (
 
@@ -210,7 +218,7 @@ function PostingList({
                   )}
 
                   {variant === 'volunteer' && (
-                    <div className="shrink-0 opacity-100 block lg:hidden 2xl:block">{statusTag}</div>
+                    <div className={`shrink-0 opacity-100 ${volunteerTagNearTitleClass}`}>{statusTag}</div>
                   )}
                 </div>
 
@@ -229,7 +237,7 @@ function PostingList({
                         {posting.organization_name}
                       </Link>
                     )}
-                    <div className="shrink-0 opacity-100 hidden lg:block 2xl:hidden">{statusTag}</div>
+                    <div className={`shrink-0 opacity-100 ${volunteerTagNearOrganizationClass}`}>{statusTag}</div>
                   </div>
                 )}
               </div>
