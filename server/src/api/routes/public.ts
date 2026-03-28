@@ -1,10 +1,10 @@
 import path from 'path';
 
-import { Response, Router } from 'express';
+import { type Response, Router } from 'express';
 
-import { PublicCertificateSignatureResponse, PublicHomeStatsResponse } from './public.types.js';
-import database from '../../db/index.js';
-import { PLATFORM_SIGNATURE_UPLOAD_DIR } from '../../services/uploads/paths.js';
+import { type PublicCertificateSignatureResponse, type PublicHomeStatsResponse } from './public.types.ts';
+import database from '../../db/index.ts';
+import { PLATFORM_SIGNATURE_UPLOAD_DIR } from '../../services/uploads/paths.ts';
 
 const publicRouter = Router();
 

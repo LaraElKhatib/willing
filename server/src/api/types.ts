@@ -1,17 +1,17 @@
-export * from './routes/user.types.js';
-export * from './routes/public.types.js';
+export * from './routes/user.types.ts';
+export * from './routes/public.types.ts';
 
-export * from './routes/admin/index.types.js';
-export * from './routes/admin/crises.types.js';
-export * from './routes/admin/certificateSettings.types.js';
+export * from './routes/admin/index.types.ts';
+export * from './routes/admin/crises.types.ts';
+export * from './routes/admin/certificateSettings.types.ts';
 
-export * from './routes/volunteer/index.types.js';
-export * from './routes/volunteer/posting.types.js';
-export * from './routes/volunteer/cv.types.js';
+export * from './routes/volunteer/index.types.ts';
+export * from './routes/volunteer/posting.types.ts';
+export * from './routes/volunteer/cv.types.ts';
 
-export * from './routes/organization/index.types.js';
-export * from './routes/organization/posting.types.js';
-export * from './routes/organization/attendance.types.js';
-export * from './routes/organization/certificateInfo.types.js';
+export * from './routes/organization/index.types.ts';
+export * from './routes/organization/posting.types.ts';
+export * from './routes/organization/attendance.types.ts';
+export * from './routes/organization/certificateInfo.types.ts';
 
-export * from './routes/geocoding.types.js';
+export * from './routes/geocoding.types.ts';

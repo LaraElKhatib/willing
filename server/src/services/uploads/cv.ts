@@ -1,11 +1,11 @@
 import fs from 'fs';
 import path from 'path';
 
-import { NextFunction, Request, Response } from 'express';
+import { type NextFunction, type Request, type Response } from 'express';
 import multer from 'multer';
 import { PDFParse } from 'pdf-parse';
 
-import { CV_UPLOAD_DIR } from './paths.js';
+import { CV_UPLOAD_DIR } from './paths.ts';
 
 export const cvStorage = multer.diskStorage({
   destination: async (_req, _file, cb) => {

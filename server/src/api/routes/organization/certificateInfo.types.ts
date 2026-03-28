@@ -1,5 +1,5 @@
-import { OrganizationCertificateInfo } from '../../../db/tables/index.js';
-import { SuccessResponse } from '../../../types.js';
+import { type OrganizationCertificateInfo } from '../../../db/tables/index.ts';
+import { type SuccessResponse } from '../../../types.ts';
 
 export type GetCertificateInfoResponse = {
   certificateInfo: OrganizationCertificateInfo | null;

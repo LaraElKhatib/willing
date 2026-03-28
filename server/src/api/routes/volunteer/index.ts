@@ -1,29 +1,29 @@
 import bcrypt from 'bcrypt';
-import { Router, Response } from 'express';
+import { Router, type Response } from 'express';
 import * as jose from 'jose';
 import { sql } from 'kysely';
 import zod from 'zod';
 
-import volunteerCvRouter from './cv.js';
+import volunteerCvRouter from './cv.ts';
 import {
-  VolunteerCrisisResponse,
-  VolunteerCreateResponse,
-  VolunteerCertificateResponse,
-  VolunteerMeResponse,
-  VolunteerPinnedCrisesResponse,
-  VolunteerProfileResponse,
-} from './index.types.js';
-import volunteerPostingRouter from './posting.js';
-import resetPassword from '../../../auth/resetPassword.js';
-import config from '../../../config.js';
-import database from '../../../db/index.js';
-import { type VolunteerAccountWithoutPassword, newVolunteerAccountSchema, volunteerAccountSchema } from '../../../db/tables/index.js';
+  type VolunteerCrisisResponse,
+  type VolunteerCreateResponse,
+  type VolunteerCertificateResponse,
+  type VolunteerMeResponse,
+  type VolunteerPinnedCrisesResponse,
+  type VolunteerProfileResponse,
+} from './index.types.ts';
+import volunteerPostingRouter from './posting.ts';
+import resetPassword from '../../../auth/resetPassword.ts';
+import config from '../../../config.ts';
+import database from '../../../db/index.ts';
+import { type VolunteerAccountWithoutPassword, newVolunteerAccountSchema, volunteerAccountSchema } from '../../../db/tables/index.ts';
 import {
   recomputeVolunteerExperienceVector,
   recomputeVolunteerProfileVector,
-} from '../../../services/embeddings/updates.js';
-import { getVolunteerProfile } from '../../../services/volunteer/index.js';
-import { authorizeOnly } from '../../authorization.js';
+} from '../../../services/embeddings/updates.ts';
+import { getVolunteerProfile } from '../../../services/volunteer/index.ts';
+import { authorizeOnly } from '../../authorization.ts';
 
 const volunteerRouter = Router();
 const volunteerResponseColumns = [

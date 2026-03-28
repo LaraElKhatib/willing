@@ -1,12 +1,12 @@
 import { Router } from 'express';
 
-import { setUserJWT } from './authorization.js';
-import adminRouter from './routes/admin/index.js';
-import geocodingRouter from './routes/geocoding.js';
-import organizationRouter from './routes/organization/index.js';
-import publicRouter from './routes/public.js';
-import userRouter from './routes/user.js';
-import volunteerRouter from './routes/volunteer/index.js';
+import { setUserJWT } from './authorization.ts';
+import adminRouter from './routes/admin/index.ts';
+import geocodingRouter from './routes/geocoding.ts';
+import organizationRouter from './routes/organization/index.ts';
+import publicRouter from './routes/public.ts';
+import userRouter from './routes/user.ts';
+import volunteerRouter from './routes/volunteer/index.ts';
 
 const api = Router();
 api.use(setUserJWT);

@@ -1,5 +1,5 @@
-import database from '../../../db/index.js';
-import { type PostingEnrollment } from '../../../types.js';
+import database from '../../../db/index.ts';
+import { type PostingEnrollment } from '../../../types.ts';
 
 export const getPostingEnrollments = async (postingId: number): Promise<PostingEnrollment[]> => {
   const enrollments = await database

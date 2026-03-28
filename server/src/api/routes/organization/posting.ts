@@ -1,39 +1,39 @@
-import { Router, Response } from 'express';
+import { Router, type Response } from 'express';
 import { sql } from 'kysely';
 import zod from 'zod';
 
-import attendanceRouter from './attendance.js';
+import attendanceRouter from './attendance.ts';
 import {
-  OrganizationPostingApplicationAcceptanceResponse,
-  OrganizationPostingApplicationRejectionResponse,
-  OrganizationPostingApplicationsReponse,
-  OrganizationPostingCreateResponse,
-  OrganizationPostingDeleteResponse,
-  OrganizationPostingEnrollmentsResponse,
-  OrganizationPostingListResponse,
-  OrganizationPostingResponse,
-  OrganizationPostingUpdateResponse,
-} from './posting.types.js';
-import { getPostingEnrollments } from './postingEnrollments.js';
-import database from '../../../db/index.js';
+  type OrganizationPostingApplicationAcceptanceResponse,
+  type OrganizationPostingApplicationRejectionResponse,
+  type OrganizationPostingApplicationsReponse,
+  type OrganizationPostingCreateResponse,
+  type OrganizationPostingDeleteResponse,
+  type OrganizationPostingEnrollmentsResponse,
+  type OrganizationPostingListResponse,
+  type OrganizationPostingResponse,
+  type OrganizationPostingUpdateResponse,
+} from './posting.types.ts';
+import { getPostingEnrollments } from './postingEnrollments.ts';
+import database from '../../../db/index.ts';
 import {
   newOrganizationPostingSchema,
   type NewOrganizationPosting,
   type PostingSkill,
-} from '../../../db/tables/index.js';
+} from '../../../db/tables/index.ts';
 import {
   recomputePostingVectors,
   recomputeVolunteerExperienceVector,
-} from '../../../services/embeddings/updates.js';
+} from '../../../services/embeddings/updates.ts';
 import {
   sendVolunteerApplicationAcceptedEmail,
   sendVolunteerApplicationRejectedEmail,
-} from '../../../services/smtp/emails.js';
+} from '../../../services/smtp/emails.ts';
 import {
   parseListQuery,
   parseOptionalBooleanQueryParam,
   parseOptionalNumberQueryParam,
-} from '../utils/listQuery.js';
+} from '../utils/listQuery.ts';
 import {
   applyPostingDateTimeFilters,
   applySharedPostingSort,
@@ -41,7 +41,7 @@ import {
   normalizeSearchTerms,
   parsePostingDateTimeFilters,
   type SharedPostingSortBy,
-} from '../utils/postingList.js';
+} from '../utils/postingList.ts';
 
 const postingRouter = Router();
 const organizationPostingUpdateSchema = newOrganizationPostingSchema.partial().extend({

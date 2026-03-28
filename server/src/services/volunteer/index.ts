@@ -1,6 +1,6 @@
-import database from '../../db/index.js';
+import database from '../../db/index.ts';
 
-import type { VolunteerAccountWithoutPassword } from '../../db/tables/index.js';
+import type { VolunteerAccountWithoutPassword } from '../../db/tables/index.ts';
 
 export type VolunteerCompletedExperience = {
   enrollment_id: number;

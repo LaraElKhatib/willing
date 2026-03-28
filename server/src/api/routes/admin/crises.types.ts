@@ -1,5 +1,5 @@
-import { Crisis } from '../../../db/tables/index.js';
-import { SuccessResponse } from '../../../types.js';
+import { type Crisis } from '../../../db/tables/index.ts';
+import { type SuccessResponse } from '../../../types.ts';
 
 export type AdminCrisesResponse = {
   crises: Crisis[];

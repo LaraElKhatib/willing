@@ -1,19 +1,19 @@
-import { Router, Response } from 'express';
+import { Router, type Response } from 'express';
 import { sql } from 'kysely';
 import zod from 'zod';
 
-import { VolunteerEnrollmentsResponse, VolunteerPostingEnrollResponse, VolunteerPostingResponse, VolunteerPostingSearchResponse, VolunteerPostingWithdrawResponse } from './posting.types.js';
-import { buildPostingsWithContext, postingWithContextSelectColumns } from './postingWithContext.js';
-import database from '../../../db/index.js';
-import { Enrollment, EnrollmentApplication } from '../../../db/tables/index.js';
-import { recomputeVolunteerExperienceVector } from '../../../services/embeddings/updates.js';
-import { PostingWithContext } from '../../../types.js';
-import { authorizeOnly } from '../../authorization.js';
+import { type VolunteerEnrollmentsResponse, type VolunteerPostingEnrollResponse, type VolunteerPostingResponse, type VolunteerPostingSearchResponse, type VolunteerPostingWithdrawResponse } from './posting.types.ts';
+import { buildPostingsWithContext, postingWithContextSelectColumns } from './postingWithContext.ts';
+import database from '../../../db/index.ts';
+import { type Enrollment, type EnrollmentApplication } from '../../../db/tables/index.ts';
+import { recomputeVolunteerExperienceVector } from '../../../services/embeddings/updates.ts';
+import { type PostingWithContext } from '../../../types.ts';
+import { authorizeOnly } from '../../authorization.ts';
 import {
   parseListQuery,
   parseOptionalBooleanQueryParam,
   parseOptionalNumberQueryParam,
-} from '../utils/listQuery.js';
+} from '../utils/listQuery.ts';
 import {
   applyPostingDateTimeFilters,
   applySharedPostingSort,
@@ -22,7 +22,7 @@ import {
   normalizeSearchTerms,
   parsePostingDateTimeFilters,
   sortPostingsBySharedSort,
-} from '../utils/postingList.js';
+} from '../utils/postingList.ts';
 
 const volunteerPostingRouter = Router();
 

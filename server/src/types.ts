@@ -3,9 +3,9 @@ import zod from 'zod';
 import {
   type OrganizationPostingWithoutVectors,
   type PostingSkill,
-  VolunteerSkill,
-  VolunteerAccountWithoutPassword,
-} from './db/tables/index.js';
+  type VolunteerSkill,
+  type VolunteerAccountWithoutPassword,
+} from './db/tables/index.ts';
 
 export type Role = 'admin' | 'volunteer' | 'organization';
 

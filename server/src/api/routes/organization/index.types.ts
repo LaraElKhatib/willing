@@ -1,8 +1,8 @@
-import { ResetPasswordResponse } from '../../../auth/resetPassword.js';
-import { Crisis, OrganizationAccountWithoutPassword, OrganizationAccountWithoutPasswordAndVector, OrganizationPostingWithoutVectors, PostingSkill } from '../../../db/tables/index.js';
-import { SuccessResponse } from '../../../types.js';
+import { type ResetPasswordResponse } from '../../../auth/resetPassword.ts';
+import { type Crisis, type OrganizationAccountWithoutPassword, type OrganizationAccountWithoutPasswordAndVector, type OrganizationPostingWithoutVectors, type PostingSkill } from '../../../db/tables/index.ts';
+import { type SuccessResponse } from '../../../types.ts';
 
-import type { VolunteerProfileData } from '../../../services/volunteer/index.js';
+import type { VolunteerProfileData } from '../../../services/volunteer/index.ts';
 
 export type OrganizationRequestResponse = SuccessResponse;
 

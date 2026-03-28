@@ -5,14 +5,18 @@ import { fileURLToPath, pathToFileURL } from 'url';
 
 import {
   Migrator,
-  MigrationProvider,
-  Migration,
+  type MigrationProvider,
+  type Migration,
 } from 'kysely';
 
-import database from './index.js';
+import database from './index.ts';
 
 class ESMFileMigrationProvider implements MigrationProvider {
-  constructor(private readonly migrationFolder: string) {}
+  private readonly migrationFolder: string;
+
+  constructor(migrationFolder: string) {
+    this.migrationFolder = migrationFolder;
+  }
 
   async getMigrations(): Promise<Record<string, Migration>> {
     const files = await fs.readdir(this.migrationFolder);
@@ -20,12 +24,17 @@ class ESMFileMigrationProvider implements MigrationProvider {
     const migrations: Record<string, Migration> = {};
 
     for (const file of files) {
-      if (!file.endsWith('.js')) continue;
+      if (
+        (!file.endsWith('.js') && !file.endsWith('.ts'))
+        || file.endsWith('.d.ts')
+      ) {
+        continue;
+      }
 
       const fullPath = path.join(this.migrationFolder, file);
       const mod = await import(pathToFileURL(fullPath).href);
 
-      const name = file.replace(/\.js$/, '');
+      const name = file.replace(/\.(js|ts)$/, '');
       migrations[name] = { up: mod.up, down: mod.down };
     }
 

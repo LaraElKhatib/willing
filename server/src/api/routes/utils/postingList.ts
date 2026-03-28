@@ -1,4 +1,4 @@
-import { getSingleQueryValue } from './queryValue.js';
+import { getSingleQueryValue } from './queryValue.ts';
 
 export type PostingSortDir = 'asc' | 'desc';
 export type SharedPostingSortBy = 'start_date' | 'created_at';

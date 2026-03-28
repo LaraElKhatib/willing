@@ -1,5 +1,5 @@
-import { PlatformCertificateSettings } from '../../../db/tables/index.js';
-import { SuccessResponse } from '../../../types.js';
+import { type PlatformCertificateSettings } from '../../../db/tables/index.ts';
+import { type SuccessResponse } from '../../../types.ts';
 
 export type AdminCertificateSettingsGetResponse = {
   settings: PlatformCertificateSettings | null;

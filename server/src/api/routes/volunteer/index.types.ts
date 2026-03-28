@@ -1,7 +1,7 @@
-import { ResetPasswordResponse } from '../../../auth/resetPassword.js';
-import { Crisis, VolunteerAccountWithoutPassword } from '../../../db/tables/index.js';
+import { type ResetPasswordResponse } from '../../../auth/resetPassword.ts';
+import { type Crisis, type VolunteerAccountWithoutPassword } from '../../../db/tables/index.ts';
 
-import type { VolunteerProfileData } from '../../../services/volunteer/index.js';
+import type { VolunteerProfileData } from '../../../services/volunteer/index.ts';
 
 export type VolunteerCreateResponse = {
   volunteer: VolunteerAccountWithoutPassword;

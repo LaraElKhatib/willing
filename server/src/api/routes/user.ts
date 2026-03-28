@@ -1,21 +1,21 @@
 import crypto from 'crypto';
 
 import bcrypt from 'bcrypt';
-import { Router, Response } from 'express';
+import { Router, type Response } from 'express';
 import * as jose from 'jose';
 import zod from 'zod';
 
 import {
-  UserForgotPasswordResetResponse,
-  UserForgotPasswordResponse,
-  UserLoginResponse,
-} from './user.types.js';
-import removePassword from '../../auth/removePassword.js';
-import config from '../../config.js';
-import database from '../../db/index.js';
-import { passwordSchema } from '../../schemas/index.js';
-import { sendPasswordResetEmail } from '../../services/smtp/emails.js';
-import { loginInfoSchema } from '../../types.js';
+  type UserForgotPasswordResetResponse,
+  type UserForgotPasswordResponse,
+  type UserLoginResponse,
+} from './user.types.ts';
+import removePassword from '../../auth/removePassword.ts';
+import config from '../../config.ts';
+import database from '../../db/index.ts';
+import { passwordSchema } from '../../schemas/index.ts';
+import { sendPasswordResetEmail } from '../../services/smtp/emails.ts';
+import { loginInfoSchema } from '../../types.ts';
 
 const userRouter = Router();
 const organizationLoginColumns = [

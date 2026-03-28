@@ -1,8 +1,8 @@
 import zod from 'zod';
 
-import { idSchema } from '../../schemas/index.js';
+import { idSchema } from '../../schemas/index.ts';
 
-import type { WithGeneratedID } from './shared.js';
+import type { WithGeneratedID } from './shared.ts';
 
 export const volunteerSkillSchema = zod.object({
   id: idSchema,
