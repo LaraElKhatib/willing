@@ -8,7 +8,9 @@ function AdminPage() {
     <AdminOnly redirectUrl="/admin/login">
       <main className="h-screen flex flex-col">
         <UserNavbar />
-        <Outlet />
+        <div className="overflow-y-scroll">
+          <Outlet />
+        </div>
       </main>
     </AdminOnly>
   );
