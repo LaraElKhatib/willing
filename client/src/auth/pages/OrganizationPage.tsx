@@ -8,7 +8,7 @@ function OrganizationPage() {
     <OrganizationOnly>
       <main className="h-screen flex flex-col">
         <UserNavbar />
-        <div className="overflow-y-scroll">
+        <div className="overflow-y-scroll flex-1">
           <Outlet />
         </div>
       </main>

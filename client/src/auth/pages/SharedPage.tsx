@@ -10,7 +10,7 @@ function SharedPage({ roles }: { roles: Role[] }) {
     <RolesOnly roles={roles}>
       <main className="h-screen flex flex-col">
         <UserNavbar />
-        <div className="overflow-y-scroll">
+        <div className="overflow-y-scroll flex-1">
           <Outlet />
         </div>
       </main>
