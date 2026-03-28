@@ -1,16 +1,16 @@
 import fs from 'fs';
 import path from 'path';
 
-import { NextFunction, Router, Request, Response } from 'express';
+import { type NextFunction, Router, type Request, type Response } from 'express';
 import { sql } from 'kysely';
 
-import { DeleteVolunteerCvResponse, UploadVolunteerCvResponse } from './cv.types.js';
-import database from '../../../db/index.js';
-import { recomputeVolunteerProfileVector } from '../../../services/embeddings/updates.js';
-import { cvMulter, validateCvMiddleware } from '../../../services/uploads/cv.js';
-import { CV_UPLOAD_DIR } from '../../../services/uploads/paths.js';
-import uploadSingle from '../../../services/uploads/uploadSingle.js';
-import { getVolunteerProfile } from '../../../services/volunteer/index.js';
+import { type DeleteVolunteerCvResponse, type UploadVolunteerCvResponse } from './cv.types.ts';
+import database from '../../../db/index.ts';
+import { recomputeVolunteerProfileVector } from '../../../services/embeddings/updates.ts';
+import { cvMulter, validateCvMiddleware } from '../../../services/uploads/cv.ts';
+import { CV_UPLOAD_DIR } from '../../../services/uploads/paths.ts';
+import uploadSingle from '../../../services/uploads/uploadSingle.ts';
+import { getVolunteerProfile } from '../../../services/volunteer/index.ts';
 
 export const deleteCvFileIfExists = async (cvPath?: string | null) => {
   if (!cvPath) return;

@@ -3,7 +3,7 @@ import path from 'path';
 
 import { PDFParse } from 'pdf-parse';
 
-import { CV_UPLOAD_DIR } from '../uploads/paths.js';
+import { CV_UPLOAD_DIR } from '../uploads/paths.ts';
 
 const MAX_CV_TEXT_CHARS = 12000;
 

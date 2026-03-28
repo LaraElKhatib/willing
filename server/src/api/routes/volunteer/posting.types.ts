@@ -1,5 +1,5 @@
-import { Enrollment, EnrollmentApplication } from '../../../db/tables/index.js';
-import { PostingWithContext, SuccessResponse } from '../../../types.js';
+import { type Enrollment, type EnrollmentApplication } from '../../../db/tables/index.ts';
+import { type PostingWithContext, type SuccessResponse } from '../../../types.ts';
 
 export type VolunteerEnrollmentsResponse = {
   postings: PostingWithContext[];

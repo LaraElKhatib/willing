@@ -1,8 +1,8 @@
 import zod from 'zod';
 
-import { idSchema, latitudeSchema, longitudeSchema } from '../../schemas/index.js';
+import { idSchema, latitudeSchema, longitudeSchema } from '../../schemas/index.ts';
 
-import type { WithGeneratedColumns, WithGeneratedIDAndTimestamps } from './shared.js';
+import type { WithGeneratedColumns, WithGeneratedIDAndTimestamps } from './shared.ts';
 
 export const organizationPostingSchema = zod.object({
   id: idSchema,

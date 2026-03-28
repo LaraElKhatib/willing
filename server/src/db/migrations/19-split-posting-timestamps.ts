@@ -1,6 +1,6 @@
-import { Kysely, sql } from 'kysely';
+import { type Kysely, sql } from 'kysely';
 
-import type { Database } from '../tables/index.js';
+import type { Database } from '../tables/index.ts';
 
 type DatabaseWithPostingTimestamps = Database & {
   organization_posting: Database['organization_posting'] & {

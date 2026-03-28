@@ -1,4 +1,4 @@
-import { Kysely, sql } from 'kysely';
+import { type Kysely, sql } from 'kysely';
 
 export async function ensureSetUpdatedAtFunction(db: Kysely<unknown>): Promise<void> {
   await sql`

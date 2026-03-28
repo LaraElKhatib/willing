@@ -1,6 +1,6 @@
-import { JWTPayload } from 'jose';
+import { type JWTPayload } from 'jose';
 
-import { UserJWT } from '../types.js';
+import { type UserJWT } from '../types.ts';
 
 type UserJWTPayload = JWTPayload & UserJWT;
 

@@ -1,16 +1,16 @@
-import { Router, Response } from 'express';
+import { Router, type Response } from 'express';
 import zod from 'zod';
 
 import {
-  AdminCrisisCreateResponse,
-  AdminCrisisDeleteResponse,
-  AdminCrisisPinResponse,
-  AdminCrisisUpdateResponse,
-  AdminCrisesResponse,
-} from './crises.types.js';
-import database from '../../../db/index.js';
-import { newCrisisSchema } from '../../../db/tables/index.js';
-import { parseListQuery, parseOptionalBooleanQueryParam } from '../utils/listQuery.js';
+  type AdminCrisisCreateResponse,
+  type AdminCrisisDeleteResponse,
+  type AdminCrisisPinResponse,
+  type AdminCrisisUpdateResponse,
+  type AdminCrisesResponse,
+} from './crises.types.ts';
+import database from '../../../db/index.ts';
+import { newCrisisSchema } from '../../../db/tables/index.ts';
+import { parseListQuery, parseOptionalBooleanQueryParam } from '../utils/listQuery.ts';
 
 const adminCrisesRouter = Router();
 

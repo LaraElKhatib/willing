@@ -1,6 +1,6 @@
 import zod from 'zod';
 
-import { getSingleQueryValue } from './queryValue.js';
+import { getSingleQueryValue } from './queryValue.ts';
 
 type SortDir = 'asc' | 'desc';
 

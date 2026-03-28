@@ -3,8 +3,8 @@ import express, { type ErrorRequestHandler } from 'express';
 import morgan from 'morgan';
 import { ZodError } from 'zod';
 
-import api from './api/index.js';
-import config from './config.js';
+import api from './api/index.ts';
+import config from './config.ts';
 
 const app = express();
 

@@ -1,9 +1,8 @@
 import zod from 'zod';
 
-import { emailSchema, idSchema, passwordSchema } from '../../schemas/index.js';
-import { genderSchema } from '../../types.js';
+import { emailSchema, genderSchema, idSchema, passwordSchema } from '../../schemas/index.ts';
 
-import type { WithGeneratedIDAndCreatedAt } from './shared.js';
+import type { WithGeneratedIDAndCreatedAt } from './shared.ts';
 
 export const volunteerPendingAccountSchema = zod.object({
   id: idSchema,

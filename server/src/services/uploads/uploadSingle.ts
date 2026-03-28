@@ -1,5 +1,5 @@
-import { Request, Response, NextFunction } from 'express';
-import { Multer } from 'multer';
+import { type Request, type Response, type NextFunction } from 'express';
+import { type Multer } from 'multer';
 
 const uploadSingle = (multer: Multer, fieldName: string) => {
   return (req: Request, res: Response, next: NextFunction) => {

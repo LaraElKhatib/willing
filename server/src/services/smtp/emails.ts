@@ -1,7 +1,7 @@
-import { sendEmail } from './mailer.js';
-import { buildEmailBody } from './template.js';
-import config from '../../config.js';
-import { OrganizationRequest } from '../../db/tables/index.js';
+import { sendEmail } from './mailer.ts';
+import { buildEmailBody } from './template.ts';
+import config from '../../config.ts';
+import { type OrganizationRequest } from '../../db/tables/index.ts';
 
 export async function sendOrganizationAcceptanceEmail(
   organizationRequest: OrganizationRequest,

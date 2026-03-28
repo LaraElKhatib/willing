@@ -1,6 +1,6 @@
-import app from './app.js';
-import config from './config.js';
-import { migrateToLatest } from './db/migrate.js';
+import app from './app.ts';
+import config from './config.ts';
+import { migrateToLatest } from './db/migrate.ts';
 
 async function startServer() {
   try {

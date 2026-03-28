@@ -3,7 +3,7 @@ import path from 'path';
 
 import multer from 'multer';
 
-import { PLATFORM_SIGNATURE_UPLOAD_DIR } from './paths.js';
+import { PLATFORM_SIGNATURE_UPLOAD_DIR } from './paths.ts';
 
 export const getAbsolutePlatformSignaturePath = (signaturePath: string) => {
   return path.join(PLATFORM_SIGNATURE_UPLOAD_DIR, signaturePath);

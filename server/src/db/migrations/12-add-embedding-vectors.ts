@@ -1,4 +1,4 @@
-import { Kysely, sql } from 'kysely';
+import { type Kysely, sql } from 'kysely';
 
 const VECTOR_DIM = 1536;
 const VECTOR_DIM_TYPE = sql`vector(${sql.raw(String(VECTOR_DIM))})`;

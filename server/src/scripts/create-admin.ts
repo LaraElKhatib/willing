@@ -1,6 +1,6 @@
 import bcrypt from 'bcrypt';
 
-import database from '../db/index.js';
+import database from '../db/index.ts';
 
 await database.insertInto('admin_account').values({
   first_name: 'John',

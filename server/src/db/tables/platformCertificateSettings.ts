@@ -1,6 +1,6 @@
 import zod from 'zod';
 
-import { WithGeneratedIDAndTimestamps } from './shared.js';
+import type { WithGeneratedIDAndTimestamps } from './shared.ts';
 
 export const platformCertificateSettingsSchema = zod.object({
   id: zod.number(),

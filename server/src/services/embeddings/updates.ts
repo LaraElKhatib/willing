@@ -1,4 +1,4 @@
-import { Kysely, Transaction, sql } from 'kysely';
+import { type Kysely, type Transaction, sql } from 'kysely';
 
 import {
   combineVectors,
@@ -6,11 +6,11 @@ import {
   parseVectorLiteral,
   vectorToSqlLiteral,
   weightedAverage,
-} from './index.js';
-import { runOrDeferEmbeddingJob } from './rateLimiter.js';
-import { extractCvText } from './textExtraction.js';
-import database from '../../db/index.js';
-import { type Database, type OrganizationAccount, type OrganizationPosting, type VolunteerAccountWithoutPassword } from '../../db/tables/index.js';
+} from './index.ts';
+import { runOrDeferEmbeddingJob } from './rateLimiter.ts';
+import { extractCvText } from './textExtraction.ts';
+import database from '../../db/index.ts';
+import { type Database, type OrganizationAccount, type OrganizationPosting, type VolunteerAccountWithoutPassword } from '../../db/tables/index.ts';
 
 type DBExecutor = Kysely<Database> | Transaction<Database>;
 
