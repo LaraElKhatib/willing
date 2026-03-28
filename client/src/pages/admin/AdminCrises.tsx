@@ -350,8 +350,8 @@ function AdminCrises() {
           </Card>
         )}
       >
-        <section>
-          <div className="flex items-center justify-between mb-3">
+        <section className="flex flex-col gap-4">
+          <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold">Existing Crises</h3>
             {crisisCountBadge}
           </div>
