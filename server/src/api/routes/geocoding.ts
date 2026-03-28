@@ -1,8 +1,8 @@
-import { Router, Response } from 'express';
+import { Router, type Response } from 'express';
 import zod from 'zod';
 
-import { GeocodingResponse } from './geocoding.types.js';
-import config from '../../config.js';
+import { type GeocodingResponse } from './geocoding.types.ts';
+import config from '../../config.ts';
 
 export interface LocationIQSearchEntry {
   place_id: string;

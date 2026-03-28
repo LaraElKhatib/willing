@@ -1,24 +1,25 @@
 import bcrypt from 'bcrypt';
-import { Router, Response } from 'express';
+import { Router, type Response } from 'express';
 import * as jose from 'jose';
 import zod from 'zod';
 
-import adminCrisesRouter from './crises.js';
+import certificateSettingsRouter from './certificateSettings.ts';
+import adminCrisesRouter from './crises.ts';
 import {
-  AdminLoginResponse,
-  AdminMeResponse,
-  AdminOrganizationRequestReviewResponse,
-  AdminOrganizationRequestsResponse,
-} from './index.types.js';
-import removePassword from '../../../auth/removePassword.js';
-import resetPassword from '../../../auth/resetPassword.js';
-import config from '../../../config.js';
-import database from '../../../db/index.js';
-import { recomputeOrganizationVector } from '../../../services/embeddings/updates.js';
-import { sendOrganizationAcceptanceEmail, sendOrganizationRejectionEmail } from '../../../services/smtp/emails.js';
-import { loginInfoSchema } from '../../../types.js';
-import { authorizeOnly } from '../../authorization.js';
-import { parseListQuery } from '../utils/listQuery.js';
+  type AdminLoginResponse,
+  type AdminMeResponse,
+  type AdminOrganizationRequestReviewResponse,
+  type AdminOrganizationRequestsResponse,
+} from './index.types.ts';
+import removePassword from '../../../auth/removePassword.ts';
+import resetPassword from '../../../auth/resetPassword.ts';
+import config from '../../../config.ts';
+import database from '../../../db/index.ts';
+import { recomputeOrganizationVector } from '../../../services/embeddings/updates.ts';
+import { sendOrganizationAcceptanceEmail, sendOrganizationRejectionEmail } from '../../../services/smtp/emails.ts';
+import { loginInfoSchema } from '../../../types.ts';
+import { authorizeOnly } from '../../authorization.ts';
+import { parseListQuery } from '../utils/listQuery.ts';
 
 const adminRouter = Router();
 const organizationPrivateResponseColumns = [
@@ -184,5 +185,6 @@ adminRouter.post('/reviewOrganizationRequest', async (req, res: Response<AdminOr
 adminRouter.post('/reset-password', resetPassword);
 
 adminRouter.use('/crises', adminCrisesRouter);
+adminRouter.use('/certificate-settings', certificateSettingsRouter);
 
 export default adminRouter;

@@ -4,6 +4,7 @@ import { useForm, useWatch, type DefaultValues, type FieldValues, type Path, typ
 
 import { FormField } from '../../utils/formUtils.tsx';
 import Button from '../Button.tsx';
+import Card from '../Card.tsx';
 
 type FilterSelectOption = {
   label: string;
@@ -82,7 +83,7 @@ function PostingFiltersCard<T extends FieldValues>({
   };
 
   return (
-    <div className="mb-6 rounded-box border border-base-300 bg-base-100 p-4 shadow-sm">
+    <Card>
       <div className="mb-4">
         <h3 className="text-lg font-semibold">{title}</h3>
       </div>
@@ -148,7 +149,7 @@ function PostingFiltersCard<T extends FieldValues>({
           </div>
         )}
       </form>
-    </div>
+    </Card>
   );
 }
 

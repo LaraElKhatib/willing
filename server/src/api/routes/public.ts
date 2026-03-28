@@ -1,15 +1,17 @@
 import path from 'path';
 
-import { Response, Router } from 'express';
+import { type Response, Router } from 'express';
 
-import { PublicCertificateSignatureResponse, PublicHomeStatsResponse } from './public.types.js';
-import database from '../../db/index.js';
-import { PLATFORM_SIGNATURE_UPLOAD_DIR } from '../../services/uploads/paths.js';
+import { type PublicCertificateSignatureResponse, type PublicHomeStatsResponse } from './public.types.ts';
+import database from '../../db/index.ts';
+import { PLATFORM_SIGNATURE_UPLOAD_DIR } from '../../services/uploads/paths.ts';
 
 const publicRouter = Router();
 
 publicRouter.get('/home-stats', async (_req, res: Response<PublicHomeStatsResponse>) => {
-  const [postingsResult, organizationsResult, volunteersResult] = await Promise.all([
+  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+  const [postingsResult, organizationsResult, volunteersResult, newPostingsResult, newOrganizationsResult, newVolunteersResult] = await Promise.all([
     database
       .selectFrom('organization_posting')
       .select(eb => eb.fn.countAll().as('count'))
@@ -22,12 +24,30 @@ publicRouter.get('/home-stats', async (_req, res: Response<PublicHomeStatsRespon
       .selectFrom('volunteer_account')
       .select(eb => eb.fn.countAll().as('count'))
       .executeTakeFirstOrThrow(),
+    database
+      .selectFrom('organization_posting')
+      .select(eb => eb.fn.countAll().as('count'))
+      .where('created_at', '>=', weekAgo)
+      .executeTakeFirstOrThrow(),
+    database
+      .selectFrom('organization_account')
+      .select(eb => eb.fn.countAll().as('count'))
+      .where('created_at', '>=', weekAgo)
+      .executeTakeFirstOrThrow(),
+    database
+      .selectFrom('volunteer_account')
+      .select(eb => eb.fn.countAll().as('count'))
+      .where('created_at', '>=', weekAgo)
+      .executeTakeFirstOrThrow(),
   ]);
 
   res.json({
     totalOpportunities: Number(postingsResult.count),
     totalOrganizations: Number(organizationsResult.count),
     totalVolunteers: Number(volunteersResult.count),
+    newOpportunitiesThisWeek: Number(newPostingsResult.count),
+    newOrganizationsThisWeek: Number(newOrganizationsResult.count),
+    newVolunteersThisWeek: Number(newVolunteersResult.count),
   });
 });
 

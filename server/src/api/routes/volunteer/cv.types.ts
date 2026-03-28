@@ -1,4 +1,4 @@
-import { VolunteerProfileResponse } from './index.types.js';
+import { type VolunteerProfileResponse } from './index.types.ts';
 
 export type UploadVolunteerCvResponse = VolunteerProfileResponse;
 

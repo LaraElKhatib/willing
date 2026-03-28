@@ -1,8 +1,10 @@
-import { Cake, Mail, Mars, MessageSquare, Venus } from 'lucide-react';
-import { useMemo, type ReactNode } from 'react';
+import { Cake, FileText, Mail, Mars, MessageSquare, Venus } from 'lucide-react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 
+import IconButton from './IconButton';
 import SkillsList from './skills/SkillsList';
+import { SERVER_BASE_URL } from '../utils/requestServer';
 
 import type { PostingApplication, PostingEnrollment } from '../../../server/src/types';
 
@@ -13,8 +15,10 @@ interface VolunteerInfoCollapseProps {
 }
 
 function VolunteerInfoCollapse({ volunteer, actions, profileLink }: VolunteerInfoCollapseProps) {
+  const [viewingCv, setViewingCv] = useState(false);
   const volunteerName = `${volunteer.first_name} ${volunteer.last_name}`;
   const initials = `${volunteer.first_name.charAt(0)}${volunteer.last_name.charAt(0)}`.toUpperCase();
+  const hasCv = 'cv_path' in volunteer && Boolean(volunteer.cv_path);
   const age = useMemo(() => {
     const now = new Date();
     const birthDate = new Date(volunteer.date_of_birth);
@@ -32,6 +36,29 @@ function VolunteerInfoCollapse({ volunteer, actions, profileLink }: VolunteerInf
       : volunteer.gender === 'female'
         ? 'badge-secondary'
         : 'badge-accent';
+
+  const viewCv = async () => {
+    if (!hasCv) return;
+    const token = localStorage.getItem('jwt');
+    if (!token) return;
+
+    setViewingCv(true);
+    try {
+      const response = await fetch(`${SERVER_BASE_URL}/organization/volunteer/${volunteer.volunteer_id}/cv`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!response.ok) throw new Error('Failed to download CV');
+
+      const blob = await response.blob();
+      const previewUrl = URL.createObjectURL(blob);
+      window.open(previewUrl, '_blank', 'noopener,noreferrer');
+      setTimeout(() => URL.revokeObjectURL(previewUrl), 60_000);
+    } finally {
+      setViewingCv(false);
+    }
+  };
 
   return (
     <div className="collapse collapse-arrow border border-base-300 bg-base-100">
@@ -106,6 +133,21 @@ function VolunteerInfoCollapse({ volunteer, actions, profileLink }: VolunteerInf
                 </>
               )}
         </div>
+        {hasCv && (
+          <div className="pointer-events-auto" onClick={event => event.stopPropagation()}>
+            <IconButton
+              type="button"
+              color="primary"
+              style="outline"
+              size="sm"
+              Icon={FileText}
+              loading={viewingCv}
+              onClick={() => { void viewCv(); }}
+              aria-label="View CV"
+              title="View CV"
+            />
+          </div>
+        )}
         {actions && (
           <div className="flex gap-2 items-center pointer-events-auto" onClick={e => e.stopPropagation()}>
             {actions}

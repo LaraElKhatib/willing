@@ -1,8 +1,8 @@
 import zod from 'zod';
 
-import { emailSchema, idSchema, passwordSchema } from '../../schemas/index.js';
+import { emailSchema, idSchema, passwordSchema } from '../../schemas/index.ts';
 
-import type { WithGeneratedIDAndTimestamps } from './shared.js';
+import type { WithGeneratedIDAndTimestamps } from './shared.ts';
 
 export const adminAccountSchema = zod.object({
   id: idSchema,

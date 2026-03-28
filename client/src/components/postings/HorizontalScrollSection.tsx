@@ -104,13 +104,13 @@ function HorizontalScrollSection({
 
               <div
                 aria-hidden="true"
-                className={`pointer-events-none absolute inset-y-0 left-0 w-8 bg-linear-to-r from-base-200 via-base-200/80 to-transparent transition-opacity duration-200 ${
+                className={`pointer-events-none absolute inset-y-0 left-0 w-8 bg-linear-to-r from-base-200 via-base-200/80 to-transparent transition-opacity duration-200 z-100 ${
                   showLeftFade ? 'opacity-100' : 'opacity-0'
                 }`}
               />
               <div
                 aria-hidden="true"
-                className={`pointer-events-none absolute inset-y-0 right-0 w-8 bg-linear-to-l from-base-200 via-base-200/80 to-transparent transition-opacity duration-200 ${
+                className={`pointer-events-none absolute inset-y-0 right-0 w-8 bg-linear-to-l from-base-200 via-base-200/80 to-transparent transition-opacity duration-200 z-100 ${
                   showRightFade ? 'opacity-100' : 'opacity-0'
                 }`}
               />

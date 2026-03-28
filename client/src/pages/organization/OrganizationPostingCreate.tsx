@@ -5,6 +5,9 @@ import { useForm, useWatch } from 'react-hook-form';
 import { useNavigate } from 'react-router';
 
 import Button from '../../components/Button.tsx';
+import CalendarInfo from '../../components/CalendarInfo';
+import Card from '../../components/Card.tsx';
+import PageContainer from '../../components/layout/PageContainer.tsx';
 import PageHeader from '../../components/layout/PageHeader';
 import LocationPicker from '../../components/LocationPicker';
 import SkillsInput from '../../components/skills/SkillsInput';
@@ -15,21 +18,6 @@ import requestServer from '../../utils/requestServer';
 import { useOrganization } from '../../utils/useUsers';
 
 import type { OrganizationCrisesResponse, OrganizationPostingCreateResponse } from '../../../../server/src/api/types';
-
-const splitDateTimeInput = (value?: string) => {
-  if (!value) return { date: '', time: '' };
-
-  const [datePart, timePart] = value.split('T');
-  return {
-    date: datePart ?? '',
-    time: (timePart ?? '').slice(0, 5),
-  };
-};
-
-const combineDateAndTime = (date: string, time: string) => {
-  if (!date) return '';
-  return `${date}T${time || '00:00'}`;
-};
 
 export default function OrganizationPostingCreate() {
   const account = useOrganization();
@@ -50,10 +38,10 @@ export default function OrganizationPostingCreate() {
   const [crisesError, setCrisesError] = useState<string | null>(null);
   const [loadingCrises, setLoadingCrises] = useState(true);
   const [position, setPosition] = useState<[number, number]>([33.90192863620578, 35.477959277880416]);
-  const startTimestamp = useWatch({ control: form.control, name: 'start_timestamp' }) ?? '';
-  const endTimestamp = useWatch({ control: form.control, name: 'end_timestamp' }) ?? '';
-  const startDateTimeParts = splitDateTimeInput(startTimestamp);
-  const endDateTimeParts = splitDateTimeInput(endTimestamp);
+  const startDate = useWatch({ control: form.control, name: 'start_date' }) ?? '';
+  const startTime = useWatch({ control: form.control, name: 'start_time' }) ?? '';
+  const endDate = useWatch({ control: form.control, name: 'end_date' }) ?? '';
+  const endTime = useWatch({ control: form.control, name: 'end_time' }) ?? '';
 
   useEffect(() => {
     const loadCrises = async () => {
@@ -87,10 +75,10 @@ export default function OrganizationPostingCreate() {
         location_name: data.location_name.trim(),
         latitude: position[0],
         longitude: position[1],
-        start_date: data.start_timestamp.split('T')[0],
-        start_time: data.start_timestamp.split('T')[1],
-        end_date: data.end_timestamp ? data.end_timestamp.split('T')[0] : undefined,
-        end_time: data.end_timestamp ? data.end_timestamp.split('T')[1] : undefined,
+        start_date: data.start_date,
+        start_time: data.start_time,
+        end_date: data.end_date,
+        end_time: data.end_time,
         max_volunteers: data.max_volunteers ? Number(data.max_volunteers) : undefined,
         minimum_age: data.minimum_age ? Number(data.minimum_age) : undefined,
         automatic_acceptance: data.automatic_acceptance,
@@ -119,244 +107,226 @@ export default function OrganizationPostingCreate() {
   }, [form]);
 
   return (
-    <div className="grow bg-base-200">
-      <div className="p-6 md:container mx-auto">
-        <PageHeader
-          title="Create Posting"
-          subtitle="Set up a new volunteer opportunity with all required details."
-          icon={Plus}
-          showBack
-          defaultBackTo="/organization"
-        />
+    <PageContainer>
+      <PageHeader
+        title="Create Posting"
+        subtitle="Set up a new volunteer opportunity with all required details."
+        icon={Plus}
+        showBack
+        defaultBackTo="/organization"
+      />
 
-        <div className="card bg-base-100 w-full shadow-2xl">
-          <form
-            className="card-body space-y-6"
-            onSubmit={(e) => {
-              console.log('Form onSubmit event fired, form errors:', form.formState.errors);
-              submit(e);
-            }}
-          >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                form={form}
-                label="Title"
-                name="title"
-                type="text"
-                placeholder="Enter posting title"
-                Icon={Edit3}
-              />
-
-              <FormField
-                form={form}
-                label="Location Name"
-                name="location_name"
-                type="text"
-                placeholder="e.g. Downtown Community Center"
-                Icon={MapPin}
-              />
-            </div>
+      <Card>
+        <form
+          className="space-y-6"
+          onSubmit={(e) => {
+            console.log('Form onSubmit event fired, form errors:', form.formState.errors);
+            submit(e);
+          }}
+        >
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+              form={form}
+              label="Title"
+              name="title"
+              type="text"
+              placeholder="Enter posting title"
+              Icon={Edit3}
+            />
 
             <FormField
               form={form}
-              label="Description"
-              name="description"
-              type="textarea"
-              placeholder="Describe the opportunity"
+              label="Location Name"
+              name="location_name"
+              type="text"
+              placeholder="e.g. Downtown Community Center"
+              Icon={MapPin}
             />
+          </div>
 
-            <div className="space-y-4">
+          <FormField
+            form={form}
+            label="Description"
+            name="description"
+            type="textarea"
+            placeholder="Describe the opportunity"
+          />
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-3">
-                    <FormField
-                      form={form}
-                      label="Max Volunteers"
-                      name="max_volunteers"
-                      type="number"
-                      placeholder="Optional"
-                      Icon={Users}
-                    />
+          <div className="space-y-4">
 
-                    <FormField
-                      form={form}
-                      label="Min Age"
-                      name="minimum_age"
-                      type="number"
-                      placeholder="Optional"
-                      Icon={ShieldCheck}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <fieldset className="fieldset w-full">
-                      <label className="label">
-                        <span className="label-text font-medium">Start Date</span>
-                      </label>
-                      <input
-                        type="date"
-                        className={`input input-bordered w-full focus:input-primary ${form.formState.errors.start_timestamp ? 'input-error' : ''}`}
-                        value={startDateTimeParts.date}
-                        onChange={(event) => {
-                          const nextValue = combineDateAndTime(event.target.value, startDateTimeParts.time);
-                          form.setValue('start_timestamp', nextValue, {
-                            shouldDirty: true,
-                            shouldTouch: true,
-                            shouldValidate: true,
-                          });
-                        }}
-                      />
-                      {form.formState.errors.start_timestamp?.message && (
-                        <p className="text-error text-sm mt-1">{form.formState.errors.start_timestamp.message as string}</p>
-                      )}
-                    </fieldset>
-
-                    <fieldset className="fieldset w-full">
-                      <label className="label">
-                        <span className="label-text font-medium">Start Time</span>
-                      </label>
-                      <input
-                        type="time"
-                        className="input input-bordered w-full focus:input-primary"
-                        value={startDateTimeParts.time}
-                        onChange={(event) => {
-                          const nextValue = combineDateAndTime(startDateTimeParts.date, event.target.value);
-                          form.setValue('start_timestamp', nextValue, {
-                            shouldDirty: true,
-                            shouldTouch: true,
-                            shouldValidate: true,
-                          });
-                        }}
-                      />
-                    </fieldset>
-
-                    <fieldset className="fieldset w-full">
-                      <label className="label">
-                        <span className="label-text font-medium">End Date</span>
-                      </label>
-                      <input
-                        type="date"
-                        className="input input-bordered w-full focus:input-primary"
-                        value={endDateTimeParts.date}
-                        onChange={(event) => {
-                          const nextValue = combineDateAndTime(event.target.value, endDateTimeParts.time);
-                          form.setValue('end_timestamp', nextValue || undefined, {
-                            shouldDirty: true,
-                            shouldTouch: true,
-                            shouldValidate: true,
-                          });
-                        }}
-                      />
-                    </fieldset>
-
-                    <fieldset className="fieldset w-full">
-                      <label className="label">
-                        <span className="label-text font-medium">End Time</span>
-                      </label>
-                      <input
-                        type="time"
-                        className="input input-bordered w-full focus:input-primary"
-                        value={endDateTimeParts.time}
-                        onChange={(event) => {
-                          const nextValue = combineDateAndTime(endDateTimeParts.date, event.target.value);
-                          form.setValue('end_timestamp', nextValue || undefined, {
-                            shouldDirty: true,
-                            shouldTouch: true,
-                            shouldValidate: true,
-                          });
-                        }}
-                      />
-                    </fieldset>
-                  </div>
-
-                  <SkillsInput skills={skills} setSkills={setSkills} />
-
-                  <div className="rounded-box border border-base-300 bg-base-200/50 p-4">
-                    <div className="mb-3">
-                      <h4 className="font-semibold inline-flex items-center gap-2">
-                        <Tag size={16} className="text-accent" />
-                        Crisis Tag
-                      </h4>
-                      <p className="text-xs opacity-70 mt-1">Optional. Select a crisis tag for this posting. Pinned tags appear first.</p>
-                    </div>
-
-                    <select
-                      className="select select-bordered w-full"
-                      value={selectedCrisisId ?? ''}
-                      onChange={(event) => {
-                        const value = event.target.value;
-                        setSelectedCrisisId(value ? Number(value) : undefined);
-                      }}
-                      disabled={loadingCrises || form.formState.isSubmitting}
-                    >
-                      <option value="">No crisis tag</option>
-                      {crises.map(crisis => (
-                        <option key={crisis.id} value={crisis.id}>
-                          {crisis.name}
-                          {!crisis.pinned ? ' (Unpinned)' : ''}
-                        </option>
-                      ))}
-                    </select>
-
-                    {loadingCrises && <p className="text-xs opacity-70 mt-2">Loading crisis tags...</p>}
-                    {crisesError && <p className="text-xs text-error mt-2">{crisesError}</p>}
-                  </div>
-
-                  <ToggleButton
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <FormField
                     form={form}
-                    name="automatic_acceptance"
-                    label="Posting Type"
-                    options={[
-                      {
-                        value: true,
-                        label: 'Open Posting',
-                        description: 'Volunteers are accepted automatically.',
-                        Icon: LockOpen,
-                        btnColor: 'btn-primary',
-                      },
-                      {
-                        value: false,
-                        label: 'Review-Based',
-                        description: 'Volunteers must be approved by the organization.',
-                        Icon: Lock,
-                        btnColor: 'btn-secondary',
-                      },
-                    ]}
+                    label="Max Volunteers"
+                    name="max_volunteers"
+                    type="number"
+                    placeholder="Optional"
+                    Icon={Users}
+                  />
+
+                  <FormField
+                    form={form}
+                    label="Min Age"
+                    name="minimum_age"
+                    type="number"
+                    placeholder="Optional"
+                    Icon={ShieldCheck}
                   />
                 </div>
 
-                <div className="lg:col-span-1 flex flex-col">
-                  <fieldset className="fieldset h-full flex flex-col">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="md:col-span-2">
+                    <CalendarInfo
+                      selectionMode="range"
+                      rangeLabel="Date Range"
+                      rangeValue={{ from: startDate, to: endDate }}
+                      onRangeChange={({ from, to }) => {
+                        form.setValue('start_date', from, {
+                          shouldDirty: true,
+                          shouldTouch: true,
+                          shouldValidate: true,
+                        });
+                        form.setValue('end_date', to, {
+                          shouldDirty: true,
+                          shouldTouch: true,
+                          shouldValidate: true,
+                        });
+                      }}
+                      className="w-full"
+                    />
+                    {form.formState.errors.start_date?.message && (
+                      <p className="text-error text-sm mt-1">{form.formState.errors.start_date.message as string}</p>
+                    )}
+                    {form.formState.errors.end_date?.message && (
+                      <p className="text-error text-sm mt-1">{form.formState.errors.end_date.message as string}</p>
+                    )}
+                  </div>
+
+                  <fieldset className="fieldset w-full">
                     <label className="label">
-                      <span className="label-text font-medium">Pin Location on Map</span>
+                      <span className="label-text font-medium">Start Time</span>
                     </label>
-                    <div className="grow min-h-128">
-                      <LocationPicker
-                        position={position}
-                        setPosition={onMapPositionPick}
-                        className="h-full"
-                      />
-                    </div>
+                    <input
+                      type="time"
+                      className="input input-bordered w-full focus:input-primary"
+                      value={startTime}
+                      onChange={(event) => {
+                        form.setValue('start_time', event.target.value, {
+                          shouldDirty: true,
+                          shouldTouch: true,
+                          shouldValidate: true,
+                        });
+                      }}
+                    />
+                  </fieldset>
+
+                  <fieldset className="fieldset w-full">
+                    <label className="label">
+                      <span className="label-text font-medium">End Time</span>
+                    </label>
+                    <input
+                      type="time"
+                      className="input input-bordered w-full focus:input-primary"
+                      value={endTime}
+                      onChange={(event) => {
+                        form.setValue('end_time', event.target.value, {
+                          shouldDirty: true,
+                          shouldTouch: true,
+                          shouldValidate: true,
+                        });
+                      }}
+                    />
                   </fieldset>
                 </div>
+
+                <SkillsInput skills={skills} setSkills={setSkills} />
+
+                <div className="rounded-box border border-base-300 bg-base-200/50 p-4">
+                  <div className="mb-3">
+                    <h4 className="font-semibold inline-flex items-center gap-2">
+                      <Tag size={16} className="text-accent" />
+                      Crisis Tag
+                    </h4>
+                    <p className="text-xs opacity-70 mt-1">Optional. Select a crisis tag for this posting. Pinned tags appear first.</p>
+                  </div>
+
+                  <select
+                    className="select select-bordered w-full"
+                    value={selectedCrisisId ?? ''}
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      setSelectedCrisisId(value ? Number(value) : undefined);
+                    }}
+                    disabled={loadingCrises || form.formState.isSubmitting}
+                  >
+                    <option value="">No crisis tag</option>
+                    {crises.map(crisis => (
+                      <option key={crisis.id} value={crisis.id}>
+                        {crisis.name}
+                        {!crisis.pinned ? ' (Unpinned)' : ''}
+                      </option>
+                    ))}
+                  </select>
+
+                  {loadingCrises && <p className="text-xs opacity-70 mt-2">Loading crisis tags...</p>}
+                  {crisesError && <p className="text-xs text-error mt-2">{crisesError}</p>}
+                </div>
+
+                <ToggleButton
+                  form={form}
+                  name="automatic_acceptance"
+                  label="Posting Type"
+                  options={[
+                    {
+                      value: true,
+                      label: 'Open Posting',
+                      description: 'Volunteers are accepted automatically.',
+                      Icon: LockOpen,
+                      btnColor: 'btn-primary',
+                    },
+                    {
+                      value: false,
+                      label: 'Review-Based',
+                      description: 'Volunteers must be approved by the organization.',
+                      Icon: Lock,
+                      btnColor: 'btn-secondary',
+                    },
+                  ]}
+                />
+              </div>
+
+              <div className="lg:col-span-1 flex flex-col">
+                <fieldset className="fieldset h-full flex flex-col">
+                  <label className="label">
+                    <span className="label-text font-medium">Pin Location on Map</span>
+                  </label>
+                  <div className="grow min-h-128">
+                    <LocationPicker
+                      position={position}
+                      setPosition={onMapPositionPick}
+                      className="h-full"
+                    />
+                  </div>
+                </fieldset>
               </div>
             </div>
+          </div>
 
-            <FormRootError form={form} />
+          <FormRootError form={form} />
 
-            <Button
-              color="primary"
-              type="submit"
-              className="mt-6"
-              loading={form.formState.isSubmitting}
-              Icon={Send}
-            >
-              Create Posting
-            </Button>
-          </form>
-        </div>
-      </div>
-    </div>
+          <Button
+            color="primary"
+            type="submit"
+            className="mt-6"
+            loading={form.formState.isSubmitting}
+            Icon={Send}
+          >
+            Create Posting
+          </Button>
+        </form>
+      </Card>
+    </PageContainer>
   );
 }

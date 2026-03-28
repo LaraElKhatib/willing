@@ -2,6 +2,7 @@ import { ArrowLeft, type LucideIcon } from 'lucide-react';
 import { type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
+import Card from '../Card';
 import IconButton from '../IconButton';
 
 type PageHeaderProps = {
@@ -37,35 +38,35 @@ export default function PageHeader({
     }
   };
 
-  const wrapperClasses = 'mb-6 rounded-2xl bg-base-100 shadow-sm px-5 py-5 md:px-6';
-
   return (
-    <div className={`flex items-center justify-between gap-4 flex-wrap ${wrapperClasses}`}>
-      <div className="flex items-center gap-3">
-        {showBack && (
-          <IconButton
-            onClick={onBack}
-            Icon={ArrowLeft}
-          />
-        )}
-        <div className="flex gap-4">
-          {Icon && <Icon className="text-primary mt-0.5 shrink-0" size={32} />}
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-3xl font-extrabold tracking-tight">{title}</h3>
-              {badge && badge}
+    <Card>
+      <div className="flex items-center justify-between gap-4 md:flex-nowrap flex-wrap">
+        <div className="flex items-center gap-3">
+          {showBack && (
+            <IconButton
+              onClick={onBack}
+              Icon={ArrowLeft}
+            />
+          )}
+          <div className="flex gap-4">
+            {Icon && <Icon className="text-primary mt-0.5 shrink-0" size={32} />}
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-3xl font-extrabold tracking-tight">{title}</h3>
+                {badge && badge}
+              </div>
+              {subtitle && (
+                <p className="opacity-70 mt-1">{subtitle}</p>
+              )}
             </div>
-            {subtitle && (
-              <p className="opacity-70 mt-1">{subtitle}</p>
-            )}
           </div>
         </div>
+        {actions && (
+          <div className="flex gap-2">
+            {actions}
+          </div>
+        )}
       </div>
-      {actions && (
-        <div className="flex gap-2">
-          {actions}
-        </div>
-      )}
-    </div>
+    </Card>
   );
 }

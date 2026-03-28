@@ -15,10 +15,12 @@ import {
 import { FormField } from '../../utils/formUtils.tsx';
 import requestServer from '../../utils/requestServer.ts';
 import useAsync from '../../utils/useAsync';
-import Alert from '../Alert.tsx';
+import CalendarInfo from '../CalendarInfo.tsx';
+import EmptyState from '../EmptyState.tsx';
+import PageContainer from '../layout/PageContainer.tsx';
 import PageHeader from '../layout/PageHeader.tsx';
 import Loading from '../Loading.tsx';
-import PostingCard from '../PostingCard.tsx';
+import PostingCollection from './PostingCollection.tsx';
 import PostingFiltersCard from './PostingFiltersCard.tsx';
 
 import type { VolunteerPostingSearchResponse, VolunteerEnrollmentsResponse } from '../../../../server/src/api/types.ts';
@@ -49,6 +51,7 @@ type PostingSearchViewProps = {
   subtitle: string;
   icon?: LucideIcon;
   badge?: ReactNode;
+  actions?: ReactNode;
   showBack?: boolean;
   defaultBackTo?: string;
   initialFilters?: Partial<PostingSearchFilters>;
@@ -91,6 +94,7 @@ function PostingSearchView({
   subtitle,
   icon = TextSearch,
   badge,
+  actions,
   showBack = false,
   defaultBackTo,
   initialFilters,
@@ -129,7 +133,8 @@ function PostingSearchView({
     if (activeFilters.hideFull) query.append('hide_full', 'true');
     if (activeFilters.crisisId !== 'all') query.append('crisis_id', activeFilters.crisisId);
 
-    const url = query.size > 0 ? `${baseUrl}?${query.toString()}` : baseUrl;
+    const separator = baseUrl.includes('?') ? '&' : '?';
+    const url = query.size > 0 ? `${baseUrl}${separator}${query.toString()}` : baseUrl;
 
     setLoading(true);
     setError(null);
@@ -152,12 +157,13 @@ function PostingSearchView({
   }, [fetchPostings]);
 
   return (
-    <div className="p-6 md:container mx-auto">
+    <PageContainer>
       <PageHeader
         title={title}
         subtitle={subtitle}
         icon={icon}
         badge={badge}
+        actions={actions}
         showBack={showBack}
         defaultBackTo={defaultBackTo}
       />
@@ -175,19 +181,29 @@ function PostingSearchView({
         getHasAdvancedFiltersApplied={values => hasSharedAdvancedPostingFilters(values) || values.hideFull || values.crisisId !== 'all'}
         renderAdvancedFields={form => (
           <>
-            <FormField
-              form={form}
-              name="startDateFrom"
-              label="Start After (Inclusive)"
-              type="date"
-            />
-
-            <FormField
-              form={form}
-              name="endDateTo"
-              label="End By (Inclusive)"
-              type="date"
-            />
+            <div className="lg:col-span-2">
+              <CalendarInfo
+                selectionMode="range"
+                rangeLabel="Date Range"
+                rangeValue={{
+                  from: form.watch('startDateFrom') ?? '',
+                  to: form.watch('endDateTo') ?? '',
+                }}
+                onRangeChange={({ from, to }) => {
+                  form.setValue('startDateFrom', from, {
+                    shouldDirty: true,
+                    shouldTouch: true,
+                    shouldValidate: true,
+                  });
+                  form.setValue('endDateTo', to, {
+                    shouldDirty: true,
+                    shouldTouch: true,
+                    shouldValidate: true,
+                  });
+                }}
+                className="w-full"
+              />
+            </div>
 
             <FormField
               form={form}
@@ -244,21 +260,21 @@ function PostingSearchView({
           )
         : postings.length === 0
           ? (
-              <Alert>
-                {emptyMessage}
-              </Alert>
+              <EmptyState
+                Icon={icon}
+                title="No postings found"
+                description={emptyMessage}
+              />
             )
           : (
-              <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 2xl:grid-cols-3">
-                {postings.map(posting => (
-                  <PostingCard
-                    key={posting.id}
-                    posting={posting}
-                  />
-                ))}
-              </div>
+              <PostingCollection
+                postings={postings}
+                showCrisis
+                cardsContainerClassName="grid grid-cols-1 gap-6 lg:grid-cols-2 2xl:grid-cols-3"
+                listContainerClassName="space-y-4"
+              />
             )}
-    </div>
+    </PageContainer>
   );
 }
 

@@ -1,23 +1,20 @@
 import { Lock } from 'lucide-react';
 
+import PageContainer from '../../components/layout/PageContainer';
 import PageHeader from '../../components/layout/PageHeader';
 import PasswordResetCard from '../../components/PasswordResetCard';
 
 function VolunteerSettings() {
   return (
-    <div className="grow bg-base-200">
-      <div className="p-6 md:container mx-auto">
-        <PageHeader
-          title="Change Password"
-          subtitle="Update your credentials to maintain account security."
-          icon={Lock}
-        />
+    <PageContainer>
+      <PageHeader
+        title="Change Password"
+        subtitle="Update your credentials to maintain account security."
+        icon={Lock}
+      />
 
-        <div className="max-w-xl mx-auto">
-          <PasswordResetCard />
-        </div>
-      </div>
-    </div>
+      <PasswordResetCard />
+    </PageContainer>
   );
 }
 

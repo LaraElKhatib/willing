@@ -1,5 +1,5 @@
-import { Crisis, OrganizationPostingWithoutVectors, PostingSkill } from '../../../db/tables/index.js';
-import { PostingWithSkills, PostingEnrollment, SuccessResponse, PostingApplication } from '../../../types.js';
+import { type Crisis, type OrganizationPostingWithoutVectors, type PostingSkill } from '../../../db/tables/index.ts';
+import { type PostingWithSkills, type PostingEnrollment, type SuccessResponse, type PostingApplication } from '../../../types.ts';
 
 export type OrganizationPostingCreateResponse = {
   posting: OrganizationPostingWithoutVectors;

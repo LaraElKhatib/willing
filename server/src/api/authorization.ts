@@ -1,8 +1,8 @@
-import { RequestHandler } from 'express';
+import { type RequestHandler } from 'express';
 import * as jose from 'jose';
 
-import config from '../config.js';
-import { UserJWT } from '../types.js';
+import config from '../config.ts';
+import { type UserJWT } from '../types.ts';
 
 export const authorizeOnly = (...roles: ('admin' | 'organization' | 'volunteer')[]) => {
   return ((req, res, next) => {

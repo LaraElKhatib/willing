@@ -3,7 +3,7 @@ import path from 'path';
 
 import multer from 'multer';
 
-import { ORG_SIGNATURE_UPLOAD_DIR } from './paths.js';
+import { ORG_SIGNATURE_UPLOAD_DIR } from './paths.ts';
 
 export const getAbsoluteSignaturePath = (signaturePath: string) => {
   return path.join(ORG_SIGNATURE_UPLOAD_DIR, signaturePath);

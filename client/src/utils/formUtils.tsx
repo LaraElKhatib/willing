@@ -1,6 +1,7 @@
 import { AlertCircle, type LucideIcon } from 'lucide-react';
 
 import Alert from '../components/Alert';
+import CalendarInfo from '../components/CalendarInfo';
 
 import type { HTMLInputTypeAttribute } from 'react';
 import type { FieldValues, UseFormReturn, Path } from 'react-hook-form';
@@ -80,7 +81,7 @@ export function FormField<T extends FieldValues>({
         <span className="label-text font-medium">{label}</span>
       </label>
       <div className="relative">
-        {Icon && (
+        {Icon && type !== 'date' && (
           <Icon
             className={iconClass}
             size={18}
@@ -108,14 +109,32 @@ export function FormField<T extends FieldValues>({
                     {...commonProps}
                   />
                 )
-              : (
-                  <input
-                    type={type}
-                    className={`input input-bordered w-full focus:input-primary ${iconPadding} ${statusClass}`}
-                    onInput={handleDateTimeInput}
-                    {...commonProps}
-                  />
-                )
+              : type === 'date'
+                ? (
+                    <CalendarInfo
+                      selectionMode="single"
+                      singleLabel={label}
+                      showTopLabels={false}
+                      singleValue={String(form.watch(name) ?? '')}
+                      onSingleChange={(value) => {
+                        form.setValue(name, value as never, {
+                          shouldDirty: true,
+                          shouldTouch: true,
+                          shouldValidate: true,
+                        });
+                        clearErrors('root');
+                      }}
+                      {...(placeholder ? { singlePlaceholder: placeholder } : {})}
+                    />
+                  )
+                : (
+                    <input
+                      type={type}
+                      className={`input input-bordered w-full focus:input-primary ${iconPadding} ${statusClass}`}
+                      onInput={handleDateTimeInput}
+                      {...commonProps}
+                    />
+                  )
         }
       </div>
       {error?.message && (

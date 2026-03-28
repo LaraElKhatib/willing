@@ -1,12 +1,12 @@
 import bcrypt from 'bcrypt';
-import { Request, Response } from 'express';
+import { type Request, type Response } from 'express';
 import * as jose from 'jose';
 import zod from 'zod';
 
-import config from '../config.js';
-import database from '../db/index.js';
-import { Database } from '../db/tables/index.js';
-import { passwordSchema } from '../schemas/index.js';
+import config from '../config.ts';
+import database from '../db/index.ts';
+import { type Database } from '../db/tables/index.ts';
+import { passwordSchema } from '../schemas/index.ts';
 
 export interface ResetPasswordResponse {
   token: string;

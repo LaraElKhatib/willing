@@ -1,9 +1,8 @@
 import { CalendarDays } from 'lucide-react';
-import { useState } from 'react';
-import { DayPicker } from 'react-day-picker';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { DayButton, DayPicker } from 'react-day-picker';
 
-import { FormField } from '../utils/formUtils';
-
+import type { DateRange, DayButtonProps, Matcher } from 'react-day-picker';
 import type { FieldValues, Path, UseFormReturn } from 'react-hook-form';
 
 import 'react-day-picker/style.css';
@@ -13,6 +12,18 @@ interface CalendarCommonProps {
   endLabel?: string;
   className?: string;
   inputType?: 'date' | 'datetime-local';
+  disabledDates?: string[];
+  dateDetails?: Record<string, string>;
+  showTopLabels?: boolean;
+}
+
+type CalendarSelectionMode = 'interval' | 'range' | 'multiple' | 'single';
+type PickerPlacement = 'top' | 'bottom';
+const POPOVER_ANIMATION_DURATION_MS = 160;
+
+interface CalendarDateRangeValue {
+  from: string;
+  to: string;
 }
 
 interface CalendarFormProps<T extends FieldValues> extends CalendarCommonProps {
@@ -21,7 +32,16 @@ interface CalendarFormProps<T extends FieldValues> extends CalendarCommonProps {
   endName: Path<T>;
 }
 
+interface CalendarFormSingleProps<T extends FieldValues> extends CalendarCommonProps {
+  form: UseFormReturn<T>;
+  selectionMode: 'single';
+  dateName: Path<T>;
+  dateLabel?: string;
+  datePlaceholder?: string;
+}
+
 interface CalendarControlledProps extends CalendarCommonProps {
+  selectionMode?: 'interval';
   startValue: string;
   endValue: string;
   onStartChange: (value: string) => void;
@@ -30,50 +50,205 @@ interface CalendarControlledProps extends CalendarCommonProps {
   endPlaceholder?: string;
 }
 
-type CalendarProps<T extends FieldValues> = CalendarFormProps<T> | CalendarControlledProps;
+interface CalendarControlledRangeProps extends CalendarCommonProps {
+  selectionMode: 'range';
+  rangeValue: CalendarDateRangeValue;
+  onRangeChange: (value: CalendarDateRangeValue) => void;
+  rangeLabel?: string;
+  rangePlaceholder?: string;
+}
+
+interface CalendarControlledMultipleProps extends CalendarCommonProps {
+  selectionMode: 'multiple';
+  selectedDates: string[];
+  onSelectedDatesChange: (values: string[]) => void;
+  multipleLabel?: string;
+  multiplePlaceholder?: string;
+}
+
+interface CalendarControlledSingleProps extends CalendarCommonProps {
+  selectionMode: 'single';
+  singleValue: string;
+  onSingleChange: (value: string) => void;
+  singleLabel?: string;
+  singlePlaceholder?: string;
+}
+
+type CalendarProps<T extends FieldValues> = CalendarFormProps<T>
+  | CalendarFormSingleProps<T>
+  | CalendarControlledProps
+  | CalendarControlledRangeProps
+  | CalendarControlledMultipleProps
+  | CalendarControlledSingleProps;
 
 export default function CalendarInfo<T extends FieldValues>({
   startLabel = 'Start Date',
   endLabel = 'End Date',
-  inputType = 'datetime-local',
   className,
   ...props
 }: CalendarProps<T>) {
   if ('form' in props) {
+    if ('dateName' in props) {
+      const singleFormValue = String(props.form.watch(props.dateName) ?? '');
+
+      return (
+        <ControlledCalendarInfo
+          className={className}
+          startLabel={startLabel}
+          endLabel={endLabel}
+          selectionMode="single"
+          singleValue={singleFormValue}
+          onSingleChange={(value) => {
+            props.form.setValue(props.dateName, value as never, {
+              shouldDirty: true,
+              shouldTouch: true,
+              shouldValidate: true,
+            });
+          }}
+          {...(props.dateLabel ? { singleLabel: props.dateLabel } : {})}
+          {...(props.datePlaceholder ? { singlePlaceholder: props.datePlaceholder } : {})}
+          {...(props.disabledDates ? { disabledDates: props.disabledDates } : {})}
+          {...(props.dateDetails ? { dateDetails: props.dateDetails } : {})}
+        />
+      );
+    }
+
     const formClassName = className ?? 'grid grid-cols-2 gap-3';
+    const formStartValue = String(props.form.watch(props.startName) ?? '');
+    const formEndValue = String(props.form.watch(props.endName) ?? '');
 
     return (
-      <div className={formClassName}>
-        <FormField
-          form={props.form}
-          label={startLabel}
-          name={props.startName}
-          type={inputType}
-        />
-
-        <FormField
-          form={props.form}
-          label={endLabel}
-          name={props.endName}
-          type={inputType}
-        />
-      </div>
+      <ControlledCalendarInfo
+        className={formClassName}
+        startLabel={startLabel}
+        endLabel={endLabel}
+        startValue={formStartValue}
+        endValue={formEndValue}
+        onStartChange={(value) => {
+          props.form.setValue(props.startName, value as never, {
+            shouldDirty: true,
+            shouldTouch: true,
+            shouldValidate: true,
+          });
+        }}
+        onEndChange={(value) => {
+          props.form.setValue(props.endName, value as never, {
+            shouldDirty: true,
+            shouldTouch: true,
+            shouldValidate: true,
+          });
+        }}
+        {...(props.disabledDates ? { disabledDates: props.disabledDates } : {})}
+        {...(props.dateDetails ? { dateDetails: props.dateDetails } : {})}
+      />
     );
   }
 
+  const controlledModeProps = (() => {
+    if (props.selectionMode === 'range') {
+      return {
+        selectionMode: 'range' as const,
+        rangeValue: props.rangeValue,
+        onRangeChange: props.onRangeChange,
+        ...(props.rangeLabel ? { rangeLabel: props.rangeLabel } : {}),
+        ...(props.rangePlaceholder ? { rangePlaceholder: props.rangePlaceholder } : {}),
+      };
+    }
+
+    if (props.selectionMode === 'multiple') {
+      return {
+        selectionMode: 'multiple' as const,
+        selectedDates: props.selectedDates,
+        onSelectedDatesChange: props.onSelectedDatesChange,
+        ...(props.multipleLabel ? { multipleLabel: props.multipleLabel } : {}),
+        ...(props.multiplePlaceholder
+          ? { multiplePlaceholder: props.multiplePlaceholder }
+          : {}),
+      };
+    }
+
+    if (props.selectionMode === 'single') {
+      return {
+        selectionMode: 'single' as const,
+        singleValue: props.singleValue,
+        onSingleChange: props.onSingleChange,
+        ...(props.singleLabel ? { singleLabel: props.singleLabel } : {}),
+        ...(props.singlePlaceholder ? { singlePlaceholder: props.singlePlaceholder } : {}),
+      };
+    }
+
+    return {
+      ...(props.selectionMode ? { selectionMode: props.selectionMode } : {}),
+      startValue: props.startValue,
+      endValue: props.endValue,
+      onStartChange: props.onStartChange,
+      onEndChange: props.onEndChange,
+      ...(props.startPlaceholder ? { startPlaceholder: props.startPlaceholder } : {}),
+      ...(props.endPlaceholder ? { endPlaceholder: props.endPlaceholder } : {}),
+    };
+  })();
+
   return (
     <ControlledCalendarInfo
-      inputType={inputType}
       className={className}
       startLabel={startLabel}
       endLabel={endLabel}
-      startValue={props.startValue}
-      endValue={props.endValue}
-      onStartChange={props.onStartChange}
-      onEndChange={props.onEndChange}
-      startPlaceholder={props.startPlaceholder}
-      endPlaceholder={props.endPlaceholder}
+      {...controlledModeProps}
+      {...(props.disabledDates ? { disabledDates: props.disabledDates } : {})}
+      {...(props.dateDetails ? { dateDetails: props.dateDetails } : {})}
     />
+  );
+}
+
+function getDatePart(value: string) {
+  return value.split('T')[0] ?? '';
+}
+
+function parseSelectedDate(value: string) {
+  const datePart = getDatePart(value);
+  if (!datePart) return undefined;
+
+  const parsed = new Date(`${datePart}T00:00:00`);
+  return Number.isNaN(parsed.getTime()) ? undefined : parsed;
+}
+
+function formatInputDate(date: Date) {
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, '0');
+  const day = `${date.getDate()}`.padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
+}
+
+function buildNextValue(date: Date) {
+  return formatInputDate(date);
+}
+
+function getSortedRange(from: Date, to: Date): DateRange {
+  if (from.getTime() <= to.getTime()) {
+    return { from, to };
+  }
+
+  return { from: to, to: from };
+}
+
+function DayButtonWithDetails({
+  detailsByDate,
+  children,
+  day,
+  ...props
+}: DayButtonProps & {
+  detailsByDate: Record<string, string>;
+}) {
+  const detail = detailsByDate[formatInputDate(day.date)];
+
+  return (
+    <DayButton day={day} {...props}>
+      <span className="willing-day-content">
+        <span>{children}</span>
+        {detail && <span className="willing-day-detail">{detail}</span>}
+      </span>
+    </DayButton>
   );
 }
 
@@ -81,258 +256,626 @@ function ControlledCalendarInfo({
   startLabel,
   endLabel,
   className,
-  inputType,
+  showTopLabels = true,
   startValue,
   endValue,
   onStartChange,
   onEndChange,
   startPlaceholder,
   endPlaceholder,
-}: CalendarControlledProps & {
+  selectionMode,
+  disabledDates,
+  dateDetails,
+  rangeValue,
+  onRangeChange,
+  rangeLabel,
+  rangePlaceholder,
+  selectedDates,
+  onSelectedDatesChange,
+  multipleLabel,
+  multiplePlaceholder,
+  singleValue,
+  onSingleChange,
+  singleLabel,
+  singlePlaceholder,
+}: {
+  selectionMode?: CalendarSelectionMode;
+  disabledDates?: string[];
+  dateDetails?: Record<string, string>;
+  startValue?: string;
+  endValue?: string;
+  onStartChange?: (value: string) => void;
+  onEndChange?: (value: string) => void;
+  startPlaceholder?: string;
+  endPlaceholder?: string;
+  rangeValue?: CalendarDateRangeValue;
+  onRangeChange?: (value: CalendarDateRangeValue) => void;
+  rangeLabel?: string;
+  rangePlaceholder?: string;
+  selectedDates?: string[];
+  onSelectedDatesChange?: (values: string[]) => void;
+  multipleLabel?: string;
+  multiplePlaceholder?: string;
+  singleValue?: string;
+  onSingleChange?: (value: string) => void;
+  singleLabel?: string;
+  singlePlaceholder?: string;
+} & {
   startLabel: string;
   endLabel: string;
   className?: string;
-  inputType: 'date' | 'datetime-local';
+  showTopLabels?: boolean;
 }) {
   const [activePicker, setActivePicker] = useState<'start' | 'end' | null>(null);
+  const [closingPicker, setClosingPicker] = useState<'start' | 'end' | null>(null);
+  const [rangeHoverDate, setRangeHoverDate] = useState<Date>();
+  const [pickerPlacement, setPickerPlacement] = useState<Record<'start' | 'end', PickerPlacement>>({
+    start: 'bottom',
+    end: 'bottom',
+  });
+  const calendarContainerRef = useRef<HTMLDivElement>(null);
+  const startTriggerRef = useRef<HTMLButtonElement>(null);
+  const endTriggerRef = useRef<HTMLButtonElement>(null);
+  const activePopoverRef = useRef<HTMLDivElement>(null);
+  const closeTimeoutRef = useRef<number>();
+
+  const mode = selectionMode ?? 'interval';
+
+  const normalizedDateDetails = useMemo(() => {
+    if (!dateDetails) return {};
+
+    return Object.entries(dateDetails).reduce<Record<string, string>>((acc, [date, detail]) => {
+      const key = getDatePart(date);
+      if (key) {
+        acc[key] = detail;
+      }
+      return acc;
+    }, {});
+  }, [dateDetails]);
+
+  const disabledDateSet = useMemo(() => {
+    return new Set((disabledDates ?? []).map(getDatePart).filter(Boolean));
+  }, [disabledDates]);
+
+  const disabledMatchers: Matcher[] | undefined = disabledDateSet.size > 0
+    ? [
+        (date: Date) => {
+          return disabledDateSet.has(formatInputDate(date));
+        },
+      ]
+    : undefined;
+
+  const dayPickerComponents = Object.keys(normalizedDateDetails).length > 0
+    ? {
+        DayButton: (dayButtonProps: DayButtonProps) => (
+          <DayButtonWithDetails
+            {...dayButtonProps}
+            detailsByDate={normalizedDateDetails}
+          />
+        ),
+      }
+    : undefined;
 
   const controlledClassName = className ?? 'relative';
+  const actionButtonClassName = 'btn btn-sm';
+  const secondaryActionButtonClassName = 'btn btn-ghost btn-sm';
+  const dateFormatter = new Intl.DateTimeFormat(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
 
-  if (inputType === 'date' || inputType === 'datetime-local') {
-    const parseSelectedDate = (value: string) => {
-      if (!value) return undefined;
-      const datePart = value.split('T')[0];
-      if (!datePart) return undefined;
+  const clearCloseTimeout = () => {
+    if (closeTimeoutRef.current != null) {
+      window.clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = undefined;
+    }
+  };
 
-      const parsed = new Date(`${datePart}T00:00:00`);
-      return Number.isNaN(parsed.getTime()) ? undefined : parsed;
+  const beginClosePicker = (picker: 'start' | 'end') => {
+    if (activePicker !== picker) return;
+
+    clearCloseTimeout();
+    setClosingPicker(picker);
+    closeTimeoutRef.current = window.setTimeout(() => {
+      setActivePicker(null);
+      setClosingPicker(null);
+      setRangeHoverDate(undefined);
+      closeTimeoutRef.current = undefined;
+    }, POPOVER_ANIMATION_DURATION_MS);
+  };
+
+  const openOrTogglePicker = (picker: 'start' | 'end') => {
+    if (activePicker === picker && closingPicker !== picker) {
+      beginClosePicker(picker);
+      return;
+    }
+
+    clearCloseTimeout();
+    setClosingPicker(null);
+    setActivePicker(picker);
+  };
+
+  useEffect(() => {
+    if (!activePicker) return;
+
+    const handleClickOutside = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (!calendarContainerRef.current) return;
+      if (calendarContainerRef.current.contains(target)) return;
+
+      if (activePicker) {
+        beginClosePicker(activePicker);
+      }
     };
 
-    const getSelectedTime = (value: string) => {
-      if (inputType !== 'datetime-local' || !value) return '';
+    document.addEventListener('pointerdown', handleClickOutside);
 
-      const timeMatch = value.match(/T(\d{2}:\d{2})/);
-      return timeMatch?.[1] ?? '';
+    return () => {
+      document.removeEventListener('pointerdown', handleClickOutside);
     };
+  }, [activePicker]);
 
-    const selectedStartDate = parseSelectedDate(startValue);
-    const selectedEndDate = parseSelectedDate(endValue);
-    const selectedStartTime = getSelectedTime(startValue);
-    const selectedEndTime = getSelectedTime(endValue);
+  useEffect(() => {
+    return () => {
+      clearCloseTimeout();
+    };
+  }, []);
 
-    const dateFormatter = new Intl.DateTimeFormat(undefined, {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
+  useLayoutEffect(() => {
+    if (!activePicker) return;
+
+    const triggerRef = activePicker === 'start' ? startTriggerRef : endTriggerRef;
+    const trigger = triggerRef.current;
+    const popover = activePopoverRef.current;
+    if (!trigger || !popover) return;
+
+    const triggerRect = trigger.getBoundingClientRect();
+    const popoverRect = popover.getBoundingClientRect();
+    const gap = 8;
+    const spaceBelow = window.innerHeight - triggerRect.bottom;
+    const spaceAbove = triggerRect.top;
+    const nextPlacement: PickerPlacement = spaceBelow < popoverRect.height + gap && spaceAbove > spaceBelow
+      ? 'top'
+      : 'bottom';
+
+    setPickerPlacement((prev) => {
+      if (prev[activePicker] === nextPlacement) return prev;
+      return {
+        ...prev,
+        [activePicker]: nextPlacement,
+      };
     });
+  }, [activePicker]);
 
-    const dateTimeFormatter = new Intl.DateTimeFormat(undefined, {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-    });
+  const getPopoverPlacementClass = (picker: 'start' | 'end') => {
+    return pickerPlacement[picker] === 'top' ? 'bottom-full mb-2' : 'top-full mt-2';
+  };
 
-    const formatInputDate = (date: Date) => {
-      const year = date.getFullYear();
-      const month = `${date.getMonth() + 1}`.padStart(2, '0');
-      const day = `${date.getDate()}`.padStart(2, '0');
+  const getPopoverAnimationClass = (picker: 'start' | 'end') => {
+    const isClosing = closingPicker === picker;
 
-      return `${year}-${month}-${day}`;
-    };
+    if (isClosing) {
+      return pickerPlacement[picker] === 'top'
+        ? 'willing-calendar-popover willing-calendar-popover-closing-top pointer-events-none'
+        : 'willing-calendar-popover willing-calendar-popover-closing-bottom pointer-events-none';
+    }
 
-    const formatDisplayDateTime = (date: Date, time: string) => {
-      if (!time) return dateFormatter.format(date);
+    return pickerPlacement[picker] === 'top'
+      ? 'willing-calendar-popover willing-calendar-popover-top'
+      : 'willing-calendar-popover willing-calendar-popover-bottom';
+  };
 
-      const [hours, minutes] = time.split(':').map(Number);
-      const displayDate = new Date(date);
-      displayDate.setHours(hours, minutes, 0, 0);
-
-      return dateTimeFormatter.format(displayDate);
-    };
-
-    const buildNextValue = (date: Date, currentValue: string) => {
-      const datePart = formatInputDate(date);
-      if (inputType === 'date') return datePart;
-
-      const existingTime = getSelectedTime(currentValue) || '00:00';
-      return `${datePart}T${existingTime}`;
-    };
+  if (mode === 'interval') {
+    const selectedStartDate = parseSelectedDate(startValue ?? '');
+    const selectedEndDate = parseSelectedDate(endValue ?? '');
 
     const startText = selectedStartDate
-      ? inputType === 'datetime-local'
-        ? formatDisplayDateTime(selectedStartDate, selectedStartTime)
-        : dateFormatter.format(selectedStartDate)
+      ? dateFormatter.format(selectedStartDate)
       : (startPlaceholder ?? startLabel);
 
     const endText = selectedEndDate
-      ? inputType === 'datetime-local'
-        ? formatDisplayDateTime(selectedEndDate, selectedEndTime)
-        : dateFormatter.format(selectedEndDate)
+      ? dateFormatter.format(selectedEndDate)
       : (endPlaceholder ?? endLabel);
 
     const dateClassName = className ?? 'contents';
 
     return (
-      <div className={dateClassName}>
-        <div className="relative">
-          <button
-            type="button"
-            className="input input-bordered flex items-center justify-between gap-2"
-            onClick={() => setActivePicker(prev => prev === 'start' ? null : 'start')}
-          >
-            <span className="truncate text-left">{startText}</span>
-            <CalendarDays size={16} className="shrink-0 opacity-70" />
-          </button>
+      <div ref={calendarContainerRef} className={dateClassName}>
+        <fieldset className="fieldset w-full">
+          <div className="relative">
+            {showTopLabels && (
+              <label className="label mb-1">
+                <span className="label-text font-medium">{startLabel}</span>
+              </label>
+            )}
+            <button
+              ref={startTriggerRef}
+              type="button"
+              className="input input-bordered flex w-full items-center justify-between gap-2"
+              onClick={() => openOrTogglePicker('start')}
+            >
+              <span className="truncate text-left">{startText}</span>
+              <CalendarDays size={16} className="shrink-0 opacity-70" />
+            </button>
 
-          {activePicker === 'start' && (
-            <div className="absolute left-0 z-500 mt-2 rounded-box border border-base-300 bg-base-100 p-3 shadow-xl">
-              <DayPicker
-                className="willing-day-picker"
-                mode="single"
-                selected={selectedStartDate}
-                onSelect={(date) => {
-                  onStartChange(date ? buildNextValue(date, startValue) : '');
-                  if (date && inputType === 'date') {
-                    setActivePicker(null);
-                  }
-                }}
-              />
+            {activePicker === 'start' && (
+              <div
+                ref={activePopoverRef}
+                className={`absolute left-0 z-500 rounded-box border border-base-300 bg-base-100 p-3 shadow-xl ${getPopoverPlacementClass('start')} ${getPopoverAnimationClass('start')}`}
+              >
+                <DayPicker
+                  className="willing-day-picker"
+                  mode="single"
+                  selected={selectedStartDate}
+                  disabled={disabledMatchers}
+                  components={dayPickerComponents}
+                  onSelect={(date) => {
+                    if (!onStartChange) return;
 
-              {inputType === 'datetime-local' && (
-                <fieldset className="fieldset mt-2">
-                  <label className="label py-1">
-                    <span className="label-text text-xs">Time</span>
-                  </label>
-                  <input
-                    type="time"
-                    className="input input-bordered input-sm w-full"
-                    value={selectedStartTime}
-                    onChange={(event) => {
-                      if (!selectedStartDate) return;
-                      onStartChange(`${formatInputDate(selectedStartDate)}T${event.target.value}`);
-                    }}
-                    disabled={!selectedStartDate}
-                  />
-                </fieldset>
-              )}
+                    onStartChange(date ? buildNextValue(date) : '');
+                    if (date) {
+                      beginClosePicker('start');
+                    }
+                  }}
+                />
 
-              <div className="mt-3 flex items-center justify-between">
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-xs"
-                  onClick={() => onStartChange('')}
-                >
-                  Clear
-                </button>
+                <div className="mt-3 flex items-center justify-between">
+                  <button
+                    type="button"
+                    className={secondaryActionButtonClassName}
+                    onClick={() => onStartChange?.('')}
+                  >
+                    Clear
+                  </button>
 
-                <button
-                  type="button"
-                  className="btn btn-xs"
-                  onClick={() => setActivePicker(null)}
-                >
-                  Done
-                </button>
+                  <button
+                    type="button"
+                    className={actionButtonClassName}
+                    onClick={() => beginClosePicker('start')}
+                  >
+                    Done
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        </fieldset>
 
-        <div className="relative">
-          <button
-            type="button"
-            className="input input-bordered flex items-center justify-between gap-2"
-            onClick={() => setActivePicker(prev => prev === 'end' ? null : 'end')}
-          >
-            <span className="truncate text-left">{endText}</span>
-            <CalendarDays size={16} className="shrink-0 opacity-70" />
-          </button>
+        <fieldset className="fieldset w-full">
+          <div className="relative">
+            {showTopLabels && (
+              <label className="label mb-1">
+                <span className="label-text font-medium">{endLabel}</span>
+              </label>
+            )}
+            <button
+              ref={endTriggerRef}
+              type="button"
+              className="input input-bordered flex w-full items-center justify-between gap-2"
+              onClick={() => openOrTogglePicker('end')}
+            >
+              <span className="truncate text-left">{endText}</span>
+              <CalendarDays size={16} className="shrink-0 opacity-70" />
+            </button>
 
-          {activePicker === 'end' && (
-            <div className="absolute left-0 z-500 mt-2 rounded-box border border-base-300 bg-base-100 p-3 shadow-xl">
-              <DayPicker
-                className="willing-day-picker"
-                mode="single"
-                selected={selectedEndDate}
-                onSelect={(date) => {
-                  onEndChange(date ? buildNextValue(date, endValue) : '');
-                  if (date && inputType === 'date') {
-                    setActivePicker(null);
-                  }
-                }}
-              />
+            {activePicker === 'end' && (
+              <div
+                ref={activePopoverRef}
+                className={`absolute left-0 z-500 rounded-box border border-base-300 bg-base-100 p-3 shadow-xl ${getPopoverPlacementClass('end')} ${getPopoverAnimationClass('end')}`}
+              >
+                <DayPicker
+                  className="willing-day-picker"
+                  mode="single"
+                  selected={selectedEndDate}
+                  disabled={disabledMatchers}
+                  components={dayPickerComponents}
+                  onSelect={(date) => {
+                    if (!onEndChange) return;
 
-              {inputType === 'datetime-local' && (
-                <fieldset className="fieldset mt-2">
-                  <label className="label py-1">
-                    <span className="label-text text-xs">Time</span>
-                  </label>
-                  <input
-                    type="time"
-                    className="input input-bordered input-sm w-full"
-                    value={selectedEndTime}
-                    onChange={(event) => {
-                      if (!selectedEndDate) return;
-                      onEndChange(`${formatInputDate(selectedEndDate)}T${event.target.value}`);
-                    }}
-                    disabled={!selectedEndDate}
-                  />
-                </fieldset>
-              )}
+                    onEndChange(date ? buildNextValue(date) : '');
+                    if (date) {
+                      beginClosePicker('end');
+                    }
+                  }}
+                />
 
-              <div className="mt-3 flex items-center justify-between">
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-xs"
-                  onClick={() => onEndChange('')}
-                >
-                  Clear
-                </button>
+                <div className="mt-3 flex items-center justify-between">
+                  <button
+                    type="button"
+                    className={secondaryActionButtonClassName}
+                    onClick={() => onEndChange?.('')}
+                  >
+                    Clear
+                  </button>
 
-                <button
-                  type="button"
-                  className="btn btn-xs"
-                  onClick={() => setActivePicker(null)}
-                >
-                  Done
-                </button>
+                  <button
+                    type="button"
+                    className={actionButtonClassName}
+                    onClick={() => beginClosePicker('end')}
+                  >
+                    Done
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        </fieldset>
       </div>
     );
   }
 
-  const handleDateTimeInput = (value: string) => {
-    if (inputType !== 'datetime-local') return value;
+  if (mode === 'range') {
+    const currentRange = rangeValue ?? { from: '', to: '' };
+    const selectedFromDate = parseSelectedDate(currentRange.from);
+    const selectedToDate = parseSelectedDate(currentRange.to);
 
-    const yearMatch = value.match(/^(\d+)-/);
-    if (yearMatch && yearMatch[1].length > 4) {
-      return value.slice(0, 4) + value.slice(yearMatch[1].length);
+    const selectedRange: DateRange | undefined = selectedFromDate || selectedToDate
+      ? {
+          from: selectedFromDate,
+          to: selectedToDate,
+        }
+      : undefined;
+
+    const hoverPreviewRange = selectedFromDate && !selectedToDate && rangeHoverDate
+      ? getSortedRange(selectedFromDate, rangeHoverDate)
+      : undefined;
+
+    const hoverRangeModifiers = hoverPreviewRange
+      ? {
+          hoverRange: hoverPreviewRange,
+          hoverRangeStart: hoverPreviewRange.from,
+          hoverRangeEnd: hoverPreviewRange.to,
+        }
+      : undefined;
+    const rangeFieldLabel = rangeLabel ?? 'Date Range';
+
+    let valueText = rangePlaceholder ?? 'Select range';
+    if (selectedFromDate) {
+      valueText = dateFormatter.format(selectedFromDate);
+
+      if (selectedToDate) {
+        valueText = `${valueText} -> ${dateFormatter.format(selectedToDate)}`;
+      }
     }
 
-    return value;
-  };
+    const handleRangePreviewHover = (date: Date, disabled?: boolean) => {
+      if (disabled || !selectedFromDate || selectedToDate) return;
+      setRangeHoverDate(date);
+    };
+
+    return (
+      <div ref={calendarContainerRef} className={controlledClassName}>
+        <fieldset className="fieldset w-full">
+          <div className="relative">
+            {showTopLabels && (
+              <label className="label mb-1">
+                <span className="label-text font-medium">{rangeFieldLabel}</span>
+              </label>
+            )}
+            <button
+              ref={startTriggerRef}
+              type="button"
+              className="input input-bordered flex w-full items-center justify-between gap-2"
+              onClick={() => openOrTogglePicker('start')}
+            >
+              <span className="truncate text-left">{valueText}</span>
+              <CalendarDays size={16} className="shrink-0 opacity-70" />
+            </button>
+
+            {activePicker === 'start' && (
+              <div
+                ref={activePopoverRef}
+                className={`absolute left-0 z-500 rounded-box border border-base-300 bg-base-100 p-3 shadow-xl ${getPopoverPlacementClass('start')} ${getPopoverAnimationClass('start')}`}
+              >
+                <DayPicker
+                  className="willing-day-picker"
+                  mode="range"
+                  selected={selectedRange}
+                  disabled={disabledMatchers}
+                  modifiers={hoverRangeModifiers}
+                  modifiersClassNames={{
+                    hoverRange: 'willing-hover-range',
+                    hoverRangeStart: 'willing-hover-range-start',
+                    hoverRangeEnd: 'willing-hover-range-end',
+                  }}
+                  components={dayPickerComponents}
+                  onDayMouseEnter={(date, modifiers) => {
+                    handleRangePreviewHover(date, modifiers.disabled);
+                  }}
+                  onDayPointerEnter={(date, modifiers) => {
+                    handleRangePreviewHover(date, modifiers.disabled);
+                  }}
+                  onDayMouseLeave={() => setRangeHoverDate(undefined)}
+                  onSelect={(range) => {
+                    if (!onRangeChange) return;
+
+                    setRangeHoverDate(undefined);
+
+                    const nextFrom = range?.from
+                      ? buildNextValue(range.from)
+                      : '';
+                    const nextTo = range?.to
+                      ? buildNextValue(range.to)
+                      : '';
+
+                    onRangeChange({
+                      from: nextFrom,
+                      to: nextTo,
+                    });
+                  }}
+                />
+
+                <div className="mt-3 flex items-center justify-between">
+                  <button
+                    type="button"
+                    className={secondaryActionButtonClassName}
+                    onClick={() => onRangeChange?.({ from: '', to: '' })}
+                  >
+                    Clear
+                  </button>
+
+                  <button
+                    type="button"
+                    className={actionButtonClassName}
+                    onClick={() => beginClosePicker('start')}
+                  >
+                    Done
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </fieldset>
+      </div>
+    );
+  }
+
+  const selectedDateValues = selectedDates ?? [];
+  const parsedSelectedDates = selectedDateValues
+    .map(parseSelectedDate)
+    .filter((date): date is Date => Boolean(date));
+
+  if (mode === 'single') {
+    const selectedDate = parseSelectedDate(singleValue ?? '');
+    const singleFieldLabel = singleLabel ?? startLabel;
+    const singleText = selectedDate
+      ? dateFormatter.format(selectedDate)
+      : (singlePlaceholder ?? singleFieldLabel);
+
+    return (
+      <div ref={calendarContainerRef} className={controlledClassName}>
+        <fieldset className="fieldset w-full">
+          <div className="relative">
+            {showTopLabels && (
+              <label className="label mb-1">
+                <span className="label-text font-medium">{singleFieldLabel}</span>
+              </label>
+            )}
+            <button
+              ref={startTriggerRef}
+              type="button"
+              className="input input-bordered flex w-full items-center justify-between gap-2"
+              onClick={() => openOrTogglePicker('start')}
+            >
+              <span className="truncate text-left">{singleText}</span>
+              <CalendarDays size={16} className="shrink-0 opacity-70" />
+            </button>
+
+            {activePicker === 'start' && (
+              <div
+                ref={activePopoverRef}
+                className={`absolute left-0 z-500 rounded-box border border-base-300 bg-base-100 p-3 shadow-xl ${getPopoverPlacementClass('start')} ${getPopoverAnimationClass('start')}`}
+              >
+                <DayPicker
+                  className="willing-day-picker"
+                  mode="single"
+                  selected={selectedDate}
+                  disabled={disabledMatchers}
+                  components={dayPickerComponents}
+                  onSelect={(date) => {
+                    if (!onSingleChange) return;
+
+                    onSingleChange(date ? buildNextValue(date) : '');
+                    if (date) {
+                      beginClosePicker('start');
+                    }
+                  }}
+                />
+
+                <div className="mt-3 flex items-center justify-between">
+                  <button
+                    type="button"
+                    className={secondaryActionButtonClassName}
+                    onClick={() => onSingleChange?.('')}
+                  >
+                    Clear
+                  </button>
+
+                  <button
+                    type="button"
+                    className={actionButtonClassName}
+                    onClick={() => beginClosePicker('start')}
+                  >
+                    Done
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </fieldset>
+      </div>
+    );
+  }
+
+  const dateListText = parsedSelectedDates.length
+    ? parsedSelectedDates.map(date => dateFormatter.format(date)).join(', ')
+    : (multiplePlaceholder ?? 'Select dates');
+  const multipleFieldLabel = multipleLabel ?? 'Selected Dates';
 
   return (
-    <div className={controlledClassName}>
-      <input
-        type={inputType}
-        placeholder={startPlaceholder ?? startLabel}
-        value={startValue}
-        onChange={event => onStartChange(handleDateTimeInput(event.target.value))}
-        className="input input-bordered"
-      />
+    <div ref={calendarContainerRef} className={controlledClassName}>
+      <fieldset className="fieldset w-full">
+        <div className="relative">
+          {showTopLabels && (
+            <label className="label mb-1">
+              <span className="label-text font-medium">{multipleFieldLabel}</span>
+            </label>
+          )}
+          <button
+            ref={startTriggerRef}
+            type="button"
+            className="input input-bordered flex w-full items-center justify-between gap-2"
+            onClick={() => openOrTogglePicker('start')}
+          >
+            <span className="truncate text-left">{dateListText}</span>
+            <CalendarDays size={16} className="shrink-0 opacity-70" />
+          </button>
 
-      <input
-        type={inputType}
-        placeholder={endPlaceholder ?? endLabel}
-        value={endValue}
-        onChange={event => onEndChange(handleDateTimeInput(event.target.value))}
-        className="input input-bordered"
-      />
+          {activePicker === 'start' && (
+            <div
+              ref={activePopoverRef}
+              className={`absolute left-0 z-500 rounded-box border border-base-300 bg-base-100 p-3 shadow-xl ${getPopoverPlacementClass('start')} ${getPopoverAnimationClass('start')}`}
+            >
+              <DayPicker
+                className="willing-day-picker"
+                mode="multiple"
+                selected={parsedSelectedDates}
+                disabled={disabledMatchers}
+                components={dayPickerComponents}
+                onSelect={(dates) => {
+                  if (!onSelectedDatesChange) return;
+
+                  const nextValues = (dates ?? [])
+                    .map(formatInputDate)
+                    .sort((left, right) => left.localeCompare(right));
+
+                  onSelectedDatesChange(nextValues);
+                }}
+              />
+
+              <div className="mt-3 flex items-center justify-between">
+                <button
+                  type="button"
+                  className={secondaryActionButtonClassName}
+                  onClick={() => onSelectedDatesChange?.([])}
+                >
+                  Clear
+                </button>
+
+                <button
+                  type="button"
+                  className={actionButtonClassName}
+                  onClick={() => beginClosePicker('start')}
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </fieldset>
     </div>
   );
 }

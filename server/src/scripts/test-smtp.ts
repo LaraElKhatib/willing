@@ -1,5 +1,5 @@
-import config from '../config.js';
-import db from '../db/index.js';
+import config from '../config.ts';
+import db from '../db/index.ts';
 import {
   sendAdminOrganizationRequestEmail,
   sendOrganizationAcceptanceEmail,
@@ -7,9 +7,9 @@ import {
   sendPasswordResetEmail,
   sendVolunteerApplicationAcceptedEmail,
   sendVolunteerApplicationRejectedEmail,
-} from '../services/smtp/emails.js';
+} from '../services/smtp/emails.ts';
 
-import type { OrganizationRequest } from '../db/tables/index.js';
+import type { OrganizationRequest } from '../db/tables/index.ts';
 
 const SENDER_EMAIL = config.SMTP_USER;
 const TOTAL_ROUNDS = 1;

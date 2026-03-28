@@ -1,6 +1,7 @@
 import { Calendar, Cake, Clock, ExternalLink, LockOpen, MapPin, Users, AlertCircle, Building2, Ban } from 'lucide-react';
 import { Link } from 'react-router';
 
+import Card from './Card';
 import SkillsList from './skills/SkillsList';
 import { SERVER_BASE_URL } from '../utils/requestServer';
 
@@ -75,7 +76,8 @@ function PostingCard({ posting, showCrisis = true }: PostingCardProps) {
   else if (volunteerPercent > 70) radialColor = 'text-warning';
 
   return (
-    <article className="relative rounded-xl border border-base-200 bg-base-100 shadow-sm hover:shadow-md transition-shadow h-full flex flex-col overflow-visible">
+    // <article className="relative rounded-xl border border-base-200 bg-base-100 shadow-sm hover:shadow-md transition-shadow h-full flex flex-col overflow-visible">
+    <Card padding={false}>
       {showCrisis && posting.crisis_name && posting.crisis_id && (
         <Link
           to={`/volunteer/crises/${posting.crisis_id}/postings`}
@@ -286,7 +288,7 @@ function PostingCard({ posting, showCrisis = true }: PostingCardProps) {
           </div>
         )}
       </div>
-    </article>
+    </Card>
   );
 }
 

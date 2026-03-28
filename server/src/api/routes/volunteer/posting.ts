@@ -1,29 +1,28 @@
-import { Router, Response } from 'express';
+import { Router, type Response } from 'express';
 import { sql } from 'kysely';
 import zod from 'zod';
 
-import { VolunteerEnrollmentsResponse, VolunteerPostingEnrollResponse, VolunteerPostingResponse, VolunteerPostingSearchResponse, VolunteerPostingWithdrawResponse } from './posting.types.js';
-import { buildPostingsWithContext, postingWithContextSelectColumns } from './postingWithContext.js';
-import database from '../../../db/index.js';
-import { Enrollment, EnrollmentApplication } from '../../../db/tables/index.js';
-import { recomputeVolunteerExperienceVector } from '../../../services/embeddings/updates.js';
-import { PostingWithContext } from '../../../types.js';
-import { authorizeOnly } from '../../authorization.js';
+import { type VolunteerEnrollmentsResponse, type VolunteerPostingEnrollResponse, type VolunteerPostingResponse, type VolunteerPostingSearchResponse, type VolunteerPostingWithdrawResponse } from './posting.types.ts';
+import { buildPostingsWithContext, postingWithContextSelectColumns } from './postingWithContext.ts';
+import database from '../../../db/index.ts';
+import { type Enrollment, type EnrollmentApplication } from '../../../db/tables/index.ts';
+import { recomputeVolunteerExperienceVector } from '../../../services/embeddings/updates.ts';
+import { type PostingWithContext } from '../../../types.ts';
+import { authorizeOnly } from '../../authorization.ts';
 import {
   parseListQuery,
   parseOptionalBooleanQueryParam,
   parseOptionalNumberQueryParam,
-} from '../utils/listQuery.js';
+} from '../utils/listQuery.ts';
 import {
   applyPostingDateTimeFilters,
   applySharedPostingSort,
-  buildSearchRegexPattern,
   matchesPostingDateTimeFilters,
   matchesPostingSearch,
   normalizeSearchTerms,
   parsePostingDateTimeFilters,
   sortPostingsBySharedSort,
-} from '../utils/postingList.js';
+} from '../utils/postingList.ts';
 
 const volunteerPostingRouter = Router();
 
@@ -58,6 +57,7 @@ volunteerPostingRouter.get('/', async (req, res: Response<VolunteerPostingSearch
   const { location_name, skill } = req.query;
   const dateTimeFilters = parsePostingDateTimeFilters(req.query);
   const hideFull = parseOptionalBooleanQueryParam(req.query.hide_full) ?? false;
+  const includeApplied = parseOptionalBooleanQueryParam(req.query.include_applied) ?? false;
   const crisisIdFilter = parseOptionalNumberQueryParam(req.query.crisis_id);
   const { search, sortBy, sortDir } = parseListQuery(req.query, {
     allowedSortBy: ['recommended', 'start_date', 'created_at'],
@@ -90,8 +90,10 @@ volunteerPostingRouter.get('/', async (req, res: Response<VolunteerPostingSearch
       'organization_posting.crisis_id',
     )
     .select(postingWithContextSelectColumns)
-    .where('organization_posting.is_closed', '=', false)
-    .where(({ not, exists, selectFrom, or }) => not(or([
+    .where('organization_posting.is_closed', '=', false);
+
+  if (!includeApplied) {
+    query = query.where(({ not, exists, selectFrom, or }) => not(or([
       exists(
         selectFrom('enrollment')
           .select('enrollment.id')
@@ -105,6 +107,7 @@ volunteerPostingRouter.get('/', async (req, res: Response<VolunteerPostingSearch
           .where('enrollment_application.volunteer_id', '=', volunteerId),
       ),
     ])));
+  }
 
   if (skillFilter) {
     query = query.where(({ exists, selectFrom }) => exists(
@@ -132,17 +135,26 @@ volunteerPostingRouter.get('/', async (req, res: Response<VolunteerPostingSearch
 
     query = query.where(({ and, exists, selectFrom, or }) => and(
       terms.map((term) => {
-        const searchPattern = buildSearchRegexPattern(term);
+        const likePattern = `%${term}%`;
+
         return or([
-          sql<boolean>`lower(organization_posting.title) ~ ${searchPattern}`,
-          sql<boolean>`lower(organization_posting.description) ~ ${searchPattern}`,
-          sql<boolean>`lower(organization_posting.location_name) ~ ${searchPattern}`,
-          sql<boolean>`lower(organization_account.name) ~ ${searchPattern}`,
+          sql<boolean>`lower(organization_posting.title) LIKE ${likePattern}`,
+          sql<boolean>`regexp_replace(lower(organization_posting.title), '[^a-z0-9]+', '', 'g') LIKE ${likePattern}`,
+
+          sql<boolean>`lower(organization_posting.description) LIKE ${likePattern}`,
+          sql<boolean>`regexp_replace(lower(organization_posting.description), '[^a-z0-9]+', '', 'g') LIKE ${likePattern}`,
+
+          sql<boolean>`lower(organization_posting.location_name) LIKE ${likePattern}`,
+          sql<boolean>`regexp_replace(lower(organization_posting.location_name), '[^a-z0-9]+', '', 'g') LIKE ${likePattern}`,
+
+          sql<boolean>`lower(organization_account.name) LIKE ${likePattern}`,
+          sql<boolean>`regexp_replace(lower(organization_account.name), '[^a-z0-9]+', '', 'g') LIKE ${likePattern}`,
+
           exists(
             selectFrom('posting_skill')
               .select('posting_skill.id')
               .whereRef('posting_skill.posting_id', '=', 'organization_posting.id')
-              .where(sql<boolean>`lower(posting_skill.name) ~ ${searchPattern}`),
+              .where(sql<boolean>`lower(posting_skill.name) LIKE ${likePattern}`),
           ),
         ]);
       }),

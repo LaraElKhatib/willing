@@ -1,7 +1,7 @@
 import { sql } from 'kysely';
 
-import database from '../../../db/index.js';
-import { PostingWithContext, PostingApplicationStatus } from '../../../types.js';
+import database from '../../../db/index.ts';
+import { type PostingWithContext, type PostingApplicationStatus } from '../../../types.ts';
 
 export const postingWithContextSelectColumns = [
   'organization_posting.id',

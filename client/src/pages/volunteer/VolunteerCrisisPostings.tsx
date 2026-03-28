@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
 
 import PostingSearchView from '../../components/postings/PostingSearchView.tsx';
+import PostingViewModeToggle from '../../components/postings/PostingViewModeToggle.tsx';
 import requestServer from '../../utils/requestServer';
 
 import type {
@@ -75,18 +76,17 @@ function VolunteerCrisisPostings() {
   };
 
   return (
-    <div className="grow bg-base-200">
-      <PostingSearchView
-        title={resolvedCrisis?.name ?? 'Crisis'}
-        subtitle={subtitle}
-        icon={AlertCircle}
-        showBack
-        defaultBackTo="/volunteer"
-        fetchUrl="/volunteer/posting"
-        filterPostings={filterPostingsByCrisis}
-        emptyMessage="No postings found for this crisis yet."
-      />
-    </div>
+    <PostingSearchView
+      title={resolvedCrisis?.name ?? 'Crisis'}
+      subtitle={subtitle}
+      icon={AlertCircle}
+      actions={<PostingViewModeToggle />}
+      showBack
+      defaultBackTo="/volunteer"
+      fetchUrl="/volunteer/posting?include_applied=true"
+      filterPostings={filterPostingsByCrisis}
+      emptyMessage="No postings found for this crisis yet."
+    />
   );
 }
 

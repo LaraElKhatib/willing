@@ -1,21 +1,21 @@
 import fs from 'fs';
 
-import { Router, Response } from 'express';
+import { Router, type Response } from 'express';
 import sharp from 'sharp';
 
 import {
-  GetCertificateInfoResponse,
-  UpdateCertificateInfoResponse,
-  UploadCertificateSignatureResponse,
-  DeleteCertificateSignatureResponse,
-} from './certificateInfo.types.js';
-import database from '../../../db/index.js';
+  type GetCertificateInfoResponse,
+  type UpdateCertificateInfoResponse,
+  type UploadCertificateSignatureResponse,
+  type DeleteCertificateSignatureResponse,
+} from './certificateInfo.types.ts';
+import database from '../../../db/index.ts';
 import {
   organizationCertificateInfoSchema,
   newOrganizationCertificateInfoSchema,
-} from '../../../db/tables/index.js';
-import { orgSignatureMulter, getAbsoluteSignaturePath } from '../../../services/uploads/orgSignature.js';
-import uploadSingle from '../../../services/uploads/uploadSingle.js';
+} from '../../../db/tables/index.ts';
+import { orgSignatureMulter, getAbsoluteSignaturePath } from '../../../services/uploads/orgSignature.ts';
+import uploadSingle from '../../../services/uploads/uploadSingle.ts';
 
 const certificateInfoRouter = Router();
 const requiredCertificateFieldsSchema = organizationCertificateInfoSchema.pick({

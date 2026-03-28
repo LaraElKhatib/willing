@@ -1,8 +1,8 @@
 ﻿import bcrypt from 'bcrypt';
 import { sql } from 'kysely';
 
-import config from '../config.js';
-import database from '../db/index.js';
+import config from '../config.ts';
+import database from '../db/index.ts';
 
 const PASSWORD_PLAIN = 'Willing123';
 

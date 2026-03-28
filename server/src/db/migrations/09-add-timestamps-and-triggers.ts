@@ -1,11 +1,11 @@
-import { Kysely, sql } from 'kysely';
+import { type Kysely, sql } from 'kysely';
 
 import {
   addUpdatedAtTrigger,
   dropSetUpdatedAtFunction,
   dropUpdatedAtTrigger,
   ensureSetUpdatedAtFunction,
-} from '../migration-utils.js';
+} from '../migration-utils.ts';
 
 export async function up(db: Kysely<unknown>): Promise<void> {
   await db.schema

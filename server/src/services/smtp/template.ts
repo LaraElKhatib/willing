@@ -1,4 +1,4 @@
-import config from '../../config.js';
+import config from '../../config.ts';
 
 export type EmailTone = 'primary' | 'success' | 'error' | 'accent';
 

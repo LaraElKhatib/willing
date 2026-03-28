@@ -3,9 +3,9 @@ import zod from 'zod';
 import {
   type OrganizationPostingWithoutVectors,
   type PostingSkill,
-  VolunteerSkill,
-  VolunteerAccountWithoutPassword,
-} from './db/tables/index.js';
+  type VolunteerSkill,
+  type VolunteerAccountWithoutPassword,
+} from './db/tables/index.ts';
 
 export type Role = 'admin' | 'volunteer' | 'organization';
 
@@ -50,6 +50,7 @@ export type PostingEnrollment = {
   email: string;
   date_of_birth: string;
   gender: Gender;
+  cv_path?: string | null;
   skills: VolunteerSkill[];
 };
 

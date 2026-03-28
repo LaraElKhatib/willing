@@ -153,10 +153,23 @@ Useful client scripts:
 
 All components are in `client/src/components/`. **Use these instead of recreating similar logic.**
 
+### Component Selection Rules (Strict)
+
+1. For pages that use `PageHeader`, wrapping page content with `PageContainer` is required. Skip it only for intentionally full-bleed layouts (for example map/canvas-first views) and document the reason in the PR/task notes.
+2. Use `Hero` when you want centered title/description copy and, optionally, a card panel next to it; do not build custom split-hero wrappers for this pattern.
+3. For card-like content containers with title/description/actions, use `Card` instead of hand-written bordered/shadowed wrappers. This component supports being given children without any props, which allows to customize fully how it looks like. This component has a `padding` boolean prop that specifically allows to disable inner padding when the default padding is not desired for a specific use case. This is useful for example when you want to use the card component just for its border and shadow but want to handle spacing with other utilities or custom styles.
+4. For no-data/no-results states inside pages, use `EmptyState` instead of ad-hoc icon+text blocks.
+5. For navigational actions that route to another page, use `LinkButton`; do not use `Button` with imperative `navigate(...)` unless navigation is conditional after async logic.
+6. For icon-only secondary actions, use `IconButton`; do not style bare `<button>` elements for these actions.
+7. Use raw HTML primitives (`<button>`, `<section>`, custom wrappers) only when a reusable component cannot satisfy requirements without hacks. If so, keep the implementation minimal and aligned with existing DaisyUI classes.
+8. Do not duplicate reusable components in page/component files. Extend existing components with optional props when reuse is clearly needed across multiple screens.
+
 ### Layout Components (`client/src/components/layout/`)
 
 - **`ColumnLayout`**: Responsive column layout with a sidebar and main content. Required props: `sidebar`, `children`. Optional prop: `stickySidebar` (default `true`).
+- **`PageContainer`**: Standard authenticated page shell with `bg-base-200`, responsive centered content, and vertical spacing. Required prop: `children`.
 - **`PageHeader`**: Reusable page header for page-level titles and actions. Required prop: `title`. Optional props: `subtitle`, `showBack`, `defaultBackTo`, `actions`, `icon`, `badge`, `variant`.
+- **`Hero`**: Use for centered title/description callouts with an optional adjacent card-like content area. Required prop: `children`. Optional props: `title`, `description`, `Icon`.
 - **`Footer`**: Standard footer with company/contact/GitHub info.
 
 ### Navbar Components (`client/src/components/layout/navbars/`)
@@ -173,6 +186,7 @@ All components are in `client/src/components/`. **Use these instead of recreatin
 - **`Button`**: Default action control for form submits and in-page actions. Supports optional `Icon`, `loading`, `size`, `color`, `style`, and `layout` (`wide`/`block`).
 - **`IconButton`**: Compact square icon-only action. Requires `Icon`; use for secondary utility actions (for example edit/delete/open details), not primary page CTAs.
 - **`LinkButton`**: Navigation action that routes with React Router (`to`, optional `state`) while keeping button styling. Use this for navigation, not imperative `navigate` calls on click where a link is sufficient.
+- **`Card`**: Reusable content container with optional heading metadata and actions. Optional props: `title`, `description`, `Icon`, `left`, `right`, `link`, `color`, `coloredText`, `padding` (default `true`), `children`.
 - Prefer these reusable components over raw `<button>`/`<Link>` when DaisyUI button styling is desired.
 - Use `loading` for async actions and keep controls disabled during submission (`Button`/`IconButton` already disable while loading).
 - Keep variants semantically consistent: use `color="primary"` for main actions, `ghost`/`outline` for secondary actions, and `error` only for destructive actions.
@@ -193,6 +207,10 @@ All components are in `client/src/components/`. **Use these instead of recreatin
 - **`SkillsList`**: Skill badge list. Required prop: `skills`. Optional props: `action`, `enableLimit` (default `true`), `limit` (default `5`).
 - **`SkillsInput`**: Controlled skill-entry input with add/remove behavior. Required props: `skills`, `setSkills`.
 
+### Home Components (`client/src/components/home/`)
+
+- **`StatsCarousel`**: In `client/src/components/home/StatsCarousel.tsx`; used in `HomePage` for the active stats carousel with navigation and keyboard controls.
+
 ### Posting Components (`client/src/components/postings/` + shared posting cards)
 
 - **`PostingCard`**: Standard volunteer opportunity card (title, description, location, dates, constraints, skills). Required prop: `posting`. Optional prop: `organization`.
@@ -206,11 +224,12 @@ All components are in `client/src/components/`. **Use these instead of recreatin
 
 - **`PasswordResetCard`**: Self-contained password reset form integrated with auth context and validation/error handling.
 - **`ToggleButton`**: React-hook-form-friendly toggle group. Required props: `form`, `name`, `label`, `options`. Optional props: `disabled` (default `false`), `compact` (default `false`). Option-level optional fields: `description`, `Icon`, `btnColor`.
-- **`CalendarInfo`**: Shared date/date-time input abstraction supporting form mode and controlled mode. Optional common props: `startLabel`, `endLabel`, `className`, `inputType`.
+- **`CalendarInfo`**: Shared date input abstraction supporting form mode and controlled mode. Supports single-date, interval (`start/end`, default), range, and multiple-date selection modes in controlled usage, plus single-date form usage via `dateName`. Optional common props: `startLabel`, `endLabel`, `className`, `disabledDates`, `dateDetails`.
 
 ### Interaction and Workflow Components
 
 - **`Loading`**: DaisyUI loading spinner. Optional prop: `size` (`xs`, `sm`, `md`, `lg`, `xl`; default `md`).
+- **`EmptyState`**: Generic empty-state panel with centered icon and text for no-data/result cases. Required props: `title`, `description`, `Icon`.
 - **`LocationPicker`**: Leaflet map picker with draggable marker, click-to-place, Lebanon geocoding search, and read-only mode. Required props: `position`, `setPosition`. Optional props: `readOnly` (default `false`), `className`.
 - **`OrganizationRequestReviewCard`**: Admin review card for organization onboarding requests. Required props: `request`, `refreshOrganizationRequests`.
 - **`VolunteerInfoCollapse`**: Expandable volunteer info block for applications/enrollments. Required prop: `volunteer`. Optional prop: `actions`.

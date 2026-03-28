@@ -1,38 +1,38 @@
 import fs from 'fs';
 import path from 'path';
 
-import { Router, Response } from 'express';
+import { Router, type Response } from 'express';
 import { sql } from 'kysely';
 import zod from 'zod';
 
-import certificateInfoRouter from './certificateInfo.js';
+import certificateInfoRouter from './certificateInfo.ts';
 import {
-  OrganizationGetLogoFileResponse,
-  OrganizationGetSignatureFileResponse,
-  OrganizationDeleteLogoResponse,
-  OrganizationCrisisResponse,
-  OrganizationCrisesResponse,
-  OrganizationGetMeResponse,
-  OrganizationPinnedCrisesResponse,
-  OrganizationProfileResponse,
-  OrganizationRequestResponse,
-  OrganizationResetPasswordResponse,
-  OrganizationUpdateProfileResponse,
-  OrganizationVolunteerCvDownloadResponse,
-  OrganizationVolunteerProfileResponse,
-  OrganizationUploadLogoResponse,
-} from './index.types.js';
-import postingRouter from './posting.js';
-import resetPassword from '../../../auth/resetPassword.js';
-import database from '../../../db/index.js';
-import { newOrganizationRequestSchema, organizationAccountSchema, PostingSkill } from '../../../db/tables/index.js';
-import { recomputeOrganizationVector } from '../../../services/embeddings/updates.js';
-import { sendAdminOrganizationRequestEmail } from '../../../services/smtp/emails.js';
-import { orgLogoMulter } from '../../../services/uploads/orgLogo.js';
-import { CV_UPLOAD_DIR, ORG_LOGO_UPLOAD_DIR, ORG_SIGNATURE_UPLOAD_DIR } from '../../../services/uploads/paths.js';
-import uploadSingle from '../../../services/uploads/uploadSingle.js';
-import { getVolunteerProfile } from '../../../services/volunteer/index.js';
-import { authorizeOnly } from '../../authorization.js';
+  type OrganizationGetLogoFileResponse,
+  type OrganizationGetSignatureFileResponse,
+  type OrganizationDeleteLogoResponse,
+  type OrganizationCrisisResponse,
+  type OrganizationCrisesResponse,
+  type OrganizationGetMeResponse,
+  type OrganizationPinnedCrisesResponse,
+  type OrganizationProfileResponse,
+  type OrganizationRequestResponse,
+  type OrganizationResetPasswordResponse,
+  type OrganizationUpdateProfileResponse,
+  type OrganizationVolunteerCvDownloadResponse,
+  type OrganizationVolunteerProfileResponse,
+  type OrganizationUploadLogoResponse,
+} from './index.types.ts';
+import postingRouter from './posting.ts';
+import resetPassword from '../../../auth/resetPassword.ts';
+import database from '../../../db/index.ts';
+import { newOrganizationRequestSchema, organizationAccountSchema, type PostingSkill } from '../../../db/tables/index.ts';
+import { recomputeOrganizationVector } from '../../../services/embeddings/updates.ts';
+import { sendAdminOrganizationRequestEmail } from '../../../services/smtp/emails.ts';
+import { orgLogoMulter } from '../../../services/uploads/orgLogo.ts';
+import { CV_UPLOAD_DIR, ORG_LOGO_UPLOAD_DIR, ORG_SIGNATURE_UPLOAD_DIR } from '../../../services/uploads/paths.ts';
+import uploadSingle from '../../../services/uploads/uploadSingle.ts';
+import { getVolunteerProfile } from '../../../services/volunteer/index.ts';
+import { authorizeOnly } from '../../authorization.ts';
 
 const organizationRouter = Router();
 const organizationProfileResponseColumns = [
@@ -71,8 +71,6 @@ const organizationPostingResponseColumns = [
   'organization_posting.latitude',
   'organization_posting.longitude',
   'organization_posting.max_volunteers',
-  sql<Date>`(organization_posting.start_date + organization_posting.start_time)`.as('start_timestamp'),
-  sql<Date | undefined>`CASE WHEN organization_posting.end_date IS NULL OR organization_posting.end_time IS NULL THEN NULL ELSE (organization_posting.end_date + organization_posting.end_time) END`.as('end_timestamp'),
   'organization_posting.start_date',
   'organization_posting.start_time',
   'organization_posting.end_date',

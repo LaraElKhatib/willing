@@ -10,6 +10,7 @@ import {
 import { useCallback, useState } from 'react';
 
 import Button from './Button';
+import Card from './Card';
 import LocationPicker from './LocationPicker';
 import requestServer from '../utils/requestServer';
 
@@ -57,71 +58,69 @@ function OrganizationRequestReviewCard({ request, refreshOrganizationRequests }:
   }, [request, refreshOrganizationRequests]);
 
   return (
-    <div className="card bg-base-100 shadow-sm border border-base-200">
-      <div className="card-body">
-        <h2 className="card-title text-primary">{request.name}</h2>
-        <div className="text-sm opacity-70 flex items-center gap-1 mb-2">
-          <MapPin size={16} />
-          {request.location_name}
-        </div>
+    <Card>
+      <h2 className="card-title text-primary">{request.name}</h2>
+      <div className="text-sm opacity-70 flex items-center gap-1 mb-2">
+        <MapPin size={16} />
+        {request.location_name}
+      </div>
 
-        <LocationPicker position={location} setPosition={() => {}} readOnly={true} />
+      <LocationPicker position={location} setPosition={() => {}} readOnly={true} />
 
-        <div className="space-y-1 my-4 text-sm">
+      <div className="space-y-1 my-4 text-sm">
+        <p className="flex justify-between">
+          <span className="flex items-center gap-2 font-semibold">
+            <Mail size={14} className="opacity-70" />
+            Email
+          </span>
+          <span className="truncate ml-2">{request.email}</span>
+        </p>
+        <p className="flex justify-between">
+          <span className="flex items-center gap-2 font-semibold">
+            <Phone size={14} className="opacity-70" />
+            Phone
+          </span>
+          <span className="truncate ml-2">{request.phone_number}</span>
+        </p>
+        {request.url && (
           <p className="flex justify-between">
             <span className="flex items-center gap-2 font-semibold">
-              <Mail size={14} className="opacity-70" />
-              Email
+              <Globe size={14} className="opacity-70" />
+              Website
             </span>
-            <span className="truncate ml-2">{request.email}</span>
+            <a href={request.url} target="_blank" className="link link-primary truncate ml-2">{request.url}</a>
           </p>
-          <p className="flex justify-between">
-            <span className="flex items-center gap-2 font-semibold">
-              <Phone size={14} className="opacity-70" />
-              Phone
-            </span>
-            <span className="truncate ml-2">{request.phone_number}</span>
-          </p>
-          {request.url && (
-            <p className="flex justify-between">
-              <span className="flex items-center gap-2 font-semibold">
-                <Globe size={14} className="opacity-70" />
-                Website
-              </span>
-              <a href={request.url} target="_blank" className="link link-primary truncate ml-2">{request.url}</a>
-            </p>
-          )}
-        </div>
+        )}
+      </div>
 
-        <div className="card-actions flex-col gap-3">
-          <div className="join w-full relative">
-            <MessageSquare className="absolute left-3 top-1/2 -translate-y-1/2 opacity-40 z-50 pointer-events-none" size={16} />
-            <input
-              className="input input-bordered join-item grow pl-10 border-l-rounded rounded-l-lg rounded-r-none"
-              placeholder="Reason"
-              onChange={handleReasonChange}
-            />
-            <Button
-              color="error"
-              className="join-item"
-              onClick={rejectRequest}
-              Icon={XCircle}
-            >
-              Reject
-            </Button>
-          </div>
-
+      <div className="card-actions flex-col gap-3">
+        <div className="join w-full relative">
+          <MessageSquare className="absolute left-3 top-1/2 -translate-y-1/2 opacity-40 z-50 pointer-events-none" size={16} />
+          <input
+            className="input input-bordered join-item grow pl-10 border-l-rounded rounded-l-lg rounded-r-none"
+            placeholder="Reason"
+            onChange={handleReasonChange}
+          />
           <Button
-            color="primary"
-            onClick={approveRequest}
-            layout="block"
-            Icon={CheckCircle}
+            color="error"
+            className="join-item"
+            onClick={rejectRequest}
+            Icon={XCircle}
           >
-            Approve Organization
+            Reject
           </Button>
         </div>
+
+        <Button
+          color="primary"
+          onClick={approveRequest}
+          layout="block"
+          Icon={CheckCircle}
+        >
+          Approve Organization
+        </Button>
       </div>
-    </div>
+    </Card>
   );
 }
 

@@ -1,8 +1,6 @@
-import { sql } from 'kysely';
+import database from '../../db/index.ts';
 
-import database from '../../db/index.js';
-
-import type { VolunteerAccountWithoutPassword } from '../../db/tables/index.js';
+import type { VolunteerAccountWithoutPassword } from '../../db/tables/index.ts';
 
 export type VolunteerCompletedExperience = {
   enrollment_id: number;
@@ -11,8 +9,10 @@ export type VolunteerCompletedExperience = {
   organization_id: number;
   organization_name: string;
   location_name: string;
-  start_timestamp: Date;
-  end_timestamp: Date | undefined;
+  start_date: Date;
+  start_time: string;
+  end_date: Date | undefined;
+  end_time: string | undefined;
   crisis_name: string | null;
 };
 
@@ -30,6 +30,27 @@ export type VolunteerProfileData = {
   skills: string[];
   experience_stats: VolunteerExperienceStats;
   completed_experiences: VolunteerCompletedExperience[];
+};
+
+const combineDateTimeToDate = (date: Date, time: string) => {
+  const [hoursRaw, minutesRaw = '0', secondsRaw = '0'] = time.split(':');
+  const hours = Number(hoursRaw);
+  const minutes = Number(minutesRaw);
+  const seconds = Number(secondsRaw);
+
+  if (Number.isNaN(hours) || Number.isNaN(minutes) || Number.isNaN(seconds)) {
+    return new Date(Number.NaN);
+  }
+
+  return new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate(),
+    hours,
+    minutes,
+    seconds,
+    0,
+  );
 };
 
 export const getVolunteerProfile = async (volunteerId: number): Promise<VolunteerProfileData> => {
@@ -65,14 +86,10 @@ export const getVolunteerProfile = async (volunteerId: number): Promise<Voluntee
       .select('organization_posting.organization_id as organization_id')
       .select('organization_account.name as organization_name')
       .select('organization_posting.location_name as location_name')
-      .select(
-        sql<Date>`organization_posting.start_date + organization_posting.start_time::time`
-          .as('start_timestamp'),
-      )
-      .select(
-        sql<Date | null>`
-      organization_posting.end_date + organization_posting.end_time::time`.as('end_timestamp'),
-      )
+      .select('organization_posting.start_date as start_date')
+      .select('organization_posting.start_time as start_time')
+      .select('organization_posting.end_date as end_date')
+      .select('organization_posting.end_time as end_time')
       .select('crisis.name as crisis_name')
       .where('enrollment.volunteer_id', '=', volunteerId)
       .where('enrollment.attended', '=', true)
@@ -89,10 +106,10 @@ export const getVolunteerProfile = async (volunteerId: number): Promise<Voluntee
   ]);
 
   const totalHoursCompletedRaw = completedExperiences.reduce((totalHours, experience) => {
-    if (!experience.end_timestamp) return totalHours;
+    if (!experience.end_date || !experience.end_time) return totalHours;
 
-    const startMillis = new Date(experience.start_timestamp).getTime();
-    const endMillis = new Date(experience.end_timestamp).getTime();
+    const startMillis = combineDateTimeToDate(experience.start_date, experience.start_time).getTime();
+    const endMillis = combineDateTimeToDate(experience.end_date, experience.end_time).getTime();
 
     if (Number.isNaN(startMillis) || Number.isNaN(endMillis) || endMillis <= startMillis) {
       return totalHours;
@@ -154,8 +171,10 @@ export const getVolunteerProfile = async (volunteerId: number): Promise<Voluntee
       organization_id: experience.organization_id,
       organization_name: experience.organization_name,
       location_name: experience.location_name,
-      start_timestamp: experience.start_timestamp,
-      end_timestamp: experience.end_timestamp ?? undefined,
+      start_date: experience.start_date,
+      start_time: experience.start_time,
+      end_date: experience.end_date ?? undefined,
+      end_time: experience.end_time ?? undefined,
       crisis_name: experience.crisis_name,
     })),
   };

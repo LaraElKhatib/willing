@@ -11,6 +11,9 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useVolunteer } from '../../auth/useUsers';
+import Button from '../../components/Button';
+import Card from '../../components/Card';
+import PageContainer from '../../components/layout/PageContainer';
 import PageHeader from '../../components/layout/PageHeader';
 import Loading from '../../components/Loading';
 import requestServer, { SERVER_BASE_URL } from '../../utils/requestServer';
@@ -132,7 +135,7 @@ function VolunteerCertificateRequest() {
   };
 
   return (
-    <div className="grow bg-base-200">
+    <PageContainer>
       <style>
         {`
           #${CERTIFICATE_PREVIEW_ID} .certificate-title {
@@ -274,309 +277,300 @@ function VolunteerCertificateRequest() {
           }
         `}
       </style>
-      <div className="p-6 md:container mx-auto">
-        <PageHeader
-          title="Generate Certificate"
-          subtitle="Review your volunteering stats, then generate your certificate."
-          showBack
-          defaultBackTo="/volunteer/profile"
-          icon={Award}
-        />
 
-        {loading && (
-          <div className="flex justify-center mt-8">
-            <Loading size="xl" />
+      <PageHeader
+        title="Generate Certificate"
+        subtitle="Review your volunteering stats, then generate your certificate."
+        showBack
+        defaultBackTo="/volunteer/profile"
+        icon={Award}
+      />
+
+      {loading && (
+        <div className="flex justify-center mt-8">
+          <Loading size="xl" />
+        </div>
+      )}
+
+      {error && (
+        <div className="mt-4 no-print">
+          <div className="alert alert-error">
+            <span>{error.message || 'Failed to load certificate data.'}</span>
           </div>
-        )}
+          <button className="btn btn-outline mt-3" onClick={() => { void trigger(); }}>
+            Retry
+          </button>
+        </div>
+      )}
 
-        {error && (
-          <div className="mt-4 no-print">
-            <div className="alert alert-error">
-              <span>{error.message || 'Failed to load certificate data.'}</span>
-            </div>
-            <button className="btn btn-outline mt-3" onClick={() => { void trigger(); }}>
-              Retry
-            </button>
+      {!loading && !error && (
+        <>
+          <div className="grid gap-6 md:grid-cols-3 no-print">
+            <Card>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm opacity-70">Total Volunteering Hours</p>
+                  <p className="text-3xl font-bold mt-1">{formatHours(totalHours)}</p>
+                </div>
+                <div className="rounded-full bg-primary/10 p-2 text-primary">
+                  <Award size={18} />
+                </div>
+              </div>
+            </Card>
+            <Card>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm opacity-70">Organizations Involved</p>
+                  <p className="text-3xl font-bold mt-1">{rankedOrganizations.length}</p>
+                </div>
+                <div className="rounded-full bg-secondary/10 p-2 text-secondary">
+                  <Building size={18} />
+                </div>
+              </div>
+            </Card>
+            <Card>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm opacity-70">Eligible Organizations</p>
+                  <p className="text-3xl font-bold mt-1">{eligibleOrganizations.length}</p>
+                </div>
+                <div className="rounded-full bg-success/10 p-2 text-success">
+                  <Users size={18} />
+                </div>
+              </div>
+            </Card>
           </div>
-        )}
 
-        {!loading && !error && (
-          <>
-            <div className="grid gap-4 mt-4 md:grid-cols-3 no-print">
-              <div className="card bg-base-100 border border-base-300 shadow-sm">
-                <div className="card-body">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm opacity-70">Total Volunteering Hours</p>
-                      <p className="text-3xl font-bold mt-1">{formatHours(totalHours)}</p>
-                    </div>
-                    <div className="rounded-full bg-primary/10 p-2 text-primary">
-                      <Award size={18} />
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="card bg-base-100 border border-base-300 shadow-sm">
-                <div className="card-body">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm opacity-70">Organizations Involved</p>
-                      <p className="text-3xl font-bold mt-1">{rankedOrganizations.length}</p>
-                    </div>
-                    <div className="rounded-full bg-secondary/10 p-2 text-secondary">
-                      <Building size={18} />
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="card bg-base-100 border border-base-300 shadow-sm">
-                <div className="card-body">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm opacity-70">Eligible Organizations</p>
-                      <p className="text-3xl font-bold mt-1">{eligibleOrganizations.length}</p>
-                    </div>
-                    <div className="rounded-full bg-success/10 p-2 text-success">
-                      <Users size={18} />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="card bg-base-100 shadow-md mt-4 no-print">
-              <div className="card-body">
-                <h5 className="font-bold text-lg">Select Organizations (Max 4)</h5>
-                <p className="text-sm opacity-70">
-                  Ranked by your attended hours. Only organizations meeting threshold and certificate settings are selectable.
-                </p>
-
-                {selectionError && (
-                  <div className="alert alert-error mt-3">
-                    <AlertCircle size={16} />
-                    <span>{selectionError}</span>
-                  </div>
-                )}
-
-                <div className="space-y-2 mt-3">
-                  {organizationsWithEligibility.map((organization, index) => {
-                    const selected = selectedOrganizationIds.includes(organization.id);
-
-                    return (
-                      <label
-                        key={organization.id}
-                        className={`flex items-center justify-between gap-3 rounded-box border p-3 ${
-                          organization.eligible ? 'cursor-pointer border-base-300' : 'opacity-60 border-base-300'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className="badge badge-ghost">{`#${index + 1}`}</span>
-                          <div>
-                            <p className="font-semibold">{organization.name}</p>
-                            <p className="text-sm opacity-70">
-                              Hours:
-                              {' '}
-                              {formatHours(organization.hours)}
-                              {' '}
-                              |
-                              {' '}
-                              Threshold:
-                              {' '}
-                              {organization.hours_threshold ?? '-'}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          {organization.eligible
-                            ? <span className="badge badge-success">Eligible</span>
-                            : <span className="badge badge-ghost">Not eligible</span>}
-                          <input
-                            type="checkbox"
-                            className="checkbox checkbox-primary"
-                            checked={selected}
-                            disabled={!organization.eligible}
-                            onChange={() => toggleOrganization(organization.id, organization.eligible)}
-                          />
-                        </div>
-                      </label>
-                    );
-                  })}
-                </div>
-
-                <div className="mt-4">
-                  <button className="btn btn-primary" onClick={createCertificate}>
-                    <FileText size={16} />
-                    Create Certificate
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {certificateGeneratedAt && (
-              <div className="card bg-base-100 shadow-md mt-4 no-print">
-                <div className="card-body">
-                  <div className="flex items-center justify-between gap-3">
-                    <h5 className="font-bold text-lg">Certificate Preview</h5>
-                    <button className="btn btn-outline" onClick={downloadCertificateAsPdf}>
-                      <Download size={16} />
-                      Download as PDF
-                    </button>
-                  </div>
-                </div>
+          <Card
+            title="Select Organizations (Max 4)"
+            description="Ranked by your attended hours. Only organizations meeting threshold and certificate settings are selectable."
+          >
+            {selectionError && (
+              <div className="alert alert-error mt-3">
+                <AlertCircle size={16} />
+                <span>{selectionError}</span>
               </div>
             )}
 
-            {certificateGeneratedAt && (
-              <div className="mt-4">
-                <div ref={previewViewportRef} className="w-full certificate-preview-viewport">
+            <div className="space-y-2 mt-3">
+              {organizationsWithEligibility.map((organization, index) => {
+                const selected = selectedOrganizationIds.includes(organization.id);
+
+                return (
+                  <label
+                    key={organization.id}
+                    className={`flex items-center justify-between gap-3 rounded-box border p-3 ${
+                      organization.eligible ? 'cursor-pointer border-base-300' : 'opacity-60 border-base-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="badge badge-ghost">{`#${index + 1}`}</span>
+                      <div>
+                        <p className="font-semibold">{organization.name}</p>
+                        <p className="text-sm opacity-70">
+                          Hours:
+                          {' '}
+                          {formatHours(organization.hours)}
+                          {' '}
+                          |
+                          {' '}
+                          Threshold:
+                          {' '}
+                          {organization.hours_threshold ?? '-'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {organization.eligible
+                        ? <span className="badge badge-success">Eligible</span>
+                        : <span className="badge badge-ghost">Not eligible</span>}
+                      <input
+                        type="checkbox"
+                        className="checkbox checkbox-primary"
+                        checked={selected}
+                        disabled={!organization.eligible}
+                        onChange={() => toggleOrganization(organization.id, organization.eligible)}
+                      />
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+
+            <div className="mt-4">
+              <button className="btn btn-primary" onClick={createCertificate}>
+                <FileText size={16} />
+                Create Certificate
+              </button>
+            </div>
+          </Card>
+
+          {certificateGeneratedAt && (
+            <Card
+              title="Certificate Preview"
+              right={(
+                <Button
+                  style="outline"
+                  onClick={downloadCertificateAsPdf}
+                  Icon={Download}
+                >
+                  Download as PDF
+                </Button>
+              )}
+            >
+            </Card>
+          )}
+
+          {certificateGeneratedAt && (
+            <div className="mt-4">
+              <div ref={previewViewportRef} className="w-full certificate-preview-viewport">
+                <div
+                  className="mx-auto certificate-preview-stage"
+                  style={{
+                    width: `${CERTIFICATE_PREVIEW_WIDTH * certificateScale}px`,
+                    height: `${CERTIFICATE_PREVIEW_HEIGHT * certificateScale}px`,
+                  }}
+                >
                   <div
-                    className="mx-auto certificate-preview-stage"
+                    className="certificate-preview-scaler"
                     style={{
-                      width: `${CERTIFICATE_PREVIEW_WIDTH * certificateScale}px`,
-                      height: `${CERTIFICATE_PREVIEW_HEIGHT * certificateScale}px`,
+                      width: `${CERTIFICATE_PREVIEW_WIDTH}px`,
+                      height: `${CERTIFICATE_PREVIEW_HEIGHT}px`,
+                      transform: `scale(${certificateScale})`,
+                      transformOrigin: 'top left',
                     }}
                   >
                     <div
-                      className="certificate-preview-scaler"
+                      id={CERTIFICATE_PREVIEW_ID}
+                      className="bg-white text-black border border-neutral-200 rounded-box pt-6 px-8 pb-4 shadow-xl text-[1.05rem]"
                       style={{
                         width: `${CERTIFICATE_PREVIEW_WIDTH}px`,
                         height: `${CERTIFICATE_PREVIEW_HEIGHT}px`,
-                        transform: `scale(${certificateScale})`,
-                        transformOrigin: 'top left',
+                        minWidth: `${CERTIFICATE_PREVIEW_WIDTH}px`,
                       }}
                     >
-                      <div
-                        id={CERTIFICATE_PREVIEW_ID}
-                        className="bg-white text-black border border-neutral-200 rounded-box pt-6 px-8 pb-4 shadow-xl text-[1.05rem]"
-                        style={{
-                          width: `${CERTIFICATE_PREVIEW_WIDTH}px`,
-                          height: `${CERTIFICATE_PREVIEW_HEIGHT}px`,
-                          minWidth: `${CERTIFICATE_PREVIEW_WIDTH}px`,
-                        }}
-                      >
-                        <div className="h-full grid grid-rows-[168px_1fr_272px]">
-                          <div>
-                            <div className="flex items-start justify-between">
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <img src="/willing.svg" alt="Willing Logo" className="h-7 w-7" />
-                                  <p className="text-base uppercase tracking-[0.2em] text-primary font-semibold">Willing Platform</p>
-                                </div>
-                                <h2 className="certificate-title">Certificate of Volunteering</h2>
-                                <div className="flex items-center gap-2 mt-2 text-success">
-                                  <CheckCircle2 size={16} />
-                                  <span className="font-semibold text-base">Participation Verified</span>
-                                </div>
+                      <div className="h-full grid grid-rows-[168px_1fr_272px]">
+                        <div>
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <img src="/willing.svg" alt="Willing Logo" className="h-7 w-7" />
+                                <p className="text-base uppercase tracking-[0.2em] text-primary font-semibold">Willing Platform</p>
                               </div>
-                              <div className="certificate-meta text-right text-base opacity-70">
-                                <p>Certificate ID: WL-CERT-SKELETON</p>
-                                <p className="mt-1">
-                                  Generated:
-                                  {' '}
-                                  {certificateGeneratedAt.toLocaleDateString()}
-                                </p>
+                              <h2 className="certificate-title">Certificate of Volunteering</h2>
+                              <div className="flex items-center gap-2 mt-2 text-success">
+                                <CheckCircle2 size={16} />
+                                <span className="font-semibold text-base">Participation Verified</span>
                               </div>
                             </div>
-                          </div>
-
-                          <div className="flex items-center justify-center px-10 pt-4">
-                            <div className="text-center max-w-4xl mx-auto">
-                              <p className="certificate-subtitle">This is to certify that</p>
-                              <p className="certificate-name font-bold text-primary">{volunteerName}</p>
-                              <div className="w-[910px] max-w-full mx-auto border-b-2 border-primary/60 mt-2" />
-                              <p className="certificate-main-copy">
-                                has contributed a total of
+                            <div className="certificate-meta text-right text-base opacity-70">
+                              <p>Certificate ID: WL-CERT-SKELETON</p>
+                              <p className="mt-1">
+                                Generated:
                                 {' '}
-                                <span className="font-bold">{formatHours(totalHours)}</span>
-                                {' '}
-                                volunteering hours through Willing.
-                                This certificate recognizes meaningful service and participation across the platform.
+                                {certificateGeneratedAt.toLocaleDateString()}
                               </p>
                             </div>
                           </div>
+                        </div>
 
-                          <div className="certificate-org-section mt-1 h-full flex flex-col">
-                            <div className="grow">
-                              {selectedOrganizations.length > 0
-                                ? (
-                                    <div className="grid grid-cols-4 gap-3">
-                                      {Array.from({ length: MAX_ORGANIZATION_SELECTION }).map((_, index) => {
-                                        const org = selectedOrganizations[index];
-                                        if (!org) {
-                                          return <div key={`empty-org-slot-${index}`} className="h-40" aria-hidden />;
-                                        }
+                        <div className="flex items-center justify-center px-10 pt-4">
+                          <div className="text-center max-w-4xl mx-auto">
+                            <p className="certificate-subtitle">This is to certify that</p>
+                            <p className="certificate-name font-bold text-primary">{volunteerName}</p>
+                            <div className="w-[910px] max-w-full mx-auto border-b-2 border-primary/60 mt-2" />
+                            <p className="certificate-main-copy">
+                              has contributed a total of
+                              {' '}
+                              <span className="font-bold">{formatHours(totalHours)}</span>
+                              {' '}
+                              volunteering hours through Willing.
+                              This certificate recognizes meaningful service and participation across the platform.
+                            </p>
+                          </div>
+                        </div>
 
-                                        const logoUrl = org.logo_path
-                                          ? `${SERVER_BASE_URL}/organization/${org.id}/logo`
-                                          : null;
-                                        const signatureUrl = org.signature_path
-                                          ? `${SERVER_BASE_URL}/organization/${org.id}/signature?v=${encodeURIComponent(org.signature_path)}`
-                                          : null;
+                        <div className="certificate-org-section mt-1 h-full flex flex-col">
+                          <div className="grow">
+                            {selectedOrganizations.length > 0
+                              ? (
+                                  <div className="grid grid-cols-4 gap-3">
+                                    {Array.from({ length: MAX_ORGANIZATION_SELECTION }).map((_, index) => {
+                                      const org = selectedOrganizations[index];
+                                      if (!org) {
+                                        return <div key={`empty-org-slot-${index}`} className="h-40" aria-hidden />;
+                                      }
 
-                                        return (
-                                          <div key={org.id} className="certificate-slot rounded-box border border-neutral-300 bg-gradient-to-b from-white to-neutral-50 p-3 h-44 shadow-sm">
-                                            <div className="flex items-center gap-3">
-                                              {logoUrl
-                                                ? (
-                                                    <div className="h-10 w-10 rounded-md border border-neutral-200 bg-white flex items-center justify-center overflow-hidden">
-                                                      <img src={logoUrl} alt={`${org.name} logo`} className="h-8 w-8 object-contain" />
-                                                    </div>
-                                                  )
-                                                : (
-                                                    <div className="h-10 w-10 rounded-md border border-neutral-200 bg-white flex items-center justify-center">
-                                                      <Building2 size={18} />
-                                                    </div>
-                                                  )}
-                                              <p className="font-bold text-lg leading-tight line-clamp-2">{org.name}</p>
-                                            </div>
-                                            <p className="text-base mt-2">
-                                              Hours:
-                                              {' '}
-                                              <span className="font-bold">{formatHours(org.hours)}</span>
-                                            </p>
-                                            <div className="mt-2 h-8 flex items-end">
-                                              {signatureUrl
-                                                ? (
-                                                    <img
-                                                      src={signatureUrl}
-                                                      alt={`${org.name} signature`}
-                                                      className="max-h-7 w-auto object-contain object-bottom"
-                                                    />
-                                                  )
-                                                : <div className="h-7" />}
-                                            </div>
-                                            <div className="certificate-sign-line h-px border-b border-neutral-400" />
-                                            <p className="text-xs mt-1 font-semibold truncate" title={org.signatory_name || ''}>{org.signatory_name || ''}</p>
-                                            <p className="text-[11px] opacity-70 truncate" title={org.signatory_position || ''}>{org.signatory_position || ''}</p>
+                                      const logoUrl = org.logo_path
+                                        ? `${SERVER_BASE_URL}/organization/${org.id}/logo`
+                                        : null;
+                                      const signatureUrl = org.signature_path
+                                        ? `${SERVER_BASE_URL}/organization/${org.id}/signature?v=${encodeURIComponent(org.signature_path)}`
+                                        : null;
+
+                                      return (
+                                        <div key={org.id} className="certificate-slot rounded-box border border-neutral-300 bg-gradient-to-b from-white to-neutral-50 p-3 h-44 shadow-sm">
+                                          <div className="flex items-center gap-3">
+                                            {logoUrl
+                                              ? (
+                                                  <div className="h-10 w-10 rounded-md border border-neutral-200 bg-white flex items-center justify-center overflow-hidden">
+                                                    <img src={logoUrl} alt={`${org.name} logo`} className="h-8 w-8 object-contain" />
+                                                  </div>
+                                                )
+                                              : (
+                                                  <div className="h-10 w-10 rounded-md border border-neutral-200 bg-white flex items-center justify-center">
+                                                    <Building2 size={18} />
+                                                  </div>
+                                                )}
+                                            <p className="font-bold text-lg leading-tight line-clamp-2">{org.name}</p>
                                           </div>
-                                        );
-                                      })}
-                                    </div>
-                                  )
-                                : (
-                                    <div className="h-44" aria-hidden />
-                                  )}
-                            </div>
-                            <div className="certificate-footer mt-auto flex items-end">
-                              <div className="w-48">
-                                <p className="text-xs uppercase tracking-wide opacity-60">Willing Admin Signature</p>
-                                <div className="mt-1 h-7 flex items-end">
-                                  {platformSignatureUrl
-                                    ? (
-                                        <img
-                                          src={platformSignatureUrl}
-                                          alt="Willing admin signature"
-                                          className="max-h-6 w-auto object-contain object-bottom"
-                                        />
-                                      )
-                                    : <div className="h-6" />}
-                                </div>
-                                <div className="certificate-sign-line h-px border-b border-neutral-300 mt-0.5" />
-                                <p className="text-xs opacity-70 mt-0.5 truncate">{data?.platform_certificate?.signatory_name || 'Name'}</p>
-                                <p className="text-[11px] opacity-60 truncate">
-                                  {data?.platform_certificate?.signatory_position || 'Title'}
-                                </p>
+                                          <p className="text-base mt-2">
+                                            Hours:
+                                            {' '}
+                                            <span className="font-bold">{formatHours(org.hours)}</span>
+                                          </p>
+                                          <div className="mt-2 h-8 flex items-end">
+                                            {signatureUrl
+                                              ? (
+                                                  <img
+                                                    src={signatureUrl}
+                                                    alt={`${org.name} signature`}
+                                                    className="max-h-7 w-auto object-contain object-bottom"
+                                                  />
+                                                )
+                                              : <div className="h-7" />}
+                                          </div>
+                                          <div className="certificate-sign-line h-px border-b border-neutral-400" />
+                                          <p className="text-xs mt-1 font-semibold truncate" title={org.signatory_name || ''}>{org.signatory_name || ''}</p>
+                                          <p className="text-[11px] opacity-70 truncate" title={org.signatory_position || ''}>{org.signatory_position || ''}</p>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )
+                              : (
+                                  <div className="h-44" aria-hidden />
+                                )}
+                          </div>
+                          <div className="certificate-footer mt-auto flex items-end">
+                            <div className="w-48">
+                              <p className="text-xs uppercase tracking-wide opacity-60">Willing Admin Signature</p>
+                              <div className="mt-1 h-7 flex items-end">
+                                {platformSignatureUrl
+                                  ? (
+                                      <img
+                                        src={platformSignatureUrl}
+                                        alt="Willing admin signature"
+                                        className="max-h-6 w-auto object-contain object-bottom"
+                                      />
+                                    )
+                                  : <div className="h-6" />}
                               </div>
+                              <div className="certificate-sign-line h-px border-b border-neutral-300 mt-0.5" />
+                              <p className="text-xs opacity-70 mt-0.5 truncate">{data?.platform_certificate?.signatory_name || 'Name'}</p>
+                              <p className="text-[11px] opacity-60 truncate">
+                                {data?.platform_certificate?.signatory_position || 'Title'}
+                              </p>
                             </div>
                           </div>
                         </div>
@@ -585,11 +579,11 @@ function VolunteerCertificateRequest() {
                   </div>
                 </div>
               </div>
-            )}
-          </>
-        )}
-      </div>
-    </div>
+            </div>
+          )}
+        </>
+      )}
+    </PageContainer>
   );
 }
 

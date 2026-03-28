@@ -1,15 +1,15 @@
 import bcrypt from 'bcrypt';
 import { sql } from 'kysely';
 
-import config from '../config.js';
-import database from '../db/index.js';
-import { EMBEDDING_DIMENSIONS } from '../services/embeddings/index.js';
+import config from '../config.ts';
+import database from '../db/index.ts';
+import { EMBEDDING_DIMENSIONS } from '../services/embeddings/index.ts';
 import {
   recomputeOrganizationVector,
   recomputePostingVectors,
   recomputeVolunteerExperienceVector,
   recomputeVolunteerProfileVector,
-} from '../services/embeddings/updates.js';
+} from '../services/embeddings/updates.ts';
 
 const TEST_PASSWORD_HASH = await bcrypt.hash('Willing123', 10);
 

@@ -2,6 +2,9 @@ import { ClipboardCheck, Inbox, RotateCcw, Search } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 
 import Button from '../../components/Button';
+import Card from '../../components/Card';
+import EmptyState from '../../components/EmptyState';
+import PageContainer from '../../components/layout/PageContainer';
 import PageHeader from '../../components/layout/PageHeader';
 import OrganizationRequestReviewCard from '../../components/OrganizationRequestReviewCard';
 import requestServer from '../../utils/requestServer';
@@ -138,81 +141,78 @@ function AdminRequests() {
   };
 
   return (
-    <div className="grow bg-base-200">
-      <div className="p-6 md:container mx-auto">
-        <PageHeader
-          title="Organization Requests"
-          subtitle="Review pending onboarding submissions from organizations."
-          icon={ClipboardCheck}
-          badge={
-            sortedOrganizationRequests
-              ? (
-                  <div className="badge badge-primary">
-                    {sortedOrganizationRequests.length}
-                    {' '}
-                    Pending
-                  </div>
-                )
-              : (
-                  <div className="w-22 h-6 skeleton" />
-                )
-          }
-        />
+    <PageContainer>
+      <PageHeader
+        title="Organization Requests"
+        subtitle="Review pending onboarding submissions from organizations."
+        icon={ClipboardCheck}
+        badge={
+          sortedOrganizationRequests
+            ? (
+                <div className="badge badge-primary">
+                  {sortedOrganizationRequests.length}
+                  {' '}
+                  Pending
+                </div>
+              )
+            : (
+                <div className="w-22 h-6 skeleton" />
+              )
+        }
+      />
 
-        <div className="mb-6 rounded-box border border-base-300 bg-base-100 p-4 shadow-sm">
-          <div className="mb-4">
-            <h3 className="text-lg font-semibold">Filters</h3>
-          </div>
+      {sortedOrganizationRequests
+        ? (sortedOrganizationRequests.length > 0
+            ? (
+                <>
+                  <Card
+                    title="Filters"
+                  >
+                    <form className="space-y-4" onSubmit={applyFilters}>
+                      <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
+                        <div className="lg:min-w-0 lg:flex-1">
+                          <label className="label" htmlFor="organization-requests-search">
+                            <span className="label-text">Search</span>
+                          </label>
+                          <label className="input input-bordered flex w-full items-center gap-2">
+                            <Search className="h-4 w-4 opacity-70" />
+                            <input
+                              id="organization-requests-search"
+                              type="text"
+                              className="w-full min-w-0"
+                              placeholder="Search name, email, location"
+                              value={filters.search}
+                              onChange={event => setFilters(prev => ({ ...prev, search: event.target.value }))}
+                            />
+                          </label>
+                        </div>
 
-          <form className="space-y-4" onSubmit={applyFilters}>
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
-              <div className="lg:min-w-0 lg:flex-1">
-                <label className="label" htmlFor="organization-requests-search">
-                  <span className="label-text">Search</span>
-                </label>
-                <label className="input input-bordered flex w-full items-center gap-2">
-                  <Search className="h-4 w-4 opacity-70" />
-                  <input
-                    id="organization-requests-search"
-                    type="text"
-                    className="w-full min-w-0"
-                    placeholder="Search name, email, location"
-                    value={filters.search}
-                    onChange={event => setFilters(prev => ({ ...prev, search: event.target.value }))}
-                  />
-                </label>
-              </div>
+                        <div className="lg:w-64">
+                          <label className="label" htmlFor="organization-requests-sort">
+                            <span className="label-text">Sort By</span>
+                          </label>
+                          <select
+                            id="organization-requests-sort"
+                            className="select select-bordered w-full"
+                            value={selectedSortOption.value}
+                            onChange={event => onSortChange(event.target.value as OrganizationRequestSortOptionValue)}
+                          >
+                            {organizationRequestSortOptions.map(option => (
+                              <option key={option.value} value={option.value}>{option.label}</option>
+                            ))}
+                          </select>
+                        </div>
 
-              <div className="lg:w-64">
-                <label className="label" htmlFor="organization-requests-sort">
-                  <span className="label-text">Sort By</span>
-                </label>
-                <select
-                  id="organization-requests-sort"
-                  className="select select-bordered w-full"
-                  value={selectedSortOption.value}
-                  onChange={event => onSortChange(event.target.value as OrganizationRequestSortOptionValue)}
-                >
-                  {organizationRequestSortOptions.map(option => (
-                    <option key={option.value} value={option.value}>{option.label}</option>
-                  ))}
-                </select>
-              </div>
+                        <div className="lg:w-40">
+                          <Button color="primary" type="submit" disabled={!hasPendingChanges} layout="block">Search</Button>
+                        </div>
+                      </div>
 
-              <div className="lg:w-40">
-                <Button color="primary" type="submit" disabled={!hasPendingChanges} layout="block">Search</Button>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-3">
-              <Button type="button" color="ghost" onClick={resetFilters} disabled={!hasAnyChangesFromDefault} Icon={RotateCcw}>Reset</Button>
-            </div>
-          </form>
-        </div>
-
-        {sortedOrganizationRequests
-          ? (sortedOrganizationRequests.length > 0
-              ? (
+                      <div className="flex flex-wrap gap-3">
+                        <Button type="button" color="ghost" onClick={resetFilters} disabled={!hasAnyChangesFromDefault} Icon={RotateCcw}>Reset</Button>
+                      </div>
+                    </form>
+                  </Card>
                   <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6">
                     {sortedOrganizationRequests.map((request, index) => (
                       <OrganizationRequestReviewCard
@@ -222,31 +222,27 @@ function AdminRequests() {
                       />
                     ))}
                   </div>
-                )
-              : (
-                  <div className="hero bg-base-200 rounded-box p-10">
-                    <div className="hero-content text-center">
-                      <div className="max-w-md flex flex-col items-center">
-                        <Inbox size={64} className="opacity-20 mb-4" />
-                        <p className="py-2 font-bold opacity-80">All caught up!</p>
-                        <p className="pb-6 opacity-60">No organization requests found at this time.</p>
-                      </div>
-                    </div>
-                  </div>
-                )
-            )
-          : (
-              <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6">
-                <div className="card shadow-sm border border-base-200 skeleton h-169">
-                </div>
-                <div className="card shadow-sm border border-base-200 skeleton h-169">
-                </div>
-                <div className="card shadow-sm border border-base-200 skeleton h-169">
-                </div>
+                </>
+              )
+            : (
+                <EmptyState
+                  Icon={Inbox}
+                  title="All caught up!"
+                  description="No organization requests found at this time."
+                />
+              )
+          )
+        : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6">
+              <div className="card shadow-sm border border-base-200 skeleton h-169">
               </div>
-            )}
-      </div>
-    </div>
+              <div className="card shadow-sm border border-base-200 skeleton h-169">
+              </div>
+              <div className="card shadow-sm border border-base-200 skeleton h-169">
+              </div>
+            </div>
+          )}
+    </PageContainer>
   );
 }
 

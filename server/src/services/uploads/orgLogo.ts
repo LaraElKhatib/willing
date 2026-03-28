@@ -3,7 +3,7 @@ import path from 'path';
 
 import multer from 'multer';
 
-import { ORG_LOGO_UPLOAD_DIR } from './paths.js';
+import { ORG_LOGO_UPLOAD_DIR } from './paths.ts';
 
 export const getAbsoluteLogoPath = (logoPath: string) => {
   return path.join(ORG_LOGO_UPLOAD_DIR, logoPath);

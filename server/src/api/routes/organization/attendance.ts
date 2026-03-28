@@ -1,14 +1,14 @@
-import { Router, Response } from 'express';
+import { Router, type Response } from 'express';
 import zod from 'zod';
 
 import {
-  OrganizationPostingAttendanceBulkUpdateResponse,
-  OrganizationPostingAttendanceResponse,
-  OrganizationPostingEnrollmentAttendanceUpdateResponse,
-} from './attendance.types.js';
-import { getPostingEnrollments } from './postingEnrollments.js';
-import database from '../../../db/index.js';
-import { recomputeVolunteerExperienceVector } from '../../../services/embeddings/updates.js';
+  type OrganizationPostingAttendanceBulkUpdateResponse,
+  type OrganizationPostingAttendanceResponse,
+  type OrganizationPostingEnrollmentAttendanceUpdateResponse,
+} from './attendance.types.ts';
+import { getPostingEnrollments } from './postingEnrollments.ts';
+import database from '../../../db/index.ts';
+import { recomputeVolunteerExperienceVector } from '../../../services/embeddings/updates.ts';
 
 const attendanceRouter = Router();
 

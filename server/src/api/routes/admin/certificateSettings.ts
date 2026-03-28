@@ -1,18 +1,18 @@
 import fs from 'fs';
 
-import { Router, Response } from 'express';
+import { Router, type Response } from 'express';
 import sharp from 'sharp';
 
 import {
-  AdminCertificateSettingsDeleteSignatureResponse,
-  AdminCertificateSettingsGetResponse,
-  AdminCertificateSettingsUpdateResponse,
-  AdminCertificateSettingsUploadSignatureResponse,
-} from './certificateSettings.types.js';
-import database from '../../../db/index.js';
-import { newPlatformCertificateSettingsSchema } from '../../../db/tables/index.js';
-import { getAbsolutePlatformSignaturePath, platformSignatureMulter } from '../../../services/uploads/platformSignature.js';
-import uploadSingle from '../../../services/uploads/uploadSingle.js';
+  type AdminCertificateSettingsDeleteSignatureResponse,
+  type AdminCertificateSettingsGetResponse,
+  type AdminCertificateSettingsUpdateResponse,
+  type AdminCertificateSettingsUploadSignatureResponse,
+} from './certificateSettings.types.ts';
+import database from '../../../db/index.ts';
+import { newPlatformCertificateSettingsSchema } from '../../../db/tables/index.ts';
+import { getAbsolutePlatformSignaturePath, platformSignatureMulter } from '../../../services/uploads/platformSignature.ts';
+import uploadSingle from '../../../services/uploads/uploadSingle.ts';
 
 const certificateSettingsRouter = Router();
 

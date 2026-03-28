@@ -1,6 +1,6 @@
 import path from 'path';
 
-import config from '../../config.js';
+import config from '../../config.ts';
 
 export const CV_UPLOAD_DIR = path.resolve(path.join(config.UPLOAD_DIR, 'cvs'));
 export const ORG_LOGO_UPLOAD_DIR = path.resolve(path.join(config.UPLOAD_DIR, 'org-logos'));

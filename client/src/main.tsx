@@ -15,15 +15,17 @@ import AdminHome from './pages/admin/AdminHome';
 import AdminRequests from './pages/admin/AdminRequests';
 import AdminSettings from './pages/admin/AdminSettings';
 import AdminLogin from './pages/AdminLogin';
+import CalendarInfoDemoPage from './pages/CalendarInfoDemoPage';
 import ForgotPassword from './pages/ForgotPassword';
+import GuidePage from './pages/GuidePage';
 import HomePage from './pages/HomePage';
 import NotFoundPage from './pages/NotFoundPage';
 import OrganizationHome from './pages/organization/OrganizationHome';
 import OrganizationPostingAttendance from './pages/organization/OrganizationPostingAttendance';
 import OrganizationPostingCreate from './pages/organization/OrganizationPostingCreate';
 import OrganizationOwnProfile from './pages/organization/OrganizationProfile';
+import OrganizationSettings from './pages/organization/OrganizationSettings';
 import OrganizationVolunteerProfile from './pages/organization/OrganizationVolunteerProfile';
-import OrganizationSettings from './pages/organization/VolunteerSettings';
 import OrganizationProfile from './pages/OrganizationProfile';
 import OrganizationRequest from './pages/OrganizationRequest';
 import Posting from './pages/Posting';
@@ -31,6 +33,7 @@ import UserLogin from './pages/UserLogin';
 import VolunteerCertificateRequest from './pages/volunteer/VolunteerCertificateRequest';
 import VolunteerCrisisPostings from './pages/volunteer/VolunteerCrisisPostings';
 import VolunteerEnrollments from './pages/volunteer/VolunteerEnrollments';
+import VolunteerForYou from './pages/volunteer/VolunteerForYou';
 import VolunteerHome from './pages/volunteer/VolunteerHome';
 import VolunteerProfile from './pages/volunteer/VolunteerProfile';
 import VolunteerSearch from './pages/volunteer/VolunteerSearch';
@@ -77,11 +80,17 @@ createRoot(document.getElementById('root')!).render(
                 <Route index element={<VolunteerHome />} />
                 <Route path="certificate" element={<VolunteerCertificateRequest />} />
                 <Route path="enrollments" element={<VolunteerEnrollments />} />
+                <Route path="for-you" element={<VolunteerForYou />} />
                 <Route path="crises/:crisisId/postings" element={<VolunteerCrisisPostings />} />
                 <Route path="profile" element={<VolunteerProfile />} />
+                <Route path="certificate" element={<VolunteerCertificateRequest />} />
                 <Route path="search" element={<VolunteerSearch />} />
                 <Route path="settings" element={<VolunteerSettings />} />
               </Route>
+
+              <Route path="organization/:id" element={<OrganizationProfile />} />
+              <Route path="guide" element={<GuidePage />} />
+              <Route path="calendar-demo" element={<CalendarInfoDemoPage />} />
 
               <Route path="/" element={<SharedPage roles={['volunteer', 'organization']} />}>
                 <Route path="posting/:id" element={<Posting />} />

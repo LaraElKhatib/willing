@@ -8,7 +8,9 @@ function LoggedOutPage() {
     <LoggedOutOnly>
       <main className="h-screen flex flex-col">
         <UserNavbar />
-        <Outlet />
+        <div className="overflow-y-scroll flex-1">
+          <Outlet />
+        </div>
       </main>
     </LoggedOutOnly>
   );

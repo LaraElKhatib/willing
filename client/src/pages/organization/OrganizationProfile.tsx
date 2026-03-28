@@ -7,7 +7,9 @@ import { z } from 'zod';
 import { newOrganizationCertificateInfoSchema, organizationAccountSchema } from '../../../../server/src/db/tables';
 import { useOrganization } from '../../auth/useUsers';
 import Alert from '../../components/Alert';
+import Card from '../../components/Card';
 import ColumnLayout from '../../components/layout/ColumnLayout';
+import PageContainer from '../../components/layout/PageContainer';
 import PageHeader from '../../components/layout/PageHeader';
 import Loading from '../../components/Loading';
 import LocationPicker from '../../components/LocationPicker';
@@ -459,311 +461,295 @@ function OrganizationProfile() {
   }
 
   return (
-    <div className="grow bg-base-200">
-      <div className="p-6 md:container mx-auto">
-        <PageHeader
-          title="Profile"
-          subtitle="Manage your organization profile details."
-          actions={(
-            <>
-              {isEditMode
-                ? (
-                    <button className="btn btn-outline" onClick={onCancelEdit} disabled={saving}>
-                      Cancel
-                    </button>
-                  )
-                : (
-                    <button className="btn btn-outline" onClick={() => setIsEditMode(true)}>
-                      Edit Profile
-                    </button>
-                  )}
-              {isEditMode && (
-                <button className="btn btn-primary" onClick={onSave} disabled={saving}>
-                  {saving ? 'Saving...' : 'Save Changes'}
-                </button>
-              )}
-            </>
-          )}
-        />
-
-        <FormRootError form={form} />
-        <FormRootError form={certificateForm} />
-
-        <div className="mt-4">
-          <ColumnLayout
-            sidebar={(
-              <div className="card bg-base-100 shadow-md mt-4">
-                <div className="card-body">
-                  <div className="flex items-center gap-4">
-                    <div className="avatar">
-                      {logoUrl
-                        ? (
-                            <div
-                              className={`w-20 h-20 rounded-full overflow-hidden ring-1 ring-base-300 ${profile.organization.logo_path.toLowerCase().endsWith('.png') ? 'bg-white' : 'bg-base-100'} flex items-center justify-center`}
-                            >
-                              <img
-                                src={logoUrl}
-                                alt={`${profile.organization.name} logo`}
-                                className="h-full w-full object-contain"
-                              />
-                            </div>
-                          )
-                        : (
-                            <div className="bg-primary text-primary-content rounded-full w-20 h-20 flex items-center justify-center">
-                              <span className="text-2xl">{initials || 'O'}</span>
-                            </div>
-                          )}
-                    </div>
-                    <div>
-                      <h4 className="text-xl font-bold">{profile.organization.name || organizationFromAuth?.name || 'Organization'}</h4>
-                      <span className="badge badge-primary badge-sm mt-1 gap-1">
-                        <Building2 size={12} />
-                        Organization
-                      </span>
-                    </div>
-                  </div>
-
-                  {isEditMode && (
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      <input
-                        ref={logoInputRef}
-                        type="file"
-                        accept="image/png,image/jpeg,image/jpg"
-                        className="hidden"
-                        onChange={onUploadLogo}
-                      />
-                      <button
-                        type="button"
-                        className="btn btn-outline btn-sm gap-2"
-                        onClick={() => logoInputRef.current?.click()}
-                        disabled={logoBusy || saving}
-                      >
-                        <ImageUp size={14} />
-                        {logoBusy ? 'Uploading...' : 'Upload Picture'}
-                      </button>
-                      {profile.organization.logo_path && (
-                        <button
-                          type="button"
-                          className="btn btn-outline btn-error btn-sm gap-2"
-                          onClick={onDeleteLogo}
-                          disabled={logoBusy || saving}
-                        >
-                          <Trash2 size={14} />
-                          Remove Picture
-                        </button>
-                      )}
-                    </div>
-                  )}
-
-                  <div className="divider my-4" />
-
-                  {isEditMode
-                    ? (
-                        <div className={`space-y-3 ${saving ? 'pointer-events-none opacity-70' : ''}`}>
-                          <div className="rounded-box border border-base-300 p-3">
-                            <p className="text-xs opacity-70">Organization Name</p>
-                            <p className="font-semibold mt-1">{profile.organization.name || '-'}</p>
-                          </div>
-                          <div className="rounded-box border border-base-300 p-3">
-                            <p className="text-xs opacity-70">Website</p>
-                            <a href={profile.organization.url} target="_blank" rel="noreferrer" className="font-semibold mt-1 inline-flex items-center gap-2 text-primary break-all">
-                              <Globe size={14} />
-                              {profile.organization.url}
-                            </a>
-                          </div>
-                          <FormField form={form} name="phone_number" label="Phone Number" Icon={Phone} />
-                          <FormField form={form} name="location_name" label="Location Name" Icon={MapPin} />
-                          <div>
-                            <label className="text-sm font-medium mb-2 block">Description</label>
-                            <textarea
-                              id="organization-description"
-                              className="textarea textarea-bordered w-full"
-                              {...form.register('description')}
-                              disabled={saving}
-                              rows={5}
-                              maxLength={ORG_DESCRIPTION_MAX_LENGTH}
-                              placeholder="Describe your organization and impact."
-                            />
-                            <p className="text-xs opacity-60 mt-1 text-right">
-                              {formValues.description?.length || 0}
-                              /
-                              {ORG_DESCRIPTION_MAX_LENGTH}
-                            </p>
-                          </div>
-                        </div>
-                      )
-                    : (
-                        <div className="space-y-3 text-sm">
-                          <div className="flex items-start justify-between gap-3">
-                            <span className="opacity-70 flex items-center gap-2">
-                              <Mail size={14} />
-                              Email
-                            </span>
-                            <span className="font-medium text-right break-all">{profile.organization.email}</span>
-                          </div>
-                          <div className="flex items-start justify-between gap-3">
-                            <span className="opacity-70 flex items-center gap-2">
-                              <Phone size={14} />
-                              Phone
-                            </span>
-                            <span className="font-medium text-right">{formValues.phone_number || '-'}</span>
-                          </div>
-                          <div className="flex items-start justify-between gap-3">
-                            <span className="opacity-70 flex items-center gap-2">
-                              <Globe size={14} />
-                              Website
-                            </span>
-                            <a href={profile.organization.url} target="_blank" rel="noreferrer" className="font-medium text-right text-primary break-all hover:underline">
-                              {profile.organization.url || '-'}
-                            </a>
-                          </div>
-                          <div className="flex items-start justify-between gap-3">
-                            <span className="opacity-70 flex items-center gap-2">
-                              <MapPin size={14} />
-                              Location
-                            </span>
-                            <span className="font-medium text-right">{formValues.location_name || '-'}</span>
-                          </div>
-                          <div className="pt-2">
-                            <p className="opacity-70 mb-1">Description</p>
-                            <p className="whitespace-pre-wrap break-words">{formValues.description?.trim() || 'No description added yet.'}</p>
-                          </div>
-                        </div>
-                      )}
-                </div>
-              </div>
+    <PageContainer>
+      <PageHeader
+        title="Profile"
+        subtitle="Manage your organization profile details."
+        actions={(
+          <>
+            {isEditMode
+              ? (
+                  <button className="btn btn-outline" onClick={onCancelEdit} disabled={saving}>
+                    Cancel
+                  </button>
+                )
+              : (
+                  <button className="btn btn-outline" onClick={() => setIsEditMode(true)}>
+                    Edit Profile
+                  </button>
+                )}
+            {isEditMode && (
+              <button className="btn btn-primary" onClick={onSave} disabled={saving}>
+                {saving ? 'Saving...' : 'Save Changes'}
+              </button>
             )}
-          >
-            <div className="card bg-base-100 shadow-md mt-4">
-              <div className="card-body">
-                <h5 className="font-bold text-lg flex items-center gap-2">
-                  <MapPin size={18} />
-                  Location on Map
-                </h5>
-                <p className="text-sm opacity-70 mt-1">Update your pinned location for volunteers.</p>
-                <div className={`mt-3 ${isEditMode && saving ? 'pointer-events-none opacity-70' : ''}`}>
-                  <LocationPicker
-                    position={position}
-                    setPosition={isEditMode ? onMapPositionPick : () => {}}
-                    readOnly={!isEditMode}
-                    className="h-72"
-                  />
-                </div>
-              </div>
-            </div>
+          </>
+        )}
+      />
 
-            <div className="card bg-base-100 shadow-md">
-              <div className="card-body">
-                <h5 className="font-bold text-lg flex items-center gap-2">
-                  <ShieldCheck size={18} />
-                  Certificate Settings
-                </h5>
-                <p className="text-sm opacity-70 mt-1">
-                  Allow volunteers to include this organization on generated certificates.
-                </p>
+      <FormRootError form={form} />
+      <FormRootError form={certificateForm} />
 
-                {isEditMode
+      <ColumnLayout
+        sidebar={(
+          <Card>
+            <div className="flex items-center gap-4">
+              <div className="avatar">
+                {logoUrl
                   ? (
-                      <div className={`mt-3 space-y-4 ${saving ? 'pointer-events-none opacity-70' : ''}`}>
-                        <ToggleButton
-                          form={certificateForm}
-                          name="certificate_feature_enabled"
-                          label="Enable Certificate Feature"
-                          compact={true}
-                          options={[
-                            { value: true, label: 'Enabled', btnColor: 'btn-primary' },
-                            { value: false, label: 'Disabled' },
-                          ]}
-                          disabled={saving}
+                      <div
+                        className={`w-20 h-20 rounded-full overflow-hidden ring-1 ring-base-300 ${profile.organization.logo_path.toLowerCase().endsWith('.png') ? 'bg-white' : 'bg-base-100'} flex items-center justify-center`}
+                      >
+                        <img
+                          src={logoUrl}
+                          alt={`${profile.organization.name} logo`}
+                          className="h-full w-full object-contain"
                         />
-
-                        {!profile.organization.logo_path && (
-                          <Alert color="warning">
-                            Upload organization profile picture before enabling this feature.
-                          </Alert>
-                        )}
-
-                        {certificateValues.certificate_feature_enabled && (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <FormField
-                              form={certificateForm}
-                              name="hours_threshold"
-                              label="Minimum Volunteer Hours (for certificate eligibility)"
-                              type="number"
-                            />
-                            <FormField
-                              form={certificateForm}
-                              name="signatory_name"
-                              label="Signatory Name"
-                            />
-                            <FormField
-                              form={certificateForm}
-                              name="signatory_position"
-                              label="Signatory Position"
-                            />
-                            <div className="space-y-2">
-                              <label className="text-sm font-medium block">Signature</label>
-                              <SignatureUploadField
-                                busy={signatureBusy}
-                                disabled={saving}
-                                hasSignature={Boolean(certificateInfo?.signature_path)}
-                                previewUrl={signatureUrl}
-                                emptyMessage="No signature uploaded yet."
-                                uploadLabel="Upload Signature"
-                                drawLabel="Draw Signature"
-                                fileNamePrefix="signature-drawn"
-                                onUploadFile={uploadSignatureFile}
-                                onDelete={onDeleteSignature}
-                                onError={message => notifications.push({ type: 'error', message })}
-                              />
-                              {certificateForm.formState.errors.hasSignature?.message && (
-                                <p className="text-xs text-error">{certificateForm.formState.errors.hasSignature.message}</p>
-                              )}
-                            </div>
-                          </div>
-                        )}
                       </div>
                     )
                   : (
-                      <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                        <div className="rounded-box border border-base-300 p-3">
-                          <p className="opacity-70">Feature Status</p>
-                          <p className="font-semibold mt-1">
-                            {certificateInfo?.certificate_feature_enabled ? 'Enabled' : 'Disabled'}
-                          </p>
-                        </div>
-                        <div className="rounded-box border border-base-300 p-3">
-                          <p className="opacity-70">Minimum Volunteer Hours</p>
-                          <p className="font-semibold mt-1">{certificateInfo?.hours_threshold ?? '-'}</p>
-                        </div>
-                        <div className="rounded-box border border-base-300 p-3">
-                          <p className="opacity-70">Signatory Name</p>
-                          <p className="font-semibold mt-1">{certificateInfo?.signatory_name || '-'}</p>
-                        </div>
-                        <div className="rounded-box border border-base-300 p-3">
-                          <p className="opacity-70">Signatory Position</p>
-                          <p className="font-semibold mt-1">{certificateInfo?.signatory_position || '-'}</p>
-                        </div>
-                        <div className="rounded-box border border-base-300 p-3 md:col-span-2">
-                          <p className="opacity-70">Signature</p>
-                          {signatureUrl
-                            ? (
-                                <img
-                                  src={signatureUrl}
-                                  alt="Organization signature"
-                                  className="mt-2 h-14 w-auto object-contain"
-                                />
-                              )
-                            : <p className="font-semibold mt-1">No signature uploaded</p>}
-                        </div>
+                      <div className="bg-primary text-primary-content rounded-full w-20 h-20 flex items-center justify-center">
+                        <span className="text-2xl">{initials || 'O'}</span>
                       </div>
                     )}
               </div>
+              <div>
+                <h4 className="text-xl font-bold">{profile.organization.name || organizationFromAuth?.name || 'Organization'}</h4>
+                <span className="badge badge-primary badge-sm mt-1 gap-1">
+                  <Building2 size={12} />
+                  Organization
+                </span>
+              </div>
             </div>
-          </ColumnLayout>
-        </div>
-      </div>
-    </div>
+
+            {isEditMode && (
+              <div className="mt-4 flex flex-wrap gap-2">
+                <input
+                  ref={logoInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/jpg"
+                  className="hidden"
+                  onChange={onUploadLogo}
+                />
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm gap-2"
+                  onClick={() => logoInputRef.current?.click()}
+                  disabled={logoBusy || saving}
+                >
+                  <ImageUp size={14} />
+                  {logoBusy ? 'Uploading...' : 'Upload Picture'}
+                </button>
+                {profile.organization.logo_path && (
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-error btn-sm gap-2"
+                    onClick={onDeleteLogo}
+                    disabled={logoBusy || saving}
+                  >
+                    <Trash2 size={14} />
+                    Remove Picture
+                  </button>
+                )}
+              </div>
+            )}
+
+            <div className="divider my-4" />
+
+            {isEditMode
+              ? (
+                  <div className={`space-y-3 ${saving ? 'pointer-events-none opacity-70' : ''}`}>
+                    <div className="rounded-box border border-base-300 p-3">
+                      <p className="text-xs opacity-70">Organization Name</p>
+                      <p className="font-semibold mt-1">{profile.organization.name || '-'}</p>
+                    </div>
+                    <div className="rounded-box border border-base-300 p-3">
+                      <p className="text-xs opacity-70">Website</p>
+                      <a href={profile.organization.url} target="_blank" rel="noreferrer" className="font-semibold mt-1 inline-flex items-center gap-2 text-primary break-all">
+                        <Globe size={14} />
+                        {profile.organization.url}
+                      </a>
+                    </div>
+                    <FormField form={form} name="phone_number" label="Phone Number" Icon={Phone} />
+                    <FormField form={form} name="location_name" label="Location Name" Icon={MapPin} />
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Description</label>
+                      <textarea
+                        id="organization-description"
+                        className="textarea textarea-bordered w-full"
+                        {...form.register('description')}
+                        disabled={saving}
+                        rows={5}
+                        maxLength={ORG_DESCRIPTION_MAX_LENGTH}
+                        placeholder="Describe your organization and impact."
+                      />
+                      <p className="text-xs opacity-60 mt-1 text-right">
+                        {formValues.description?.length || 0}
+                        /
+                        {ORG_DESCRIPTION_MAX_LENGTH}
+                      </p>
+                    </div>
+                  </div>
+                )
+              : (
+                  <div className="space-y-3 text-sm">
+                    <div className="flex items-start justify-between gap-3">
+                      <span className="opacity-70 flex items-center gap-2">
+                        <Mail size={14} />
+                        Email
+                      </span>
+                      <span className="font-medium text-right break-all">{profile.organization.email}</span>
+                    </div>
+                    <div className="flex items-start justify-between gap-3">
+                      <span className="opacity-70 flex items-center gap-2">
+                        <Phone size={14} />
+                        Phone
+                      </span>
+                      <span className="font-medium text-right">{formValues.phone_number || '-'}</span>
+                    </div>
+                    <div className="flex items-start justify-between gap-3">
+                      <span className="opacity-70 flex items-center gap-2">
+                        <Globe size={14} />
+                        Website
+                      </span>
+                      <a href={profile.organization.url} target="_blank" rel="noreferrer" className="font-medium text-right text-primary break-all hover:underline">
+                        {profile.organization.url || '-'}
+                      </a>
+                    </div>
+                    <div className="flex items-start justify-between gap-3">
+                      <span className="opacity-70 flex items-center gap-2">
+                        <MapPin size={14} />
+                        Location
+                      </span>
+                      <span className="font-medium text-right">{formValues.location_name || '-'}</span>
+                    </div>
+                    <div className="pt-2">
+                      <p className="opacity-70 mb-1">Description</p>
+                      <p className="whitespace-pre-wrap break-words">{formValues.description?.trim() || 'No description added yet.'}</p>
+                    </div>
+                  </div>
+                )}
+          </Card>
+        )}
+      >
+        <Card
+          title="Location"
+          description="Update your pinned location for volunteers."
+          Icon={MapPin}
+        >
+          <LocationPicker
+            position={position}
+            setPosition={isEditMode ? onMapPositionPick : () => {}}
+            readOnly={!isEditMode}
+            className="h-72"
+          />
+        </Card>
+
+        <Card
+          title="Certificate Settings"
+          description="Allow volunteers to include this organization on generated certificates."
+          Icon={ShieldCheck}
+        >
+
+          {isEditMode
+            ? (
+                <div className={`mt-3 space-y-4 ${saving ? 'pointer-events-none opacity-70' : ''}`}>
+                  <ToggleButton
+                    form={certificateForm}
+                    name="certificate_feature_enabled"
+                    label="Enable Certificate Feature"
+                    compact={true}
+                    options={[
+                      { value: true, label: 'Enabled', btnColor: 'btn-primary' },
+                      { value: false, label: 'Disabled' },
+                    ]}
+                    disabled={saving}
+                  />
+
+                  {!profile.organization.logo_path && (
+                    <Alert color="warning">
+                      Upload organization profile picture before enabling this feature.
+                    </Alert>
+                  )}
+
+                  {certificateValues.certificate_feature_enabled && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField
+                        form={certificateForm}
+                        name="hours_threshold"
+                        label="Minimum Volunteer Hours (for certificate eligibility)"
+                        type="number"
+                      />
+                      <FormField
+                        form={certificateForm}
+                        name="signatory_name"
+                        label="Signatory Name"
+                      />
+                      <FormField
+                        form={certificateForm}
+                        name="signatory_position"
+                        label="Signatory Position"
+                      />
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium block">Signature</label>
+                        <SignatureUploadField
+                          busy={signatureBusy}
+                          disabled={saving}
+                          hasSignature={Boolean(certificateInfo?.signature_path)}
+                          previewUrl={signatureUrl}
+                          emptyMessage="No signature uploaded yet."
+                          uploadLabel="Upload Signature"
+                          drawLabel="Draw Signature"
+                          fileNamePrefix="signature-drawn"
+                          onUploadFile={uploadSignatureFile}
+                          onDelete={onDeleteSignature}
+                          onError={message => notifications.push({ type: 'error', message })}
+                        />
+                        {certificateForm.formState.errors.hasSignature?.message && (
+                          <p className="text-xs text-error">{certificateForm.formState.errors.hasSignature.message}</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            : (
+                <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div className="rounded-box border border-base-300 p-3">
+                    <p className="opacity-70">Feature Status</p>
+                    <p className="font-semibold mt-1">
+                      {certificateInfo?.certificate_feature_enabled ? 'Enabled' : 'Disabled'}
+                    </p>
+                  </div>
+                  <div className="rounded-box border border-base-300 p-3">
+                    <p className="opacity-70">Minimum Volunteer Hours</p>
+                    <p className="font-semibold mt-1">{certificateInfo?.hours_threshold ?? '-'}</p>
+                  </div>
+                  <div className="rounded-box border border-base-300 p-3">
+                    <p className="opacity-70">Signatory Name</p>
+                    <p className="font-semibold mt-1">{certificateInfo?.signatory_name || '-'}</p>
+                  </div>
+                  <div className="rounded-box border border-base-300 p-3">
+                    <p className="opacity-70">Signatory Position</p>
+                    <p className="font-semibold mt-1">{certificateInfo?.signatory_position || '-'}</p>
+                  </div>
+                  <div className="rounded-box border border-base-300 p-3 md:col-span-2">
+                    <p className="opacity-70">Signature</p>
+                    {signatureUrl
+                      ? (
+                          <img
+                            src={signatureUrl}
+                            alt="Organization signature"
+                            className="mt-2 h-14 w-auto object-contain"
+                          />
+                        )
+                      : <p className="font-semibold mt-1">No signature uploaded</p>}
+                  </div>
+                </div>
+              )}
+        </Card>
+      </ColumnLayout>
+    </PageContainer>
   );
 }
 
