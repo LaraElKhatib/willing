@@ -12,14 +12,12 @@ services:
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
     ports:
       - "${POSTGRES_PORT}:5432"
-
-  adminer:
-    image: adminer
-    container_name: willing-test-adminer
-    environment:
-      ADMINER_DESIGN: brade
-      ADMINER_DEFAULT_SERVER: postgres
-    ports:
-      - "5050:8080"
-    depends_on:
-      - postgres
+    command: >
+      postgres
+      -c fsync=off
+      -c synchronous_commit=off
+      -c full_page_writes=off
+      -c shared_buffers=128MB
+      -c max_connections=50
+    tmpfs:
+      - /var/lib/postgresql/data
