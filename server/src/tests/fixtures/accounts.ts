@@ -7,6 +7,9 @@ type OrganizationFixtureOptions = {
   email?: string;
   password?: string;
   name?: string;
+  phone_number?: string;
+  url?: string;
+  created_at?: Date;
 };
 
 type VolunteerFixtureOptions = {
@@ -14,6 +17,7 @@ type VolunteerFixtureOptions = {
   password?: string;
   first_name?: string;
   last_name?: string;
+  created_at?: Date;
 };
 
 const DEFAULT_ORG_PASSWORD = 'OrgPassword123!';
@@ -29,6 +33,9 @@ export async function createOrganizationAccount({
   email = 'org@example.com',
   password,
   name = 'Helping Hands',
+  phone_number = '+10000000000',
+  url = 'https://example.org',
+  created_at = new Date(),
 }: OrganizationFixtureOptions = {}): Promise<{
   organization: OrganizationAccount;
   plainPassword: string;
@@ -41,11 +48,11 @@ export async function createOrganizationAccount({
     .values({
       name,
       email,
-      phone_number: '+10000000000',
-      url: 'https://example.org',
+      phone_number,
+      url,
       location_name: 'Beirut',
       password: hashedPassword,
-      created_at: now,
+      created_at,
       updated_at: now,
       is_disabled: false,
       is_deleted: false,
@@ -61,6 +68,7 @@ export async function createVolunteerAccount({
   password,
   first_name = 'Jane',
   last_name = 'Doe',
+  created_at = new Date(),
 }: VolunteerFixtureOptions = {}): Promise<{
   volunteer: VolunteerAccount;
   plainPassword: string;
@@ -77,7 +85,7 @@ export async function createVolunteerAccount({
       password: hashedPassword,
       date_of_birth: '2000-01-01',
       gender: 'female',
-      created_at: now,
+      created_at,
       updated_at: now,
       is_disabled: false,
       is_deleted: false,
