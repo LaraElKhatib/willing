@@ -10,6 +10,8 @@ interface PostingListProps {
   posting: PostingWithContext;
   showCrisis?: boolean;
   variant?: 'volunteer' | 'organization';
+  compactOrganizationLayout?: boolean;
+  volunteerOutsideMetaAt1700?: boolean;
 }
 
 const normalizeTimestamp = (value: string | Date | undefined | null) => {
@@ -39,7 +41,13 @@ const formatCardDate = (dateValue: Date | null) => {
   }).format(dateValue);
 };
 
-function PostingList({ posting, showCrisis = true, variant = 'volunteer' }: PostingListProps) {
+function PostingList({
+  posting,
+  showCrisis = true,
+  variant = 'volunteer',
+  compactOrganizationLayout = false,
+  volunteerOutsideMetaAt1700 = false,
+}: PostingListProps) {
   const postingDetailsPath = `/posting/${posting.id}`;
   const hasOrganizationName = Boolean(posting.organization_name);
 
@@ -119,6 +127,37 @@ function PostingList({ posting, showCrisis = true, variant = 'volunteer' }: Post
                 </span>
               );
 
+  const organizationMetaGridClasses = compactOrganizationLayout
+    ? 'min-[1700px]:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] min-[1700px]:grid-rows-2'
+    : '2xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] 2xl:grid-rows-2';
+  const organizationTitleColumnClasses = compactOrganizationLayout
+    ? 'min-[1700px]:row-span-2 min-[1700px]:flex min-[1700px]:self-stretch min-[1700px]:flex-col'
+    : '2xl:row-span-2 2xl:flex 2xl:self-stretch 2xl:flex-col';
+  const organizationTitleAlignmentClasses = compactOrganizationLayout
+    ? (hasOrganizationName ? 'min-[1700px]:justify-start' : 'min-[1700px]:justify-center')
+    : (hasOrganizationName ? '2xl:justify-start' : '2xl:justify-center');
+  const outsideMetaLabelVisibleClass = variant === 'organization'
+    ? (compactOrganizationLayout ? 'min-[1700px]:inline-flex' : '2xl:inline-flex')
+    : (volunteerOutsideMetaAt1700 ? 'min-[1700px]:inline-flex' : 'lg:inline-flex');
+  const outsideMetaValueVisibleClass = variant === 'organization'
+    ? (compactOrganizationLayout ? 'min-[1700px]:block' : '2xl:block')
+    : (volunteerOutsideMetaAt1700 ? 'min-[1700px]:block' : 'lg:block');
+  const insideMetaVisibleClass = variant === 'organization'
+    ? (compactOrganizationLayout ? 'block min-[1700px]:hidden' : '2xl:hidden')
+    : (volunteerOutsideMetaAt1700 ? 'min-[1700px]:hidden' : 'lg:hidden');
+  const organizationTagInlineClass = compactOrganizationLayout
+    ? 'block min-[1700px]:hidden'
+    : 'block 2xl:hidden';
+  const organizationTagBelowClass = compactOrganizationLayout
+    ? 'hidden min-[1700px]:block'
+    : 'hidden 2xl:block';
+  const volunteerTagNearTitleClass = volunteerOutsideMetaAt1700
+    ? 'block min-[1700px]:hidden'
+    : 'block lg:hidden 2xl:block';
+  const volunteerTagNearOrganizationClass = volunteerOutsideMetaAt1700
+    ? 'hidden min-[1700px]:block'
+    : 'hidden lg:block 2xl:hidden';
+
   return (
 
     <div className="relative overflow-visible">
@@ -160,9 +199,9 @@ function PostingList({ posting, showCrisis = true, variant = 'volunteer' }: Post
           </div>
 
           <div className="min-w-0 flex-1 relative">
-            <div className={`grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 ${variant === 'organization' ? '2xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] 2xl:grid-rows-2' : 'lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] lg:grid-rows-2'}`}>
+            <div className={`grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 ${variant === 'organization' ? organizationMetaGridClasses : 'lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] lg:grid-rows-2'}`}>
               <div
-                className={`min-w-0 ${variant === 'organization' ? '2xl:row-span-2 2xl:flex 2xl:self-stretch 2xl:flex-col' : 'lg:row-span-2 lg:flex lg:self-stretch lg:flex-col'} ${variant === 'organization' ? (hasOrganizationName ? '2xl:justify-start' : '2xl:justify-center') : (hasOrganizationName ? 'lg:justify-start' : 'lg:justify-center')}`}
+                className={`min-w-0 ${variant === 'organization' ? organizationTitleColumnClasses : 'lg:row-span-2 lg:flex lg:self-stretch lg:flex-col'} ${variant === 'organization' ? organizationTitleAlignmentClasses : (hasOrganizationName ? 'lg:justify-start' : 'lg:justify-center')}`}
               >
                 <div className="flex min-w-0 items-center gap-2">
                   <Link
@@ -175,16 +214,16 @@ function PostingList({ posting, showCrisis = true, variant = 'volunteer' }: Post
                   </Link>
 
                   {variant === 'organization' && (
-                    <div className="shrink-0 opacity-100 block 2xl:hidden">{statusTag}</div>
+                    <div className={`shrink-0 opacity-100 ${organizationTagInlineClass}`}>{statusTag}</div>
                   )}
 
                   {variant === 'volunteer' && (
-                    <div className="shrink-0 opacity-100 block lg:hidden 2xl:block">{statusTag}</div>
+                    <div className={`shrink-0 opacity-100 ${volunteerTagNearTitleClass}`}>{statusTag}</div>
                   )}
                 </div>
 
                 {variant === 'organization' && (
-                  <div className="mt-1 shrink-0 opacity-100 hidden 2xl:block">{statusTag}</div>
+                  <div className={`mt-1 shrink-0 opacity-100 ${organizationTagBelowClass}`}>{statusTag}</div>
                 )}
 
                 {variant === 'volunteer' && (
@@ -198,37 +237,37 @@ function PostingList({ posting, showCrisis = true, variant = 'volunteer' }: Post
                         {posting.organization_name}
                       </Link>
                     )}
-                    <div className="shrink-0 opacity-100 hidden lg:block 2xl:hidden">{statusTag}</div>
+                    <div className={`shrink-0 opacity-100 ${volunteerTagNearOrganizationClass}`}>{statusTag}</div>
                   </div>
                 )}
               </div>
 
-              <span className={`-ml-8 hidden items-center gap-1.5 justify-self-start text-sm opacity-70 ${variant === 'organization' ? '2xl:inline-flex' : 'lg:inline-flex'}`}>
+              <span className={`-ml-8 hidden items-center gap-1.5 justify-self-start text-sm opacity-70 ${outsideMetaLabelVisibleClass}`}>
                 <Calendar size={14} className="shrink-0 text-primary" />
                 Date
               </span>
 
-              <span className={`-ml-8 hidden items-center gap-1.5 justify-self-start text-sm opacity-70 ${variant === 'organization' ? '2xl:inline-flex' : 'lg:inline-flex'}`}>
+              <span className={`-ml-8 hidden items-center gap-1.5 justify-self-start text-sm opacity-70 ${outsideMetaLabelVisibleClass}`}>
                 <Clock size={14} className="shrink-0 text-primary" />
                 Time
               </span>
 
-              <span className={`-ml-8 hidden items-center gap-1.5 justify-self-start text-sm opacity-70 ${variant === 'organization' ? '2xl:inline-flex' : 'lg:inline-flex'}`}>
+              <span className={`-ml-8 hidden items-center gap-1.5 justify-self-start text-sm opacity-70 ${outsideMetaLabelVisibleClass}`}>
                 <MapPin size={14} className="shrink-0 text-primary" />
                 Location
               </span>
 
-              <span className={`-ml-8 hidden min-w-0 truncate justify-self-start pr-1 text-xs font-medium text-base-content ${variant === 'organization' ? '2xl:block' : 'lg:block'}`}>{hasEndDate ? `${startDateStr} - ${endDateStr}` : startDateStr}</span>
+              <span className={`-ml-8 hidden min-w-0 truncate justify-self-start pr-1 text-xs font-medium text-base-content ${outsideMetaValueVisibleClass}`}>{hasEndDate ? `${startDateStr} - ${endDateStr}` : startDateStr}</span>
 
-              <span className={`-ml-8 hidden min-w-0 truncate justify-self-start pr-1 text-xs font-medium text-base-content ${variant === 'organization' ? '2xl:block' : 'lg:block'}`}>{hasEndDate ? `${startTimeStr} - ${endTimeStr}` : startTimeStr}</span>
+              <span className={`-ml-8 hidden min-w-0 truncate justify-self-start pr-1 text-xs font-medium text-base-content ${outsideMetaValueVisibleClass}`}>{hasEndDate ? `${startTimeStr} - ${endTimeStr}` : startTimeStr}</span>
 
-              <span className={`-ml-8 hidden min-w-0 truncate justify-self-start text-xs font-medium text-base-content ${variant === 'organization' ? '2xl:block' : 'lg:block'}`}>{locationText}</span>
+              <span className={`-ml-8 hidden min-w-0 truncate justify-self-start text-xs font-medium text-base-content ${outsideMetaValueVisibleClass}`}>{locationText}</span>
             </div>
           </div>
         </div>
 
         <div className="collapse-content pt-0">
-          <div className={`mb-3 space-y-1 text-sm ${variant === 'organization' ? '2xl:hidden' : 'lg:hidden'}`}>
+          <div className={`mb-3 space-y-1 text-sm ${insideMetaVisibleClass}`}>
             <div className="inline-flex items-center gap-2">
               <Calendar size={14} className="text-primary" />
               <span className="opacity-70">Date:</span>

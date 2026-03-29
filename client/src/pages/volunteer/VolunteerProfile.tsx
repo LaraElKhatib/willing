@@ -728,7 +728,12 @@ function VolunteerProfile() {
             : (
                 <div className="mt-4 space-y-3">
                   {visibleExperiencePostings.map(posting => (
-                    <PostingList key={posting.id} posting={posting} showCrisis={false} />
+                    <PostingList
+                      key={posting.id}
+                      posting={posting}
+                      showCrisis={false}
+                      volunteerOutsideMetaAt1700
+                    />
                   ))}
 
                   {hasHiddenCompletedExperiences && (
