@@ -1,0 +1,316 @@
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+
+import database from '../../db/index.ts';
+import { compare } from '../../services/bcrypt/index.ts';
+import * as emailService from '../../services/smtp/emails.ts';
+import { createAdminAccount, createOrganizationAccount, createVolunteerAccount } from '../../tests/fixtures/accounts.ts';
+import { server } from '../../tests/setup.ts';
+
+const sendPasswordResetEmailSpy = vi
+  .spyOn(emailService, 'sendPasswordResetEmail')
+  .mockResolvedValue(undefined);
+
+beforeEach(async () => {
+  await database.deleteFrom('password_reset_token').execute();
+  await database.deleteFrom('volunteer_account').execute();
+  await database.deleteFrom('organization_account').execute();
+  await database.deleteFrom('admin_account').execute();
+});
+
+afterEach(() => {
+  sendPasswordResetEmailSpy.mockClear();
+});
+
+describe('POST /user/login', () => {
+  test('logs in organization account with valid credentials', async () => {
+    const { organization, plainPassword } = await createOrganizationAccount();
+
+    const response = await server
+      .post('/user/login')
+      .send({ email: organization.email, password: plainPassword })
+      .expect(200);
+
+    expect(response.body.role).toBe('organization');
+    expect(typeof response.body.token).toBe('string');
+    expect(response.body.organization).toMatchObject({
+      id: organization.id,
+      email: organization.email,
+      name: organization.name,
+    });
+    expect(response.body.organization.password).toBeUndefined();
+    expect(response.body.organization.org_vector).toBeUndefined();
+  });
+
+  test('logs in volunteer account with valid credentials', async () => {
+    const { volunteer, plainPassword } = await createVolunteerAccount({
+      email: 'login-vol@example.com',
+    });
+
+    const response = await server
+      .post('/user/login')
+      .send({ email: volunteer.email, password: plainPassword })
+      .expect(200);
+
+    expect(response.body.role).toBe('volunteer');
+    expect(response.body.volunteer).toMatchObject({
+      id: volunteer.id,
+      email: volunteer.email,
+      first_name: volunteer.first_name,
+    });
+    expect(response.body.volunteer.password).toBeUndefined();
+    expect(response.body.volunteer.profile_vector).toBeUndefined();
+    expect(response.body.volunteer.experience_vector).toBeUndefined();
+  });
+
+  test('rejects login for inexistent account', async () => {
+    const response = await server
+      .post('/user/login')
+      .send({ email: 'missing@example.com', password: 'password' })
+      .expect(403);
+
+    expect(response.body.message).toBe('Invalid email or password');
+  });
+
+  test('rejects login for organization account', async () => {
+    const { organization } = await createOrganizationAccount();
+
+    const response = await server
+      .post('/user/login')
+      .send({ email: organization.email, password: 'wrongpassword' })
+      .expect(403);
+
+    expect(response.body.message).toBe('Invalid email or password');
+  });
+
+  test('rejects login for volunteer account', async () => {
+    const { volunteer } = await createVolunteerAccount();
+
+    const response = await server
+      .post('/user/login')
+      .send({ email: volunteer.email, password: 'wrongpassword' })
+      .expect(403);
+
+    expect(response.body.message).toBe('Invalid email or password');
+  });
+
+  test('rejects login for correct admin credentials', async () => {
+    const { admin, plainPassword } = await createAdminAccount();
+
+    const response = await server
+      .post('/user/login')
+      .send({ email: admin.email, password: plainPassword })
+      .expect(403);
+
+    expect(response.body.message).toBe('Invalid email or password');
+  });
+});
+
+describe('POST /user/forgot-password', () => {
+  test('silently succeeds when the email is unknown', async () => {
+    const response = await server
+      .post('/user/forgot-password')
+      .send({ email: 'unknown@example.com' })
+      .expect(200);
+
+    expect(response.body).toEqual({});
+
+    const tokens = await database
+      .selectFrom('password_reset_token')
+      .selectAll()
+      .execute();
+    expect(tokens).toHaveLength(0);
+    expect(sendPasswordResetEmailSpy).not.toHaveBeenCalled();
+  });
+
+  test('creates a reset token and emails organization', async () => {
+    const { organization } = await createOrganizationAccount();
+
+    const response = await server
+      .post('/user/forgot-password')
+      .send({ email: organization.email })
+      .expect(200);
+
+    expect(response.body).toEqual({});
+
+    const tokens = await database
+      .selectFrom('password_reset_token')
+      .selectAll()
+      .execute();
+
+    expect(tokens).toHaveLength(1);
+    expect(tokens[0]!.user_id).toBe(organization.id);
+    expect(tokens[0]!.role).toBe('organization');
+
+    expect(sendPasswordResetEmailSpy).toHaveBeenCalledTimes(1);
+    expect(sendPasswordResetEmailSpy).toHaveBeenCalledWith(
+      organization.email,
+      organization.name,
+      tokens[0]!.token,
+    );
+  });
+
+  test('creates a reset token and emails volunteer', async () => {
+    const { volunteer } = await createVolunteerAccount();
+
+    const response = await server
+      .post('/user/forgot-password')
+      .send({ email: volunteer.email })
+      .expect(200);
+
+    expect(response.body).toEqual({});
+
+    const tokens = await database
+      .selectFrom('password_reset_token')
+      .selectAll()
+      .execute();
+
+    expect(tokens).toHaveLength(1);
+    expect(tokens[0]!.user_id).toBe(volunteer.id);
+    expect(tokens[0]!.role).toBe('volunteer');
+
+    expect(sendPasswordResetEmailSpy).toHaveBeenCalledTimes(1);
+    expect(sendPasswordResetEmailSpy).toHaveBeenCalledWith(
+      volunteer.email,
+      `${volunteer.first_name} ${volunteer.last_name}`,
+      tokens[0]!.token,
+    );
+  });
+
+  test('doesn\'t create a reset token for admin', async () => {
+    const { admin } = await createAdminAccount({
+      email: 'reset-admin@example.com',
+    });
+
+    const response = await server
+      .post('/user/forgot-password')
+      .send({ email: admin.email })
+      .expect(200);
+
+    expect(response.body).toEqual({});
+
+    const tokens = await database
+      .selectFrom('password_reset_token')
+      .selectAll()
+      .execute();
+
+    expect(tokens).toHaveLength(0);
+
+    expect(sendPasswordResetEmailSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe('POST /user/forgot-password/reset', () => {
+  test('updates the password of a volunteer and deletes the token', async () => {
+    const { volunteer } = await createVolunteerAccount({
+      email: 'needs-reset@example.com',
+      password: 'OldPassword123!',
+    });
+
+    const resetTokenKey = 'test-reset-token';
+    await database
+      .insertInto('password_reset_token')
+      .values({
+        user_id: volunteer.id,
+        role: 'volunteer',
+        token: resetTokenKey,
+        expires_at: new Date(Date.now() + 60 * 60 * 1000),
+        created_at: new Date(),
+      })
+      .execute();
+
+    const newPassword = 'NewPassword123!';
+    const response = await server
+      .post('/user/forgot-password/reset')
+      .send({ key: resetTokenKey, password: newPassword })
+      .expect(200);
+
+    expect(response.body).toEqual({});
+
+    const updatedVolunteer = await database
+      .selectFrom('volunteer_account')
+      .select(['password'])
+      .where('id', '=', volunteer.id)
+      .executeTakeFirstOrThrow();
+
+    expect(await compare(newPassword, updatedVolunteer.password)).toBe(true);
+
+    const tokens = await database
+      .selectFrom('password_reset_token')
+      .selectAll()
+      .execute();
+    expect(tokens).toHaveLength(0);
+  });
+
+  test('updates the password of an organization and deletes the token', async () => {
+    const { organization } = await createOrganizationAccount({
+      email: 'needs-reset@example.com',
+      password: 'OldPassword123!',
+    });
+
+    const resetTokenKey = 'test-reset-token';
+    await database
+      .insertInto('password_reset_token')
+      .values({
+        user_id: organization.id,
+        role: 'organization',
+        token: resetTokenKey,
+        expires_at: new Date(Date.now() + 60 * 60 * 1000),
+        created_at: new Date(),
+      })
+      .execute();
+
+    const newPassword = 'NewPassword123!';
+    const response = await server
+      .post('/user/forgot-password/reset')
+      .send({ key: resetTokenKey, password: newPassword })
+      .expect(200);
+
+    expect(response.body).toEqual({});
+
+    const updatedOrganization = await database
+      .selectFrom('organization_account')
+      .select(['password'])
+      .where('id', '=', organization.id)
+      .executeTakeFirstOrThrow();
+
+    expect(await compare(newPassword, updatedOrganization.password)).toBe(true);
+
+    const tokens = await database
+      .selectFrom('password_reset_token')
+      .selectAll()
+      .execute();
+    expect(tokens).toHaveLength(0);
+  });
+
+  test('returns 400 for unknown reset tokens', async () => {
+    await server
+      .post('/user/forgot-password/reset')
+      .send({ key: 'unknown-token', password: 'Whatever123!' })
+      .expect(400);
+  });
+
+  test('doesn\'t allow setting a weak password', async () => {
+    const { volunteer } = await createVolunteerAccount({
+      email: 'needs-reset@example.com',
+      password: 'OldPassword123!',
+    });
+
+    const resetTokenKey = 'test-reset-token';
+    await database
+      .insertInto('password_reset_token')
+      .values({
+        user_id: volunteer.id,
+        role: 'volunteer',
+        token: resetTokenKey,
+        expires_at: new Date(Date.now() + 60 * 60 * 1000),
+        created_at: new Date(),
+      })
+      .execute();
+
+    const newPassword = 'weakpassword';
+    await server
+      .post('/user/forgot-password/reset')
+      .send({ key: resetTokenKey, password: newPassword })
+      .expect(400);
+  });
+});
