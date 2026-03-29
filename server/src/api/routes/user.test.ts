@@ -289,10 +289,34 @@ describe('POST /user/forgot-password/reset', () => {
     expect(tokens).toHaveLength(0);
   });
 
-  test('returns 400 for unknown reset tokens', async () => {
+  test('returns 400 for unknown reset token', async () => {
     await server
       .post('/user/forgot-password/reset')
       .send({ key: 'unknown-token', password: 'Whatever123!' })
+      .expect(400);
+  });
+
+  test('returns 400 for expired token', async () => {
+    const { organization } = await createOrganizationAccount({
+      email: 'needs-reset@example.com',
+      password: 'OldPassword123!',
+    });
+
+    const resetTokenKey = 'test-reset-token';
+    await transaction
+      .insertInto('password_reset_token')
+      .values({
+        user_id: organization.id,
+        role: 'organization',
+        token: resetTokenKey,
+        expires_at: new Date(Date.now() - 60 * 1000),
+        created_at: new Date(Date.now() - 61 * 60 * 1000),
+      })
+      .execute();
+
+    await server
+      .post('/user/forgot-password/reset')
+      .send({ key: resetTokenKey, password: 'Whatever123!' })
       .expect(400);
   });
 
