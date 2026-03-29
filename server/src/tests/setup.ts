@@ -1,13 +1,7 @@
 import { sql } from 'kysely';
-import supertest from 'supertest';
 import { beforeAll, beforeEach } from 'vitest';
 
-import app from '../app.ts';
 import { truncateAllTables } from './helpers/database.ts';
-
-import type TestAgent from 'supertest/lib/agent.js';
-
-export let server: TestAgent;
 
 beforeAll(async () => {
   const [{ default: config }, { default: database }, { migrateToLatest }] = await Promise.all([
@@ -21,8 +15,6 @@ beforeAll(async () => {
 
   await migrateToLatest(database);
   await truncateAllTables();
-
-  server = supertest(app);
 });
 
 beforeEach(async () => {

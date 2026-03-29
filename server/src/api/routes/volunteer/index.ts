@@ -1,9 +1,9 @@
 import { Router, type Response } from 'express';
 import * as jose from 'jose';
-import { sql } from 'kysely';
+import { sql, type Kysely } from 'kysely';
 import zod from 'zod';
 
-import volunteerCvRouter from './cv.ts';
+import createVolunteerCvRouter from './cv.ts';
 import {
   type VolunteerCrisisResponse,
   type VolunteerCrisesResponse,
@@ -14,12 +14,11 @@ import {
   type VolunteerPinnedCrisesResponse,
   type VolunteerProfileResponse,
 } from './index.types.ts';
-import volunteerPostingRouter from './posting.ts';
+import createVolunteerPostingRouter from './posting.ts';
 import authorizeOnly from '../../../auth/authorizeOnly.ts';
-import resetPassword from '../../../auth/resetPassword.ts';
+import createResetPassword from '../../../auth/resetPassword.ts';
 import config from '../../../config.ts';
-import database from '../../../db/index.ts';
-import { type VolunteerAccountWithoutPassword, newVolunteerAccountSchema, volunteerAccountSchema } from '../../../db/tables/index.ts';
+import { type Database, type VolunteerAccountWithoutPassword, newVolunteerAccountSchema, volunteerAccountSchema } from '../../../db/tables/index.ts';
 import { hash } from '../../../services/bcrypt/index.ts';
 import {
   recomputeVolunteerExperienceVector,
@@ -29,6 +28,9 @@ import { getVolunteerProfile } from '../../../services/volunteer/index.ts';
 import { normalizeSearchTerms } from '../utils/postingList.js';
 
 const volunteerRouter = Router();
+let db: Kysely<Database>;
+let volunteerCvRouterMounted = false;
+let volunteerPostingRouterMounted = false;
 const volunteerResponseColumns = [
   'id',
   'first_name',
@@ -66,7 +68,7 @@ const areSkillListsEqual = (left: string[], right: string[]) => {
 volunteerRouter.post('/create', async (req, res: Response<VolunteerCreateResponse>) => {
   const body = newVolunteerAccountSchema.parse(req.body);
 
-  const existingVolunteer = await database
+  const existingVolunteer = await db
     .selectFrom('volunteer_account')
     .select('id')
     .where('email', '=', body.email)
@@ -83,7 +85,7 @@ volunteerRouter.post('/create', async (req, res: Response<VolunteerCreateRespons
     password: hashedPassword,
   };
 
-  const newVolunteer = await database
+  const newVolunteer = await db
     .insertInto('volunteer_account')
     .values(insertBody)
     .returning(volunteerResponseColumns)
@@ -109,7 +111,7 @@ volunteerRouter.post('/create', async (req, res: Response<VolunteerCreateRespons
 volunteerRouter.use(authorizeOnly('volunteer'));
 
 volunteerRouter.get('/me', async (req, res: Response<VolunteerMeResponse>) => {
-  const volunteer = await database
+  const volunteer = await db
     .selectFrom('volunteer_account')
     .select(volunteerResponseColumns)
     .where('id', '=', req.userJWT!.id)
@@ -181,7 +183,7 @@ volunteerRouter.get('/organizations', async (req, res: Response<VolunteerOrganiz
 volunteerRouter.get('/certificate', async (req, res: Response<VolunteerCertificateResponse>) => {
   const volunteerId = req.userJWT!.id;
 
-  const volunteer = await database
+  const volunteer = await db
     .selectFrom('volunteer_account')
     .select(['id', 'first_name', 'last_name'])
     .where('id', '=', volunteerId)
@@ -195,7 +197,7 @@ volunteerRouter.get('/certificate', async (req, res: Response<VolunteerCertifica
     )) / 3600.0
   )`;
 
-  const totalHoursRow = await database
+  const totalHoursRow = await db
     .selectFrom('enrollment')
     .innerJoin('organization_posting', 'organization_posting.id', 'enrollment.posting_id')
     .select(sql<number>`COALESCE(SUM(${hoursPerPostingExpr}), 0)`.as('total_hours'))
@@ -203,7 +205,7 @@ volunteerRouter.get('/certificate', async (req, res: Response<VolunteerCertifica
     .where('enrollment.attended', '=', true)
     .executeTakeFirstOrThrow();
 
-  const organizations = await database
+  const organizations = await db
     .selectFrom('enrollment')
     .innerJoin('organization_posting', 'organization_posting.id', 'enrollment.posting_id')
     .innerJoin('organization_account', 'organization_account.id', 'organization_posting.organization_id')
@@ -239,7 +241,7 @@ volunteerRouter.get('/certificate', async (req, res: Response<VolunteerCertifica
     .orderBy('organization_account.name', 'asc')
     .execute();
 
-  const platformCertificate = await database
+  const platformCertificate = await db
     .selectFrom('platform_certificate_settings')
     .select(['signatory_name', 'signatory_position', 'signature_path'])
     .orderBy('id', 'desc')
@@ -286,7 +288,7 @@ volunteerRouter.get('/certificate', async (req, res: Response<VolunteerCertifica
 });
 
 volunteerRouter.get('/crises/pinned', async (_req, res: Response<VolunteerPinnedCrisesResponse>) => {
-  const crises = await database
+  const crises = await db
     .selectFrom('crisis')
     .selectAll()
     .where('pinned', '=', true)
@@ -351,7 +353,7 @@ volunteerRouter.get('/crises/:id', async (req, res: Response<VolunteerCrisisResp
     id: zod.coerce.number().int().positive('ID must be a positive number'),
   }).parse(req.params);
 
-  const crisis = await database
+  const crisis = await db
     .selectFrom('crisis')
     .selectAll()
     .where('id', '=', id)
@@ -369,7 +371,7 @@ volunteerRouter.put('/profile', async (req, res: Response<VolunteerProfileRespon
   const body = volunteerProfileUpdateSchema.parse(req.body);
   const volunteerId = req.userJWT!.id;
 
-  const existingVolunteer = await database
+  const existingVolunteer = await db
     .selectFrom('volunteer_account')
     .select([
       'first_name',
@@ -383,7 +385,7 @@ volunteerRouter.put('/profile', async (req, res: Response<VolunteerProfileRespon
     .where('id', '=', volunteerId)
     .executeTakeFirstOrThrow();
 
-  const existingSkills = await database
+  const existingSkills = await db
     .selectFrom('volunteer_skill')
     .select('name')
     .where('volunteer_id', '=', volunteerId)
@@ -405,7 +407,7 @@ volunteerRouter.put('/profile', async (req, res: Response<VolunteerProfileRespon
     || didSkillsChange
   );
 
-  await database.transaction().execute(async (trx) => {
+  await db.transaction().execute(async (trx) => {
     const volunteerUpdate: Partial<Omit<VolunteerAccountWithoutPassword, 'id'>> = {};
 
     if (body.first_name !== undefined) volunteerUpdate.first_name = body.first_name;
@@ -449,9 +451,22 @@ volunteerRouter.put('/profile', async (req, res: Response<VolunteerProfileRespon
   res.json(profile);
 });
 
-volunteerRouter.post('/reset-password', resetPassword);
+export const createVolunteerRouter = (database: Kysely<Database>) => {
+  db = database;
 
-volunteerRouter.use('/profile/cv', volunteerCvRouter);
-volunteerRouter.use('/posting', volunteerPostingRouter);
+  if (!volunteerCvRouterMounted) {
+    volunteerRouter.use('/profile/cv', createVolunteerCvRouter(db));
+    volunteerCvRouterMounted = true;
+  }
 
-export default volunteerRouter;
+  if (!volunteerPostingRouterMounted) {
+    volunteerRouter.use('/posting', createVolunteerPostingRouter(db));
+    volunteerPostingRouterMounted = true;
+  }
+
+  volunteerRouter.post('/reset-password', createResetPassword(db));
+
+  return volunteerRouter;
+};
+
+export default createVolunteerRouter;

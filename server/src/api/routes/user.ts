@@ -2,6 +2,7 @@ import crypto from 'crypto';
 
 import { Router, type Response } from 'express';
 import * as jose from 'jose';
+import { type Kysely } from 'kysely';
 import zod from 'zod';
 
 import {
@@ -11,13 +12,12 @@ import {
 } from './user.types.ts';
 import removePassword from '../../auth/removePassword.ts';
 import config from '../../config.ts';
-import database from '../../db/index.ts';
+import { type Database } from '../../db/tables/index.ts';
 import { passwordSchema } from '../../schemas/index.ts';
 import { compare, hash } from '../../services/bcrypt/index.ts';
 import { sendPasswordResetEmail } from '../../services/smtp/emails.ts';
 import { loginInfoSchema } from '../../types.ts';
 
-const userRouter = Router();
 const organizationLoginColumns = [
   'id',
   'name',
@@ -51,153 +51,159 @@ const forgotPasswordResetSchema = zod.object({
   password: passwordSchema,
 });
 
-userRouter.post('/login', async (req, res: Response<UserLoginResponse>) => {
-  const body = loginInfoSchema.parse(req.body);
+function createUserRouter(db: Kysely<Database>) {
+  const userRouter = Router();
 
-  let organizationAccount;
-  let volunteerAccount;
+  userRouter.post('/login', async (req, res: Response<UserLoginResponse>) => {
+    const body = loginInfoSchema.parse(req.body);
 
-  // eslint-disable-next-line prefer-const
-  organizationAccount = await database
-    .selectFrom('organization_account')
-    .select(organizationLoginColumns)
-    .where('organization_account.email', '=', body.email)
-    .executeTakeFirst();
+    let organizationAccount;
+    let volunteerAccount;
 
-  if (!organizationAccount) {
-    volunteerAccount = await database
-      .selectFrom('volunteer_account')
-      .select(volunteerLoginColumns)
-      .where('volunteer_account.email', '=', body.email)
-      .executeTakeFirst();
-  }
-
-  if ((!organizationAccount) && (!volunteerAccount)) {
-    res.status(403);
-    throw new Error('Invalid email or password');
-  }
-
-  let valid;
-  if (organizationAccount)
-    valid = await compare(body.password, organizationAccount.password);
-
-  if (volunteerAccount)
-    valid = await compare(body.password, volunteerAccount.password);
-
-  if (!valid) {
-    res.status(403);
-    throw new Error('Invalid email or password');
-  }
-
-  const token = await new jose.SignJWT({
-    id: (organizationAccount || volunteerAccount)?.id,
-    role: organizationAccount ? 'organization' : 'volunteer',
-  }).setIssuedAt()
-    .setProtectedHeader({ alg: 'HS256' })
-    .setExpirationTime('7d')
-    .sign(new TextEncoder().encode(config.JWT_SECRET));
-
-  res.json({
-    token,
-    role: organizationAccount ? 'organization' : 'volunteer',
-    [organizationAccount ? 'organization' : 'volunteer']:
-        organizationAccount ? removePassword(organizationAccount) : removePassword(volunteerAccount!),
-  });
-});
-
-userRouter.post('/forgot-password', async (req, res: Response<UserForgotPasswordResponse>) => {
-  const body = forgotPasswordRequestSchema.parse(req.body);
-
-  const organizationAccount = await database
-    .selectFrom('organization_account')
-    .select(['id', 'name', 'email'])
-    .where('organization_account.email', '=', body.email)
-    .executeTakeFirst();
-
-  let role: 'organization' | 'volunteer' | null = null;
-  let volunteerAccount;
-
-  if (organizationAccount) {
-    role = 'organization';
-  } else {
-    volunteerAccount = await database
-      .selectFrom('volunteer_account')
-      .select(['id', 'first_name', 'last_name', 'email'])
-      .where('volunteer_account.email', '=', body.email)
+    // eslint-disable-next-line prefer-const
+    organizationAccount = await db
+      .selectFrom('organization_account')
+      .select(organizationLoginColumns)
+      .where('organization_account.email', '=', body.email)
       .executeTakeFirst();
 
-    if (volunteerAccount) {
-      role = 'volunteer';
+    if (!organizationAccount) {
+      volunteerAccount = await db
+        .selectFrom('volunteer_account')
+        .select(volunteerLoginColumns)
+        .where('volunteer_account.email', '=', body.email)
+        .executeTakeFirst();
     }
-  }
 
-  if (!organizationAccount && !volunteerAccount) {
+    if ((!organizationAccount) && (!volunteerAccount)) {
+      res.status(403);
+      throw new Error('Invalid email or password');
+    }
+
+    let valid;
+    if (organizationAccount)
+      valid = await compare(body.password, organizationAccount.password);
+
+    if (volunteerAccount)
+      valid = await compare(body.password, volunteerAccount.password);
+
+    if (!valid) {
+      res.status(403);
+      throw new Error('Invalid email or password');
+    }
+
+    const token = await new jose.SignJWT({
+      id: (organizationAccount || volunteerAccount)?.id,
+      role: organizationAccount ? 'organization' : 'volunteer',
+    }).setIssuedAt()
+      .setProtectedHeader({ alg: 'HS256' })
+      .setExpirationTime('7d')
+      .sign(new TextEncoder().encode(config.JWT_SECRET));
+
+    res.json({
+      token,
+      role: organizationAccount ? 'organization' : 'volunteer',
+      [organizationAccount ? 'organization' : 'volunteer']:
+        organizationAccount ? removePassword(organizationAccount) : removePassword(volunteerAccount!),
+    });
+  });
+
+  userRouter.post('/forgot-password', async (req, res: Response<UserForgotPasswordResponse>) => {
+    const body = forgotPasswordRequestSchema.parse(req.body);
+
+    const organizationAccount = await db
+      .selectFrom('organization_account')
+      .select(['id', 'name', 'email'])
+      .where('organization_account.email', '=', body.email)
+      .executeTakeFirst();
+
+    let role: 'organization' | 'volunteer' | null = null;
+    let volunteerAccount;
+
+    if (organizationAccount) {
+      role = 'organization';
+    } else {
+      volunteerAccount = await db
+        .selectFrom('volunteer_account')
+        .select(['id', 'first_name', 'last_name', 'email'])
+        .where('volunteer_account.email', '=', body.email)
+        .executeTakeFirst();
+
+      if (volunteerAccount) {
+        role = 'volunteer';
+      }
+    }
+
+    if (!organizationAccount && !volunteerAccount) {
+      res.json({});
+      return;
+    }
+
+    const account = organizationAccount || volunteerAccount;
+    const accountName = organizationAccount ? organizationAccount.name : `${volunteerAccount!.first_name} ${volunteerAccount!.last_name}`;
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 1 * 60 * 60 * 1000); // 1 hour
+
+    await db
+      .insertInto('password_reset_token')
+      .values({
+        user_id: account!.id,
+        role: role!,
+        token: resetToken,
+        expires_at: expiresAt,
+        created_at: new Date(),
+      })
+      .execute();
+
+    await sendPasswordResetEmail(body.email, accountName, resetToken);
+
     res.json({});
-    return;
-  }
+  });
 
-  const account = organizationAccount || volunteerAccount;
-  const accountName = organizationAccount ? organizationAccount.name : `${volunteerAccount!.first_name} ${volunteerAccount!.last_name}`;
-  const resetToken = crypto.randomBytes(32).toString('hex');
-  const expiresAt = new Date(Date.now() + 1 * 60 * 60 * 1000); // 1 hour
+  userRouter.post('/forgot-password/reset', async (req, res: Response<UserForgotPasswordResetResponse>) => {
+    const body = forgotPasswordResetSchema.parse(req.body);
 
-  await database
-    .insertInto('password_reset_token')
-    .values({
-      user_id: account!.id,
-      role: role!,
-      token: resetToken,
-      expires_at: expiresAt,
-      created_at: new Date(),
-    })
-    .execute();
+    const resetToken = await db
+      .selectFrom('password_reset_token')
+      .selectAll()
+      .where('password_reset_token.token', '=', body.key)
+      .executeTakeFirst();
 
-  await sendPasswordResetEmail(body.email, accountName, resetToken);
+    if (!resetToken) {
+      res.status(400);
+      throw new Error('Invalid or expired reset token');
+    }
 
-  res.json({});
-});
+    if (new Date() > resetToken.expires_at) {
+      res.status(400);
+      throw new Error('Reset token has expired');
+    }
 
-userRouter.post('/forgot-password/reset', async (req, res: Response<UserForgotPasswordResetResponse>) => {
-  const body = forgotPasswordResetSchema.parse(req.body);
+    const hashedPassword = await hash(body.password);
 
-  const resetToken = await database
-    .selectFrom('password_reset_token')
-    .selectAll()
-    .where('password_reset_token.token', '=', body.key)
-    .executeTakeFirst();
+    if (resetToken.role === 'organization') {
+      await db
+        .updateTable('organization_account')
+        .where('id', '=', resetToken.user_id)
+        .set({ password: hashedPassword })
+        .execute();
+    } else if (resetToken.role === 'volunteer') {
+      await db
+        .updateTable('volunteer_account')
+        .where('id', '=', resetToken.user_id)
+        .set({ password: hashedPassword })
+        .execute();
+    }
 
-  if (!resetToken) {
-    res.status(400);
-    throw new Error('Invalid or expired reset token');
-  }
-
-  if (new Date() > resetToken.expires_at) {
-    res.status(400);
-    throw new Error('Reset token has expired');
-  }
-
-  const hashedPassword = await hash(body.password);
-
-  if (resetToken.role === 'organization') {
-    await database
-      .updateTable('organization_account')
-      .where('id', '=', resetToken.user_id)
-      .set({ password: hashedPassword })
+    await db
+      .deleteFrom('password_reset_token')
+      .where('password_reset_token.id', '=', resetToken.id)
       .execute();
-  } else if (resetToken.role === 'volunteer') {
-    await database
-      .updateTable('volunteer_account')
-      .where('id', '=', resetToken.user_id)
-      .set({ password: hashedPassword })
-      .execute();
-  }
 
-  await database
-    .deleteFrom('password_reset_token')
-    .where('password_reset_token.id', '=', resetToken.id)
-    .execute();
+    res.json({});
+  });
 
-  res.json({});
-});
+  return userRouter;
+}
 
-export default userRouter;
+export default createUserRouter;

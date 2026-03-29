@@ -1,8 +1,10 @@
 import { Router, type Response } from 'express';
+import { type Kysely } from 'kysely';
 import zod from 'zod';
 
 import { type GeocodingResponse } from './geocoding.types.ts';
 import config from '../../config.ts';
+import { type Database } from '../../db/tables/index.ts';
 
 export interface LocationIQSearchEntry {
   place_id: string;
@@ -72,19 +74,23 @@ const queryLocationIQ = async (query: string) => {
   return addresses;
 };
 
-const geocodingRouter = Router();
+function createGeocodingRouter(_db: Kysely<Database>) {
+  const geocodingRouter = Router();
 
-geocodingRouter.get('/search', async (req, res: Response<GeocodingResponse>) => {
-  const { query } = zod.object({
-    query: zod.string().nonempty(),
-  }).parse(req.query);
+  geocodingRouter.get('/search', async (req, res: Response<GeocodingResponse>) => {
+    const { query } = zod.object({
+      query: zod.string().nonempty(),
+    }).parse(req.query);
 
-  if (config.LOCATION_IQ_API_KEY) {
-    const addresses = await queryLocationIQ(query);
-    res.json(addresses);
-  } else {
-    res.json(mockAddresses);
-  }
-});
+    if (config.LOCATION_IQ_API_KEY) {
+      const addresses = await queryLocationIQ(query);
+      res.json(addresses);
+    } else {
+      res.json(mockAddresses);
+    }
+  });
 
-export default geocodingRouter;
+  return geocodingRouter;
+};
+
+export default createGeocodingRouter;

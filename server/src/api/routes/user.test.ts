@@ -1,23 +1,30 @@
+import supertest from 'supertest';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
+import createApp from '../../app.ts';
 import database from '../../db/index.ts';
 import { compare } from '../../services/bcrypt/index.ts';
 import * as emailService from '../../services/smtp/emails.ts';
 import { createAdminAccount, createOrganizationAccount, createVolunteerAccount } from '../../tests/fixtures/accounts.ts';
-import { server } from '../../tests/setup.ts';
+
+import type { Database } from '../../db/tables/index.ts';
+import type { ControlledTransaction } from 'kysely';
+import type TestAgent from 'supertest/lib/agent.js';
 
 const sendPasswordResetEmailSpy = vi
   .spyOn(emailService, 'sendPasswordResetEmail')
   .mockResolvedValue(undefined);
 
+let transaction: ControlledTransaction<Database, []>;
+let server: TestAgent;
+
 beforeEach(async () => {
-  await database.deleteFrom('password_reset_token').execute();
-  await database.deleteFrom('volunteer_account').execute();
-  await database.deleteFrom('organization_account').execute();
-  await database.deleteFrom('admin_account').execute();
+  transaction = await database.startTransaction().execute();
+  server = supertest(createApp(transaction));
 });
 
-afterEach(() => {
+afterEach(async () => {
+  await transaction.rollback().execute();
   sendPasswordResetEmailSpy.mockClear();
 });
 
@@ -114,7 +121,7 @@ describe('POST /user/forgot-password', () => {
 
     expect(response.body).toEqual({});
 
-    const tokens = await database
+    const tokens = await transaction
       .selectFrom('password_reset_token')
       .selectAll()
       .execute();
@@ -132,7 +139,7 @@ describe('POST /user/forgot-password', () => {
 
     expect(response.body).toEqual({});
 
-    const tokens = await database
+    const tokens = await transaction
       .selectFrom('password_reset_token')
       .selectAll()
       .execute();
@@ -159,7 +166,7 @@ describe('POST /user/forgot-password', () => {
 
     expect(response.body).toEqual({});
 
-    const tokens = await database
+    const tokens = await transaction
       .selectFrom('password_reset_token')
       .selectAll()
       .execute();
@@ -188,7 +195,7 @@ describe('POST /user/forgot-password', () => {
 
     expect(response.body).toEqual({});
 
-    const tokens = await database
+    const tokens = await transaction
       .selectFrom('password_reset_token')
       .selectAll()
       .execute();
@@ -207,7 +214,7 @@ describe('POST /user/forgot-password/reset', () => {
     });
 
     const resetTokenKey = 'test-reset-token';
-    await database
+    await transaction
       .insertInto('password_reset_token')
       .values({
         user_id: volunteer.id,
@@ -226,7 +233,7 @@ describe('POST /user/forgot-password/reset', () => {
 
     expect(response.body).toEqual({});
 
-    const updatedVolunteer = await database
+    const updatedVolunteer = await transaction
       .selectFrom('volunteer_account')
       .select(['password'])
       .where('id', '=', volunteer.id)
@@ -234,7 +241,7 @@ describe('POST /user/forgot-password/reset', () => {
 
     expect(await compare(newPassword, updatedVolunteer.password)).toBe(true);
 
-    const tokens = await database
+    const tokens = await transaction
       .selectFrom('password_reset_token')
       .selectAll()
       .execute();
@@ -248,7 +255,7 @@ describe('POST /user/forgot-password/reset', () => {
     });
 
     const resetTokenKey = 'test-reset-token';
-    await database
+    await transaction
       .insertInto('password_reset_token')
       .values({
         user_id: organization.id,
@@ -267,7 +274,7 @@ describe('POST /user/forgot-password/reset', () => {
 
     expect(response.body).toEqual({});
 
-    const updatedOrganization = await database
+    const updatedOrganization = await transaction
       .selectFrom('organization_account')
       .select(['password'])
       .where('id', '=', organization.id)
@@ -275,7 +282,7 @@ describe('POST /user/forgot-password/reset', () => {
 
     expect(await compare(newPassword, updatedOrganization.password)).toBe(true);
 
-    const tokens = await database
+    const tokens = await transaction
       .selectFrom('password_reset_token')
       .selectAll()
       .execute();
@@ -296,7 +303,7 @@ describe('POST /user/forgot-password/reset', () => {
     });
 
     const resetTokenKey = 'test-reset-token';
-    await database
+    await transaction
       .insertInto('password_reset_token')
       .values({
         user_id: volunteer.id,

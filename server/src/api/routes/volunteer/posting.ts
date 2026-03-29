@@ -1,12 +1,11 @@
 import { Router, type Response } from 'express';
-import { sql } from 'kysely';
+import { sql, type Kysely } from 'kysely';
 import zod from 'zod';
 
 import { type VolunteerEnrollmentsResponse, type VolunteerPostingEnrollResponse, type VolunteerPostingResponse, type VolunteerPostingSearchResponse, type VolunteerPostingWithdrawResponse } from './posting.types.ts';
 import { buildPostingsWithContext, postingWithContextSelectColumns } from './postingWithContext.ts';
 import authorizeOnly from '../../../auth/authorizeOnly.ts';
-import database from '../../../db/index.ts';
-import { type Enrollment, type EnrollmentApplication } from '../../../db/tables/index.ts';
+import { type Database, type Enrollment, type EnrollmentApplication } from '../../../db/tables/index.ts';
 import { recomputeVolunteerExperienceVector } from '../../../services/embeddings/updates.ts';
 import { type PostingWithContext } from '../../../types.ts';
 import {
@@ -23,8 +22,6 @@ import {
   parsePostingDateTimeFilters,
   sortPostingsBySharedSort,
 } from '../utils/postingList.ts';
-
-const volunteerPostingRouter = Router();
 
 const postingIdParamsSchema = zod.object({
   id: zod.coerce.number().int().positive('ID must be a positive number'),
@@ -50,118 +47,122 @@ function calculateAge(dateOfBirth: string, at: Date = new Date()): number | null
 
   return age;
 }
-volunteerPostingRouter.use(authorizeOnly('volunteer'));
 
-volunteerPostingRouter.get('/', async (req, res: Response<VolunteerPostingSearchResponse>) => {
-  const volunteerId = req.userJWT!.id;
-  const { location_name, skill } = req.query;
-  const dateTimeFilters = parsePostingDateTimeFilters(req.query);
-  const hideFull = parseOptionalBooleanQueryParam(req.query.hide_full) ?? false;
-  const includeApplied = parseOptionalBooleanQueryParam(req.query.include_applied) ?? false;
-  const crisisIdFilter = parseOptionalNumberQueryParam(req.query.crisis_id);
-  const { search, sortBy, sortDir } = parseListQuery(req.query, {
-    allowedSortBy: ['recommended', 'start_date', 'created_at', 'title'],
-    defaultSortBy: 'recommended',
-    defaultSortDir: 'desc',
-  });
-  const skillFilter = typeof skill === 'string' ? skill.trim() : '';
+function createVolunteerPostingRouter(db: Kysely<Database>) {
+  const volunteerPostingRouter = Router();
 
-  const volunteerVectors = await database
-    .selectFrom('volunteer_account')
-    .select(['profile_vector', 'experience_vector'])
-    .where('id', '=', volunteerId)
-    .executeTakeFirstOrThrow();
+  volunteerPostingRouter.use(authorizeOnly('volunteer'));
 
-  const profileVectorLiteral = volunteerVectors.profile_vector;
-  const experienceVectorLiteral = volunteerVectors.experience_vector;
-  const hasProfileVector = Boolean(profileVectorLiteral);
-  const hasExperienceVector = Boolean(experienceVectorLiteral);
+  volunteerPostingRouter.get('/', async (req, res: Response<VolunteerPostingSearchResponse>) => {
+    const volunteerId = req.userJWT!.id;
+    const { location_name, skill } = req.query;
+    const dateTimeFilters = parsePostingDateTimeFilters(req.query);
+    const hideFull = parseOptionalBooleanQueryParam(req.query.hide_full) ?? false;
+    const includeApplied = parseOptionalBooleanQueryParam(req.query.include_applied) ?? false;
+    const crisisIdFilter = parseOptionalNumberQueryParam(req.query.crisis_id);
+    const { search, sortBy, sortDir } = parseListQuery(req.query, {
+      allowedSortBy: ['recommended', 'start_date', 'created_at', 'title'],
+      defaultSortBy: 'recommended',
+      defaultSortDir: 'desc',
+    });
+    const skillFilter = typeof skill === 'string' ? skill.trim() : '';
 
-  let query = database
-    .selectFrom('organization_posting')
-    .innerJoin(
-      'organization_account',
-      'organization_account.id',
-      'organization_posting.organization_id',
-    )
-    .leftJoin(
-      'crisis',
-      'crisis.id',
-      'organization_posting.crisis_id',
-    )
-    .select(postingWithContextSelectColumns)
-    .where('organization_posting.is_closed', '=', false);
+    const volunteerVectors = await db
+      .selectFrom('volunteer_account')
+      .select(['profile_vector', 'experience_vector'])
+      .where('id', '=', volunteerId)
+      .executeTakeFirstOrThrow();
 
-  if (!includeApplied) {
-    query = query.where(({ not, exists, selectFrom, or }) => not(or([
-      exists(
-        selectFrom('enrollment')
-          .select('enrollment.id')
-          .whereRef('enrollment.posting_id', '=', 'organization_posting.id')
-          .where('enrollment.volunteer_id', '=', volunteerId),
-      ),
-      exists(
-        selectFrom('enrollment_application')
-          .select('enrollment_application.id')
-          .whereRef('enrollment_application.posting_id', '=', 'organization_posting.id')
-          .where('enrollment_application.volunteer_id', '=', volunteerId),
-      ),
-    ])));
-  }
+    const profileVectorLiteral = volunteerVectors.profile_vector;
+    const experienceVectorLiteral = volunteerVectors.experience_vector;
+    const hasProfileVector = Boolean(profileVectorLiteral);
+    const hasExperienceVector = Boolean(experienceVectorLiteral);
 
-  if (skillFilter) {
-    query = query.where(({ exists, selectFrom }) => exists(
-      selectFrom('posting_skill')
-        .select('posting_skill.id')
-        .whereRef('posting_skill.posting_id', '=', 'organization_posting.id')
-        .where('posting_skill.name', 'ilike', `%${skillFilter}%`),
-    ));
-  }
+    let query = db
+      .selectFrom('organization_posting')
+      .innerJoin(
+        'organization_account',
+        'organization_account.id',
+        'organization_posting.organization_id',
+      )
+      .leftJoin(
+        'crisis',
+        'crisis.id',
+        'organization_posting.crisis_id',
+      )
+      .select(postingWithContextSelectColumns)
+      .where('organization_posting.is_closed', '=', false);
 
-  if (location_name) {
-    query = query.where(
-      'organization_posting.location_name',
-      'ilike',
-      `%${location_name}%`,
-    );
-  }
+    if (!includeApplied) {
+      query = query.where(({ not, exists, selectFrom, or }) => not(or([
+        exists(
+          selectFrom('enrollment')
+            .select('enrollment.id')
+            .whereRef('enrollment.posting_id', '=', 'organization_posting.id')
+            .where('enrollment.volunteer_id', '=', volunteerId),
+        ),
+        exists(
+          selectFrom('enrollment_application')
+            .select('enrollment_application.id')
+            .whereRef('enrollment_application.posting_id', '=', 'organization_posting.id')
+            .where('enrollment_application.volunteer_id', '=', volunteerId),
+        ),
+      ])));
+    }
 
-  if (crisisIdFilter !== undefined) {
-    query = query.where('organization_posting.crisis_id', '=', crisisIdFilter);
-  }
+    if (skillFilter) {
+      query = query.where(({ exists, selectFrom }) => exists(
+        selectFrom('posting_skill')
+          .select('posting_skill.id')
+          .whereRef('posting_skill.posting_id', '=', 'organization_posting.id')
+          .where('posting_skill.name', 'ilike', `%${skillFilter}%`),
+      ));
+    }
 
-  if (search) {
-    const terms = normalizeSearchTerms(search);
+    if (location_name) {
+      query = query.where(
+        'organization_posting.location_name',
+        'ilike',
+        `%${location_name}%`,
+      );
+    }
 
-    query = query.where(({ and, exists, selectFrom, or }) => and(
-      terms.map((term) => {
-        const likePattern = `%${term}%`;
+    if (crisisIdFilter !== undefined) {
+      query = query.where('organization_posting.crisis_id', '=', crisisIdFilter);
+    }
 
-        return or([
-          sql<boolean>`lower(organization_posting.title) LIKE ${likePattern}`,
-          sql<boolean>`regexp_replace(lower(organization_posting.title), '[^a-z0-9]+', '', 'g') LIKE ${likePattern}`,
+    if (search) {
+      const terms = normalizeSearchTerms(search);
 
-          sql<boolean>`lower(organization_posting.description) LIKE ${likePattern}`,
-          sql<boolean>`regexp_replace(lower(organization_posting.description), '[^a-z0-9]+', '', 'g') LIKE ${likePattern}`,
+      query = query.where(({ and, exists, selectFrom, or }) => and(
+        terms.map((term) => {
+          const likePattern = `%${term}%`;
 
-          sql<boolean>`lower(organization_posting.location_name) LIKE ${likePattern}`,
-          sql<boolean>`regexp_replace(lower(organization_posting.location_name), '[^a-z0-9]+', '', 'g') LIKE ${likePattern}`,
+          return or([
+            sql<boolean>`lower(organization_posting.title) LIKE ${likePattern}`,
+            sql<boolean>`regexp_replace(lower(organization_posting.title), '[^a-z0-9]+', '', 'g') LIKE ${likePattern}`,
 
-          sql<boolean>`lower(organization_account.name) LIKE ${likePattern}`,
-          sql<boolean>`regexp_replace(lower(organization_account.name), '[^a-z0-9]+', '', 'g') LIKE ${likePattern}`,
+            sql<boolean>`lower(organization_posting.description) LIKE ${likePattern}`,
+            sql<boolean>`regexp_replace(lower(organization_posting.description), '[^a-z0-9]+', '', 'g') LIKE ${likePattern}`,
 
-          exists(
-            selectFrom('posting_skill')
-              .select('posting_skill.id')
-              .whereRef('posting_skill.posting_id', '=', 'organization_posting.id')
-              .where(sql<boolean>`lower(posting_skill.name) LIKE ${likePattern}`),
-          ),
-        ]);
-      }),
-    ));
+            sql<boolean>`lower(organization_posting.location_name) LIKE ${likePattern}`,
+            sql<boolean>`regexp_replace(lower(organization_posting.location_name), '[^a-z0-9]+', '', 'g') LIKE ${likePattern}`,
 
-    const normalizedSearch = search.toLowerCase();
-    const titleRelevance = sql<number>`
+            sql<boolean>`lower(organization_account.name) LIKE ${likePattern}`,
+            sql<boolean>`regexp_replace(lower(organization_account.name), '[^a-z0-9]+', '', 'g') LIKE ${likePattern}`,
+
+            exists(
+              selectFrom('posting_skill')
+                .select('posting_skill.id')
+                .whereRef('posting_skill.posting_id', '=', 'organization_posting.id')
+                .where(sql<boolean>`lower(posting_skill.name) LIKE ${likePattern}`),
+            ),
+          ]);
+        }),
+      ));
+
+      const normalizedSearch = search.toLowerCase();
+      const titleRelevance = sql<number>`
       CASE
         WHEN lower(organization_posting.title) = ${normalizedSearch} THEN 3
         WHEN lower(organization_posting.title) LIKE ${`${normalizedSearch}%`} THEN 2
@@ -169,358 +170,134 @@ volunteerPostingRouter.get('/', async (req, res: Response<VolunteerPostingSearch
         ELSE 0
       END
     `;
-    query = query.orderBy(sql`${titleRelevance} desc`);
-  }
+      query = query.orderBy(sql`${titleRelevance} desc`);
+    }
 
-  query = applyPostingDateTimeFilters(query, dateTimeFilters);
+    query = applyPostingDateTimeFilters(query, dateTimeFilters);
 
-  if (sortBy === 'recommended' && hasProfileVector && profileVectorLiteral) {
-    const profileSimilarity = sql<number>`
+    if (sortBy === 'recommended' && hasProfileVector && profileVectorLiteral) {
+      const profileSimilarity = sql<number>`
       1 - (organization_posting.opportunity_vector <=> ${profileVectorLiteral}::vector)
     `;
 
-    if (hasExperienceVector && experienceVectorLiteral) {
-      const experienceSimilarity = sql<number>`
+      if (hasExperienceVector && experienceVectorLiteral) {
+        const experienceSimilarity = sql<number>`
         1 - (organization_posting.opportunity_vector <=> ${experienceVectorLiteral}::vector)
       `;
-      const finalScore = sql<number>`(0.6 * ${profileSimilarity}) + (0.4 * ${experienceSimilarity})`;
+        const finalScore = sql<number>`(0.6 * ${profileSimilarity}) + (0.4 * ${experienceSimilarity})`;
 
-      query = query.orderBy(sql`${finalScore} desc nulls last`);
-    } else {
-      const profileOnlyScore = sql<number>`0.6 * ${profileSimilarity}`;
-      query = query.orderBy(sql`${profileOnlyScore} desc nulls last`);
-    }
+        query = query.orderBy(sql`${finalScore} desc nulls last`);
+      } else {
+        const profileOnlyScore = sql<number>`0.6 * ${profileSimilarity}`;
+        query = query.orderBy(sql`${profileOnlyScore} desc nulls last`);
+      }
 
-    query = query.orderBy('organization_posting.start_date', sortDir).orderBy('organization_posting.start_time', sortDir);
-  } else {
-    if (sortBy === 'recommended' && !hasProfileVector && hasExperienceVector) {
-      console.info('[recommendation] Volunteer has experience_vector but no valid profile_vector. Using default opportunity ordering.');
-    } else if (sortBy === 'recommended' && !hasProfileVector && !hasExperienceVector) {
-      console.info('[recommendation] Volunteer vectors unavailable. Using default opportunity ordering.');
-    }
-
-    if (sortBy === 'recommended') {
       query = query.orderBy('organization_posting.start_date', sortDir).orderBy('organization_posting.start_time', sortDir);
     } else {
-      query = applySharedPostingSort(query, sortBy, sortDir);
-    }
-  }
-
-  const postings = await query.execute();
-  const postingsWithContext = await buildPostingsWithContext({
-    volunteerId,
-    postings,
-  });
-
-  const visiblePostings = hideFull
-    ? postingsWithContext.filter(posting => posting.max_volunteers == null || posting.enrollment_count < posting.max_volunteers)
-    : postingsWithContext;
-
-  res.json({ postings: visiblePostings });
-});
-
-volunteerPostingRouter.get('/enrollments', async (req, res: Response<VolunteerEnrollmentsResponse>) => {
-  const volunteerId = req.userJWT!.id;
-  const { search, sortBy, sortDir } = parseListQuery(req.query, {
-    allowedSortBy: ['recommended', 'start_date', 'created_at', 'title'],
-    defaultSortBy: 'recommended',
-    defaultSortDir: 'desc',
-  });
-  const hideFull = parseOptionalBooleanQueryParam(req.query.hide_full) ?? false;
-  const dateTimeFilters = parsePostingDateTimeFilters(req.query);
-
-  const [enrolledPostings, pendingPostings] = await Promise.all([
-    database
-      .selectFrom('enrollment')
-      .innerJoin('organization_posting', 'organization_posting.id', 'enrollment.posting_id')
-      .innerJoin('organization_account', 'organization_account.id', 'organization_posting.organization_id')
-      .leftJoin('crisis', 'crisis.id', 'organization_posting.crisis_id')
-      .select(postingWithContextSelectColumns)
-      .where('enrollment.volunteer_id', '=', volunteerId)
-      .execute(),
-    database
-      .selectFrom('enrollment_application')
-      .innerJoin('organization_posting', 'organization_posting.id', 'enrollment_application.posting_id')
-      .innerJoin('organization_account', 'organization_account.id', 'organization_posting.organization_id')
-      .leftJoin('crisis', 'crisis.id', 'organization_posting.crisis_id')
-      .select(postingWithContextSelectColumns)
-      .where('enrollment_application.volunteer_id', '=', volunteerId)
-      .execute(),
-  ]);
-
-  // Merge: enrolled takes priority over pending for the same posting
-  const applicationStatusMap = new Map<number, 'registered' | 'pending'>();
-  const postingsMap = new Map<number, typeof enrolledPostings[0]>();
-
-  for (const posting of pendingPostings) {
-    applicationStatusMap.set(posting.id, 'pending');
-    postingsMap.set(posting.id, posting);
-  }
-  for (const posting of enrolledPostings) {
-    applicationStatusMap.set(posting.id, 'registered');
-    postingsMap.set(posting.id, posting);
-  }
-
-  const postings = await buildPostingsWithContext({
-    volunteerId,
-    postings: Array.from(postingsMap.values()),
-    applicationStatusByPostingId: applicationStatusMap,
-  });
-
-  const filteredPostings = postings
-    .filter(posting => matchesPostingSearch(posting, search))
-    .filter(posting => matchesPostingDateTimeFilters<PostingWithContext>(posting, dateTimeFilters))
-    .filter(posting => (hideFull ? posting.max_volunteers == null || posting.enrollment_count < posting.max_volunteers : true));
-
-  const effectiveSortBy = sortBy === 'recommended' ? 'start_date' : sortBy;
-  const effectiveSortDir = sortDir;
-  const sortedPostings = sortPostingsBySharedSort<PostingWithContext>(filteredPostings, effectiveSortBy, effectiveSortDir);
-
-  res.json({ postings: sortedPostings });
-});
-
-volunteerPostingRouter.get('/:id', async (req, res: Response<VolunteerPostingResponse>) => {
-  const volunteerId = req.userJWT!.id;
-  const { id } = postingIdParamsSchema.parse(req.params);
-
-  const posting = await database
-    .selectFrom('organization_posting')
-    .innerJoin(
-      'organization_account',
-      'organization_account.id',
-      'organization_posting.organization_id',
-    )
-    .leftJoin(
-      'crisis',
-      'crisis.id',
-      'organization_posting.crisis_id',
-    )
-    .select(postingWithContextSelectColumns)
-    .where('organization_posting.id', '=', id)
-    .executeTakeFirst();
-
-  if (!posting) {
-    res.status(404);
-    throw new Error('Posting not found');
-  }
-
-  const [postingWithContext] = await buildPostingsWithContext({
-    volunteerId,
-    postings: [posting],
-  });
-
-  if (!postingWithContext) {
-    res.status(404);
-    throw new Error('Posting not found');
-  }
-
-  res.json({
-    posting: postingWithContext,
-  });
-});
-
-volunteerPostingRouter.post('/:id/enroll', async (req, res: Response<VolunteerPostingEnrollResponse>) => {
-  const volunteerId = req.userJWT!.id;
-  const { id } = postingIdParamsSchema.parse(req.params);
-  const { message } = applyBodySchema.parse(req.body ?? {});
-
-  const [posting, volunteer] = await Promise.all([
-    database
-      .selectFrom('organization_posting')
-      .select(['id', 'automatic_acceptance', 'is_closed', 'minimum_age', 'max_volunteers'])
-      .where('id', '=', id)
-      .executeTakeFirst(),
-    database
-      .selectFrom('volunteer_account')
-      .select('date_of_birth')
-      .where('id', '=', volunteerId)
-      .executeTakeFirst(),
-  ]);
-
-  if (!posting) {
-    res.status(404);
-    throw new Error('Posting not found');
-  }
-
-  if (posting.is_closed) {
-    res.status(403);
-    throw new Error('This posting is closed and no longer accepting applications');
-  }
-
-  if (!volunteer) {
-    res.status(404);
-    throw new Error('Volunteer not found');
-  }
-
-  if (posting.max_volunteers !== undefined && posting.max_volunteers !== null) {
-    const enrollmentCountRow = await database
-      .selectFrom('enrollment')
-      .select(sql<number>`count(enrollment.id)`.as('count'))
-      .where('posting_id', '=', id)
-      .executeTakeFirst();
-
-    if (Number(enrollmentCountRow?.count ?? 0) >= posting.max_volunteers) {
-      res.status(403);
-      throw new Error('This posting has reached the maximum number of volunteers');
-    }
-  }
-
-  if (posting.minimum_age !== undefined && posting.minimum_age !== null) {
-    const volunteerAge = calculateAge(volunteer.date_of_birth);
-
-    if (volunteerAge === null) {
-      res.status(400);
-      throw new Error('Volunteer date of birth is invalid');
-    }
-
-    if (volunteerAge < posting.minimum_age) {
-      res.status(403);
-      throw new Error(`You must be at least ${posting.minimum_age} years old to apply for this posting`);
-    }
-  }
-
-  const [existingApplication, existingEnrollment] = await Promise.all([
-    database
-      .selectFrom('enrollment_application')
-      .select('id')
-      .where('posting_id', '=', id)
-      .where('volunteer_id', '=', volunteerId)
-      .executeTakeFirst(),
-    database
-      .selectFrom('enrollment')
-      .select('id')
-      .where('posting_id', '=', id)
-      .where('volunteer_id', '=', volunteerId)
-      .executeTakeFirst(),
-  ]);
-
-  if (existingApplication || existingEnrollment) {
-    res.status(409);
-    throw new Error('You are already enrolled or have already applied to this posting');
-  }
-
-  let enrollment: Enrollment | EnrollmentApplication | undefined;
-
-  if (posting.automatic_acceptance) {
-    enrollment = await database.transaction().execute(async (trx) => {
-      const lockedPosting = await trx
-        .selectFrom('organization_posting')
-        .select(['id', 'is_closed', 'max_volunteers'])
-        .where('id', '=', id)
-        .forUpdate()
-        .executeTakeFirst();
-
-      if (!lockedPosting) {
-        res.status(404);
-        throw new Error('Posting not found');
+      if (sortBy === 'recommended' && !hasProfileVector && hasExperienceVector) {
+        console.info('[recommendation] Volunteer has experience_vector but no valid profile_vector. Using default opportunity ordering.');
+      } else if (sortBy === 'recommended' && !hasProfileVector && !hasExperienceVector) {
+        console.info('[recommendation] Volunteer vectors unavailable. Using default opportunity ordering.');
       }
 
-      if (lockedPosting.is_closed) {
-        res.status(403);
-        throw new Error('This posting is closed and no longer accepting applications');
+      if (sortBy === 'recommended') {
+        query = query.orderBy('organization_posting.start_date', sortDir).orderBy('organization_posting.start_time', sortDir);
+      } else {
+        query = applySharedPostingSort(query, sortBy, sortDir);
       }
+    }
 
-      let currentEnrollmentCount = 0;
-      if (lockedPosting.max_volunteers !== undefined && lockedPosting.max_volunteers !== null) {
-        const enrollmentCountRow = await trx
-          .selectFrom('enrollment')
-          .select(sql<number>`count(enrollment.id)`.as('count'))
-          .where('posting_id', '=', id)
-          .executeTakeFirst();
-
-        currentEnrollmentCount = Number(enrollmentCountRow?.count ?? 0);
-
-        if (currentEnrollmentCount >= lockedPosting.max_volunteers) {
-          res.status(403);
-          throw new Error('This posting has reached the maximum number of volunteers');
-        }
-      }
-
-      const createdEnrollment = await trx
-        .insertInto('enrollment')
-        .values({
-          volunteer_id: volunteerId,
-          posting_id: id,
-          message: message ?? undefined,
-          attended: false,
-        })
-        .returningAll()
-        .executeTakeFirst();
-
-      if (!createdEnrollment) {
-        throw new Error('Failed to create enrollment');
-      }
-
-      return createdEnrollment;
+    const postings = await query.execute();
+    const postingsWithContext = await buildPostingsWithContext(db, {
+      volunteerId,
+      postings,
     });
-  } else {
-    enrollment = await database.transaction().execute(async (trx) => {
-      const lockedPosting = await trx
-        .selectFrom('organization_posting')
-        .select(['id', 'is_closed', 'max_volunteers'])
-        .where('id', '=', id)
-        .forUpdate()
-        .executeTakeFirst();
 
-      if (!lockedPosting) {
-        res.status(404);
-        throw new Error('Posting not found');
-      }
+    const visiblePostings = hideFull
+      ? postingsWithContext.filter(posting => posting.max_volunteers == null || posting.enrollment_count < posting.max_volunteers)
+      : postingsWithContext;
 
-      if (lockedPosting.is_closed) {
-        res.status(403);
-        throw new Error('This posting is closed and no longer accepting applications');
-      }
+    res.json({ postings: visiblePostings });
+  });
 
-      if (lockedPosting.max_volunteers !== undefined && lockedPosting.max_volunteers !== null) {
-        const enrollmentCountRow = await trx
-          .selectFrom('enrollment')
-          .select(sql<number>`count(enrollment.id)`.as('count'))
-          .where('posting_id', '=', id)
-          .executeTakeFirst();
-
-        if (Number(enrollmentCountRow?.count ?? 0) >= lockedPosting.max_volunteers) {
-          res.status(403);
-          throw new Error('This posting has reached the maximum number of volunteers');
-        }
-      }
-
-      const createdApplication = await trx
-        .insertInto('enrollment_application')
-        .values({
-          volunteer_id: volunteerId,
-          posting_id: id,
-          message: message ?? undefined,
-        })
-        .returningAll()
-        .executeTakeFirst();
-
-      if (!createdApplication) {
-        throw new Error('Failed to create enrollment');
-      }
-
-      return createdApplication;
+  volunteerPostingRouter.get('/enrollments', async (req, res: Response<VolunteerEnrollmentsResponse>) => {
+    const volunteerId = req.userJWT!.id;
+    const { search, sortBy, sortDir } = parseListQuery(req.query, {
+      allowedSortBy: ['recommended', 'start_date', 'created_at', 'title'],
+      defaultSortBy: 'recommended',
+      defaultSortDir: 'desc',
     });
-  }
+    const hideFull = parseOptionalBooleanQueryParam(req.query.hide_full) ?? false;
+    const dateTimeFilters = parsePostingDateTimeFilters(req.query);
 
-  if (!enrollment) {
-    res.status(500);
-    throw new Error('Failed to create enrollment');
-  }
+    const [enrolledPostings, pendingPostings] = await Promise.all([
+      db
+        .selectFrom('enrollment')
+        .innerJoin('organization_posting', 'organization_posting.id', 'enrollment.posting_id')
+        .innerJoin('organization_account', 'organization_account.id', 'organization_posting.organization_id')
+        .leftJoin('crisis', 'crisis.id', 'organization_posting.crisis_id')
+        .select(postingWithContextSelectColumns)
+        .where('enrollment.volunteer_id', '=', volunteerId)
+        .execute(),
+      db
+        .selectFrom('enrollment_application')
+        .innerJoin('organization_posting', 'organization_posting.id', 'enrollment_application.posting_id')
+        .innerJoin('organization_account', 'organization_account.id', 'organization_posting.organization_id')
+        .leftJoin('crisis', 'crisis.id', 'organization_posting.crisis_id')
+        .select(postingWithContextSelectColumns)
+        .where('enrollment_application.volunteer_id', '=', volunteerId)
+        .execute(),
+    ]);
 
-  res.json({ enrollment, isOpen: posting.automatic_acceptance });
-});
+    // Merge: enrolled takes priority over pending for the same posting
+    const applicationStatusMap = new Map<number, 'registered' | 'pending'>();
+    const postingsMap = new Map<number, typeof enrolledPostings[0]>();
 
-volunteerPostingRouter.delete('/:id/enroll', async (req, res: Response<VolunteerPostingWithdrawResponse>) => {
-  const volunteerId = req.userJWT!.id;
-  const { id } = postingIdParamsSchema.parse(req.params);
+    for (const posting of pendingPostings) {
+      applicationStatusMap.set(posting.id, 'pending');
+      postingsMap.set(posting.id, posting);
+    }
+    for (const posting of enrolledPostings) {
+      applicationStatusMap.set(posting.id, 'registered');
+      postingsMap.set(posting.id, posting);
+    }
 
-  const { existingEnrollment } = await database.transaction().execute(async (trx) => {
-    const posting = await trx
+    const postings = await buildPostingsWithContext(db, {
+      volunteerId,
+      postings: Array.from(postingsMap.values()),
+      applicationStatusByPostingId: applicationStatusMap,
+    });
+
+    const filteredPostings = postings
+      .filter(posting => matchesPostingSearch(posting, search))
+      .filter(posting => matchesPostingDateTimeFilters<PostingWithContext>(posting, dateTimeFilters))
+      .filter(posting => (hideFull ? posting.max_volunteers == null || posting.enrollment_count < posting.max_volunteers : true));
+
+    const effectiveSortBy = sortBy === 'recommended' ? 'start_date' : sortBy;
+    const effectiveSortDir = sortDir;
+    const sortedPostings = sortPostingsBySharedSort<PostingWithContext>(filteredPostings, effectiveSortBy, effectiveSortDir);
+
+    res.json({ postings: sortedPostings });
+  });
+
+  volunteerPostingRouter.get('/:id', async (req, res: Response<VolunteerPostingResponse>) => {
+    const volunteerId = req.userJWT!.id;
+    const { id } = postingIdParamsSchema.parse(req.params);
+
+    const posting = await db
       .selectFrom('organization_posting')
-      .select(['id', 'automatic_acceptance'])
-      .where('id', '=', id)
-      .forUpdate()
+      .innerJoin(
+        'organization_account',
+        'organization_account.id',
+        'organization_posting.organization_id',
+      )
+      .leftJoin(
+        'crisis',
+        'crisis.id',
+        'organization_posting.crisis_id',
+      )
+      .select(postingWithContextSelectColumns)
+      .where('organization_posting.id', '=', id)
       .executeTakeFirst();
 
     if (!posting) {
@@ -528,35 +305,262 @@ volunteerPostingRouter.delete('/:id/enroll', async (req, res: Response<Volunteer
       throw new Error('Posting not found');
     }
 
-    const existingEnrollment = await trx
-      .selectFrom('enrollment')
-      .select(['id', 'attended'])
-      .where('volunteer_id', '=', volunteerId)
-      .where('posting_id', '=', id)
-      .executeTakeFirst();
+    const [postingWithContext] = await buildPostingsWithContext(db, {
+      volunteerId,
+      postings: [posting],
+    });
 
-    await trx
-      .deleteFrom('enrollment')
-      .where('volunteer_id', '=', volunteerId)
-      .where('posting_id', '=', id)
-      .execute();
+    if (!postingWithContext) {
+      res.status(404);
+      throw new Error('Posting not found');
+    }
 
-    if (!posting.automatic_acceptance) {
+    res.json({
+      posting: postingWithContext,
+    });
+  });
+
+  volunteerPostingRouter.post('/:id/enroll', async (req, res: Response<VolunteerPostingEnrollResponse>) => {
+    const volunteerId = req.userJWT!.id;
+    const { id } = postingIdParamsSchema.parse(req.params);
+    const { message } = applyBodySchema.parse(req.body ?? {});
+
+    const [posting, volunteer] = await Promise.all([
+      db
+        .selectFrom('organization_posting')
+        .select(['id', 'automatic_acceptance', 'is_closed', 'minimum_age', 'max_volunteers'])
+        .where('id', '=', id)
+        .executeTakeFirst(),
+      db
+        .selectFrom('volunteer_account')
+        .select('date_of_birth')
+        .where('id', '=', volunteerId)
+        .executeTakeFirst(),
+    ]);
+
+    if (!posting) {
+      res.status(404);
+      throw new Error('Posting not found');
+    }
+
+    if (posting.is_closed) {
+      res.status(403);
+      throw new Error('This posting is closed and no longer accepting applications');
+    }
+
+    if (!volunteer) {
+      res.status(404);
+      throw new Error('Volunteer not found');
+    }
+
+    if (posting.max_volunteers !== undefined && posting.max_volunteers !== null) {
+      const enrollmentCountRow = await db
+        .selectFrom('enrollment')
+        .select(sql<number>`count(enrollment.id)`.as('count'))
+        .where('posting_id', '=', id)
+        .executeTakeFirst();
+
+      if (Number(enrollmentCountRow?.count ?? 0) >= posting.max_volunteers) {
+        res.status(403);
+        throw new Error('This posting has reached the maximum number of volunteers');
+      }
+    }
+
+    if (posting.minimum_age !== undefined && posting.minimum_age !== null) {
+      const volunteerAge = calculateAge(volunteer.date_of_birth);
+
+      if (volunteerAge === null) {
+        res.status(400);
+        throw new Error('Volunteer date of birth is invalid');
+      }
+
+      if (volunteerAge < posting.minimum_age) {
+        res.status(403);
+        throw new Error(`You must be at least ${posting.minimum_age} years old to apply for this posting`);
+      }
+    }
+
+    const [existingApplication, existingEnrollment] = await Promise.all([
+      db
+        .selectFrom('enrollment_application')
+        .select('id')
+        .where('posting_id', '=', id)
+        .where('volunteer_id', '=', volunteerId)
+        .executeTakeFirst(),
+      db
+        .selectFrom('enrollment')
+        .select('id')
+        .where('posting_id', '=', id)
+        .where('volunteer_id', '=', volunteerId)
+        .executeTakeFirst(),
+    ]);
+
+    if (existingApplication || existingEnrollment) {
+      res.status(409);
+      throw new Error('You are already enrolled or have already applied to this posting');
+    }
+
+    let enrollment: Enrollment | EnrollmentApplication | undefined;
+
+    if (posting.automatic_acceptance) {
+      enrollment = await db.transaction().execute(async (trx) => {
+        const lockedPosting = await trx
+          .selectFrom('organization_posting')
+          .select(['id', 'is_closed', 'max_volunteers'])
+          .where('id', '=', id)
+          .forUpdate()
+          .executeTakeFirst();
+
+        if (!lockedPosting) {
+          res.status(404);
+          throw new Error('Posting not found');
+        }
+
+        if (lockedPosting.is_closed) {
+          res.status(403);
+          throw new Error('This posting is closed and no longer accepting applications');
+        }
+
+        let currentEnrollmentCount = 0;
+        if (lockedPosting.max_volunteers !== undefined && lockedPosting.max_volunteers !== null) {
+          const enrollmentCountRow = await trx
+            .selectFrom('enrollment')
+            .select(sql<number>`count(enrollment.id)`.as('count'))
+            .where('posting_id', '=', id)
+            .executeTakeFirst();
+
+          currentEnrollmentCount = Number(enrollmentCountRow?.count ?? 0);
+
+          if (currentEnrollmentCount >= lockedPosting.max_volunteers) {
+            res.status(403);
+            throw new Error('This posting has reached the maximum number of volunteers');
+          }
+        }
+
+        const createdEnrollment = await trx
+          .insertInto('enrollment')
+          .values({
+            volunteer_id: volunteerId,
+            posting_id: id,
+            message: message ?? undefined,
+            attended: false,
+          })
+          .returningAll()
+          .executeTakeFirst();
+
+        if (!createdEnrollment) {
+          throw new Error('Failed to create enrollment');
+        }
+
+        return createdEnrollment;
+      });
+    } else {
+      enrollment = await db.transaction().execute(async (trx) => {
+        const lockedPosting = await trx
+          .selectFrom('organization_posting')
+          .select(['id', 'is_closed', 'max_volunteers'])
+          .where('id', '=', id)
+          .forUpdate()
+          .executeTakeFirst();
+
+        if (!lockedPosting) {
+          res.status(404);
+          throw new Error('Posting not found');
+        }
+
+        if (lockedPosting.is_closed) {
+          res.status(403);
+          throw new Error('This posting is closed and no longer accepting applications');
+        }
+
+        if (lockedPosting.max_volunteers !== undefined && lockedPosting.max_volunteers !== null) {
+          const enrollmentCountRow = await trx
+            .selectFrom('enrollment')
+            .select(sql<number>`count(enrollment.id)`.as('count'))
+            .where('posting_id', '=', id)
+            .executeTakeFirst();
+
+          if (Number(enrollmentCountRow?.count ?? 0) >= lockedPosting.max_volunteers) {
+            res.status(403);
+            throw new Error('This posting has reached the maximum number of volunteers');
+          }
+        }
+
+        const createdApplication = await trx
+          .insertInto('enrollment_application')
+          .values({
+            volunteer_id: volunteerId,
+            posting_id: id,
+            message: message ?? undefined,
+          })
+          .returningAll()
+          .executeTakeFirst();
+
+        if (!createdApplication) {
+          throw new Error('Failed to create enrollment');
+        }
+
+        return createdApplication;
+      });
+    }
+
+    if (!enrollment) {
+      res.status(500);
+      throw new Error('Failed to create enrollment');
+    }
+
+    res.json({ enrollment, isOpen: posting.automatic_acceptance });
+  });
+
+  volunteerPostingRouter.delete('/:id/enroll', async (req, res: Response<VolunteerPostingWithdrawResponse>) => {
+    const volunteerId = req.userJWT!.id;
+    const { id } = postingIdParamsSchema.parse(req.params);
+
+    const { existingEnrollment } = await db.transaction().execute(async (trx) => {
+      const posting = await trx
+        .selectFrom('organization_posting')
+        .select(['id', 'automatic_acceptance'])
+        .where('id', '=', id)
+        .forUpdate()
+        .executeTakeFirst();
+
+      if (!posting) {
+        res.status(404);
+        throw new Error('Posting not found');
+      }
+
+      const existingEnrollment = await trx
+        .selectFrom('enrollment')
+        .select(['id', 'attended'])
+        .where('volunteer_id', '=', volunteerId)
+        .where('posting_id', '=', id)
+        .executeTakeFirst();
+
       await trx
-        .deleteFrom('enrollment_application')
+        .deleteFrom('enrollment')
         .where('volunteer_id', '=', volunteerId)
         .where('posting_id', '=', id)
         .execute();
+
+      if (!posting.automatic_acceptance) {
+        await trx
+          .deleteFrom('enrollment_application')
+          .where('volunteer_id', '=', volunteerId)
+          .where('posting_id', '=', id)
+          .execute();
+      }
+
+      return { existingEnrollment };
+    });
+
+    if (existingEnrollment?.attended) {
+      await recomputeVolunteerExperienceVector(volunteerId);
     }
 
-    return { existingEnrollment };
+    res.json({});
   });
 
-  if (existingEnrollment?.attended) {
-    await recomputeVolunteerExperienceVector(volunteerId);
-  }
+  return volunteerPostingRouter;
+}
 
-  res.json({});
-});
-
-export default volunteerPostingRouter;
+export default createVolunteerPostingRouter;
