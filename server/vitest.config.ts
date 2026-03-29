@@ -4,6 +4,8 @@ export default defineConfig({
   test: {
     coverage: {
       provider: 'v8',
+      include: ['src/**/*.ts'],
+      exclude: ['src/**/*.types.ts'],
     },
     globalSetup: './src/tests/globalSetup.ts',
     setupFiles: [
