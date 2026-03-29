@@ -8,7 +8,10 @@ import config from './config.ts';
 
 const app = express();
 
-app.use(morgan('dev'));
+if (config.NODE_ENV !== 'test') {
+  app.use(morgan('dev'));
+}
+
 app.use(express.json());
 
 app.use(cors({

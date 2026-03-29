@@ -11,6 +11,7 @@ import {
   type AdminOrganizationRequestReviewResponse,
   type AdminOrganizationRequestsResponse,
 } from './index.types.ts';
+import authorizeOnly from '../../../auth/authorizeOnly.ts';
 import removePassword from '../../../auth/removePassword.ts';
 import resetPassword from '../../../auth/resetPassword.ts';
 import config from '../../../config.ts';
@@ -18,7 +19,6 @@ import database from '../../../db/index.ts';
 import { recomputeOrganizationVector } from '../../../services/embeddings/updates.ts';
 import { sendOrganizationAcceptanceEmail, sendOrganizationRejectionEmail } from '../../../services/smtp/emails.ts';
 import { loginInfoSchema } from '../../../types.ts';
-import { authorizeOnly } from '../../authorization.ts';
 import { parseListQuery } from '../utils/listQuery.ts';
 
 const adminRouter = Router();

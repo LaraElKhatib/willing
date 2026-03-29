@@ -16,6 +16,7 @@ import {
   type VolunteerProfileResponse,
 } from './index.types.ts';
 import volunteerPostingRouter from './posting.ts';
+import authorizeOnly from '../../../auth/authorizeOnly.ts';
 import resetPassword from '../../../auth/resetPassword.ts';
 import config from '../../../config.ts';
 import database from '../../../db/index.ts';
@@ -25,7 +26,6 @@ import {
   recomputeVolunteerProfileVector,
 } from '../../../services/embeddings/updates.ts';
 import { getVolunteerProfile } from '../../../services/volunteer/index.ts';
-import { authorizeOnly } from '../../authorization.ts';
 import { normalizeSearchTerms } from '../utils/postingList.js';
 
 const volunteerRouter = Router();

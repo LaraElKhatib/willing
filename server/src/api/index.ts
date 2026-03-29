@@ -1,8 +1,8 @@
 import { Router } from 'express';
 
-import { setUserJWT } from './authorization.ts';
 import adminRouter from './routes/admin/index.ts';
 import geocodingRouter from './routes/geocoding.ts';
+import setUserJWT from '../auth/setUserJWT.ts';
 import organizationRouter from './routes/organization/index.ts';
 import publicRouter from './routes/public.ts';
 import userRouter from './routes/user.ts';

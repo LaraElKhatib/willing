@@ -1,21 +1,11 @@
-import { type RequestHandler } from 'express';
 import * as jose from 'jose';
 
 import config from '../config.ts';
-import { type UserJWT } from '../types.ts';
 
-export const authorizeOnly = (...roles: ('admin' | 'organization' | 'volunteer')[]) => {
-  return ((req, res, next) => {
-    if (!req.userJWT || !roles.includes(req.userJWT.role)) {
-      res.status(403);
-      next(new Error ('Unauthorized'));
-    } else {
-      next();
-    }
-  }) as RequestHandler;
-};
+import type { UserJWT } from '../types.ts';
+import type { RequestHandler } from 'express';
 
-export const setUserJWT = (async (req, _res, next) => {
+const setUserJWT = (async (req, _res, next) => {
   if (!req.headers.authorization) {
     next();
     return;
@@ -36,3 +26,5 @@ export const setUserJWT = (async (req, _res, next) => {
 
   next();
 }) as RequestHandler;
+
+export default setUserJWT;

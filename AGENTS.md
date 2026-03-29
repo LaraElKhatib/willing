@@ -113,6 +113,13 @@ Useful client scripts:
 - `npm run build`
 - `npm run lint`
 
+## Testing Conventions
+
+1. Server tests are colocated with the modules they cover (e.g., `server/src/api/routes/posting.test.ts`). Use matching filenames to keep discovery simple.
+2. Shared infrastructure lives under `server/src/tests/`: `setup.ts` exports the common `server` (`supertest(app)`) and registers a global `beforeEach` that truncates all public tables, so specs never roll their own lifecycle hooks.
+3. `server/src/tests/globalSetup.ts` drops/recreates the schema and runs migrations once before the suite, while `server/src/tests/globalTeardown.ts` closes the shared Kysely connection after all tests.
+4. Reuse `server/src/tests/helpers/database.ts` for schema resets or truncation logic instead of repeating raw SQL. Add any reusable seed/fixture helpers under `server/src/tests/fixtures/`.
+
 ## Core Engineering Rules
 
 1. Reuse canonical schemas and types from `server/src/db/tables.ts`.

@@ -4,11 +4,11 @@ import zod from 'zod';
 
 import { type VolunteerEnrollmentsResponse, type VolunteerPostingEnrollResponse, type VolunteerPostingResponse, type VolunteerPostingSearchResponse, type VolunteerPostingWithdrawResponse } from './posting.types.ts';
 import { buildPostingsWithContext, postingWithContextSelectColumns } from './postingWithContext.ts';
+import authorizeOnly from '../../../auth/authorizeOnly.ts';
 import database from '../../../db/index.ts';
 import { type Enrollment, type EnrollmentApplication } from '../../../db/tables/index.ts';
 import { recomputeVolunteerExperienceVector } from '../../../services/embeddings/updates.ts';
 import { type PostingWithContext } from '../../../types.ts';
-import { authorizeOnly } from '../../authorization.ts';
 import {
   parseListQuery,
   parseOptionalBooleanQueryParam,

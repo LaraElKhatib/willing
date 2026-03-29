@@ -23,6 +23,7 @@ import {
   type OrganizationUploadLogoResponse,
 } from './index.types.ts';
 import postingRouter from './posting.ts';
+import authorizeOnly from '../../../auth/authorizeOnly.ts';
 import resetPassword from '../../../auth/resetPassword.ts';
 import database from '../../../db/index.ts';
 import { newOrganizationRequestSchema, organizationAccountSchema, type PostingSkill } from '../../../db/tables/index.ts';
@@ -32,7 +33,6 @@ import { orgLogoMulter } from '../../../services/uploads/orgLogo.ts';
 import { CV_UPLOAD_DIR, ORG_LOGO_UPLOAD_DIR, ORG_SIGNATURE_UPLOAD_DIR } from '../../../services/uploads/paths.ts';
 import uploadSingle from '../../../services/uploads/uploadSingle.ts';
 import { getVolunteerProfile } from '../../../services/volunteer/index.ts';
-import { authorizeOnly } from '../../authorization.ts';
 
 const organizationRouter = Router();
 const organizationProfileResponseColumns = [
