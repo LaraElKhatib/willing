@@ -16,15 +16,24 @@ type VolunteerFixtureOptions = {
   last_name?: string;
 };
 
+const DEFAULT_ORG_PASSWORD = 'OrgPassword123!';
+const HASHED_DEFAULT_ORG_PASSWORD = hash(DEFAULT_ORG_PASSWORD);
+
+const DEFAULT_VOL_PASSWORD = 'VolPassword123!';
+const HASHED_DEFAULT_VOL_PASSWORD = hash(DEFAULT_VOL_PASSWORD);
+
+const DEFAULT_ADMIN_PASSWORD = 'AdminPassword123!';
+const HASHED_DEFAULT_ADMIN_PASSWORD = hash(DEFAULT_ADMIN_PASSWORD);
+
 export async function createOrganizationAccount({
   email = 'org@example.com',
-  password = 'OrgPassword123!',
+  password,
   name = 'Helping Hands',
 }: OrganizationFixtureOptions = {}): Promise<{
   organization: OrganizationAccount;
   plainPassword: string;
 }> {
-  const hashedPassword = await hash(password);
+  const hashedPassword = await (password === undefined ? HASHED_DEFAULT_ORG_PASSWORD : hash(password));
   const now = new Date();
 
   const organization = await database
@@ -44,19 +53,19 @@ export async function createOrganizationAccount({
     .returningAll()
     .executeTakeFirstOrThrow();
 
-  return { organization, plainPassword: password };
+  return { organization, plainPassword: password === undefined ? DEFAULT_ORG_PASSWORD : password };
 }
 
 export async function createVolunteerAccount({
   email = 'vol@example.com',
-  password = 'VolPassword123!',
+  password,
   first_name = 'Jane',
   last_name = 'Doe',
 }: VolunteerFixtureOptions = {}): Promise<{
   volunteer: VolunteerAccount;
   plainPassword: string;
 }> {
-  const hashedPassword = await hash(password);
+  const hashedPassword = await (password === undefined ? HASHED_DEFAULT_VOL_PASSWORD : hash(password));
   const now = new Date();
 
   const volunteer = await database
@@ -76,7 +85,7 @@ export async function createVolunteerAccount({
     .returningAll()
     .executeTakeFirstOrThrow();
 
-  return { volunteer, plainPassword: password };
+  return { volunteer, plainPassword: password === undefined ? DEFAULT_VOL_PASSWORD : password };
 }
 
 type AdminFixtureOptions = {
@@ -88,17 +97,17 @@ type AdminFixtureOptions = {
 
 export async function createAdminAccount({
   email = 'admin@example.com',
-  password = 'AdminPassword123!',
+  password,
   first_name = 'Admin',
   last_name = 'User',
 }: AdminFixtureOptions = {}): Promise<{
   admin: AdminAccount;
   plainPassword: string;
 }> {
-  const hashedPassword = await hash(password);
+  const hashedPassword = await (password === undefined ? HASHED_DEFAULT_ADMIN_PASSWORD : hash(password));
   const now = new Date();
 
-  const [admin] = await database
+  const admin = await database
     .insertInto('admin_account')
     .values({
       first_name,
@@ -109,7 +118,7 @@ export async function createAdminAccount({
       updated_at: now,
     })
     .returningAll()
-    .execute();
+    .executeTakeFirstOrThrow();
 
-  return { admin, plainPassword: password };
+  return { admin, plainPassword: password === undefined ? DEFAULT_ADMIN_PASSWORD : password };
 }
