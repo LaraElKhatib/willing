@@ -1,6 +1,5 @@
-import bcrypt from 'bcrypt';
-
 import database from '../../db/index.ts';
+import { hash } from '../../services/bcrypt/index.ts';
 
 import type { AdminAccount, OrganizationAccount, VolunteerAccount } from '../../db/tables/index.ts';
 
@@ -25,7 +24,7 @@ export async function createOrganizationAccount({
   organization: OrganizationAccount;
   plainPassword: string;
 }> {
-  const hashedPassword = await bcrypt.hash(password, 10);
+  const hashedPassword = await hash(password);
   const now = new Date();
 
   const organization = await database
@@ -57,7 +56,7 @@ export async function createVolunteerAccount({
   volunteer: VolunteerAccount;
   plainPassword: string;
 }> {
-  const hashedPassword = await bcrypt.hash(password, 10);
+  const hashedPassword = await hash(password);
   const now = new Date();
 
   const volunteer = await database
@@ -96,7 +95,7 @@ export async function createAdminAccount({
   admin: AdminAccount;
   plainPassword: string;
 }> {
-  const hashedPassword = await bcrypt.hash(password, 10);
+  const hashedPassword = await hash(password);
   const now = new Date();
 
   const [admin] = await database

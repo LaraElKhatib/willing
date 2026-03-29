@@ -1,6 +1,5 @@
 import crypto from 'crypto';
 
-import bcrypt from 'bcrypt';
 import { Router, type Response } from 'express';
 import * as jose from 'jose';
 import zod from 'zod';
@@ -14,6 +13,7 @@ import removePassword from '../../auth/removePassword.ts';
 import config from '../../config.ts';
 import database from '../../db/index.ts';
 import { passwordSchema } from '../../schemas/index.ts';
+import { compare, hash } from '../../services/bcrypt/index.ts';
 import { sendPasswordResetEmail } from '../../services/smtp/emails.ts';
 import { loginInfoSchema } from '../../types.ts';
 
@@ -79,10 +79,10 @@ userRouter.post('/login', async (req, res: Response<UserLoginResponse>) => {
 
   let valid;
   if (organizationAccount)
-    valid = await bcrypt.compare(body.password, organizationAccount.password);
+    valid = await compare(body.password, organizationAccount.password);
 
   if (volunteerAccount)
-    valid = await bcrypt.compare(body.password, volunteerAccount.password);
+    valid = await compare(body.password, volunteerAccount.password);
 
   if (!valid) {
     res.status(403);
@@ -177,7 +177,7 @@ userRouter.post('/forgot-password/reset', async (req, res: Response<UserForgotPa
     throw new Error('Reset token has expired');
   }
 
-  const hashedPassword = await bcrypt.hash(body.password, 10);
+  const hashedPassword = await hash(body.password);
 
   if (resetToken.role === 'organization') {
     await database

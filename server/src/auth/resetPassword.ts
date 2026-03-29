@@ -1,4 +1,3 @@
-import bcrypt from 'bcrypt';
 import { type Request, type Response } from 'express';
 import * as jose from 'jose';
 import zod from 'zod';
@@ -7,6 +6,7 @@ import config from '../config.ts';
 import database from '../db/index.ts';
 import { type Database } from '../db/tables/index.ts';
 import { passwordSchema } from '../schemas/index.ts';
+import { compare, hash } from '../services/bcrypt/index.ts';
 
 export interface ResetPasswordResponse {
   token: string;
@@ -32,7 +32,7 @@ export default async function resetPassword(req: Request, res: Response<ResetPas
     .where('id', '=', req.userJWT!.id)
     .executeTakeFirstOrThrow();
 
-  const valid = await bcrypt.compare(body.currentPassword, currentPasswordHash);
+  const valid = await compare(body.currentPassword, currentPasswordHash);
   if (!valid) {
     res.status(403);
     throw new Error('Incorrect password');
@@ -42,7 +42,7 @@ export default async function resetPassword(req: Request, res: Response<ResetPas
     .updateTable(accountTable)
     .where('id', '=', req.userJWT!.id)
     .set({
-      password: await bcrypt.hash(body.newPassword, 10),
+      password: await hash(body.newPassword),
     })
     .execute();
 

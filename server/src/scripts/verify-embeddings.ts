@@ -1,8 +1,8 @@
-import bcrypt from 'bcrypt';
 import { sql } from 'kysely';
 
 import config from '../config.ts';
 import database from '../db/index.ts';
+import { hash } from '../services/bcrypt/index.ts';
 import { EMBEDDING_DIMENSIONS } from '../services/embeddings/index.ts';
 import {
   recomputeOrganizationVector,
@@ -11,7 +11,7 @@ import {
   recomputeVolunteerProfileVector,
 } from '../services/embeddings/updates.ts';
 
-const TEST_PASSWORD_HASH = await bcrypt.hash('Willing123', 10);
+const TEST_PASSWORD_HASH = await hash('Willing123');
 
 const ensureOrganization = async () => {
   const existing = await database

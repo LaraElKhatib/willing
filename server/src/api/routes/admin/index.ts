@@ -1,4 +1,3 @@
-import bcrypt from 'bcrypt';
 import { Router, type Response } from 'express';
 import * as jose from 'jose';
 import zod from 'zod';
@@ -16,6 +15,7 @@ import removePassword from '../../../auth/removePassword.ts';
 import resetPassword from '../../../auth/resetPassword.ts';
 import config from '../../../config.ts';
 import database from '../../../db/index.ts';
+import { compare, hash } from '../../../services/bcrypt/index.ts';
 import { recomputeOrganizationVector } from '../../../services/embeddings/updates.ts';
 import { sendOrganizationAcceptanceEmail, sendOrganizationRejectionEmail } from '../../../services/smtp/emails.ts';
 import { loginInfoSchema } from '../../../types.ts';
@@ -47,7 +47,7 @@ adminRouter.post('/login', async (req, res: Response<AdminLoginResponse>) => {
     throw new Error('Invalid email or password');
   }
 
-  const match = await bcrypt.compare(body.password, account.password);
+  const match = await compare(body.password, account.password);
 
   if (!match) {
     res.status(403);
@@ -162,7 +162,7 @@ adminRouter.post('/reviewOrganizationRequest', async (req, res: Response<AdminOr
         latitude: Number(organizationRequest.latitude),
         longitude: Number(organizationRequest.longitude),
         location_name: organizationRequest.location_name,
-        password: await bcrypt.hash(password, 10),
+        password: await hash(password),
       })
       .returning(organizationPrivateResponseColumns)
       .executeTakeFirst();

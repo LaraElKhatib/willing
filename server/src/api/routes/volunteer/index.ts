@@ -1,4 +1,3 @@
-import bcrypt from 'bcrypt';
 import { Router, type Response } from 'express';
 import * as jose from 'jose';
 import { sql } from 'kysely';
@@ -21,6 +20,7 @@ import resetPassword from '../../../auth/resetPassword.ts';
 import config from '../../../config.ts';
 import database from '../../../db/index.ts';
 import { type VolunteerAccountWithoutPassword, newVolunteerAccountSchema, volunteerAccountSchema } from '../../../db/tables/index.ts';
+import { hash } from '../../../services/bcrypt/index.ts';
 import {
   recomputeVolunteerExperienceVector,
   recomputeVolunteerProfileVector,
@@ -77,7 +77,7 @@ volunteerRouter.post('/create', async (req, res: Response<VolunteerCreateRespons
     throw new Error('Account already exists, log in or use another email');
   }
 
-  const hashedPassword = await bcrypt.hash(body.password, 10);
+  const hashedPassword = await hash(body.password);
   const insertBody = {
     ...body,
     password: hashedPassword,

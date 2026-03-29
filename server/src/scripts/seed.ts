@@ -1,8 +1,8 @@
-﻿import bcrypt from 'bcrypt';
-import { sql } from 'kysely';
+﻿import { sql } from 'kysely';
 
 import config from '../config.ts';
 import database from '../db/index.ts';
+import { hash } from '../services/bcrypt/index.ts';
 
 const PASSWORD_PLAIN = 'Willing123';
 
@@ -11,7 +11,7 @@ async function seed() {
     throw new Error('Refusing to seed in production.');
   }
 
-  const passwordHash = await bcrypt.hash(PASSWORD_PLAIN, 10);
+  const passwordHash = await hash(PASSWORD_PLAIN);
 
   await sql`
   TRUNCATE TABLE
