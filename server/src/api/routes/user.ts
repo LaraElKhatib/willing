@@ -131,9 +131,8 @@ userRouter.post('/forgot-password', async (req, res: Response<UserForgotPassword
     }
   }
 
-  res.json({});
-
   if (!organizationAccount && !volunteerAccount) {
+    res.json({});
     return;
   }
 
