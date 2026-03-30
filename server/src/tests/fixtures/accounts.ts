@@ -1,7 +1,6 @@
 import database from '../../db/index.ts';
 import { hash } from '../../services/bcrypt/index.ts';
-
-import type { AdminAccount, OrganizationAccount, VolunteerAccount } from '../../db/tables/index.ts';
+import { generateJWT } from '../../services/jwt/index.ts';
 
 type OrganizationFixtureOptions = {
   email?: string;
@@ -36,10 +35,7 @@ export async function createOrganizationAccount({
   phone_number = '+10000000000',
   url = 'https://example.org',
   created_at = new Date(),
-}: OrganizationFixtureOptions = {}): Promise<{
-  organization: OrganizationAccount;
-  plainPassword: string;
-}> {
+}: OrganizationFixtureOptions = {}) {
   const hashedPassword = await (password === undefined ? HASHED_DEFAULT_ORG_PASSWORD : hash(password));
   const now = new Date();
 
@@ -60,7 +56,11 @@ export async function createOrganizationAccount({
     .returningAll()
     .executeTakeFirstOrThrow();
 
-  return { organization, plainPassword: password === undefined ? DEFAULT_ORG_PASSWORD : password };
+  return {
+    organization,
+    plainPassword: password === undefined ? DEFAULT_ORG_PASSWORD : password,
+    token: await generateJWT({ id: organization.id, role: 'organization' }),
+  };
 }
 
 export async function createVolunteerAccount({
@@ -69,10 +69,7 @@ export async function createVolunteerAccount({
   first_name = 'Jane',
   last_name = 'Doe',
   created_at = new Date(),
-}: VolunteerFixtureOptions = {}): Promise<{
-  volunteer: VolunteerAccount;
-  plainPassword: string;
-}> {
+}: VolunteerFixtureOptions = {}) {
   const hashedPassword = await (password === undefined ? HASHED_DEFAULT_VOL_PASSWORD : hash(password));
   const now = new Date();
 
@@ -93,7 +90,11 @@ export async function createVolunteerAccount({
     .returningAll()
     .executeTakeFirstOrThrow();
 
-  return { volunteer, plainPassword: password === undefined ? DEFAULT_VOL_PASSWORD : password };
+  return {
+    volunteer,
+    plainPassword: password === undefined ? DEFAULT_VOL_PASSWORD : password,
+    token: await generateJWT({ id: volunteer.id, role: 'volunteer' }),
+  };
 }
 
 type AdminFixtureOptions = {
@@ -108,10 +109,7 @@ export async function createAdminAccount({
   password,
   first_name = 'Admin',
   last_name = 'User',
-}: AdminFixtureOptions = {}): Promise<{
-  admin: AdminAccount;
-  plainPassword: string;
-}> {
+}: AdminFixtureOptions = {}) {
   const hashedPassword = await (password === undefined ? HASHED_DEFAULT_ADMIN_PASSWORD : hash(password));
   const now = new Date();
 
@@ -128,5 +126,9 @@ export async function createAdminAccount({
     .returningAll()
     .executeTakeFirstOrThrow();
 
-  return { admin, plainPassword: password === undefined ? DEFAULT_ADMIN_PASSWORD : password };
+  return {
+    admin,
+    plainPassword: password === undefined ? DEFAULT_ADMIN_PASSWORD : password,
+    token: await generateJWT({ id: admin.id, role: 'admin' }),
+  };
 }
