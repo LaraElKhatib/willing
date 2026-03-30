@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Building2, Globe, ImageUp, Mail, MapPin, Phone, ShieldCheck, Trash2 } from 'lucide-react';
+import { Building2, Globe, ImageUp, Mail, MapPin, Phone, ShieldCheck, Trash2, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { newOrganizationCertificateInfoSchema, organizationAccountSchema } from '../../../../server/src/db/tables';
 import { useOrganization } from '../../auth/useUsers';
 import Alert from '../../components/Alert';
+import Button from '../../components/Button';
 import Card from '../../components/Card';
 import ColumnLayout from '../../components/layout/ColumnLayout';
 import PageContainer from '../../components/layout/PageContainer';
@@ -469,9 +470,9 @@ function OrganizationProfile() {
           <>
             {isEditMode
               ? (
-                  <button className="btn btn-outline" onClick={onCancelEdit} disabled={saving}>
+                  <Button color="primary" style="outline" onClick={onCancelEdit} loading={saving} Icon={X}>
                     Cancel
-                  </button>
+                  </Button>
                 )
               : (
                   <button className="btn btn-outline" onClick={() => setIsEditMode(true)}>

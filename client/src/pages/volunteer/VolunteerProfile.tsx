@@ -177,8 +177,6 @@ function VolunteerProfile() {
 
   const { trigger: updateProfile } = useAsync(
     async (data: {
-      first_name: string;
-      last_name: string;
       gender: 'male' | 'female' | 'other';
       description: string;
       skills: string[];
@@ -344,8 +342,6 @@ function VolunteerProfile() {
       setSaving(true);
 
       const response = await updateProfile({
-        first_name: data.first_name,
-        last_name: data.last_name,
         gender: data.gender,
         description: data.description,
         skills,
@@ -557,10 +553,20 @@ function VolunteerProfile() {
               ? (
                   <div className="space-y-3">
                     <div className={saving ? 'pointer-events-none opacity-70' : ''}>
-                      <FormField form={form} name="first_name" label="First Name" />
+                      <div className="space-y-1">
+                        <label className="text-sm font-medium">First Name</label>
+                        <div className="input input-bordered w-full flex items-center opacity-80">
+                          <span>{profile.volunteer.first_name}</span>
+                        </div>
+                      </div>
                     </div>
                     <div className={saving ? 'pointer-events-none opacity-70' : ''}>
-                      <FormField form={form} name="last_name" label="Last Name" />
+                      <div className="space-y-1">
+                        <label className="text-sm font-medium">Last Name</label>
+                        <div className="input input-bordered w-full flex items-center opacity-80">
+                          <span>{profile.volunteer.last_name}</span>
+                        </div>
+                      </div>
                     </div>
                     <div className={saving ? 'pointer-events-none opacity-70' : ''}>
                       <FormField

@@ -42,6 +42,8 @@ const volunteerResponseColumns = [
 
 const volunteerProfileUserUpdateSchema = volunteerAccountSchema.omit({
   id: true,
+  first_name: true,
+  last_name: true,
   password: true,
   email: true,
   date_of_birth: true,
@@ -397,9 +399,7 @@ volunteerRouter.put('/profile', async (req, res: Response<VolunteerProfileRespon
     : false;
 
   const shouldRecomputeProfileVector = (
-    (body.first_name !== undefined && body.first_name !== existingVolunteer.first_name)
-    || (body.last_name !== undefined && body.last_name !== existingVolunteer.last_name)
-    || (body.gender !== undefined && body.gender !== existingVolunteer.gender)
+    (body.gender !== undefined && body.gender !== existingVolunteer.gender)
     || (body.cv_path !== undefined && body.cv_path !== existingVolunteer.cv_path)
     || (body.description !== undefined && body.description !== existingVolunteer.description)
     || didSkillsChange
@@ -408,8 +408,6 @@ volunteerRouter.put('/profile', async (req, res: Response<VolunteerProfileRespon
   await database.transaction().execute(async (trx) => {
     const volunteerUpdate: Partial<Omit<VolunteerAccountWithoutPassword, 'id'>> = {};
 
-    if (body.first_name !== undefined) volunteerUpdate.first_name = body.first_name;
-    if (body.last_name !== undefined) volunteerUpdate.last_name = body.last_name;
     if (body.gender !== undefined) volunteerUpdate.gender = body.gender;
     if (body.cv_path !== undefined) volunteerUpdate.cv_path = body.cv_path;
     if (body.description !== undefined) volunteerUpdate.description = body.description;
