@@ -1,8 +1,5 @@
-import * as jose from 'jose';
+import { verifyJWT } from '../services/jwt/index.ts';
 
-import config from '../config.ts';
-
-import type { UserJWT } from '../types.ts';
 import type { RequestHandler } from 'express';
 
 const setUserJWT = (async (req, _res, next) => {
@@ -18,7 +15,7 @@ const setUserJWT = (async (req, _res, next) => {
   }
 
   try {
-    const { payload } = await jose.jwtVerify<UserJWT>(token, new TextEncoder().encode(config.JWT_SECRET));
+    const payload = await verifyJWT(token);
     req.userJWT = payload;
   } catch {
     // If parsing the jwt failed, consider the user not logged in

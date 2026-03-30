@@ -1,11 +1,10 @@
 import { type Request, type Response } from 'express';
-import * as jose from 'jose';
 import zod from 'zod';
 
-import config from '../config.ts';
 import { type Database } from '../db/tables/index.ts';
 import { passwordSchema } from '../schemas/index.ts';
 import { compare, hash } from '../services/bcrypt/index.ts';
+import { generateJWT } from '../services/jwt/index.ts';
 
 import type { Kysely } from 'kysely';
 
@@ -48,11 +47,7 @@ export default function createResetPassword(database: Kysely<Database>) {
       })
       .execute();
 
-    const token = await new jose.SignJWT({ id: req.userJWT!.id, role: req.userJWT!.role })
-      .setIssuedAt()
-      .setProtectedHeader({ alg: 'HS256' })
-      .setExpirationTime('7d')
-      .sign(new TextEncoder().encode(config.JWT_SECRET));
+    const token = await generateJWT({ id: req.userJWT!.id, role: req.userJWT!.role });
 
     res.json({ token });
   };

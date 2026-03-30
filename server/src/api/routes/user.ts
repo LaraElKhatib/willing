@@ -1,7 +1,6 @@
 import crypto from 'crypto';
 
 import { Router, type Response } from 'express';
-import * as jose from 'jose';
 import { type Kysely } from 'kysely';
 import zod from 'zod';
 
@@ -11,10 +10,10 @@ import {
   type UserLoginResponse,
 } from './user.types.ts';
 import removePassword from '../../auth/removePassword.ts';
-import config from '../../config.ts';
 import { type Database } from '../../db/tables/index.ts';
 import { passwordSchema } from '../../schemas/index.ts';
 import { compare, hash } from '../../services/bcrypt/index.ts';
+import { generateJWT } from '../../services/jwt/index.ts';
 import { sendPasswordResetEmail } from '../../services/smtp/emails.ts';
 import { loginInfoSchema } from '../../types.ts';
 
@@ -92,13 +91,10 @@ function createUserRouter(db: Kysely<Database>) {
       throw new Error('Invalid email or password');
     }
 
-    const token = await new jose.SignJWT({
-      id: (organizationAccount || volunteerAccount)?.id,
+    const token = await generateJWT({
+      id: (organizationAccount || volunteerAccount)!.id,
       role: organizationAccount ? 'organization' : 'volunteer',
-    }).setIssuedAt()
-      .setProtectedHeader({ alg: 'HS256' })
-      .setExpirationTime('7d')
-      .sign(new TextEncoder().encode(config.JWT_SECRET));
+    });
 
     res.json({
       token,

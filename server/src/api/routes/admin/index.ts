@@ -1,5 +1,4 @@
 import { Router, type Response } from 'express';
-import * as jose from 'jose';
 import { type Kysely } from 'kysely';
 import zod from 'zod';
 
@@ -14,10 +13,10 @@ import {
 import authorizeOnly from '../../../auth/authorizeOnly.ts';
 import removePassword from '../../../auth/removePassword.ts';
 import createResetPassword from '../../../auth/resetPassword.ts';
-import config from '../../../config.ts';
 import { type Database } from '../../../db/tables/index.ts';
 import { compare, hash } from '../../../services/bcrypt/index.ts';
 import { recomputeOrganizationVector } from '../../../services/embeddings/updates.ts';
+import { generateJWT } from '../../../services/jwt/index.ts';
 import { sendOrganizationAcceptanceEmail, sendOrganizationRejectionEmail } from '../../../services/smtp/emails.ts';
 import { loginInfoSchema } from '../../../types.ts';
 import { parseListQuery } from '../utils/listQuery.ts';
@@ -56,14 +55,10 @@ function createAdminRouter(db: Kysely<Database>) {
       res.status(403);
       throw new Error('Invalid email or password');
     }
-    const token = await new jose.SignJWT({
+    const token = await generateJWT({
       id: account.id,
       role: 'admin',
-    })
-      .setIssuedAt()
-      .setProtectedHeader({ alg: 'HS256' })
-      .setExpirationTime('7d')
-      .sign(new TextEncoder().encode(config.JWT_SECRET));
+    });
 
     res.json({
       token,
@@ -176,7 +171,7 @@ function createAdminRouter(db: Kysely<Database>) {
       throw new Error('Failed to create organization account');
     }
 
-    await recomputeOrganizationVector(insertedOrganization.id);
+    await recomputeOrganizationVector(insertedOrganization.id, db);
 
     await sendOrganizationAcceptanceEmail(organizationRequest, password);
 
