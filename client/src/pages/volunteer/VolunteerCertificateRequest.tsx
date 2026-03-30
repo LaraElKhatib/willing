@@ -190,6 +190,11 @@ function VolunteerCertificateRequest() {
             line-height: 1.35;
           }
 
+          #${CERTIFICATE_PREVIEW_ID} .certificate-token-value {
+            user-select: text;
+            -webkit-user-select: text;
+          }
+
           @media print {
             @page {
               size: A4 landscape;
@@ -260,6 +265,11 @@ function VolunteerCertificateRequest() {
 
             .certificate-meta p {
               white-space: nowrap !important;
+            }
+
+            .certificate-token-value {
+              user-select: text !important;
+              -webkit-user-select: text !important;
             }
 
             .certificate-name {
@@ -484,30 +494,15 @@ function VolunteerCertificateRequest() {
                     >
                       <div className="h-full grid grid-rows-[168px_1fr_272px]">
                         <div>
-                          <div className="flex items-start justify-between">
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <img src="/willing.svg" alt="Willing Logo" className="h-7 w-7" />
-                                <p className="text-base uppercase tracking-[0.2em] text-primary font-semibold">Willing Platform</p>
-                              </div>
-                              <h2 className="certificate-title">Certificate of Volunteering</h2>
-                              <div className="flex items-center gap-2 mt-2 text-success">
-                                <CheckCircle2 size={16} />
-                                <span className="font-semibold text-base">Participation Verified</span>
-                              </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <img src="/willing.svg" alt="Willing Logo" className="h-7 w-7" />
+                              <p className="text-base uppercase tracking-[0.2em] text-primary font-semibold">Willing Platform</p>
                             </div>
-                            <div className="certificate-meta text-right text-base">
-                              <p className="ml-auto w-[560px] max-w-full text-[14px] leading-tight flex items-baseline justify-end gap-1 text-neutral-500">
-                                <span className="whitespace-nowrap font-semibold">Verification Token:</span>
-                                <span className="whitespace-nowrap font-mono tracking-tight">
-                                  {verificationToken ?? 'Pending'}
-                                </span>
-                              </p>
-                              <p className="mt-1 text-neutral-700">
-                                Generated:
-                                {' '}
-                                {certificateGeneratedAt.toLocaleDateString()}
-                              </p>
+                            <h2 className="certificate-title">Certificate of Volunteering</h2>
+                            <div className="flex items-center gap-2 mt-2 text-success">
+                              <CheckCircle2 size={16} />
+                              <span className="font-semibold text-base">Participation Verified</span>
                             </div>
                           </div>
                         </div>
@@ -590,7 +585,7 @@ function VolunteerCertificateRequest() {
                                   <div className="h-44" aria-hidden />
                                 )}
                           </div>
-                          <div className="certificate-footer mt-auto flex items-end">
+                          <div className="certificate-footer mt-auto flex items-end justify-between gap-6">
                             <div className="w-48">
                               <p className="text-xs uppercase tracking-wide opacity-60">Willing Admin Signature</p>
                               <div className="mt-1 h-7 flex items-end">
@@ -608,6 +603,19 @@ function VolunteerCertificateRequest() {
                               <p className="text-xs opacity-70 mt-0.5 truncate">{data?.platform_certificate?.signatory_name || 'Name'}</p>
                               <p className="text-[11px] opacity-60 truncate">
                                 {data?.platform_certificate?.signatory_position || 'Title'}
+                              </p>
+                            </div>
+                            <div className="certificate-meta text-right text-base ml-auto">
+                              <p className="text-neutral-700 text-sm">
+                                Generated:
+                                {' '}
+                                {certificateGeneratedAt.toLocaleDateString()}
+                              </p>
+                              <p className="mt-1 ml-auto w-[560px] max-w-full text-[14px] leading-tight flex items-baseline justify-end gap-1 text-neutral-500">
+                                <span className="whitespace-nowrap font-semibold">Verification Token:</span>
+                                <span className="certificate-token-value whitespace-nowrap font-mono tracking-tight">
+                                  {verificationToken ?? 'Pending'}
+                                </span>
                               </p>
                             </div>
                           </div>
