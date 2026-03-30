@@ -4,8 +4,7 @@ import { type Crisis, type VolunteerAccountWithoutPassword } from '../../../db/t
 import type { VolunteerProfileData } from '../../../services/volunteer/index.ts';
 
 export type VolunteerCreateResponse = {
-  volunteer: VolunteerAccountWithoutPassword;
-  token: string;
+  requires_email_verification: true;
 };
 
 export type VolunteerMeResponse = {

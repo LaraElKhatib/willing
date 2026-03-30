@@ -1,6 +1,7 @@
+import crypto from 'crypto';
+
 import bcrypt from 'bcrypt';
 import { Router, type Response } from 'express';
-import * as jose from 'jose';
 import { sql } from 'kysely';
 import zod from 'zod';
 
@@ -17,13 +18,10 @@ import {
 } from './index.types.ts';
 import volunteerPostingRouter from './posting.ts';
 import resetPassword from '../../../auth/resetPassword.ts';
-import config from '../../../config.ts';
 import database from '../../../db/index.ts';
 import { type VolunteerAccountWithoutPassword, newVolunteerAccountSchema, volunteerAccountSchema } from '../../../db/tables/index.ts';
-import {
-  recomputeVolunteerExperienceVector,
-  recomputeVolunteerProfileVector,
-} from '../../../services/embeddings/updates.ts';
+import { recomputeVolunteerProfileVector } from '../../../services/embeddings/updates.ts';
+import { sendVolunteerVerificationEmail } from '../../../services/smtp/emails.ts';
 import { getVolunteerProfile } from '../../../services/volunteer/index.ts';
 import { authorizeOnly } from '../../authorization.ts';
 import { normalizeSearchTerms } from '../utils/postingList.js';
@@ -78,32 +76,40 @@ volunteerRouter.post('/create', async (req, res: Response<VolunteerCreateRespons
   }
 
   const hashedPassword = await bcrypt.hash(body.password, 10);
-  const insertBody = {
-    ...body,
-    password: hashedPassword,
-  };
-
-  const newVolunteer = await database
-    .insertInto('volunteer_account')
-    .values(insertBody)
-    .returning(volunteerResponseColumns)
+  const existingPendingVolunteer = await database
+    .selectFrom('volunteer_pending_account')
+    .select('id')
+    .where('email', '=', body.email)
     .executeTakeFirst();
 
-  if (!newVolunteer) {
-    res.status(500);
-    throw new Error('Failed to create volunteer');
+  if (existingPendingVolunteer) {
+    await database
+      .deleteFrom('volunteer_pending_account')
+      .where('id', '=', existingPendingVolunteer.id)
+      .execute();
   }
 
-  await recomputeVolunteerProfileVector(newVolunteer.id);
-  await recomputeVolunteerExperienceVector(newVolunteer.id);
+  const verificationToken = crypto.randomBytes(32).toString('hex');
 
-  const token = await new jose.SignJWT({ id: newVolunteer.id, role: 'volunteer' })
-    .setIssuedAt()
-    .setProtectedHeader({ alg: 'HS256' })
-    .setExpirationTime('7d')
-    .sign(new TextEncoder().encode(config.JWT_SECRET));
+  await database
+    .insertInto('volunteer_pending_account')
+    .values({
+      ...body,
+      date_of_birth: new Date(body.date_of_birth),
+      password: hashedPassword,
+      token: verificationToken,
+    })
+    .execute();
 
-  res.json({ volunteer: newVolunteer, token });
+  await sendVolunteerVerificationEmail({
+    volunteerEmail: body.email,
+    volunteerName: `${body.first_name} ${body.last_name}`,
+    verificationToken,
+  });
+
+  res.json({
+    requires_email_verification: true,
+  });
 });
 
 volunteerRouter.use(authorizeOnly('volunteer'));
@@ -188,12 +194,12 @@ volunteerRouter.get('/certificate', async (req, res: Response<VolunteerCertifica
     .executeTakeFirstOrThrow();
 
   const hoursPerPostingExpr = sql<number>`GREATEST(
-    0,
-    EXTRACT(EPOCH FROM (
-      (organization_posting.end_date + organization_posting.end_time)
-      - (organization_posting.start_date + organization_posting.start_time)
-    )) / 3600.0
-  )`;
+      0,
+      EXTRACT(EPOCH FROM (
+        (organization_posting.end_date + organization_posting.end_time)
+        - (organization_posting.start_date + organization_posting.start_time)
+      )) / 3600.0
+    )`;
 
   const totalHoursRow = await database
     .selectFrom('enrollment')
