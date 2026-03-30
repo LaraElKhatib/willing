@@ -690,7 +690,7 @@ function OrganizationProfile() {
                               if (value === '' || value === null || value === undefined) return null;
                               const parsed = Number(value);
                               if (!Number.isFinite(parsed)) return null;
-                              return Math.max(0, Math.trunc(parsed));
+                              return Math.trunc(parsed);
                             },
                           })}
                           onWheel={(event) => {
