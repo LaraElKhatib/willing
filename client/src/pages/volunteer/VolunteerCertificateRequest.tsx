@@ -496,13 +496,14 @@ function VolunteerCertificateRequest() {
                                 <span className="font-semibold text-base">Participation Verified</span>
                               </div>
                             </div>
-                            <div className="certificate-meta text-right text-base opacity-70">
-                              <p className="text-xs leading-tight max-w-[280px] break-all ml-auto">
-                                Verification Token:
-                                {' '}
-                                {verificationToken ?? 'Pending'}
+                            <div className="certificate-meta text-right text-base">
+                              <p className="ml-auto w-[560px] max-w-full text-[14px] leading-tight flex items-baseline justify-end gap-1 text-neutral-500">
+                                <span className="whitespace-nowrap font-semibold">Verification Token:</span>
+                                <span className="whitespace-nowrap font-mono tracking-tight">
+                                  {verificationToken ?? 'Pending'}
+                                </span>
                               </p>
-                              <p className="mt-1">
+                              <p className="mt-1 text-neutral-700">
                                 Generated:
                                 {' '}
                                 {certificateGeneratedAt.toLocaleDateString()}
