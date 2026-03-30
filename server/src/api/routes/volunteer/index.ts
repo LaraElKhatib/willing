@@ -2,6 +2,7 @@ import crypto from 'crypto';
 
 import bcrypt from 'bcrypt';
 import { Router, type Response } from 'express';
+import * as jose from 'jose';
 import { sql } from 'kysely';
 import zod from 'zod';
 
@@ -15,12 +16,17 @@ import {
   type VolunteerOrganizationSearchResponse,
   type VolunteerPinnedCrisesResponse,
   type VolunteerProfileResponse,
+  type VolunteerVerifyEmailResponse,
 } from './index.types.ts';
 import volunteerPostingRouter from './posting.ts';
 import resetPassword from '../../../auth/resetPassword.ts';
+import config from '../../../config.ts';
 import database from '../../../db/index.ts';
 import { type VolunteerAccountWithoutPassword, newVolunteerAccountSchema, volunteerAccountSchema } from '../../../db/tables/index.ts';
-import { recomputeVolunteerProfileVector } from '../../../services/embeddings/updates.ts';
+import {
+  recomputeVolunteerExperienceVector,
+  recomputeVolunteerProfileVector,
+} from '../../../services/embeddings/updates.ts';
 import { sendVolunteerVerificationEmail } from '../../../services/smtp/emails.ts';
 import { getVolunteerProfile } from '../../../services/volunteer/index.ts';
 import { authorizeOnly } from '../../authorization.ts';
@@ -60,6 +66,10 @@ const areSkillListsEqual = (left: string[], right: string[]) => {
   if (left.length !== right.length) return false;
   return left.every((skill, index) => skill === right[index]);
 };
+
+const verifyVolunteerEmailSchema = zod.object({
+  key: zod.string().min(1),
+});
 
 volunteerRouter.post('/create', async (req, res: Response<VolunteerCreateResponse>) => {
   const body = newVolunteerAccountSchema.parse(req.body);
@@ -110,6 +120,75 @@ volunteerRouter.post('/create', async (req, res: Response<VolunteerCreateRespons
   res.json({
     requires_email_verification: true,
   });
+});
+
+volunteerRouter.post('/verify-email', async (req, res: Response<VolunteerVerifyEmailResponse>) => {
+  const { key } = verifyVolunteerEmailSchema.parse(req.body);
+
+  const pendingVolunteer = await database
+    .selectFrom('volunteer_pending_account')
+    .selectAll()
+    .where('token', '=', key)
+    .executeTakeFirst();
+
+  if (!pendingVolunteer) {
+    res.status(400);
+    throw new Error('Invalid or expired verification token');
+  }
+
+  const existingVolunteer = await database
+    .selectFrom('volunteer_account')
+    .select('id')
+    .where('email', '=', pendingVolunteer.email)
+    .executeTakeFirst();
+
+  if (existingVolunteer) {
+    await database
+      .deleteFrom('volunteer_pending_account')
+      .where('id', '=', pendingVolunteer.id)
+      .execute();
+
+    res.status(409);
+    throw new Error('Account already exists, log in instead');
+  }
+
+  const volunteer = await database.transaction().execute(async (trx) => {
+    const createdVolunteer = await trx
+      .insertInto('volunteer_account')
+      .values({
+        first_name: pendingVolunteer.first_name,
+        last_name: pendingVolunteer.last_name,
+        email: pendingVolunteer.email,
+        password: pendingVolunteer.password,
+        date_of_birth: pendingVolunteer.date_of_birth.toISOString().slice(0, 10),
+        gender: pendingVolunteer.gender,
+      })
+      .returning(volunteerResponseColumns)
+      .executeTakeFirst();
+
+    if (!createdVolunteer) {
+      res.status(500);
+      throw new Error('Failed to verify volunteer account');
+    }
+
+    await trx
+      .deleteFrom('volunteer_pending_account')
+      .where('id', '=', pendingVolunteer.id)
+      .execute();
+
+    return createdVolunteer;
+  });
+
+  await recomputeVolunteerProfileVector(volunteer.id);
+  await recomputeVolunteerExperienceVector(volunteer.id);
+
+  const token = await new jose.SignJWT({ id: volunteer.id, role: 'volunteer' })
+    .setIssuedAt()
+    .setProtectedHeader({ alg: 'HS256' })
+    .setExpirationTime('7d')
+    .sign(new TextEncoder().encode(config.JWT_SECRET));
+
+  res.json({ volunteer, token });
 });
 
 volunteerRouter.use(authorizeOnly('volunteer'));
