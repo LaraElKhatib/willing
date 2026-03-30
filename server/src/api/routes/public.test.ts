@@ -89,13 +89,9 @@ describe('GET /public/home-stats', () => {
     await createOrganizationPosting({ organizationId: org2.organization.id, created_at: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000) });
     await createOrganizationPosting({ organizationId: org1.organization.id });
 
-    const n = Date.now();
-
     const response = await server
       .get('/public/home-stats')
       .expect(200);
-
-    console.log('request took ' + (Date.now() - n) + 'ms');
 
     expect(response.body).toMatchObject({
       newOrganizationsThisWeek: 2,
