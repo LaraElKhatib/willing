@@ -145,6 +145,8 @@ function OrganizationHome() {
     await fetchPostings(fromOrganizationPostingFilterFormValues(formValues));
   }, [fetchPostings]);
 
+  const crisisNameById = useMemo(() => new Map((crises ?? []).map(crisis => [crisis.id, crisis.name])), [crises]);
+
   const postingsWithContext = useMemo<PostingWithContext[]>(() => {
     if (!postings) return [];
     const orgName = organizationMe?.organization.name ?? organization?.name ?? '';
@@ -154,11 +156,11 @@ function OrganizationHome() {
       ...posting,
       organization_name: orgName,
       organization_logo_path: orgLogoPath,
-      crisis_name: null,
+      crisis_name: posting.crisis_id ? (crisisNameById.get(posting.crisis_id) ?? null) : null,
       enrollment_count: 0,
       application_status: 'none',
     }));
-  }, [organization?.logo_path, organization?.name, organizationMe?.organization.logo_path, organizationMe?.organization.name, postings]);
+  }, [crisisNameById, organization?.logo_path, organization?.name, organizationMe?.organization.logo_path, organizationMe?.organization.name, postings]);
 
   return (
     <PageContainer>
