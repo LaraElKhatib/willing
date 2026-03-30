@@ -197,12 +197,12 @@ function createVolunteerRouter(db: Kysely<Database>) {
       .executeTakeFirstOrThrow();
 
     const hoursPerPostingExpr = sql<number>`GREATEST(
-    0,
-    EXTRACT(EPOCH FROM (
-      (organization_posting.end_date + organization_posting.end_time)
-      - (organization_posting.start_date + organization_posting.start_time)
-    )) / 3600.0
-  )`;
+      0,
+      EXTRACT(EPOCH FROM (
+        (organization_posting.end_date + organization_posting.end_time)
+        - (organization_posting.start_date + organization_posting.start_time)
+      )) / 3600.0
+    )`;
 
     const totalHoursRow = await db
       .selectFrom('enrollment')
