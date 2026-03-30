@@ -1,5 +1,4 @@
 import { Router, type Response } from 'express';
-import * as jose from 'jose';
 import { sql, type Kysely } from 'kysely';
 import zod from 'zod';
 
@@ -17,20 +16,16 @@ import {
 import createVolunteerPostingRouter from './posting.ts';
 import authorizeOnly from '../../../auth/authorizeOnly.ts';
 import createResetPassword from '../../../auth/resetPassword.ts';
-import config from '../../../config.ts';
 import { type Database, type VolunteerAccountWithoutPassword, newVolunteerAccountSchema, volunteerAccountSchema } from '../../../db/tables/index.ts';
 import { hash } from '../../../services/bcrypt/index.ts';
 import {
   recomputeVolunteerExperienceVector,
   recomputeVolunteerProfileVector,
 } from '../../../services/embeddings/updates.ts';
+import { generateJWT } from '../../../services/jwt/index.ts';
 import { getVolunteerProfile } from '../../../services/volunteer/index.ts';
 import { normalizeSearchTerms } from '../utils/postingList.js';
 
-const volunteerRouter = Router();
-let db: Kysely<Database>;
-let volunteerCvRouterMounted = false;
-let volunteerPostingRouterMounted = false;
 const volunteerResponseColumns = [
   'id',
   'first_name',
@@ -65,131 +60,143 @@ const areSkillListsEqual = (left: string[], right: string[]) => {
   return left.every((skill, index) => skill === right[index]);
 };
 
-volunteerRouter.post('/create', async (req, res: Response<VolunteerCreateResponse>) => {
-  const body = newVolunteerAccountSchema.parse(req.body);
+function createVolunteerRouter(db: Kysely<Database>) {
+  const volunteerRouter = Router();
 
-  const existingVolunteer = await db
-    .selectFrom('volunteer_account')
-    .select('id')
-    .where('email', '=', body.email)
-    .executeTakeFirst();
+  volunteerRouter.post('/create', async (req, res: Response<VolunteerCreateResponse>) => {
+    const body = newVolunteerAccountSchema.parse(req.body);
 
-  if (existingVolunteer) {
-    res.status(409);
-    throw new Error('Account already exists, log in or use another email');
-  }
+    const [existingVolunteer, existingOrganization, existingOrganizationRequest] = await Promise.all([
+      db
+        .selectFrom('volunteer_account')
+        .select('id')
+        .where('email', '=', body.email)
+        .executeTakeFirst(),
+      db
+        .selectFrom('organization_account')
+        .select('id')
+        .where('email', '=', body.email)
+        .executeTakeFirst(),
+      db
+        .selectFrom('organization_request')
+        .select('id')
+        .where('email', '=', body.email)
+        .executeTakeFirst(),
+    ]);
 
-  const hashedPassword = await hash(body.password);
-  const insertBody = {
-    ...body,
-    password: hashedPassword,
-  };
+    if (existingVolunteer || existingOrganization || existingOrganizationRequest) {
+      res.status(409);
+      throw new Error('Email already in use, log in or use another email');
+    }
 
-  const newVolunteer = await db
-    .insertInto('volunteer_account')
-    .values(insertBody)
-    .returning(volunteerResponseColumns)
-    .executeTakeFirst();
+    const hashedPassword = await hash(body.password);
+    const insertBody = {
+      ...body,
+      password: hashedPassword,
+    };
 
-  if (!newVolunteer) {
-    res.status(500);
-    throw new Error('Failed to create volunteer');
-  }
+    const newVolunteer = await db
+      .insertInto('volunteer_account')
+      .values(insertBody)
+      .returning(volunteerResponseColumns)
+      .executeTakeFirst();
 
-  await recomputeVolunteerProfileVector(newVolunteer.id);
-  await recomputeVolunteerExperienceVector(newVolunteer.id);
+    if (!newVolunteer) {
+      res.status(500);
+      throw new Error('Failed to create volunteer');
+    }
 
-  const token = await new jose.SignJWT({ id: newVolunteer.id, role: 'volunteer' })
-    .setIssuedAt()
-    .setProtectedHeader({ alg: 'HS256' })
-    .setExpirationTime('7d')
-    .sign(new TextEncoder().encode(config.JWT_SECRET));
+    await recomputeVolunteerProfileVector(newVolunteer.id, db);
+    await recomputeVolunteerExperienceVector(newVolunteer.id, db);
 
-  res.json({ volunteer: newVolunteer, token });
-});
+    const token = await generateJWT({ id: newVolunteer.id, role: 'volunteer' });
 
-volunteerRouter.use(authorizeOnly('volunteer'));
+    res.status(201);
+    res.json({ volunteer: newVolunteer, token });
+  });
 
-volunteerRouter.get('/me', async (req, res: Response<VolunteerMeResponse>) => {
-  const volunteer = await db
-    .selectFrom('volunteer_account')
-    .select(volunteerResponseColumns)
-    .where('id', '=', req.userJWT!.id)
-    .executeTakeFirstOrThrow();
+  volunteerRouter.use(authorizeOnly('volunteer'));
 
-  res.json({ volunteer });
-});
+  volunteerRouter.get('/me', async (req, res: Response<VolunteerMeResponse>) => {
+    const volunteer = await db
+      .selectFrom('volunteer_account')
+      .select(volunteerResponseColumns)
+      .where('id', '=', req.userJWT!.id)
+      .executeTakeFirstOrThrow();
 
-volunteerRouter.get('/profile', async (req, res: Response<VolunteerProfileResponse>) => {
-  const profile = await getVolunteerProfile(req.userJWT!.id);
-  res.json(profile);
-});
+    res.json({ volunteer });
+  });
 
-volunteerRouter.get('/organizations', async (req, res: Response<VolunteerOrganizationSearchResponse>) => {
-  const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
+  volunteerRouter.get('/profile', async (req, res: Response<VolunteerProfileResponse>) => {
+    const profile = await getVolunteerProfile(req.userJWT!.id);
+    res.json(profile);
+  });
 
-  let query = database
-    .selectFrom('organization_account')
-    .leftJoin('organization_posting', 'organization_posting.organization_id', 'organization_account.id')
-    .select([
-      'organization_account.id',
-      'organization_account.name',
-      'organization_account.description',
-      'organization_account.location_name',
-      'organization_account.logo_path',
-      sql<number>`COALESCE(COUNT(organization_posting.id), 0)`.as('posting_count'),
-    ])
-    .groupBy('organization_account.id');
+  volunteerRouter.get('/organizations', async (req, res: Response<VolunteerOrganizationSearchResponse>) => {
+    const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
 
-  if (search) {
-    const terms = normalizeSearchTerms(search);
-    query = query.where(({ and, or }) => and(
-      terms.map((term) => {
-        const likePattern = `%${term}%`;
-        return or([
-          sql<boolean>`lower(organization_account.name) LIKE ${likePattern}`,
-          sql<boolean>`regexp_replace(lower(organization_account.name), '[^a-z0-9]+', '', 'g') LIKE ${likePattern}`,
-          sql<boolean>`lower(organization_account.description) LIKE ${likePattern}`,
-          sql<boolean>`regexp_replace(lower(organization_account.description), '[^a-z0-9]+', '', 'g') LIKE ${likePattern}`,
-          sql<boolean>`lower(organization_account.location_name) LIKE ${likePattern}`,
-          sql<boolean>`regexp_replace(lower(organization_account.location_name), '[^a-z0-9]+', '', 'g') LIKE ${likePattern}`,
-        ]);
-      }),
-    ));
-  }
+    let query = database
+      .selectFrom('organization_account')
+      .leftJoin('organization_posting', 'organization_posting.organization_id', 'organization_account.id')
+      .select([
+        'organization_account.id',
+        'organization_account.name',
+        'organization_account.description',
+        'organization_account.location_name',
+        'organization_account.logo_path',
+        sql<number>`COALESCE(COUNT(organization_posting.id), 0)`.as('posting_count'),
+      ])
+      .groupBy('organization_account.id');
 
-  const sortBy = typeof req.query.sort_by === 'string' ? req.query.sort_by : 'name';
-  const sortDir = req.query.sort_dir === 'desc' ? 'desc' : 'asc';
+    if (search) {
+      const terms = normalizeSearchTerms(search);
+      query = query.where(({ and, or }) => and(
+        terms.map((term) => {
+          const likePattern = `%${term}%`;
+          return or([
+            sql<boolean>`lower(organization_account.name) LIKE ${likePattern}`,
+            sql<boolean>`regexp_replace(lower(organization_account.name), '[^a-z0-9]+', '', 'g') LIKE ${likePattern}`,
+            sql<boolean>`lower(organization_account.description) LIKE ${likePattern}`,
+            sql<boolean>`regexp_replace(lower(organization_account.description), '[^a-z0-9]+', '', 'g') LIKE ${likePattern}`,
+            sql<boolean>`lower(organization_account.location_name) LIKE ${likePattern}`,
+            sql<boolean>`regexp_replace(lower(organization_account.location_name), '[^a-z0-9]+', '', 'g') LIKE ${likePattern}`,
+          ]);
+        }),
+      ));
+    }
 
-  const orderByColumn = sortBy === 'title' ? 'organization_account.name' : 'organization_account.name';
+    const sortBy = typeof req.query.sort_by === 'string' ? req.query.sort_by : 'name';
+    const sortDir = req.query.sort_dir === 'desc' ? 'desc' : 'asc';
 
-  const organizationsRaw = await query
-    .orderBy(orderByColumn, sortDir)
-    .limit(30)
-    .execute();
+    const orderByColumn = sortBy === 'title' ? 'organization_account.name' : 'organization_account.name';
 
-  const organizations = organizationsRaw.map(organization => ({
-    id: organization.id,
-    name: organization.name,
-    description: organization.description ?? null,
-    location_name: organization.location_name ?? null,
-    logo_path: organization.logo_path ?? null,
-    posting_count: Number(organization.posting_count ?? 0),
-  }));
+    const organizationsRaw = await query
+      .orderBy(orderByColumn, sortDir)
+      .limit(30)
+      .execute();
 
-  res.json({ organizations });
-});
+    const organizations = organizationsRaw.map(organization => ({
+      id: organization.id,
+      name: organization.name,
+      description: organization.description ?? null,
+      location_name: organization.location_name ?? null,
+      logo_path: organization.logo_path ?? null,
+      posting_count: Number(organization.posting_count ?? 0),
+    }));
 
-volunteerRouter.get('/certificate', async (req, res: Response<VolunteerCertificateResponse>) => {
-  const volunteerId = req.userJWT!.id;
+    res.json({ organizations });
+  });
 
-  const volunteer = await db
-    .selectFrom('volunteer_account')
-    .select(['id', 'first_name', 'last_name'])
-    .where('id', '=', volunteerId)
-    .executeTakeFirstOrThrow();
+  volunteerRouter.get('/certificate', async (req, res: Response<VolunteerCertificateResponse>) => {
+    const volunteerId = req.userJWT!.id;
 
-  const hoursPerPostingExpr = sql<number>`GREATEST(
+    const volunteer = await db
+      .selectFrom('volunteer_account')
+      .select(['id', 'first_name', 'last_name'])
+      .where('id', '=', volunteerId)
+      .executeTakeFirstOrThrow();
+
+    const hoursPerPostingExpr = sql<number>`GREATEST(
     0,
     EXTRACT(EPOCH FROM (
       (organization_posting.end_date + organization_posting.end_time)
@@ -197,273 +204,262 @@ volunteerRouter.get('/certificate', async (req, res: Response<VolunteerCertifica
     )) / 3600.0
   )`;
 
-  const totalHoursRow = await db
-    .selectFrom('enrollment')
-    .innerJoin('organization_posting', 'organization_posting.id', 'enrollment.posting_id')
-    .select(sql<number>`COALESCE(SUM(${hoursPerPostingExpr}), 0)`.as('total_hours'))
-    .where('enrollment.volunteer_id', '=', volunteerId)
-    .where('enrollment.attended', '=', true)
-    .executeTakeFirstOrThrow();
+    const totalHoursRow = await db
+      .selectFrom('enrollment')
+      .innerJoin('organization_posting', 'organization_posting.id', 'enrollment.posting_id')
+      .select(sql<number>`COALESCE(SUM(${hoursPerPostingExpr}), 0)`.as('total_hours'))
+      .where('enrollment.volunteer_id', '=', volunteerId)
+      .where('enrollment.attended', '=', true)
+      .executeTakeFirstOrThrow();
 
-  const organizations = await db
-    .selectFrom('enrollment')
-    .innerJoin('organization_posting', 'organization_posting.id', 'enrollment.posting_id')
-    .innerJoin('organization_account', 'organization_account.id', 'organization_posting.organization_id')
-    .leftJoin(
-      'organization_certificate_info',
-      'organization_certificate_info.id',
-      'organization_account.certificate_info_id',
-    )
-    .select([
-      'organization_account.id',
-      'organization_account.name',
-      'organization_account.logo_path',
-      'organization_certificate_info.hours_threshold',
-      'organization_certificate_info.certificate_feature_enabled',
-      'organization_certificate_info.signatory_name',
-      'organization_certificate_info.signatory_position',
-      'organization_certificate_info.signature_path',
-      sql<number>`SUM(${hoursPerPostingExpr})`.as('hours'),
-    ])
-    .where('enrollment.volunteer_id', '=', volunteerId)
-    .where('enrollment.attended', '=', true)
-    .groupBy([
-      'organization_account.id',
-      'organization_account.name',
-      'organization_account.logo_path',
-      'organization_certificate_info.hours_threshold',
-      'organization_certificate_info.certificate_feature_enabled',
-      'organization_certificate_info.signatory_name',
-      'organization_certificate_info.signatory_position',
-      'organization_certificate_info.signature_path',
-    ])
-    .orderBy('hours', 'desc')
-    .orderBy('organization_account.name', 'asc')
-    .execute();
+    const organizations = await db
+      .selectFrom('enrollment')
+      .innerJoin('organization_posting', 'organization_posting.id', 'enrollment.posting_id')
+      .innerJoin('organization_account', 'organization_account.id', 'organization_posting.organization_id')
+      .leftJoin(
+        'organization_certificate_info',
+        'organization_certificate_info.id',
+        'organization_account.certificate_info_id',
+      )
+      .select([
+        'organization_account.id',
+        'organization_account.name',
+        'organization_account.logo_path',
+        'organization_certificate_info.hours_threshold',
+        'organization_certificate_info.certificate_feature_enabled',
+        'organization_certificate_info.signatory_name',
+        'organization_certificate_info.signatory_position',
+        'organization_certificate_info.signature_path',
+        sql<number>`SUM(${hoursPerPostingExpr})`.as('hours'),
+      ])
+      .where('enrollment.volunteer_id', '=', volunteerId)
+      .where('enrollment.attended', '=', true)
+      .groupBy([
+        'organization_account.id',
+        'organization_account.name',
+        'organization_account.logo_path',
+        'organization_certificate_info.hours_threshold',
+        'organization_certificate_info.certificate_feature_enabled',
+        'organization_certificate_info.signatory_name',
+        'organization_certificate_info.signatory_position',
+        'organization_certificate_info.signature_path',
+      ])
+      .orderBy('hours', 'desc')
+      .orderBy('organization_account.name', 'asc')
+      .execute();
 
-  const platformCertificate = await db
-    .selectFrom('platform_certificate_settings')
-    .select(['signatory_name', 'signatory_position', 'signature_path'])
-    .orderBy('id', 'desc')
-    .executeTakeFirst();
+    const platformCertificate = await db
+      .selectFrom('platform_certificate_settings')
+      .select(['signatory_name', 'signatory_position', 'signature_path'])
+      .orderBy('id', 'desc')
+      .executeTakeFirst();
 
-  res.json({
-    volunteer,
-    total_hours: Number(totalHoursRow.total_hours ?? 0),
-    organizations: organizations.map((organization) => {
-      const hours = Number(organization.hours ?? 0);
-      const threshold = organization.hours_threshold ?? null;
-      const featureEnabled = Boolean(organization.certificate_feature_enabled);
-      const hasSignatoryInfo = Boolean(
-        organization.signatory_name?.trim()
-        && organization.signatory_position?.trim()
-        && organization.signature_path?.trim(),
-      );
-      const eligible = featureEnabled
-        && threshold !== null
-        && hasSignatoryInfo
-        && hours >= threshold;
+    res.json({
+      volunteer,
+      total_hours: Number(totalHoursRow.total_hours ?? 0),
+      organizations: organizations.map((organization) => {
+        const hours = Number(organization.hours ?? 0);
+        const threshold = organization.hours_threshold ?? null;
+        const featureEnabled = Boolean(organization.certificate_feature_enabled);
+        const hasSignatoryInfo = Boolean(
+          organization.signatory_name?.trim()
+          && organization.signatory_position?.trim()
+          && organization.signature_path?.trim(),
+        );
+        const eligible = featureEnabled
+          && threshold !== null
+          && hasSignatoryInfo
+          && hours >= threshold;
 
-      return {
-        id: organization.id,
-        name: organization.name,
-        hours,
-        hours_threshold: threshold,
-        certificate_feature_enabled: featureEnabled,
-        eligible,
-        logo_path: organization.logo_path ?? null,
-        signatory_name: organization.signatory_name ?? null,
-        signatory_position: organization.signatory_position ?? null,
-        signature_path: organization.signature_path ?? null,
-      };
-    }),
-    platform_certificate: platformCertificate
-      ? {
-          signatory_name: platformCertificate.signatory_name ?? null,
-          signatory_position: platformCertificate.signatory_position ?? null,
-          signature_path: platformCertificate.signature_path ?? null,
-        }
-      : null,
-  });
-});
-
-volunteerRouter.get('/crises/pinned', async (_req, res: Response<VolunteerPinnedCrisesResponse>) => {
-  const crises = await db
-    .selectFrom('crisis')
-    .selectAll()
-    .where('pinned', '=', true)
-    .orderBy('created_at', 'desc')
-    .execute();
-
-  res.json({ crises });
-});
-
-volunteerRouter.get('/crises', async (req, res: Response<VolunteerCrisesResponse>) => {
-  const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
-  const sortBy = typeof req.query.sort_by === 'string' ? req.query.sort_by : 'title_asc';
-  const pinnedFilter = typeof req.query.pinned === 'string'
-    ? req.query.pinned === 'true'
-      ? true
-      : req.query.pinned === 'false'
-        ? false
-        : undefined
-    : undefined;
-
-  let query = database
-    .selectFrom('crisis')
-    .selectAll();
-
-  if (search) {
-    const terms = normalizeSearchTerms(search);
-    query = query.where(({ and, or }) => and(
-      terms.map((term) => {
-        const likePattern = `%${term}%`;
-        return or([
-          sql<boolean>`lower(crisis.name) LIKE ${likePattern}`,
-          sql<boolean>`regexp_replace(lower(crisis.name), '[^a-z0-9]+', '', 'g') LIKE ${likePattern}`,
-          sql<boolean>`lower(coalesce(crisis.description, '')) LIKE ${likePattern}`,
-          sql<boolean>`regexp_replace(lower(coalesce(crisis.description, '')), '[^a-z0-9]+', '', 'g') LIKE ${likePattern}`,
-        ]);
+        return {
+          id: organization.id,
+          name: organization.name,
+          hours,
+          hours_threshold: threshold,
+          certificate_feature_enabled: featureEnabled,
+          eligible,
+          logo_path: organization.logo_path ?? null,
+          signatory_name: organization.signatory_name ?? null,
+          signatory_position: organization.signatory_position ?? null,
+          signature_path: organization.signature_path ?? null,
+        };
       }),
-    ));
-  }
+      platform_certificate: platformCertificate
+        ? {
+            signatory_name: platformCertificate.signatory_name ?? null,
+            signatory_position: platformCertificate.signatory_position ?? null,
+            signature_path: platformCertificate.signature_path ?? null,
+          }
+        : null,
+    });
+  });
 
-  if (typeof pinnedFilter === 'boolean') {
-    query = query.where('pinned', '=', pinnedFilter);
-  }
+  volunteerRouter.get('/crises/pinned', async (_req, res: Response<VolunteerPinnedCrisesResponse>) => {
+    const crises = await db
+      .selectFrom('crisis')
+      .selectAll()
+      .where('pinned', '=', true)
+      .orderBy('created_at', 'desc')
+      .execute();
 
-  switch (sortBy) {
-    case 'title_asc':
-      query = query.orderBy('name', 'asc');
-      break;
-    case 'title_desc':
-      query = query.orderBy('name', 'desc');
-      break;
-    default:
-      query = query.orderBy('pinned', 'desc').orderBy('name', 'asc');
-  }
+    res.json({ crises });
+  });
 
-  const crises = await query.execute();
+  volunteerRouter.get('/crises', async (req, res: Response<VolunteerCrisesResponse>) => {
+    const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
+    const sortBy = typeof req.query.sort_by === 'string' ? req.query.sort_by : 'title_asc';
+    const pinnedFilter = typeof req.query.pinned === 'string'
+      ? req.query.pinned === 'true'
+        ? true
+        : req.query.pinned === 'false'
+          ? false
+          : undefined
+      : undefined;
 
-  res.json({ crises });
-});
+    let query = database
+      .selectFrom('crisis')
+      .selectAll();
 
-volunteerRouter.get('/crises/:id', async (req, res: Response<VolunteerCrisisResponse>) => {
-  const { id } = zod.object({
-    id: zod.coerce.number().int().positive('ID must be a positive number'),
-  }).parse(req.params);
-
-  const crisis = await db
-    .selectFrom('crisis')
-    .selectAll()
-    .where('id', '=', id)
-    .executeTakeFirst();
-
-  if (!crisis) {
-    res.status(404);
-    throw new Error('Crisis not found');
-  }
-
-  res.json({ crisis });
-});
-
-volunteerRouter.put('/profile', async (req, res: Response<VolunteerProfileResponse>) => {
-  const body = volunteerProfileUpdateSchema.parse(req.body);
-  const volunteerId = req.userJWT!.id;
-
-  const existingVolunteer = await db
-    .selectFrom('volunteer_account')
-    .select([
-      'first_name',
-      'last_name',
-      'email',
-      'date_of_birth',
-      'gender',
-      'cv_path',
-      'description',
-    ])
-    .where('id', '=', volunteerId)
-    .executeTakeFirstOrThrow();
-
-  const existingSkills = await db
-    .selectFrom('volunteer_skill')
-    .select('name')
-    .where('volunteer_id', '=', volunteerId)
-    .execute();
-
-  const normalizedExistingSkills = normalizeSkillList(existingSkills.map(skill => skill.name));
-  const normalizedIncomingSkills = body.skills !== undefined ? normalizeSkillList(body.skills) : undefined;
-
-  const didSkillsChange = normalizedIncomingSkills !== undefined
-    ? !areSkillListsEqual(normalizedIncomingSkills, normalizedExistingSkills)
-    : false;
-
-  const shouldRecomputeProfileVector = (
-    (body.first_name !== undefined && body.first_name !== existingVolunteer.first_name)
-    || (body.last_name !== undefined && body.last_name !== existingVolunteer.last_name)
-    || (body.gender !== undefined && body.gender !== existingVolunteer.gender)
-    || (body.cv_path !== undefined && body.cv_path !== existingVolunteer.cv_path)
-    || (body.description !== undefined && body.description !== existingVolunteer.description)
-    || didSkillsChange
-  );
-
-  await db.transaction().execute(async (trx) => {
-    const volunteerUpdate: Partial<Omit<VolunteerAccountWithoutPassword, 'id'>> = {};
-
-    if (body.first_name !== undefined) volunteerUpdate.first_name = body.first_name;
-    if (body.last_name !== undefined) volunteerUpdate.last_name = body.last_name;
-    if (body.gender !== undefined) volunteerUpdate.gender = body.gender;
-    if (body.cv_path !== undefined) volunteerUpdate.cv_path = body.cv_path;
-    if (body.description !== undefined) volunteerUpdate.description = body.description;
-    if (Object.keys(volunteerUpdate).length > 0) {
-      await trx
-        .updateTable('volunteer_account')
-        .set(volunteerUpdate)
-        .where('id', '=', volunteerId)
-        .execute();
+    if (search) {
+      const terms = normalizeSearchTerms(search);
+      query = query.where(({ and, or }) => and(
+        terms.map((term) => {
+          const likePattern = `%${term}%`;
+          return or([
+            sql<boolean>`lower(crisis.name) LIKE ${likePattern}`,
+            sql<boolean>`regexp_replace(lower(crisis.name), '[^a-z0-9]+', '', 'g') LIKE ${likePattern}`,
+            sql<boolean>`lower(coalesce(crisis.description, '')) LIKE ${likePattern}`,
+            sql<boolean>`regexp_replace(lower(coalesce(crisis.description, '')), '[^a-z0-9]+', '', 'g') LIKE ${likePattern}`,
+          ]);
+        }),
+      ));
     }
 
-    if (didSkillsChange) {
-      await trx
-        .deleteFrom('volunteer_skill')
-        .where('volunteer_id', '=', volunteerId)
-        .execute();
+    if (typeof pinnedFilter === 'boolean') {
+      query = query.where('pinned', '=', pinnedFilter);
+    }
 
-      if (normalizedIncomingSkills && normalizedIncomingSkills.length > 0) {
+    switch (sortBy) {
+      case 'title_asc':
+        query = query.orderBy('name', 'asc');
+        break;
+      case 'title_desc':
+        query = query.orderBy('name', 'desc');
+        break;
+      default:
+        query = query.orderBy('pinned', 'desc').orderBy('name', 'asc');
+    }
+
+    const crises = await query.execute();
+
+    res.json({ crises });
+  });
+
+  volunteerRouter.get('/crises/:id', async (req, res: Response<VolunteerCrisisResponse>) => {
+    const { id } = zod.object({
+      id: zod.coerce.number().int().positive('ID must be a positive number'),
+    }).parse(req.params);
+
+    const crisis = await db
+      .selectFrom('crisis')
+      .selectAll()
+      .where('id', '=', id)
+      .executeTakeFirst();
+
+    if (!crisis) {
+      res.status(404);
+      throw new Error('Crisis not found');
+    }
+
+    res.json({ crisis });
+  });
+
+  volunteerRouter.put('/profile', async (req, res: Response<VolunteerProfileResponse>) => {
+    const body = volunteerProfileUpdateSchema.parse(req.body);
+    const volunteerId = req.userJWT!.id;
+
+    const existingVolunteer = await db
+      .selectFrom('volunteer_account')
+      .select([
+        'first_name',
+        'last_name',
+        'email',
+        'date_of_birth',
+        'gender',
+        'cv_path',
+        'description',
+      ])
+      .where('id', '=', volunteerId)
+      .executeTakeFirstOrThrow();
+
+    const existingSkills = await db
+      .selectFrom('volunteer_skill')
+      .select('name')
+      .where('volunteer_id', '=', volunteerId)
+      .execute();
+
+    const normalizedExistingSkills = normalizeSkillList(existingSkills.map(skill => skill.name));
+    const normalizedIncomingSkills = body.skills !== undefined ? normalizeSkillList(body.skills) : undefined;
+
+    const didSkillsChange = normalizedIncomingSkills !== undefined
+      ? !areSkillListsEqual(normalizedIncomingSkills, normalizedExistingSkills)
+      : false;
+
+    const shouldRecomputeProfileVector = (
+      (body.first_name !== undefined && body.first_name !== existingVolunteer.first_name)
+      || (body.last_name !== undefined && body.last_name !== existingVolunteer.last_name)
+      || (body.gender !== undefined && body.gender !== existingVolunteer.gender)
+      || (body.cv_path !== undefined && body.cv_path !== existingVolunteer.cv_path)
+      || (body.description !== undefined && body.description !== existingVolunteer.description)
+      || didSkillsChange
+    );
+
+    await db.transaction().execute(async (trx) => {
+      const volunteerUpdate: Partial<Omit<VolunteerAccountWithoutPassword, 'id'>> = {};
+
+      if (body.first_name !== undefined) volunteerUpdate.first_name = body.first_name;
+      if (body.last_name !== undefined) volunteerUpdate.last_name = body.last_name;
+      if (body.gender !== undefined) volunteerUpdate.gender = body.gender;
+      if (body.cv_path !== undefined) volunteerUpdate.cv_path = body.cv_path;
+      if (body.description !== undefined) volunteerUpdate.description = body.description;
+      if (Object.keys(volunteerUpdate).length > 0) {
         await trx
-          .insertInto('volunteer_skill')
-          .values(
-            normalizedIncomingSkills.map(name => ({
-              volunteer_id: volunteerId,
-              name,
-            })),
-          )
+          .updateTable('volunteer_account')
+          .set(volunteerUpdate)
+          .where('id', '=', volunteerId)
           .execute();
       }
+
+      if (didSkillsChange) {
+        await trx
+          .deleteFrom('volunteer_skill')
+          .where('volunteer_id', '=', volunteerId)
+          .execute();
+
+        if (normalizedIncomingSkills && normalizedIncomingSkills.length > 0) {
+          await trx
+            .insertInto('volunteer_skill')
+            .values(
+              normalizedIncomingSkills.map(name => ({
+                volunteer_id: volunteerId,
+                name,
+              })),
+            )
+            .execute();
+        }
+      }
+    });
+
+    if (shouldRecomputeProfileVector) {
+      await recomputeVolunteerProfileVector(volunteerId, db);
     }
+
+    const profile = await getVolunteerProfile(volunteerId);
+    res.json(profile);
   });
 
-  if (shouldRecomputeProfileVector) {
-    await recomputeVolunteerProfileVector(volunteerId);
-  }
-
-  const profile = await getVolunteerProfile(volunteerId);
-  res.json(profile);
-});
-
-export const createVolunteerRouter = (database: Kysely<Database>) => {
-  db = database;
-
-  if (!volunteerCvRouterMounted) {
-    volunteerRouter.use('/profile/cv', createVolunteerCvRouter(db));
-    volunteerCvRouterMounted = true;
-  }
-
-  if (!volunteerPostingRouterMounted) {
-    volunteerRouter.use('/posting', createVolunteerPostingRouter(db));
-    volunteerPostingRouterMounted = true;
-  }
-
+  volunteerRouter.use('/profile/cv', createVolunteerCvRouter(db));
+  volunteerRouter.use('/posting', createVolunteerPostingRouter(db));
   volunteerRouter.post('/reset-password', createResetPassword(db));
 
   return volunteerRouter;
