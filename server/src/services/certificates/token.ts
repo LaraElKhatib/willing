@@ -1,15 +1,25 @@
 import crypto from 'crypto';
+import zlib from 'zlib';
 
 import zod from 'zod';
 
-export const CERTIFICATE_PAYLOAD_VERSION = 1 as const;
+export const CERTIFICATE_PAYLOAD_VERSION = 2 as const;
+const LEGACY_CERTIFICATE_PAYLOAD_VERSION = 1 as const;
 export const CERTIFICATE_TYPE = 'volunteer_hours_certificate' as const;
+
 const HOURS_DECIMAL_PLACES = 2;
+const HOURS_SCALE_FACTOR = 10 ** HOURS_DECIMAL_PLACES;
+const CERTIFICATE_TYPE_CODE = 0;
+const TRUNCATED_SIGNATURE_BYTES = 16;
 
 const orgIdStringSchema = zod.string().regex(/^[1-9]\d*$/, 'Organization IDs must be positive integers');
+const payloadVersionSchema = zod.union([
+  zod.literal(CERTIFICATE_PAYLOAD_VERSION),
+  zod.literal(LEGACY_CERTIFICATE_PAYLOAD_VERSION),
+]);
 
 export const certificateVerificationPayloadSchema = zod.object({
-  v: zod.literal(CERTIFICATE_PAYLOAD_VERSION),
+  v: payloadVersionSchema,
   uid: zod.string().regex(/^[1-9]\d*$/, 'User ID must be a positive integer'),
   issued_at: zod.string().datetime({ offset: true }),
   org_ids: zod.array(orgIdStringSchema).max(4, 'Up to 4 organization IDs are allowed'),
@@ -50,11 +60,50 @@ export const certificateVerificationPayloadSchema = zod.object({
   }
 });
 
+type CompactCertificatePayloadTuple = readonly [
+  typeof CERTIFICATE_PAYLOAD_VERSION,
+  number,
+  number,
+  number[],
+  number,
+  number[],
+  typeof CERTIFICATE_TYPE_CODE,
+];
+
+const compactCertificatePayloadSchema = zod.tuple([
+  zod.literal(CERTIFICATE_PAYLOAD_VERSION),
+  zod.number().int().positive(),
+  zod.number().int().positive(),
+  zod.array(zod.number().int().positive()).max(4),
+  zod.number().int().nonnegative(),
+  zod.array(zod.number().int().nonnegative()),
+  zod.literal(CERTIFICATE_TYPE_CODE),
+]).superRefine((tuple, ctx) => {
+  const [, , , orgIds, , orgHours] = tuple;
+  if (new Set(orgIds).size !== orgIds.length) {
+    ctx.addIssue({
+      code: zod.ZodIssueCode.custom,
+      path: [3],
+      message: 'Organization IDs must be unique.',
+    });
+  }
+
+  if (orgIds.length !== orgHours.length) {
+    ctx.addIssue({
+      code: zod.ZodIssueCode.custom,
+      path: [5],
+      message: 'Organization hours must align with organization IDs.',
+    });
+  }
+});
+
 export type CertificateVerificationPayload = zod.infer<typeof certificateVerificationPayloadSchema>;
 
 type VerifiedTokenResult = { valid: true; payload: CertificateVerificationPayload } | { valid: false; reason: 'malformed' | 'invalid_signature' | 'invalid_payload' };
 
 const roundHours = (value: number) => Number(value.toFixed(HOURS_DECIMAL_PLACES));
+const encodeHours = (hours: number) => Math.round(roundHours(hours) * HOURS_SCALE_FACTOR);
+const decodeHours = (scaledHours: number) => Number((scaledHours / HOURS_SCALE_FACTOR).toFixed(HOURS_DECIMAL_PLACES));
 
 const toCanonicalPayload = (payload: CertificateVerificationPayload): CertificateVerificationPayload => {
   const sortedOrgIds = [...payload.org_ids].sort((left, right) => Number(left) - Number(right));
@@ -65,7 +114,7 @@ const toCanonicalPayload = (payload: CertificateVerificationPayload): Certificat
   });
 
   return {
-    v: CERTIFICATE_PAYLOAD_VERSION,
+    v: payload.v,
     uid: payload.uid,
     issued_at: new Date(payload.issued_at).toISOString(),
     org_ids: sortedOrgIds,
@@ -75,16 +124,91 @@ const toCanonicalPayload = (payload: CertificateVerificationPayload): Certificat
   };
 };
 
+const payloadToCompactTuple = (payload: CertificateVerificationPayload): CompactCertificatePayloadTuple => {
+  const orgIds = payload.org_ids.map(orgId => Number(orgId));
+  const orgHours = payload.org_ids.map(orgId => encodeHours(payload.hours_per_org[orgId] ?? 0));
+  const issuedAtEpochSeconds = Math.floor(new Date(payload.issued_at).getTime() / 1000);
+
+  return [
+    CERTIFICATE_PAYLOAD_VERSION,
+    Number(payload.uid),
+    issuedAtEpochSeconds,
+    orgIds,
+    encodeHours(payload.total_hours),
+    orgHours,
+    CERTIFICATE_TYPE_CODE,
+  ];
+};
+
+const compactTupleToPayload = (tuple: CompactCertificatePayloadTuple): CertificateVerificationPayload => {
+  const [, uid, issuedAtEpochSeconds, orgIds, totalHoursScaled, orgHoursScaled] = tuple;
+  const hoursPerOrg = orgIds.reduce<Record<string, number>>((record, orgId, index) => {
+    record[String(orgId)] = decodeHours(orgHoursScaled[index] ?? 0);
+    return record;
+  }, {});
+
+  return {
+    v: CERTIFICATE_PAYLOAD_VERSION,
+    uid: String(uid),
+    issued_at: new Date(issuedAtEpochSeconds * 1000).toISOString(),
+    org_ids: orgIds.map(orgId => String(orgId)),
+    total_hours: decodeHours(totalHoursScaled),
+    hours_per_org: hoursPerOrg,
+    type: CERTIFICATE_TYPE,
+  };
+};
+
 const getSignature = (payloadBytes: Buffer, secret: string) =>
   crypto.createHmac('sha256', secret).update(payloadBytes).digest();
+
+const hasValidSignature = (signatureBytes: Buffer, fullSignature: Buffer) => {
+  if (signatureBytes.length === fullSignature.length) {
+    return crypto.timingSafeEqual(signatureBytes, fullSignature);
+  }
+
+  if (signatureBytes.length === TRUNCATED_SIGNATURE_BYTES) {
+    return crypto.timingSafeEqual(signatureBytes, fullSignature.subarray(0, TRUNCATED_SIGNATURE_BYTES));
+  }
+
+  return false;
+};
+
+const tryParseCompactPayload = (payloadBytes: Buffer): CertificateVerificationPayload | null => {
+  try {
+    const decompressed = zlib.inflateRawSync(payloadBytes);
+    const parsed = JSON.parse(decompressed.toString('utf8'));
+    const tupleResult = compactCertificatePayloadSchema.safeParse(parsed);
+    if (!tupleResult.success) return null;
+
+    const payload = compactTupleToPayload(tupleResult.data);
+    const payloadResult = certificateVerificationPayloadSchema.safeParse(payload);
+    if (!payloadResult.success) return null;
+
+    return toCanonicalPayload(payloadResult.data);
+  } catch {
+    return null;
+  }
+};
+
+const tryParseLegacyPayload = (payloadBytes: Buffer): CertificateVerificationPayload | null => {
+  try {
+    const parsed = JSON.parse(payloadBytes.toString('utf8'));
+    const payloadResult = certificateVerificationPayloadSchema.safeParse(parsed);
+    if (!payloadResult.success) return null;
+    return toCanonicalPayload(payloadResult.data);
+  } catch {
+    return null;
+  }
+};
 
 export const signCertificateVerificationPayload = (
   rawPayload: CertificateVerificationPayload,
   secret: string,
 ) => {
-  const payload = toCanonicalPayload(rawPayload);
-  const payloadBytes = Buffer.from(JSON.stringify(payload), 'utf8');
-  const signature = getSignature(payloadBytes, secret);
+  const canonicalPayload = toCanonicalPayload(rawPayload);
+  const compactPayload = payloadToCompactTuple(canonicalPayload);
+  const payloadBytes = zlib.deflateRawSync(Buffer.from(JSON.stringify(compactPayload), 'utf8'));
+  const signature = getSignature(payloadBytes, secret).subarray(0, TRUNCATED_SIGNATURE_BYTES);
 
   return `${payloadBytes.toString('base64url')}.${signature.toString('base64url')}`;
 };
@@ -112,24 +236,19 @@ export const verifySignedCertificateToken = (
   }
 
   const expectedSignature = getSignature(payloadBytes, secret);
-  if (
-    signatureBytes.length !== expectedSignature.length
-    || !crypto.timingSafeEqual(signatureBytes, expectedSignature)
-  ) {
+  if (!hasValidSignature(signatureBytes, expectedSignature)) {
     return { valid: false, reason: 'invalid_signature' };
   }
 
-  let parsedPayload: unknown;
-  try {
-    parsedPayload = JSON.parse(payloadBytes.toString('utf8'));
-  } catch {
-    return { valid: false, reason: 'invalid_payload' };
+  const compactPayload = tryParseCompactPayload(payloadBytes);
+  if (compactPayload) {
+    return { valid: true, payload: compactPayload };
   }
 
-  const payloadParseResult = certificateVerificationPayloadSchema.safeParse(parsedPayload);
-  if (!payloadParseResult.success) {
-    return { valid: false, reason: 'invalid_payload' };
+  const legacyPayload = tryParseLegacyPayload(payloadBytes);
+  if (legacyPayload) {
+    return { valid: true, payload: legacyPayload };
   }
 
-  return { valid: true, payload: toCanonicalPayload(payloadParseResult.data) };
+  return { valid: false, reason: 'invalid_payload' };
 };

@@ -21,7 +21,7 @@ import resetPassword from '../../../auth/resetPassword.ts';
 import config from '../../../config.ts';
 import database from '../../../db/index.ts';
 import { type VolunteerAccountWithoutPassword, newVolunteerAccountSchema, volunteerAccountSchema } from '../../../db/tables/index.ts';
-import { CERTIFICATE_TYPE, signCertificateVerificationPayload } from '../../../services/certificates/token.ts';
+import { CERTIFICATE_PAYLOAD_VERSION, CERTIFICATE_TYPE, signCertificateVerificationPayload } from '../../../services/certificates/token.ts';
 import {
   recomputeVolunteerExperienceVector,
   recomputeVolunteerProfileVector,
@@ -348,7 +348,7 @@ volunteerRouter.post('/certificate/issue', async (req, res: Response<VolunteerCe
   }, {});
 
   const payload = {
-    v: 1 as const,
+    v: CERTIFICATE_PAYLOAD_VERSION,
     uid: String(volunteerId),
     issued_at: issuedAt.toISOString(),
     org_ids: selectedOrgIds.map(id => String(id)),

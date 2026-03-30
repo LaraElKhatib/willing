@@ -90,6 +90,34 @@ function CertificateVerification() {
                 {new Date(result.issued_at).toLocaleString()}
               </p>
             )}
+            {result.valid && result.volunteer_name && (
+              <p className="mt-2 text-sm">
+                Volunteer:
+                {' '}
+                <span className="font-semibold">{result.volunteer_name}</span>
+              </p>
+            )}
+            {result.valid && typeof result.total_hours === 'number' && (
+              <p className="mt-1 text-sm">
+                Total Hours:
+                {' '}
+                <span className="font-semibold">{result.total_hours}</span>
+              </p>
+            )}
+            {result.valid && result.organizations && result.organizations.length > 0 && (
+              <div className="mt-3">
+                <p className="text-sm font-semibold">Hours by Organization</p>
+                <ul className="mt-2 space-y-1 text-sm">
+                  {result.organizations.map(organization => (
+                    <li key={organization.id}>
+                      {organization.name}
+                      {': '}
+                      <span className="font-semibold">{organization.hours}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </Card>
         )}
       </PageContainer>

@@ -183,11 +183,49 @@ publicRouter.post('/certificate/verify', async (req, res: Response<PublicCertifi
     return;
   }
 
+  const volunteerId = Number(tokenResult.payload.uid);
+  const volunteer = await database
+    .selectFrom('volunteer_account')
+    .select(['first_name', 'last_name'])
+    .where('id', '=', volunteerId)
+    .executeTakeFirst();
+
+  if (!volunteer) {
+    res.json({
+      valid: false,
+      message: 'Certificate is invalid.',
+    });
+    return;
+  }
+
+  const organizationIds = tokenResult.payload.org_ids.map(Number);
+  const organizations = organizationIds.length === 0
+    ? []
+    : await database
+        .selectFrom('organization_account')
+        .select(['id', 'name'])
+        .where('id', 'in', organizationIds)
+        .execute();
+
+  const organizationNameById = new Map<number, string>();
+  organizations.forEach((organization) => {
+    organizationNameById.set(organization.id, organization.name);
+  });
+
   res.json({
     valid: true,
     message: 'Certificate is valid.',
     issued_at: tokenResult.payload.issued_at,
     certificate_type: tokenResult.payload.type,
+    volunteer_name: `${volunteer.first_name} ${volunteer.last_name}`.trim(),
+    total_hours: tokenResult.payload.total_hours,
+    organizations: organizationIds
+      .filter(orgId => organizationNameById.has(orgId))
+      .map(orgId => ({
+        id: orgId,
+        name: organizationNameById.get(orgId) ?? `Organization ${orgId}`,
+        hours: tokenResult.payload.hours_per_org[String(orgId)] ?? 0,
+      })),
   });
 });
 
