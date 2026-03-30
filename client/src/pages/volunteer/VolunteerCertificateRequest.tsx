@@ -19,7 +19,7 @@ import Loading from '../../components/Loading';
 import requestServer, { SERVER_BASE_URL } from '../../utils/requestServer';
 import useAsync from '../../utils/useAsync';
 
-import type { VolunteerCertificateResponse } from '../../../../server/src/api/types';
+import type { VolunteerCertificateIssueResponse, VolunteerCertificateResponse } from '../../../../server/src/api/types';
 
 const MAX_ORGANIZATION_SELECTION = 4;
 const CERTIFICATE_PREVIEW_ID = 'certificate-preview';
@@ -32,6 +32,8 @@ function VolunteerCertificateRequest() {
   const [selectedOrganizationIds, setSelectedOrganizationIds] = useState<number[]>([]);
   const [selectionError, setSelectionError] = useState<string | null>(null);
   const [certificateGeneratedAt, setCertificateGeneratedAt] = useState<Date | null>(null);
+  const [verificationToken, setVerificationToken] = useState<string | null>(null);
+  const [issueError, setIssueError] = useState<string | null>(null);
   const previewViewportRef = useRef<HTMLDivElement | null>(null);
   const [certificateScale, setCertificateScale] = useState(1);
 
@@ -42,6 +44,20 @@ function VolunteerCertificateRequest() {
   const { data, loading, error, trigger } = useAsync<VolunteerCertificateResponse, []>(loadCertificateData, {
     immediate: true,
   });
+  const {
+    loading: issuingCertificate,
+    trigger: issueCertificate,
+  } = useAsync<VolunteerCertificateIssueResponse, [number[]]>(
+    async orgIds => requestServer<VolunteerCertificateIssueResponse>(
+      '/volunteer/certificate/issue',
+      {
+        method: 'POST',
+        body: { org_ids: orgIds },
+        includeJwt: true,
+      },
+    ),
+    { notifyOnError: true },
+  );
 
   const rankedOrganizations = useMemo(
     () => [...(data?.organizations ?? [])].sort((left, right) => right.hours - left.hours),
@@ -109,6 +125,8 @@ function VolunteerCertificateRequest() {
 
     setSelectionError(null);
     setCertificateGeneratedAt(null);
+    setVerificationToken(null);
+    setIssueError(null);
 
     setSelectedOrganizationIds((current) => {
       if (current.includes(organizationId)) {
@@ -124,9 +142,19 @@ function VolunteerCertificateRequest() {
     });
   };
 
-  const createCertificate = () => {
+  const createCertificate = async () => {
     setSelectionError(null);
-    setCertificateGeneratedAt(new Date());
+    setIssueError(null);
+
+    try {
+      const response = await issueCertificate(selectedOrganizationIds);
+      setCertificateGeneratedAt(new Date(response.issued_at));
+      setVerificationToken(response.verification_token);
+    } catch (err) {
+      setVerificationToken(null);
+      setCertificateGeneratedAt(null);
+      setIssueError(err instanceof Error ? err.message : 'Failed to generate certificate token.');
+    }
   };
 
   const downloadCertificateAsPdf = () => {
@@ -351,6 +379,12 @@ function VolunteerCertificateRequest() {
                 <span>{selectionError}</span>
               </div>
             )}
+            {issueError && (
+              <div className="alert alert-error mt-3">
+                <AlertCircle size={16} />
+                <span>{issueError}</span>
+              </div>
+            )}
 
             <div className="space-y-2 mt-3">
               {organizationsWithEligibility.map((organization, index) => {
@@ -398,10 +432,9 @@ function VolunteerCertificateRequest() {
             </div>
 
             <div className="mt-4">
-              <button className="btn btn-primary" onClick={createCertificate}>
-                <FileText size={16} />
+              <Button className="btn btn-primary" onClick={() => { void createCertificate(); }} Icon={FileText} loading={issuingCertificate}>
                 Create Certificate
-              </button>
+              </Button>
             </div>
           </Card>
 
@@ -464,7 +497,11 @@ function VolunteerCertificateRequest() {
                               </div>
                             </div>
                             <div className="certificate-meta text-right text-base opacity-70">
-                              <p>Certificate ID: WL-CERT-SKELETON</p>
+                              <p className="text-xs leading-tight max-w-[280px] break-all ml-auto">
+                                Verification Token:
+                                {' '}
+                                {verificationToken ?? 'Pending'}
+                              </p>
                               <p className="mt-1">
                                 Generated:
                                 {' '}

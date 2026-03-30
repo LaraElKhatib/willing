@@ -1,12 +1,68 @@
 import path from 'path';
 
-import { type Response, Router } from 'express';
+import { type Request, type Response, Router } from 'express';
+import zod from 'zod';
 
-import { type PublicCertificateSignatureResponse, type PublicHomeStatsResponse } from './public.types.ts';
+import {
+  type PublicCertificateSignatureResponse,
+  type PublicCertificateVerificationResponse,
+  type PublicHomeStatsResponse,
+} from './public.types.ts';
+import config from '../../config.ts';
 import database from '../../db/index.ts';
+import { verifySignedCertificateToken } from '../../services/certificates/token.ts';
+import { verifyCertificatePayloadAgainstDatabase } from '../../services/certificates/verification.ts';
 import { PLATFORM_SIGNATURE_UPLOAD_DIR } from '../../services/uploads/paths.ts';
 
 const publicRouter = Router();
+const certificateVerificationBodySchema = zod.object({
+  token: zod.string().trim().min(1, 'Certificate token is required.'),
+});
+
+const VERIFICATION_RATE_LIMIT_WINDOW_MS = 60_000;
+const VERIFICATION_RATE_LIMIT_MAX_ATTEMPTS = 20;
+const verificationRateLimitBuckets = new Map<string, { count: number; resetAt: number }>();
+
+const getRequestSource = (req: Request) => {
+  const forwardedFor = req.headers['x-forwarded-for'];
+  if (typeof forwardedFor === 'string' && forwardedFor.trim()) {
+    const firstForwardedAddress = forwardedFor.split(',')[0]?.trim();
+    if (firstForwardedAddress) return firstForwardedAddress;
+  }
+  if (Array.isArray(forwardedFor) && forwardedFor.length > 0) {
+    const firstForwardedAddress = forwardedFor[0];
+    if (firstForwardedAddress) return firstForwardedAddress;
+  }
+  return req.ip || 'unknown';
+};
+
+const isRateLimited = (source: string) => {
+  const now = Date.now();
+
+  if (verificationRateLimitBuckets.size > 2000) {
+    verificationRateLimitBuckets.forEach((entry, key) => {
+      if (entry.resetAt <= now) verificationRateLimitBuckets.delete(key);
+    });
+  }
+
+  const bucket = verificationRateLimitBuckets.get(source);
+
+  if (!bucket || bucket.resetAt <= now) {
+    verificationRateLimitBuckets.set(source, {
+      count: 1,
+      resetAt: now + VERIFICATION_RATE_LIMIT_WINDOW_MS,
+    });
+    return false;
+  }
+
+  if (bucket.count >= VERIFICATION_RATE_LIMIT_MAX_ATTEMPTS) {
+    return true;
+  }
+
+  bucket.count += 1;
+  verificationRateLimitBuckets.set(source, bucket);
+  return false;
+};
 
 publicRouter.get('/home-stats', async (_req, res: Response<PublicHomeStatsResponse>) => {
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
@@ -76,6 +132,62 @@ publicRouter.get('/certificate-signature', async (_req, res: Response<PublicCert
   res.sendFile(settings.signature_path, { root: PLATFORM_SIGNATURE_UPLOAD_DIR }, (error) => {
     if (!error) return;
     next(error);
+  });
+});
+
+publicRouter.post('/certificate/verify', async (req, res: Response<PublicCertificateVerificationResponse>) => {
+  const source = getRequestSource(req);
+  if (isRateLimited(source)) {
+    res.setHeader('Retry-After', String(Math.ceil(VERIFICATION_RATE_LIMIT_WINDOW_MS / 1000)));
+    res.status(429).json({
+      valid: false,
+      message: 'Too many verification attempts. Please retry in a minute.',
+    });
+    return;
+  }
+
+  const parsedBody = certificateVerificationBodySchema.safeParse(req.body);
+  if (!parsedBody.success) {
+    res.status(400).json({
+      valid: false,
+      message: 'Invalid certificate token format.',
+    });
+    return;
+  }
+
+  const body = parsedBody.data;
+  const tokenResult = verifySignedCertificateToken(body.token, config.CERTIFICATE_VERIFICATION_SECRET);
+
+  if (!tokenResult.valid) {
+    if (tokenResult.reason === 'malformed') {
+      res.status(400).json({
+        valid: false,
+        message: 'Invalid certificate token format.',
+      });
+      return;
+    }
+
+    res.json({
+      valid: false,
+      message: 'Certificate is invalid.',
+    });
+    return;
+  }
+
+  const dbVerification = await verifyCertificatePayloadAgainstDatabase(tokenResult.payload);
+  if (!dbVerification.valid) {
+    res.json({
+      valid: false,
+      message: 'Certificate is invalid.',
+    });
+    return;
+  }
+
+  res.json({
+    valid: true,
+    message: 'Certificate is valid.',
+    issued_at: tokenResult.payload.issued_at,
+    certificate_type: tokenResult.payload.type,
   });
 });
 

@@ -6,6 +6,7 @@ import zod from 'zod';
 
 import volunteerCvRouter from './cv.ts';
 import {
+  type VolunteerCertificateIssueResponse,
   type VolunteerCrisisResponse,
   type VolunteerCrisesResponse,
   type VolunteerCreateResponse,
@@ -20,6 +21,7 @@ import resetPassword from '../../../auth/resetPassword.ts';
 import config from '../../../config.ts';
 import database from '../../../db/index.ts';
 import { type VolunteerAccountWithoutPassword, newVolunteerAccountSchema, volunteerAccountSchema } from '../../../db/tables/index.ts';
+import { CERTIFICATE_TYPE, signCertificateVerificationPayload } from '../../../services/certificates/token.ts';
 import {
   recomputeVolunteerExperienceVector,
   recomputeVolunteerProfileVector,
@@ -59,6 +61,17 @@ const volunteerProfileUpdateSchema = volunteerProfileUserUpdateSchema.extend({
 
 const normalizeSkillList = (skills: string[]) =>
   Array.from(new Set(skills.map(skill => skill.trim()).filter(Boolean))).sort();
+const volunteerCertificateIssueSchema = zod.object({
+  org_ids: zod.array(zod.coerce.number().int().positive()).max(4).default([]),
+}).superRefine((data, ctx) => {
+  if (new Set(data.org_ids).size !== data.org_ids.length) {
+    ctx.addIssue({
+      code: zod.ZodIssueCode.custom,
+      path: ['org_ids'],
+      message: 'Organization IDs must be unique.',
+    });
+  }
+});
 
 const areSkillListsEqual = (left: string[], right: string[]) => {
   if (left.length !== right.length) return false;
@@ -284,6 +297,71 @@ volunteerRouter.get('/certificate', async (req, res: Response<VolunteerCertifica
           signature_path: platformCertificate.signature_path ?? null,
         }
       : null,
+  });
+});
+
+volunteerRouter.post('/certificate/issue', async (req, res: Response<VolunteerCertificateIssueResponse>) => {
+  const volunteerId = req.userJWT!.id;
+  const body = volunteerCertificateIssueSchema.parse(req.body);
+  const issuedAt = new Date();
+  const selectedOrgIds = [...body.org_ids].sort((left, right) => left - right);
+
+  const hoursPerPostingExpr = sql<number>`GREATEST(
+    0,
+    EXTRACT(EPOCH FROM (
+      (organization_posting.end_date + organization_posting.end_time)
+      - (organization_posting.start_date + organization_posting.start_time)
+    )) / 3600.0
+  )`;
+
+  const rows = await database
+    .selectFrom('enrollment')
+    .innerJoin('organization_posting', 'organization_posting.id', 'enrollment.posting_id')
+    .select([
+      'organization_posting.organization_id as organization_id',
+      sql<number>`COALESCE(SUM(${hoursPerPostingExpr}), 0)`.as('hours'),
+    ])
+    .where('enrollment.volunteer_id', '=', volunteerId)
+    .where('enrollment.attended', '=', true)
+    .where('enrollment.created_at', '<=', issuedAt)
+    .groupBy('organization_posting.organization_id')
+    .execute();
+
+  const hoursByOrganizationId = new Map<number, number>();
+  rows.forEach((row) => {
+    hoursByOrganizationId.set(row.organization_id, Number(Number(row.hours ?? 0).toFixed(2)));
+  });
+
+  const totalHours = Number(rows.reduce((sum, row) => sum + Number(row.hours ?? 0), 0).toFixed(2));
+
+  for (const orgId of selectedOrgIds) {
+    const orgHours = hoursByOrganizationId.get(orgId);
+    if (!orgHours || orgHours <= 0) {
+      res.status(400);
+      throw new Error(`Organization ${orgId} cannot be included in this certificate.`);
+    }
+  }
+
+  const hoursPerOrg = selectedOrgIds.reduce<Record<string, number>>((record, orgId) => {
+    record[String(orgId)] = Number((hoursByOrganizationId.get(orgId) ?? 0).toFixed(2));
+    return record;
+  }, {});
+
+  const payload = {
+    v: 1 as const,
+    uid: String(volunteerId),
+    issued_at: issuedAt.toISOString(),
+    org_ids: selectedOrgIds.map(id => String(id)),
+    total_hours: totalHours,
+    hours_per_org: hoursPerOrg,
+    type: CERTIFICATE_TYPE,
+  };
+
+  const verificationToken = signCertificateVerificationPayload(payload, config.CERTIFICATE_VERIFICATION_SECRET);
+
+  res.json({
+    verification_token: verificationToken,
+    issued_at: payload.issued_at,
   });
 });
 

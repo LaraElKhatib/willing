@@ -17,6 +17,7 @@ const deriveUploadDirFromLegacyCVDir = (cvUploadDir: string | undefined): string
 const env = {
   ...process.env,
   UPLOAD_DIR: process.env.UPLOAD_DIR ?? deriveUploadDirFromLegacyCVDir(process.env.CV_UPLOAD_DIR),
+  CERTIFICATE_VERIFICATION_SECRET: process.env.CERTIFICATE_VERIFICATION_SECRET || 'willing-certificate-secret',
 };
 
 const optionalInDev = <T>(schema: zod.ZodType<T>): zod.ZodType<T> =>
@@ -37,6 +38,7 @@ const schema = zod.object({
   POSTGRES_PORT: zod.coerce.number(),
 
   JWT_SECRET: zod.string().min(1),
+  CERTIFICATE_VERIFICATION_SECRET: zod.string().min(1),
   UPLOAD_DIR: zod.string().min(1),
 
   SMTP_HOST: optionalInDev(zod.string().optional()),

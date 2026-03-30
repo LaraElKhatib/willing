@@ -1,4 +1,4 @@
-import { Handshake, BriefcaseMedical, HandHeart, AlertTriangle, ArrowRight, Award, Building2, Heart, Send, ShieldCheck, Users } from 'lucide-react';
+import { Handshake, BriefcaseMedical, HandHeart, AlertTriangle, ArrowRight, Award, Building2, FileSearch, Heart, Send, ShieldCheck, Users } from 'lucide-react';
 import { useContext, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -358,14 +358,23 @@ function HomePage() {
           <div className="py-20 text-center min-h-96 flex flex-col items-center justify-center">
             <h2 className="text-4xl font-extrabold tracking-tight text-base-content">Want to Learn More?</h2>
             <p className="mt-4 text-lg text-base-content/80">Check out our guide page for full details!</p>
-            <LinkButton
-              to="/guide"
-              color="primary"
-              layout="wide"
-              className="mt-8"
-            >
-              Read Our Guide
-            </LinkButton>
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+              <LinkButton
+                to="/guide"
+                color="primary"
+                layout="wide"
+              >
+                Read Our Guide
+              </LinkButton>
+              <LinkButton
+                to="/certificate/verify"
+                color="secondary"
+                layout="wide"
+                Icon={FileSearch}
+              >
+                Verify Certificate
+              </LinkButton>
+            </div>
           </div>
         </div>
       </main>
