@@ -361,7 +361,7 @@ function AdminCrises() {
           >
             <form className="space-y-4" onSubmit={applyFilters}>
               <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
-                <div className="lg:min-w-0 lg:flex-1">
+                <div className="flex-2">
                   <label className="label" htmlFor="admin-crises-search">
                     <span className="label-text">Search</span>
                   </label>
@@ -378,7 +378,7 @@ function AdminCrises() {
                   </label>
                 </div>
 
-                <div className="lg:w-64">
+                <div className="flex-1">
                   <label className="label" htmlFor="admin-crises-sort">
                     <span className="label-text">Sort By</span>
                   </label>
@@ -394,9 +394,6 @@ function AdminCrises() {
                   </select>
                 </div>
 
-                <div className="lg:w-40">
-                  <Button color="primary" type="submit" disabled={!hasPendingChanges} layout="block">Search</Button>
-                </div>
               </div>
 
               <div className="flex flex-wrap gap-3">
@@ -409,7 +406,19 @@ function AdminCrises() {
                   Advanced Search
                 </Button>
 
+                <div className="flex-1" />
+
                 <Button type="button" color="ghost" onClick={resetFilters} disabled={!hasAnyChangesFromDefault} Icon={RotateCcw}>Reset</Button>
+
+                <Button
+                  color="primary"
+                  type="submit"
+                  disabled={!hasPendingChanges}
+                  layout="wide"
+                  Icon={Search}
+                >
+                  Search
+                </Button>
               </div>
 
               {showAdvancedSearch && (

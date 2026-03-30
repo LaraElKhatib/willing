@@ -7,9 +7,11 @@ import zod from 'zod';
 import volunteerCvRouter from './cv.ts';
 import {
   type VolunteerCrisisResponse,
+  type VolunteerCrisesResponse,
   type VolunteerCreateResponse,
   type VolunteerCertificateResponse,
   type VolunteerMeResponse,
+  type VolunteerOrganizationSearchResponse,
   type VolunteerPinnedCrisesResponse,
   type VolunteerProfileResponse,
 } from './index.types.ts';
@@ -24,6 +26,7 @@ import {
 } from '../../../services/embeddings/updates.ts';
 import { getVolunteerProfile } from '../../../services/volunteer/index.ts';
 import { authorizeOnly } from '../../authorization.ts';
+import { normalizeSearchTerms } from '../utils/postingList.js';
 
 const volunteerRouter = Router();
 const volunteerResponseColumns = [
@@ -118,6 +121,61 @@ volunteerRouter.get('/me', async (req, res: Response<VolunteerMeResponse>) => {
 volunteerRouter.get('/profile', async (req, res: Response<VolunteerProfileResponse>) => {
   const profile = await getVolunteerProfile(req.userJWT!.id);
   res.json(profile);
+});
+
+volunteerRouter.get('/organizations', async (req, res: Response<VolunteerOrganizationSearchResponse>) => {
+  const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
+
+  let query = database
+    .selectFrom('organization_account')
+    .leftJoin('organization_posting', 'organization_posting.organization_id', 'organization_account.id')
+    .select([
+      'organization_account.id',
+      'organization_account.name',
+      'organization_account.description',
+      'organization_account.location_name',
+      'organization_account.logo_path',
+      sql<number>`COALESCE(COUNT(organization_posting.id), 0)`.as('posting_count'),
+    ])
+    .groupBy('organization_account.id');
+
+  if (search) {
+    const terms = normalizeSearchTerms(search);
+    query = query.where(({ and, or }) => and(
+      terms.map((term) => {
+        const likePattern = `%${term}%`;
+        return or([
+          sql<boolean>`lower(organization_account.name) LIKE ${likePattern}`,
+          sql<boolean>`regexp_replace(lower(organization_account.name), '[^a-z0-9]+', '', 'g') LIKE ${likePattern}`,
+          sql<boolean>`lower(organization_account.description) LIKE ${likePattern}`,
+          sql<boolean>`regexp_replace(lower(organization_account.description), '[^a-z0-9]+', '', 'g') LIKE ${likePattern}`,
+          sql<boolean>`lower(organization_account.location_name) LIKE ${likePattern}`,
+          sql<boolean>`regexp_replace(lower(organization_account.location_name), '[^a-z0-9]+', '', 'g') LIKE ${likePattern}`,
+        ]);
+      }),
+    ));
+  }
+
+  const sortBy = typeof req.query.sort_by === 'string' ? req.query.sort_by : 'name';
+  const sortDir = req.query.sort_dir === 'desc' ? 'desc' : 'asc';
+
+  const orderByColumn = sortBy === 'title' ? 'organization_account.name' : 'organization_account.name';
+
+  const organizationsRaw = await query
+    .orderBy(orderByColumn, sortDir)
+    .limit(30)
+    .execute();
+
+  const organizations = organizationsRaw.map(organization => ({
+    id: organization.id,
+    name: organization.name,
+    description: organization.description ?? null,
+    location_name: organization.location_name ?? null,
+    logo_path: organization.logo_path ?? null,
+    posting_count: Number(organization.posting_count ?? 0),
+  }));
+
+  res.json({ organizations });
 });
 
 volunteerRouter.get('/certificate', async (req, res: Response<VolunteerCertificateResponse>) => {
@@ -234,6 +292,56 @@ volunteerRouter.get('/crises/pinned', async (_req, res: Response<VolunteerPinned
     .where('pinned', '=', true)
     .orderBy('created_at', 'desc')
     .execute();
+
+  res.json({ crises });
+});
+
+volunteerRouter.get('/crises', async (req, res: Response<VolunteerCrisesResponse>) => {
+  const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
+  const sortBy = typeof req.query.sort_by === 'string' ? req.query.sort_by : 'title_asc';
+  const pinnedFilter = typeof req.query.pinned === 'string'
+    ? req.query.pinned === 'true'
+      ? true
+      : req.query.pinned === 'false'
+        ? false
+        : undefined
+    : undefined;
+
+  let query = database
+    .selectFrom('crisis')
+    .selectAll();
+
+  if (search) {
+    const terms = normalizeSearchTerms(search);
+    query = query.where(({ and, or }) => and(
+      terms.map((term) => {
+        const likePattern = `%${term}%`;
+        return or([
+          sql<boolean>`lower(crisis.name) LIKE ${likePattern}`,
+          sql<boolean>`regexp_replace(lower(crisis.name), '[^a-z0-9]+', '', 'g') LIKE ${likePattern}`,
+          sql<boolean>`lower(coalesce(crisis.description, '')) LIKE ${likePattern}`,
+          sql<boolean>`regexp_replace(lower(coalesce(crisis.description, '')), '[^a-z0-9]+', '', 'g') LIKE ${likePattern}`,
+        ]);
+      }),
+    ));
+  }
+
+  if (typeof pinnedFilter === 'boolean') {
+    query = query.where('pinned', '=', pinnedFilter);
+  }
+
+  switch (sortBy) {
+    case 'title_asc':
+      query = query.orderBy('name', 'asc');
+      break;
+    case 'title_desc':
+      query = query.orderBy('name', 'desc');
+      break;
+    default:
+      query = query.orderBy('pinned', 'desc').orderBy('name', 'asc');
+  }
+
+  const crises = await query.execute();
 
   res.json({ crises });
 });

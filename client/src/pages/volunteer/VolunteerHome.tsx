@@ -160,10 +160,7 @@ function VolunteerHome() {
   const forYouAction = (
     <div className="flex items-center gap-2">
       <Link to="/volunteer/for-you" className="btn btn-sm btn-primary">
-        View All for you
-      </Link>
-      <Link to="/volunteer/search" className="btn btn-sm btn-outline btn-primary">
-        Explore Search
+        View All
       </Link>
     </div>
   );

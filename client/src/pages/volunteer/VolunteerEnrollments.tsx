@@ -14,6 +14,7 @@ function VolunteerEnrollments() {
       defaultBackTo="/volunteer"
       fetchUrl="/volunteer/posting/enrollments"
       emptyMessage="You haven't applied to any postings yet."
+      showEntityTabs={false}
     />
   );
 }

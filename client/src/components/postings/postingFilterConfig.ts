@@ -1,11 +1,13 @@
 export type PostingSortDir = 'asc' | 'desc';
 
-export type SharedPostingSortBy = 'start_date' | 'created_at';
+export type SharedPostingSortBy = 'start_date' | 'created_at' | 'title';
 
 type SharedPostingSortOptionValue
   = | 'start_date_asc'
     | 'start_date_desc'
-    | 'created_at_desc';
+    | 'created_at_desc'
+    | 'title_asc'
+    | 'title_desc';
 
 export type SharedPostingFilterFields = {
   search: string;
@@ -50,6 +52,8 @@ export const volunteerPostingSortOptions: VolunteerPostingSortOption[] = [
   { value: 'recommended_desc', label: 'Recommended (Best Match)', sortBy: 'recommended', sortDir: 'desc' },
   { value: 'start_date_asc', label: 'Start Date (Oldest)', sortBy: 'start_date', sortDir: 'asc' },
   { value: 'start_date_desc', label: 'Start Date (Newest)', sortBy: 'start_date', sortDir: 'desc' },
+  { value: 'title_asc', label: 'Title (A-Z)', sortBy: 'title', sortDir: 'asc' },
+  { value: 'title_desc', label: 'Title (Z-A)', sortBy: 'title', sortDir: 'desc' },
 ];
 
 const getSortOptionByFields = <

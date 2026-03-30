@@ -1,7 +1,7 @@
 import { getSingleQueryValue } from './queryValue.ts';
 
 export type PostingSortDir = 'asc' | 'desc';
-export type SharedPostingSortBy = 'start_date' | 'created_at';
+export type SharedPostingSortBy = 'start_date' | 'created_at' | 'title';
 
 export type PostingDateTimeFilters = {
   startDateFrom?: Date;
@@ -14,6 +14,7 @@ type PostingDateValue = Date | string | null | undefined;
 
 type PostingSortLike = {
   id?: number;
+  title?: string | null | undefined;
   start_date?: PostingDateValue;
   start_time?: string | null | undefined;
   end_date?: PostingDateValue;
@@ -226,6 +227,13 @@ export const sortPostingsBySharedSort = <T extends PostingSortLike>(
         return sortDir === 'asc' ? leftId - rightId : rightId - leftId;
       }
       case 'start_date':
+      case 'title': {
+        return compareNullableKeys(
+          left.title ?? '',
+          right.title ?? '',
+          sortDir,
+        );
+      }
       default: {
         const dateCompare = compareNullableKeys(
           normalizeDateKey(left.start_date),
@@ -256,6 +264,10 @@ export const applySharedPostingSort = <Q extends PostingQueryLike>(
     case 'created_at':
       return query
         .orderBy('organization_posting.created_at', sortDir)
+        .orderBy('organization_posting.id', sortDir) as Q;
+    case 'title':
+      return query
+        .orderBy('organization_posting.title', sortDir)
         .orderBy('organization_posting.id', sortDir) as Q;
     case 'start_date':
     default:

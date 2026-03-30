@@ -20,9 +20,13 @@ type PostingFiltersCardProps<T extends FieldValues> = {
   searchPlaceholder: string;
   sortFieldName: Path<T>;
   sortOptions: FilterSelectOption[];
+  organizationSortOptions?: FilterSelectOption[];
+  showAdvanced?: boolean;
   title?: string;
   submitLabel?: string;
   submitIcon?: LucideIcon;
+  topContent?: ReactNode;
+  extraFields?: (form: UseFormReturn<T>) => ReactNode;
 };
 
 function PostingFiltersCard<T extends FieldValues>({
@@ -34,9 +38,13 @@ function PostingFiltersCard<T extends FieldValues>({
   searchPlaceholder,
   sortFieldName,
   sortOptions,
+  organizationSortOptions,
+  showAdvanced = true,
   title = 'Filters',
   submitLabel = 'Search',
   submitIcon = Search,
+  topContent,
+  extraFields,
 }: PostingFiltersCardProps<T>) {
   const form = useForm<T, undefined, T>({
     defaultValues: defaultValues as DefaultValues<T>,
@@ -46,6 +54,10 @@ function PostingFiltersCard<T extends FieldValues>({
   const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
 
   const watchedValues = useWatch({ control: form.control });
+  const entityValue = useWatch({
+    control: form.control,
+    name: 'entity' as Path<T>,
+  }) as unknown as 'postings' | 'organizations' | undefined;
   const draftValues = useMemo(() => ({
     ...defaultValues,
     ...(watchedValues ?? {}),
@@ -57,6 +69,7 @@ function PostingFiltersCard<T extends FieldValues>({
   const hasPendingChanges = draftSnapshot !== appliedSnapshot;
   const hasAnyChangesFromDefault = draftSnapshot !== defaultSnapshot || appliedSnapshot !== defaultSnapshot;
   const hasAdvancedFiltersApplied = getHasAdvancedFiltersApplied(draftValues);
+  const showAdvancedFilters = showAdvanced ?? true;
 
   const onApplyRef = useRef(onApply);
   useEffect(() => {
@@ -82,15 +95,23 @@ function PostingFiltersCard<T extends FieldValues>({
     await onApply(defaultValues);
   };
 
+  const extraFieldsContent = extraFields ? extraFields(form) : null;
+
   return (
     <Card>
       <div className="mb-4">
         <h3 className="text-lg font-semibold">{title}</h3>
       </div>
 
+      {topContent && (
+        <div className="mb-4 w-full">
+          {topContent}
+        </div>
+      )}
+
       <form className="space-y-4" onSubmit={applyFilters}>
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-4 lg:items-end">
-          <div className="lg:col-span-2">
+        <div className="flex gap-4">
+          <div className="mb-0 flex-2">
             <FormField
               form={form}
               name={searchFieldName}
@@ -100,35 +121,35 @@ function PostingFiltersCard<T extends FieldValues>({
             />
           </div>
 
-          <FormField
-            form={form}
-            name={sortFieldName}
-            label="Sort By"
-            selectOptions={sortOptions}
-          />
+          {extraFieldsContent && (
+            <div className="flex-1">
+              {extraFieldsContent}
+            </div>
+          )}
 
-          <div className="flex items-end">
-            <Button
-              color="primary"
-              type="submit"
-              disabled={!hasPendingChanges}
-              Icon={submitIcon}
-              layout="block"
-            >
-              {submitLabel}
-            </Button>
+          <div className="flex-1">
+            <FormField
+              form={form}
+              name={sortFieldName}
+              label="Sort By"
+              selectOptions={entityValue === 'organizations' && organizationSortOptions ? organizationSortOptions : sortOptions}
+            />
           </div>
         </div>
 
         <div className="flex flex-wrap gap-3">
-          <Button
-            type="button"
-            color={hasAdvancedFiltersApplied || showAdvancedSearch ? 'secondary' : 'ghost'}
-            onClick={() => setShowAdvancedSearch(prev => !prev)}
-            Icon={SlidersHorizontal}
-          >
-            Advanced Search
-          </Button>
+          {showAdvancedFilters && (
+            <Button
+              type="button"
+              color={hasAdvancedFiltersApplied || showAdvancedSearch ? 'secondary' : 'ghost'}
+              onClick={() => setShowAdvancedSearch(prev => !prev)}
+              Icon={SlidersHorizontal}
+            >
+              Advanced Search
+            </Button>
+          )}
+
+          <div className="flex-1" />
 
           <Button
             type="button"
@@ -139,9 +160,20 @@ function PostingFiltersCard<T extends FieldValues>({
           >
             Reset
           </Button>
+
+          <Button
+            color="primary"
+            type="submit"
+            disabled={!hasPendingChanges}
+            Icon={submitIcon}
+            layout="wide"
+            className="h-11 w-full"
+          >
+            {submitLabel}
+          </Button>
         </div>
 
-        {showAdvancedSearch && (
+        {showAdvancedFilters && showAdvancedSearch && (
           <div className="rounded-box border border-base-300 bg-base-200/40 p-4">
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               {renderAdvancedFields(form)}

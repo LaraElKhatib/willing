@@ -24,6 +24,7 @@ interface CardProps {
   right?: ReactNode;
   link?: string;
   padding?: boolean;
+  className?: string;
 }
 
 function Card({
@@ -37,45 +38,34 @@ function Card({
   right,
   link,
   padding = true,
+  className = '',
 }: CardProps) {
   return (
 
-    <div className="card bg-base-100 shadow-md border border-base-300">
+    <div className={`card bg-base-100 shadow-md border border-base-300 ${className}`.trim()}>
       <div className={`card-body ${padding ? '' : 'p-0'}`}>
         {title && (
-          link
-            ? (
-                <Link
-                  to={link}
-                >
-                  <div className={`flex items-center gap-2 ${description ? '' : (children ? 'mb-3' : 'mb-0')}`}>
-                    <h5 className={`font-bold text-lg inline-flex items-center gap-2 text-${coloredText ? color : ''} ${link ? `link link-hover link-${color}` : ``}`}>
-                      {Icon && <Icon size={17} className={`text-${color}`} />}
-                      {title}
-                      {
-                        link
-                        && <ExternalLink size={13} className="opacity-60 group-hover:opacity-100 transition-opacity" />
-                      }
-                    </h5>
-                    { left }
-                    <span className="flex-1"></span>
-                    { right }
-                  </div>
-                </Link>
-              )
-            : (
-                <div>
-                  <div className={`flex items-center gap-2 ${description ? '' : (children ? 'mb-3' : 'mb-0')}`}>
-                    <h5 className={`font-bold text-lg inline-flex items-center gap-2 text-${coloredText ? color : ''}`}>
-                      {Icon && <Icon size={17} className={'text-' + color} />}
-                      {title}
-                    </h5>
-                    { left }
-                    <span className="flex-1"></span>
-                    { right }
-                  </div>
-                </div>
-              )
+          <div className={`flex items-center gap-2 ${description ? '' : (children ? 'mb-3' : 'mb-0')}`}>
+            { left }
+            <h5 className={`font-bold text-lg inline-flex items-center gap-2 text-${coloredText ? color : ''}`}>
+              {Icon && <Icon size={17} className={`text-${color}`} />}
+              {link
+                ? (
+                    <Link
+                      to={link}
+                      className={`inline-flex items-center gap-2 text-${color} hover:underline`}
+                    >
+                      <span className="inline-flex items-center gap-2">
+                        {title}
+                        <ExternalLink size={13} className="opacity-60 hover:opacity-100 transition-opacity" />
+                      </span>
+                    </Link>
+                  )
+                : title}
+            </h5>
+            <span className="flex-1"></span>
+            { right }
+          </div>
         )}
         { description && (
           <p className={`text-sm opacity-70 ${children ? 'mb-3' : 'mb-1'}`}>

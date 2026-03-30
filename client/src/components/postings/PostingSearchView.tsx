@@ -1,14 +1,19 @@
-import { TextSearch, type LucideIcon } from 'lucide-react';
+import { TextSearch, ClipboardList, Building2, AlertTriangle, type LucideIcon } from 'lucide-react';
 import { type ReactNode, useCallback, useMemo, useState } from 'react';
 
 import {
   buildSharedPostingQuery,
   hasSharedAdvancedPostingFilters,
+  organizationPostingSortOptions,
+  resolveOrganizationPostingSortOption,
   resolveVolunteerPostingSortOption,
+  toOrganizationPostingSortOptionValue,
   toVolunteerPostingSortOptionValue,
   volunteerPostingSortOptions,
   type PostingSortDir,
   type SharedPostingFilterFields,
+  type OrganizationPostingSortBy,
+  type OrganizationPostingSortOptionValue,
   type VolunteerPostingSortBy,
   type VolunteerPostingSortOptionValue,
 } from './postingFilterConfig.ts';
@@ -17,17 +22,21 @@ import requestServer from '../../utils/requestServer.ts';
 import useAsync from '../../utils/useAsync';
 import CalendarInfo from '../CalendarInfo.tsx';
 import EmptyState from '../EmptyState.tsx';
+import CrisisCard from './CrisisCard.tsx';
 import PageContainer from '../layout/PageContainer.tsx';
 import PageHeader from '../layout/PageHeader.tsx';
 import Loading from '../Loading.tsx';
+import OrganizationCard from './OrganizationCard.tsx';
 import PostingCollection from './PostingCollection.tsx';
 import PostingFiltersCard from './PostingFiltersCard.tsx';
+import Button from '../Button.tsx';
 
-import type { VolunteerPostingSearchResponse, VolunteerEnrollmentsResponse } from '../../../../server/src/api/types.ts';
+import type { VolunteerCrisesResponse, VolunteerOrganizationSearchResponse, VolunteerPostingSearchResponse, VolunteerEnrollmentsResponse } from '../../../../server/src/api/types.ts';
+import type { Crisis } from '../../../../server/src/db/tables/index.ts';
 import type { PostingWithContext } from '../../../../server/src/types.ts';
 
 export type PostingSearchFilters = SharedPostingFilterFields & {
-  sortBy: VolunteerPostingSortBy;
+  sortBy: VolunteerPostingSortBy | OrganizationPostingSortBy;
   sortDir: PostingSortDir;
   startDateFrom: string;
   endDateTo: string;
@@ -35,6 +44,8 @@ export type PostingSearchFilters = SharedPostingFilterFields & {
   endTimeTo: string;
   hideFull: boolean;
   crisisId: 'all' | `${number}`;
+  entity: 'postings' | 'organizations' | 'crises';
+  crisisFilter: 'all' | 'pinned_only' | 'unpinned_only';
 };
 
 type PostingCrisisOption = {
@@ -42,8 +53,21 @@ type PostingCrisisOption = {
   name: string;
 };
 
+type CrisisPostingSortOptionValue = 'title_asc' | 'title_desc';
+
 type PostingSearchFormValues = Omit<PostingSearchFilters, 'sortBy' | 'sortDir'> & {
-  sortOption: VolunteerPostingSortOptionValue;
+  sortOption: VolunteerPostingSortOptionValue | OrganizationPostingSortOptionValue | CrisisPostingSortOptionValue;
+  crisisFilter: PostingSearchFilters['crisisFilter'];
+  entity: PostingSearchFilters['entity'];
+};
+
+type VolunteerOrganizationSearchResult = {
+  id: number;
+  name: string;
+  description: string | null;
+  location_name: string | null;
+  logo_path: string | null;
+  posting_count: number;
 };
 
 type PostingSearchViewProps = {
@@ -60,33 +84,60 @@ type PostingSearchViewProps = {
   fetchUrl?: string;
   enableCrisisFilter?: boolean;
   crisisOptions?: PostingCrisisOption[];
+  enableOrganizationSearch?: boolean;
+  showEntityTabs?: boolean;
 };
 
 const toPostingSearchFormValues = (filters: PostingSearchFilters): PostingSearchFormValues => ({
   search: filters.search,
-  sortOption: toVolunteerPostingSortOptionValue(filters.sortBy, filters.sortDir),
+  sortOption: filters.entity === 'organizations'
+    ? toOrganizationPostingSortOptionValue(filters.sortBy as OrganizationPostingSortBy, filters.sortDir)
+    : filters.entity === 'crises'
+      ? (filters.sortDir === 'desc' ? 'title_desc' : 'title_asc')
+      : toVolunteerPostingSortOptionValue(filters.sortBy as VolunteerPostingSortBy, filters.sortDir),
+  crisisFilter: filters.crisisFilter,
   startDateFrom: filters.startDateFrom,
   endDateTo: filters.endDateTo,
   startTimeFrom: filters.startTimeFrom,
   endTimeTo: filters.endTimeTo,
   hideFull: filters.hideFull,
   crisisId: filters.crisisId,
+  entity: filters.entity,
 });
 
 const fromPostingSearchFormValues = (values: PostingSearchFormValues): PostingSearchFilters => {
-  const selectedSortOption = resolveVolunteerPostingSortOption(values.sortOption);
+  let querySortBy: VolunteerPostingSortBy | OrganizationPostingSortBy = 'title';
+  let querySortDir: PostingSortDir = 'asc';
+  let crisisFilter: 'all' | 'pinned_only' | 'unpinned_only' = 'all';
+
+  if (values.entity === 'organizations') {
+    const selectedSortOption = resolveOrganizationPostingSortOption(values.sortOption as OrganizationPostingSortOptionValue);
+    querySortBy = 'title';
+    querySortDir = selectedSortOption.sortDir;
+  } else if (values.entity === 'crises') {
+    const selected = values.sortOption as CrisisPostingSortOptionValue;
+    querySortBy = 'title';
+    querySortDir = selected === 'title_desc' ? 'desc' : 'asc';
+    crisisFilter = values.crisisFilter;
+  } else {
+    const selectedSortOption = resolveVolunteerPostingSortOption(values.sortOption as VolunteerPostingSortOptionValue);
+    querySortBy = selectedSortOption.sortBy as VolunteerPostingSortBy;
+    querySortDir = selectedSortOption.sortDir;
+  }
 
   return {
     search: values.search,
-    sortBy: selectedSortOption.sortBy,
-    sortDir: selectedSortOption.sortDir,
+    sortBy: querySortBy,
+    sortDir: querySortDir,
     startDateFrom: values.startDateFrom,
     endDateTo: values.endDateTo,
     startTimeFrom: values.startTimeFrom,
     endTimeTo: values.endTimeTo,
     hideFull: values.hideFull,
     crisisId: values.crisisId,
-  };
+    entity: values.entity,
+    crisisFilter,
+  } as PostingSearchFilters;
 };
 
 function PostingSearchView({
@@ -103,6 +154,8 @@ function PostingSearchView({
   fetchUrl,
   enableCrisisFilter = false,
   crisisOptions = [],
+  enableOrganizationSearch = false,
+  showEntityTabs = true,
 }: PostingSearchViewProps) {
   const defaultFilters = useMemo<PostingSearchFilters>(() => ({
     search: '',
@@ -114,11 +167,26 @@ function PostingSearchView({
     endTimeTo: '',
     hideFull: false,
     crisisId: 'all',
+    entity: 'postings',
+    crisisFilter: 'all',
     ...initialFilters,
   }), [initialFilters]);
-  const defaultFormValues = useMemo(() => toPostingSearchFormValues(defaultFilters), [defaultFilters]);
+
+  const [activeEntity, setActiveEntity] = useState<PostingSearchFilters['entity']>(defaultFilters.entity);
+
+  const activeFilters = useMemo(() => ({
+    ...defaultFilters,
+    entity: activeEntity,
+    sortBy: activeEntity === 'organizations' || activeEntity === 'crises' ? 'title' : defaultFilters.sortBy,
+    sortDir: activeEntity === 'organizations' || activeEntity === 'crises' ? 'asc' : defaultFilters.sortDir,
+    crisisFilter: activeEntity === 'crises' ? defaultFilters.crisisFilter ?? 'all' : 'all',
+  }), [defaultFilters, activeEntity]);
+
+  const defaultFormValues = useMemo(() => toPostingSearchFormValues(activeFilters), [activeFilters]);
 
   const [postings, setPostings] = useState<PostingWithContext[]>([]);
+  const [organizations, setOrganizations] = useState<VolunteerOrganizationSearchResult[]>([]);
+  const [crises, setCrises] = useState<Crisis[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -140,21 +208,87 @@ function PostingSearchView({
     setError(null);
 
     try {
-      const response = await fetchPostingsRequest(url);
-      const postProcessFilteredPostings = filterPostings ? filterPostings(response.postings) : response.postings;
+      const shouldFetchPostings = activeFilters.entity === 'postings';
+      const shouldFetchOrgs = enableOrganizationSearch && activeFilters.entity === 'organizations';
+      const shouldFetchCrises = activeFilters.entity === 'crises';
+
+      const postingPromise = shouldFetchPostings
+        ? fetchPostingsRequest(url)
+        : Promise.resolve({ postings: [] } as VolunteerPostingSearchResponse);
+
+      const organizationsPromise = shouldFetchOrgs
+        ? (() => {
+            const orgQuery = new URLSearchParams();
+            if (activeFilters.search) orgQuery.append('search', activeFilters.search);
+            if (activeFilters.sortBy === 'title') {
+              orgQuery.append('sort_by', 'title');
+              orgQuery.append('sort_dir', activeFilters.sortDir);
+            }
+            const orgUrl = orgQuery.toString() ? `/volunteer/organizations?${orgQuery.toString()}` : '/volunteer/organizations';
+            return requestServer<VolunteerOrganizationSearchResponse>(orgUrl, { includeJwt: true });
+          })()
+        : Promise.resolve({ organizations: [] } as VolunteerOrganizationSearchResponse);
+
+      const crisesPromise = shouldFetchCrises
+        ? (() => {
+            const crisisQuery = new URLSearchParams();
+            if (activeFilters.search) crisisQuery.append('search', activeFilters.search);
+
+            if (activeFilters.crisisFilter === 'pinned_only') {
+              crisisQuery.append('pinned', 'true');
+            } else if (activeFilters.crisisFilter === 'unpinned_only') {
+              crisisQuery.append('pinned', 'false');
+            }
+
+            if (activeFilters.sortBy === 'title' && activeFilters.sortDir === 'desc') {
+              crisisQuery.append('sort_by', 'title_desc');
+            } else if (activeFilters.sortBy === 'title' && activeFilters.sortDir === 'asc') {
+              crisisQuery.append('sort_by', 'title_asc');
+            }
+
+            const crisisUrl = crisisQuery.toString() ? `/volunteer/crises?${crisisQuery.toString()}` : '/volunteer/crises';
+            return requestServer<VolunteerCrisesResponse>(crisisUrl, { includeJwt: true });
+          })()
+        : Promise.resolve({ crises: [] } as VolunteerCrisesResponse);
+
+      const [postingResponse, organizationResponse, crisisResponse] = await Promise.all([
+        postingPromise,
+        organizationsPromise,
+        crisesPromise,
+      ]);
+      const postProcessFilteredPostings = filterPostings ? filterPostings(postingResponse.postings) : postingResponse.postings;
       setPostings(postProcessFilteredPostings);
+      setOrganizations(organizationResponse.organizations);
+
+      let orderedCrises = crisisResponse.crises;
+      if (activeFilters.entity === 'crises') {
+        orderedCrises = [...orderedCrises].sort((a, b) => {
+          if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+          const nameA = a.name || '';
+          const nameB = b.name || '';
+          return activeFilters.sortDir === 'desc'
+            ? nameB.localeCompare(nameA)
+            : nameA.localeCompare(nameB);
+        });
+      }
+
+      setCrises(orderedCrises);
     } catch (fetchError) {
       setPostings([]);
+      setOrganizations([]);
       const message = fetchError instanceof Error ? fetchError.message : 'Failed to load postings';
       setError(message);
     } finally {
       setLoading(false);
     }
-  }, [fetchPostingsRequest, fetchUrl, filterPostings]);
+  }, [fetchPostingsRequest, fetchUrl, filterPostings, enableOrganizationSearch]);
 
   const applyFilters = useCallback(async (formValues: PostingSearchFormValues) => {
-    await fetchPostings(fromPostingSearchFormValues(formValues));
-  }, [fetchPostings]);
+    const withEntity = { ...formValues, entity: activeEntity };
+    const filters = fromPostingSearchFormValues(withEntity);
+    setActiveEntity(filters.entity);
+    await fetchPostings(filters);
+  }, [fetchPostings, activeEntity]);
 
   return (
     <PageContainer>
@@ -168,17 +302,87 @@ function PostingSearchView({
         defaultBackTo={defaultBackTo}
       />
 
+      {showEntityTabs && (
+        <div className="w-full">
+          <div className="join w-full">
+            <Button
+              type="button"
+              className="join-item flex-1"
+              color={activeEntity === 'postings' ? 'primary' : undefined}
+              style={activeEntity === 'postings' ? undefined : 'outline'}
+              onClick={() => setActiveEntity('postings')}
+              Icon={ClipboardList}
+            >
+              Postings
+            </Button>
+            {enableOrganizationSearch && (
+              <Button
+                type="button"
+                className="join-item flex-1"
+                color={activeEntity === 'organizations' ? 'primary' : undefined}
+                style={activeEntity === 'organizations' ? undefined : 'outline'}
+                onClick={() => setActiveEntity('organizations')}
+                Icon={Building2}
+              >
+                Organizations
+              </Button>
+            )}
+            {enableCrisisFilter && (
+              <Button
+                type="button"
+                className="join-item flex-1"
+                color={activeEntity === 'crises' ? 'primary' : undefined}
+                style={activeEntity === 'crises' ? undefined : 'outline'}
+                onClick={() => setActiveEntity('crises')}
+                Icon={AlertTriangle}
+              >
+                Crises
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
       <PostingFiltersCard
         defaultValues={defaultFormValues}
         onApply={applyFilters}
         searchFieldName="search"
-        searchPlaceholder="Search title, description, location, organization, or skills"
+        searchPlaceholder={activeEntity === 'organizations'
+          ? 'Search by name, description, or location'
+          : 'Search by title, or description'}
         sortFieldName="sortOption"
-        sortOptions={volunteerPostingSortOptions.map(option => ({
-          label: option.label,
-          value: option.value,
-        }))}
-        getHasAdvancedFiltersApplied={values => hasSharedAdvancedPostingFilters(values) || values.hideFull || values.crisisId !== 'all'}
+        sortOptions={activeEntity === 'organizations'
+          ? organizationPostingSortOptions
+              .filter(option => option.value === 'title_asc' || option.value === 'title_desc')
+              .map(option => ({
+                label: option.value === 'title_asc' ? 'Name (A-Z)' : 'Name (Z-A)',
+                value: option.value,
+              }))
+          : activeEntity === 'crises'
+            ? [
+                { label: 'Title (A-Z)', value: 'title_asc' },
+                { label: 'Title (Z-A)', value: 'title_desc' },
+              ]
+            : volunteerPostingSortOptions.map(option => ({ label: option.label, value: option.value }))}
+        extraFields={activeEntity === 'crises'
+          ? form => (
+            <div className="lg:col-span-2">
+              <FormField
+                form={form}
+                name="crisisFilter"
+                label="Crisis visibility"
+                selectOptions={[
+                  { label: 'All crises', value: 'all' },
+                  { label: 'Pinned only', value: 'pinned_only' },
+                  { label: 'Unpinned only', value: 'unpinned_only' },
+                ]}
+              />
+            </div>
+          )
+          : undefined}
+        showAdvanced={activeEntity === 'postings'}
+        getHasAdvancedFiltersApplied={values => activeEntity === 'postings'
+          ? (hasSharedAdvancedPostingFilters(values) || values.hideFull || values.crisisId !== 'all')
+          : false}
         renderAdvancedFields={form => (
           <>
             <div className="lg:col-span-2">
@@ -258,22 +462,59 @@ function PostingSearchView({
               <Loading size="lg" />
             </div>
           )
-        : postings.length === 0
+        : activeEntity === 'crises'
           ? (
-              <EmptyState
-                Icon={icon}
-                title="No postings found"
-                description={emptyMessage}
-              />
+              crises.length === 0
+                ? (
+                    <EmptyState
+                      Icon={icon}
+                      title="No crises found"
+                      description="Try a different search term or check again later."
+                    />
+                  )
+                : (
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                      {crises.map(crisis => (
+                        <CrisisCard key={crisis.id} crisis={crisis} />
+                      ))}
+                    </div>
+                  )
             )
-          : (
-              <PostingCollection
-                postings={postings}
-                showCrisis
-                cardsContainerClassName="grid grid-cols-1 gap-6 lg:grid-cols-2 2xl:grid-cols-3"
-                listContainerClassName="space-y-4"
-              />
-            )}
+          : (postings.length === 0 && !organizations.length)
+              ? (
+                  <EmptyState
+                    Icon={icon}
+                    title={activeEntity === 'organizations' ? 'No organizations found' : 'No postings found'}
+                    description={activeEntity === 'organizations' ? 'No organizations found yet.' : emptyMessage}
+                  />
+                )
+              : (
+                  <>
+                    {postings.length > 0 && (
+                      <div>
+                        <PostingCollection
+                          postings={postings}
+                          showCrisis
+                          cardsContainerClassName="grid grid-cols-1 gap-6 lg:grid-cols-2 2xl:grid-cols-3"
+                          listContainerClassName="space-y-4"
+                        />
+                      </div>
+                    )}
+
+                    {enableOrganizationSearch && organizations.length > 0 && (
+                      <div>
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                          {organizations.map(organization => (
+                            <OrganizationCard
+                              key={organization.id}
+                              organization={organization}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
     </PageContainer>
   );
 }

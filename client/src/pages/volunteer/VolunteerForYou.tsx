@@ -60,6 +60,7 @@ function VolunteerForYou() {
         fetchUrl="/volunteer/posting"
         filterPostings={filterPostings}
         enableCrisisFilter
+        showEntityTabs={false}
         crisisOptions={(pinnedCrises ?? []).map(crisis => ({ id: crisis.id, name: crisis.name }))}
         emptyMessage="No recommended postings found yet."
       />

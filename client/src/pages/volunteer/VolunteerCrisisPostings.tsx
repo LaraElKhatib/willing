@@ -85,6 +85,7 @@ function VolunteerCrisisPostings() {
       defaultBackTo="/volunteer"
       fetchUrl="/volunteer/posting?include_applied=true"
       filterPostings={filterPostingsByCrisis}
+      showEntityTabs={false}
       emptyMessage="No postings found for this crisis yet."
     />
   );
