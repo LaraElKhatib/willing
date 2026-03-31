@@ -6,8 +6,9 @@ import {
   UserCircle,
   UserPlus,
   CheckCircle2,
+  LogIn,
 } from 'lucide-react';
-import { useContext } from 'react';
+import { useContext, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link } from 'react-router-dom';
 
@@ -15,11 +16,15 @@ import AuthContext from '../auth/AuthContext';
 import Button from '../components/Button';
 import Card from '../components/Card';
 import Hero from '../components/layout/Hero';
+import LinkButton from '../components/LinkButton';
+import useNotifications from '../notifications/useNotifications';
 import { volunteerSignupSchema, type VolunteerSignupFormData } from '../schemas/volunteer';
 import { executeAndShowError, FormField, FormRootError } from '../utils/formUtils';
 
 export default function VolunteerCreate() {
   const auth = useContext(AuthContext);
+  const { push } = useNotifications();
+  const [emailSent, setEmailSent] = useState(false);
   const form = useForm<VolunteerSignupFormData>({
     resolver: zodResolver(volunteerSignupSchema),
     mode: 'onTouched',
@@ -38,9 +43,39 @@ export default function VolunteerCreate() {
   const handleSubmit = form.handleSubmit(async (data) => {
     await executeAndShowError(form, async () => {
       const { confirmPassword: _, ...volunteerData } = data;
-      await auth.createVolunteer(volunteerData);
+      const response = await auth.createVolunteer(volunteerData);
+
+      if (response.requires_email_verification) {
+        setEmailSent(true);
+        push({
+          type: 'success',
+          message: 'Verification email sent. Please check your inbox before logging in.',
+        });
+      }
     });
   });
+
+  if (emailSent) {
+    return (
+      <Hero>
+        <Card>
+          <h2 className="font-bold text-2xl text-center">Check your email</h2>
+          <p className="opacity-80">
+            We sent you a verification link. Please confirm your email to activate your volunteer account.
+          </p>
+          <LinkButton
+            color="primary"
+            className="mx-auto"
+            to="/login"
+            Icon={LogIn}
+            layout="wide"
+          >
+            Go to login
+          </LinkButton>
+        </Card>
+      </Hero>
+    );
+  }
 
   return (
     <Hero
