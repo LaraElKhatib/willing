@@ -75,41 +75,40 @@ export default function VolunteerCreate() {
           <p className="opacity-80">
             We sent you a verification link. Please confirm your email to activate your volunteer account.
           </p>
-          <Button
-            color="secondary"
-            style="outline"
-            className="mx-auto"
-            type="button"
-            loading={resendLoading}
-            disabled={!pendingVerificationEmail || resendLoading}
-            Icon={RotateCcw}
-            onClick={() => {
-              triggerResend()
-                .then(() => {
-                  push({
-                    type: 'success',
-                    message: 'If your account is still pending verification, a new link has been sent.',
+          <div className="flex flex-col sm:flex-row gap-2 justify-center">
+            <LinkButton
+              color="primary"
+              to="/login"
+              Icon={LogIn}
+            >
+              Go to login
+            </LinkButton>
+            <Button
+              color="secondary"
+              style="outline"
+              type="button"
+              loading={resendLoading}
+              disabled={!pendingVerificationEmail || resendLoading}
+              Icon={RotateCcw}
+              onClick={() => {
+                triggerResend()
+                  .then(() => {
+                    push({
+                      type: 'success',
+                      message: 'If your account is still pending verification, a new link has been sent.',
+                    });
+                  })
+                  .catch((error) => {
+                    push({
+                      type: 'error',
+                      message: error instanceof Error ? error.message : 'Failed to resend verification email.',
+                    });
                   });
-                })
-                .catch((error) => {
-                  push({
-                    type: 'error',
-                    message: error instanceof Error ? error.message : 'Failed to resend verification email.',
-                  });
-                });
-            }}
-          >
-            Resend verification email
-          </Button>
-          <LinkButton
-            color="primary"
-            className="mx-auto"
-            to="/login"
-            Icon={LogIn}
-            layout="wide"
-          >
-            Go to login
-          </LinkButton>
+              }}
+            >
+              Resend verification email
+            </Button>
+          </div>
         </Card>
       </Hero>
     );
