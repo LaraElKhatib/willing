@@ -17,7 +17,6 @@ export default function VolunteerVerifyEmail() {
   const auth = useContext(AuthContext);
   const notifications = useNotifications();
   const [hasStartedVerification, setHasStartedVerification] = useState(false);
-  const [verificationSucceeded, setVerificationSucceeded] = useState(false);
   const hasAttemptedRef = useRef(false);
 
   const {
@@ -38,7 +37,6 @@ export default function VolunteerVerifyEmail() {
 
     trigger()
       .then(() => {
-        setVerificationSucceeded(true);
         navigate('/volunteer', { replace: true });
       })
       .catch((err) => {
