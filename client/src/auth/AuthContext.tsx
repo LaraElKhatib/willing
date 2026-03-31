@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router';
 
 import requestServer from '../utils/requestServer';
 
-import type { AdminLoginResponse, AdminMeResponse, AdminResetPasswordResponse, OrganizationGetMeResponse, OrganizationResetPasswordResponse, UserLoginResponse, VolunteerCreateResponse, VolunteerMeResponse, VolunteerResetPasswordResponse, VolunteerVerifyEmailResponse } from '../../../server/src/api/types';
+import type { AdminLoginResponse, AdminMeResponse, AdminResetPasswordResponse, OrganizationGetMeResponse, OrganizationResetPasswordResponse, UserLoginResponse, VolunteerCreateResponse, VolunteerMeResponse, VolunteerResendVerificationResponse, VolunteerResetPasswordResponse, VolunteerVerifyEmailResponse } from '../../../server/src/api/types';
 import type { AdminAccountWithoutPassword, NewVolunteerAccount, OrganizationAccountWithoutPassword, VolunteerAccountWithoutPassword } from '../../../server/src/db/tables';
 import type { Role, UserJWT } from '../../../server/src/types';
 
@@ -49,6 +49,7 @@ type AuthContextType = {
   loginUser: (email: string, password: string) => Promise<void>;
   createVolunteer: (volunteer: NewVolunteerAccount) => Promise<VolunteerCreateResponse>;
   verifyVolunteerEmail: (key: string) => Promise<void>;
+  resendVolunteerVerification: (email: string) => Promise<void>;
   changePassword: (oldPassword: string, newPassword: string) => Promise<void>;
   logout: () => void;
   restrictRoute: (role: Role, unauthenticatedRedirectPath: string) => AccountWithoutPassword;
@@ -62,6 +63,7 @@ const AuthContext = createContext<AuthContextType>({
   loginUser: async () => {},
   createVolunteer: async () => ({ requires_email_verification: true }),
   verifyVolunteerEmail: async () => {},
+  resendVolunteerVerification: async () => {},
   changePassword: async () => {},
   logout: () => {},
   restrictRoute: (() => {
@@ -143,6 +145,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
   }, []);
 
+  const resendVolunteerVerification = useCallback(async (email: string) => {
+    await requestServer<VolunteerResendVerificationResponse>('/volunteer/resend-verification', {
+      method: 'POST',
+      body: { email },
+    });
+  }, []);
+
   const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
     if (!user) return;
 
@@ -186,7 +195,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [user, navigate]);
 
   return (
-    <AuthContext.Provider value={{ user, loaded, refreshUser, loginAdmin, loginUser, createVolunteer, verifyVolunteerEmail, changePassword, logout, restrictRoute }}>
+    <AuthContext.Provider value={{ user, loaded, refreshUser, loginAdmin, loginUser, createVolunteer, verifyVolunteerEmail, resendVolunteerVerification, changePassword, logout, restrictRoute }}>
       {children}
     </AuthContext.Provider>
   );
