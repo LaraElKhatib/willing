@@ -7,6 +7,7 @@ import {
   UserPlus,
   CheckCircle2,
   LogIn,
+  RotateCcw,
 } from 'lucide-react';
 import { useContext, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -20,11 +21,21 @@ import LinkButton from '../components/LinkButton';
 import useNotifications from '../notifications/useNotifications';
 import { volunteerSignupSchema, type VolunteerSignupFormData } from '../schemas/volunteer';
 import { executeAndShowError, FormField, FormRootError } from '../utils/formUtils';
+import useAsync from '../utils/useAsync';
 
 export default function VolunteerCreate() {
   const auth = useContext(AuthContext);
   const { push } = useNotifications();
   const [emailSent, setEmailSent] = useState(false);
+  const [pendingVerificationEmail, setPendingVerificationEmail] = useState('');
+
+  const {
+    loading: resendLoading,
+    trigger: triggerResend,
+  } = useAsync(async () => auth.resendVolunteerVerification(pendingVerificationEmail), {
+    notifyOnError: false,
+  });
+
   const form = useForm<VolunteerSignupFormData>({
     resolver: zodResolver(volunteerSignupSchema),
     mode: 'onTouched',
@@ -46,6 +57,7 @@ export default function VolunteerCreate() {
       const response = await auth.createVolunteer(volunteerData);
 
       if (response.requires_email_verification) {
+        setPendingVerificationEmail(volunteerData.email);
         setEmailSent(true);
         push({
           type: 'success',
@@ -63,6 +75,32 @@ export default function VolunteerCreate() {
           <p className="opacity-80">
             We sent you a verification link. Please confirm your email to activate your volunteer account.
           </p>
+          <Button
+            color="secondary"
+            style="outline"
+            className="mx-auto"
+            type="button"
+            loading={resendLoading}
+            disabled={!pendingVerificationEmail || resendLoading}
+            Icon={RotateCcw}
+            onClick={() => {
+              triggerResend()
+                .then(() => {
+                  push({
+                    type: 'success',
+                    message: 'If your account is still pending verification, a new link has been sent.',
+                  });
+                })
+                .catch((error) => {
+                  push({
+                    type: 'error',
+                    message: error instanceof Error ? error.message : 'Failed to resend verification email.',
+                  });
+                });
+            }}
+          >
+            Resend verification email
+          </Button>
           <LinkButton
             color="primary"
             className="mx-auto"
