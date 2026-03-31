@@ -16,7 +16,7 @@ import { PLATFORM_SIGNATURE_UPLOAD_DIR } from '../../services/uploads/paths.ts';
 
 const publicRouter = Router();
 const certificateVerificationBodySchema = zod.object({
-  token: zod.string().trim().min(1, 'Certificate token is required.'),
+  token: zod.string().trim().min(1, 'Certificate token is required.').max(512, 'Certificate token is too long.'),
 });
 
 const VERIFICATION_RATE_LIMIT_WINDOW_MS = 60_000;
@@ -24,15 +24,20 @@ const VERIFICATION_RATE_LIMIT_MAX_ATTEMPTS = 20;
 const verificationRateLimitBuckets = new Map<string, { count: number; resetAt: number }>();
 
 const getRequestSource = (req: Request) => {
+  const trustProxy = req.app.get('trust proxy');
   const forwardedFor = req.headers['x-forwarded-for'];
-  if (typeof forwardedFor === 'string' && forwardedFor.trim()) {
-    const firstForwardedAddress = forwardedFor.split(',')[0]?.trim();
-    if (firstForwardedAddress) return firstForwardedAddress;
+
+  if (trustProxy) {
+    if (typeof forwardedFor === 'string' && forwardedFor.trim()) {
+      const firstForwardedAddress = forwardedFor.split(',')[0]?.trim();
+      if (firstForwardedAddress) return firstForwardedAddress;
+    }
+    if (Array.isArray(forwardedFor) && forwardedFor.length > 0) {
+      const firstForwardedAddress = forwardedFor[0];
+      if (firstForwardedAddress) return firstForwardedAddress;
+    }
   }
-  if (Array.isArray(forwardedFor) && forwardedFor.length > 0) {
-    const firstForwardedAddress = forwardedFor[0];
-    if (firstForwardedAddress) return firstForwardedAddress;
-  }
+
   return req.ip || 'unknown';
 };
 

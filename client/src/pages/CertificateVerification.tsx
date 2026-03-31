@@ -16,7 +16,7 @@ import requestServer from '../utils/requestServer';
 import type { PublicCertificateVerificationResponse } from '../../../server/src/api/types';
 
 const verificationSchema = z.object({
-  token: z.string().trim().min(1, 'Certificate token is required.'),
+  token: z.string().trim().min(1, 'Certificate token is required.').max(512, 'Certificate token is too long.'),
 });
 
 type VerificationFormData = z.infer<typeof verificationSchema>;

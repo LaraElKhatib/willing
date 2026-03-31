@@ -42,6 +42,16 @@ Willing connects volunteers with organizations that publish real-world help oppo
 3. Volunteer-facing discovery can prioritize/filter opportunities related to current crises.
 4. Pinned crises communicate urgency across the platform and guide organization posting context.
 
+### Certificate Verification Flow
+
+- Public certificate verification is available at `/certificate/verify` (client) and `/public/certificate/verify` (server), with no login required.
+- Certificate authenticity is based on a signed payload token (HMAC), not stored/generated PDF files.
+- A certificate is valid only when both checks pass:
+  1. token signature + payload validation
+  2. DB consistency checks against volunteer/org attendance-hour facts
+- Verification route must keep abuse protection (rate limiting/throttling) in place.
+- `CERTIFICATE_VERIFICATION_SECRET` is server-only and must never be exposed to client code.
+
 ### Access and Ownership Model
 
 - Volunteers only manage their own profile, applications, and enrollments.
