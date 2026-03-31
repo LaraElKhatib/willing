@@ -1,5 +1,5 @@
 import { CheckCircle2, LoaderCircle, LogIn, RotateCcw } from 'lucide-react';
-import { useEffect, useState, useContext } from 'react';
+import { useEffect, useState, useContext, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import AuthContext from '../auth/AuthContext';
@@ -7,6 +7,7 @@ import Button from '../components/Button';
 import Card from '../components/Card';
 import Hero from '../components/layout/Hero';
 import LinkButton from '../components/LinkButton';
+import useNotifications from '../notifications/useNotifications';
 import useAsync from '../utils/useAsync';
 
 export default function VolunteerVerifyEmail() {
@@ -14,30 +15,39 @@ export default function VolunteerVerifyEmail() {
   const verificationKey = (searchParams.get('key') ?? '').trim();
   const navigate = useNavigate();
   const auth = useContext(AuthContext);
+  const notifications = useNotifications();
   const [hasStartedVerification, setHasStartedVerification] = useState(false);
+  const [verificationSucceeded, setVerificationSucceeded] = useState(false);
+  const hasAttemptedRef = useRef(false);
 
   const {
     loading,
     error,
     trigger,
   } = useAsync(async () => auth.verifyVolunteerEmail(verificationKey), {
-    notifyOnError: true,
+    notifyOnError: false,
   });
 
   useEffect(() => {
-    if (!verificationKey) {
+    if (!verificationKey || hasAttemptedRef.current) {
       return;
     }
 
+    hasAttemptedRef.current = true;
     setHasStartedVerification(true);
+
     trigger()
       .then(() => {
+        setVerificationSucceeded(true);
         navigate('/volunteer', { replace: true });
       })
-      .catch(() => {
-        // Error state is rendered below and a notification is shown by useAsync.
+      .catch((err) => {
+        notifications.push({
+          type: 'error',
+          message: err.message,
+        });
       });
-  }, [verificationKey, trigger, navigate]);
+  }, [verificationKey]);
 
   if (!verificationKey) {
     return (
@@ -87,8 +97,11 @@ export default function VolunteerVerifyEmail() {
                   .then(() => {
                     navigate('/volunteer', { replace: true });
                   })
-                  .catch(() => {
-                    // Error state is rendered above and a notification is shown by useAsync.
+                  .catch((err) => {
+                    notifications.push({
+                      type: 'error',
+                      message: err.message,
+                    });
                   });
               }}
               Icon={RotateCcw}
