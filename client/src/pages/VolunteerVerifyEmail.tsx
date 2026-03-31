@@ -13,10 +13,12 @@ import useAsync from '../utils/useAsync';
 export default function VolunteerVerifyEmail() {
   const [searchParams] = useSearchParams();
   const verificationKey = (searchParams.get('key') ?? '').trim();
+  const initialEmail = (searchParams.get('email') ?? '').trim();
   const navigate = useNavigate();
   const auth = useContext(AuthContext);
   const notifications = useNotifications();
   const [hasStartedVerification, setHasStartedVerification] = useState(false);
+  const [resendEmail, setResendEmail] = useState(initialEmail);
   const hasAttemptedRef = useRef(false);
 
   const {
@@ -24,6 +26,13 @@ export default function VolunteerVerifyEmail() {
     error,
     trigger,
   } = useAsync(async () => auth.verifyVolunteerEmail(verificationKey), {
+    notifyOnError: false,
+  });
+
+  const {
+    loading: resendLoading,
+    trigger: triggerResend,
+  } = useAsync(async (email: string) => auth.resendVolunteerVerification(email), {
     notifyOnError: false,
   });
 
@@ -85,6 +94,19 @@ export default function VolunteerVerifyEmail() {
         <Card>
           <h2 className="font-bold text-2xl text-center">Email verification failed</h2>
           <p className="opacity-80 text-center">{error.message}</p>
+          <div className="form-control w-full max-w-md mx-auto">
+            <label className="label" htmlFor="resend-verification-email">
+              <span className="label-text">Need a new link? Enter your email</span>
+            </label>
+            <input
+              id="resend-verification-email"
+              type="email"
+              className="input input-bordered w-full"
+              placeholder="name@example.com"
+              value={resendEmail}
+              onChange={event => setResendEmail(event.target.value)}
+            />
+          </div>
           <div className="flex gap-2 justify-center">
             <Button
               color="primary"
@@ -105,6 +127,38 @@ export default function VolunteerVerifyEmail() {
               Icon={RotateCcw}
             >
               Try again
+            </Button>
+            <Button
+              color="secondary"
+              type="button"
+              loading={resendLoading}
+              disabled={resendLoading}
+              onClick={() => {
+                const email = resendEmail.trim().toLowerCase();
+                if (!email) {
+                  notifications.push({
+                    type: 'warning',
+                    message: 'Please enter your email to resend verification.',
+                  });
+                  return;
+                }
+
+                triggerResend(email)
+                  .then(() => {
+                    notifications.push({
+                      type: 'success',
+                      message: 'If an unverified account exists for this email, a new verification link has been sent.',
+                    });
+                  })
+                  .catch((err) => {
+                    notifications.push({
+                      type: 'error',
+                      message: err.message,
+                    });
+                  });
+              }}
+            >
+              Resend link
             </Button>
             <LinkButton color="ghost" to="/login" Icon={LogIn}>
               Back to login
