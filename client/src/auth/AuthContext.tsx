@@ -47,7 +47,7 @@ type AuthContextType = {
   refreshUser: (jwt?: string) => void;
   loginAdmin: (email: string, password: string) => Promise<void>;
   loginUser: (email: string, password: string) => Promise<void>;
-  createVolunteer: (volunteer: NewVolunteerAccount) => Promise<void>;
+  createVolunteer: (volunteer: NewVolunteerAccount) => Promise<VolunteerCreateResponse>;
   changePassword: (oldPassword: string, newPassword: string) => Promise<void>;
   logout: () => void;
   restrictRoute: (role: Role, unauthenticatedRedirectPath: string) => AccountWithoutPassword;
@@ -59,7 +59,7 @@ const AuthContext = createContext<AuthContextType>({
   refreshUser: () => {},
   loginAdmin: async () => {},
   loginUser: async () => {},
-  createVolunteer: async () => {},
+  createVolunteer: async () => ({ requires_email_verification: true }),
   changePassword: async () => {},
   logout: () => {},
   restrictRoute: (() => {
@@ -125,11 +125,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       body: volunteer,
     });
 
-    localStorage.setItem('jwt', response.token);
-    setUser({
-      role: 'volunteer',
-      account: response.volunteer,
-    });
+    return response;
   };
 
   const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
