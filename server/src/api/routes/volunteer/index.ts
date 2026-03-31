@@ -16,6 +16,7 @@ import {
   type VolunteerOrganizationSearchResponse,
   type VolunteerPinnedCrisesResponse,
   type VolunteerProfileResponse,
+  type VolunteerResendVerificationResponse,
   type VolunteerVerifyEmailResponse,
 } from './index.types.ts';
 import volunteerPostingRouter from './posting.ts';
@@ -69,6 +70,10 @@ const areSkillListsEqual = (left: string[], right: string[]) => {
 
 const verifyVolunteerEmailSchema = zod.object({
   key: zod.string().min(1),
+});
+
+const resendVolunteerVerificationSchema = zod.object({
+  email: zod.email(),
 });
 
 volunteerRouter.post('/create', async (req, res: Response<VolunteerCreateResponse>) => {
@@ -189,6 +194,48 @@ volunteerRouter.post('/verify-email', async (req, res: Response<VolunteerVerifyE
     .sign(new TextEncoder().encode(config.JWT_SECRET));
 
   res.json({ volunteer, token });
+});
+
+volunteerRouter.post('/resend-verification', async (req, res: Response<VolunteerResendVerificationResponse>) => {
+  const { email } = resendVolunteerVerificationSchema.parse(req.body);
+
+  const existingVolunteer = await database
+    .selectFrom('volunteer_account')
+    .select('id')
+    .where('email', '=', email)
+    .executeTakeFirst();
+
+  if (existingVolunteer) {
+    res.json({});
+    return;
+  }
+
+  const pendingVolunteer = await database
+    .selectFrom('volunteer_pending_account')
+    .select(['id', 'first_name', 'last_name', 'email'])
+    .where('email', '=', email)
+    .executeTakeFirst();
+
+  if (!pendingVolunteer) {
+    res.json({});
+    return;
+  }
+
+  const verificationToken = crypto.randomBytes(32).toString('hex');
+
+  await database
+    .updateTable('volunteer_pending_account')
+    .set({ token: verificationToken })
+    .where('id', '=', pendingVolunteer.id)
+    .execute();
+
+  await sendVolunteerVerificationEmail({
+    volunteerEmail: pendingVolunteer.email,
+    volunteerName: `${pendingVolunteer.first_name} ${pendingVolunteer.last_name}`,
+    verificationToken,
+  });
+
+  res.json({});
 });
 
 volunteerRouter.use(authorizeOnly('volunteer'));

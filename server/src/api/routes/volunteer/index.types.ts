@@ -7,6 +7,8 @@ export type VolunteerCreateResponse = {
   requires_email_verification: true;
 };
 
+export type VolunteerResendVerificationResponse = object;
+
 export type VolunteerVerifyEmailResponse = {
   volunteer: VolunteerAccountWithoutPassword;
   token: string;
