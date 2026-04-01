@@ -1,3 +1,5 @@
+import crypto from 'crypto';
+
 import bcrypt from 'bcrypt';
 import { Router, type Response } from 'express';
 import * as jose from 'jose';
@@ -14,6 +16,8 @@ import {
   type VolunteerOrganizationSearchResponse,
   type VolunteerPinnedCrisesResponse,
   type VolunteerProfileResponse,
+  type VolunteerResendVerificationResponse,
+  type VolunteerVerifyEmailResponse,
 } from './index.types.ts';
 import volunteerPostingRouter from './posting.ts';
 import resetPassword from '../../../auth/resetPassword.ts';
@@ -24,6 +28,7 @@ import {
   recomputeVolunteerExperienceVector,
   recomputeVolunteerProfileVector,
 } from '../../../services/embeddings/updates.ts';
+import { sendVolunteerVerificationEmail } from '../../../services/smtp/emails.ts';
 import { getVolunteerProfile } from '../../../services/volunteer/index.ts';
 import { authorizeOnly } from '../../authorization.ts';
 import { normalizeSearchTerms } from '../utils/postingList.js';
@@ -63,6 +68,16 @@ const areSkillListsEqual = (left: string[], right: string[]) => {
   return left.every((skill, index) => skill === right[index]);
 };
 
+const verifyVolunteerEmailSchema = zod.object({
+  key: zod.string().min(1),
+});
+
+const VOLUNTEER_VERIFICATION_TOKEN_TTL_MS = 1 * 60 * 60 * 1000;
+
+const resendVolunteerVerificationSchema = zod.object({
+  email: zod.email(),
+});
+
 volunteerRouter.post('/create', async (req, res: Response<VolunteerCreateResponse>) => {
   const body = newVolunteerAccountSchema.parse(req.body);
 
@@ -78,32 +93,161 @@ volunteerRouter.post('/create', async (req, res: Response<VolunteerCreateRespons
   }
 
   const hashedPassword = await bcrypt.hash(body.password, 10);
-  const insertBody = {
-    ...body,
-    password: hashedPassword,
-  };
-
-  const newVolunteer = await database
-    .insertInto('volunteer_account')
-    .values(insertBody)
-    .returning(volunteerResponseColumns)
+  const existingPendingVolunteer = await database
+    .selectFrom('volunteer_pending_account')
+    .select('id')
+    .where('email', '=', body.email)
     .executeTakeFirst();
 
-  if (!newVolunteer) {
-    res.status(500);
-    throw new Error('Failed to create volunteer');
+  if (existingPendingVolunteer) {
+    await database
+      .deleteFrom('volunteer_pending_account')
+      .where('id', '=', existingPendingVolunteer.id)
+      .execute();
   }
 
-  await recomputeVolunteerProfileVector(newVolunteer.id);
-  await recomputeVolunteerExperienceVector(newVolunteer.id);
+  const verificationToken = crypto.randomBytes(32).toString('hex');
 
-  const token = await new jose.SignJWT({ id: newVolunteer.id, role: 'volunteer' })
+  await database
+    .insertInto('volunteer_pending_account')
+    .values({
+      ...body,
+      date_of_birth: new Date(body.date_of_birth),
+      password: hashedPassword,
+      token: verificationToken,
+    })
+    .execute();
+
+  await sendVolunteerVerificationEmail({
+    volunteerEmail: body.email,
+    volunteerName: `${body.first_name} ${body.last_name}`,
+    verificationToken,
+  });
+
+  res.json({
+    requires_email_verification: true,
+  });
+});
+
+volunteerRouter.post('/verify-email', async (req, res: Response<VolunteerVerifyEmailResponse>) => {
+  const { key } = verifyVolunteerEmailSchema.parse(req.body);
+
+  const pendingVolunteer = await database
+    .selectFrom('volunteer_pending_account')
+    .selectAll()
+    .where('token', '=', key)
+    .executeTakeFirst();
+
+  if (!pendingVolunteer) {
+    res.status(400);
+    throw new Error('Invalid or expired verification token');
+  }
+
+  if ((Date.now() - pendingVolunteer.created_at.getTime()) > VOLUNTEER_VERIFICATION_TOKEN_TTL_MS) {
+    await database
+      .deleteFrom('volunteer_pending_account')
+      .where('id', '=', pendingVolunteer.id)
+      .execute();
+
+    res.status(400);
+    throw new Error('Invalid or expired verification token');
+  }
+
+  const existingVolunteer = await database
+    .selectFrom('volunteer_account')
+    .select('id')
+    .where('email', '=', pendingVolunteer.email)
+    .executeTakeFirst();
+
+  if (existingVolunteer) {
+    await database
+      .deleteFrom('volunteer_pending_account')
+      .where('id', '=', pendingVolunteer.id)
+      .execute();
+
+    res.status(409);
+    throw new Error('Account already exists, log in instead');
+  }
+
+  const volunteer = await database.transaction().execute(async (trx) => {
+    const createdVolunteer = await trx
+      .insertInto('volunteer_account')
+      .values({
+        first_name: pendingVolunteer.first_name,
+        last_name: pendingVolunteer.last_name,
+        email: pendingVolunteer.email,
+        password: pendingVolunteer.password,
+        date_of_birth: pendingVolunteer.date_of_birth.toISOString().slice(0, 10),
+        gender: pendingVolunteer.gender,
+      })
+      .returning(volunteerResponseColumns)
+      .executeTakeFirst();
+
+    if (!createdVolunteer) {
+      res.status(500);
+      throw new Error('Failed to verify volunteer account');
+    }
+
+    await trx
+      .deleteFrom('volunteer_pending_account')
+      .where('id', '=', pendingVolunteer.id)
+      .execute();
+
+    return createdVolunteer;
+  });
+
+  await recomputeVolunteerProfileVector(volunteer.id);
+  await recomputeVolunteerExperienceVector(volunteer.id);
+
+  const token = await new jose.SignJWT({ id: volunteer.id, role: 'volunteer' })
     .setIssuedAt()
     .setProtectedHeader({ alg: 'HS256' })
     .setExpirationTime('7d')
     .sign(new TextEncoder().encode(config.JWT_SECRET));
 
-  res.json({ volunteer: newVolunteer, token });
+  res.json({ volunteer, token });
+});
+
+volunteerRouter.post('/resend-verification', async (req, res: Response<VolunteerResendVerificationResponse>) => {
+  const { email } = resendVolunteerVerificationSchema.parse(req.body);
+
+  const existingVolunteer = await database
+    .selectFrom('volunteer_account')
+    .select('id')
+    .where('email', '=', email)
+    .executeTakeFirst();
+
+  if (existingVolunteer) {
+    res.json({});
+    return;
+  }
+
+  const pendingVolunteer = await database
+    .selectFrom('volunteer_pending_account')
+    .select(['id', 'first_name', 'last_name', 'email'])
+    .where('email', '=', email)
+    .executeTakeFirst();
+
+  if (!pendingVolunteer) {
+    res.json({});
+    return;
+  }
+
+  const verificationToken = crypto.randomBytes(32).toString('hex');
+
+  await database
+    .updateTable('volunteer_pending_account')
+    .set({ token: verificationToken, created_at: new Date() })
+    .where('id', '=', pendingVolunteer.id)
+    .execute();
+
+  await sendVolunteerVerificationEmail({
+    volunteerEmail: pendingVolunteer.email,
+    volunteerName: `${pendingVolunteer.first_name} ${pendingVolunteer.last_name}`,
+    verificationToken,
+  });
+
+  res.json({});
 });
 
 volunteerRouter.use(authorizeOnly('volunteer'));
@@ -188,12 +332,12 @@ volunteerRouter.get('/certificate', async (req, res: Response<VolunteerCertifica
     .executeTakeFirstOrThrow();
 
   const hoursPerPostingExpr = sql<number>`GREATEST(
-    0,
-    EXTRACT(EPOCH FROM (
-      (organization_posting.end_date + organization_posting.end_time)
-      - (organization_posting.start_date + organization_posting.start_time)
-    )) / 3600.0
-  )`;
+      0,
+      EXTRACT(EPOCH FROM (
+        (organization_posting.end_date + organization_posting.end_time)
+        - (organization_posting.start_date + organization_posting.start_time)
+      )) / 3600.0
+    )`;
 
   const totalHoursRow = await database
     .selectFrom('enrollment')
