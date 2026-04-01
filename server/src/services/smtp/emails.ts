@@ -155,7 +155,7 @@ export async function sendVolunteerVerificationEmail(opts: {
   const verifyUrl = `${config.CLIENT_URL}/volunteer/verify-email?key=${encodeURIComponent(opts.verificationToken)}&email=${encodeURIComponent(opts.volunteerEmail)}`;
   const { html, text } = buildEmailBody({
     title: 'Confirm Your Email Address',
-    intro: `Hello ${opts.volunteerName}, thank you for signing up on Willing.`,
+    intro: `Hello ${opts.volunteerName}, Welcome to Willing!`,
     paragraphs: ['Please verify your email address to activate your volunteer account.'],
     ctaLabel: 'Verify Email',
     ctaUrl: verifyUrl,
