@@ -1,0 +1,56 @@
+name: Server Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  server-tests:
+    runs-on: ubuntu-latest
+    env:
+      NODE_ENV: test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+
+      - name: Install server dependencies
+        working-directory: ./server
+        run: npm ci
+
+      - name: Start PostgreSQL test DB
+        working-directory: ./server
+        run: npm run db:test:up
+
+      - name: Wait for PostgreSQL to be ready
+        working-directory: ./server
+        run: |
+          set -a
+          source .env.test
+          set +a
+
+          for i in {1..30}; do
+            if docker exec willing-test-postgres pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" > /dev/null 2>&1; then
+              echo "PostgreSQL is ready"
+              exit 0
+            fi
+
+            echo "Waiting for PostgreSQL..."
+            sleep 2
+          done
+
+          echo "PostgreSQL did not become ready in time"
+          exit 1
+
+      - name: Run server tests
+        working-directory: ./server
+        run: npm test
+
+      - name: Stop PostgreSQL test DB
+        if: always()
+        working-directory: ./server
+        run: npm run db:test:down

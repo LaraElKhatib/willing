@@ -15,6 +15,8 @@
     "test:ui": "vitest dev --coverage --ui",
     "db": "docker compose -f docker-compose.yml up",
     "db:test": "docker compose -f docker-compose.test.yml --env-file .env.test up -V",
+    "db:test:up": "docker compose -f docker-compose.test.yml --env-file .env.test up -d -V",
+    "db:test:down": "docker compose -f docker-compose.test.yml --env-file .env.test down -v",
     "lint": "eslint . --fix",
     "lint:check": "eslint .",
     "type:check": "tsc --noEmit",
