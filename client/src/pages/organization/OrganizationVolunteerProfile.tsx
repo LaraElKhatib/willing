@@ -1,6 +1,9 @@
+import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertTriangle, Building2, Calendar, Clock3, Download, FileText, Flag, Mail, Mars, Users, Venus, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { useParams } from 'react-router';
+import zod from 'zod';
 
 import Alert from '../../components/Alert';
 import Button from '../../components/Button';
@@ -11,6 +14,7 @@ import Loading from '../../components/Loading';
 import PostingCollection from '../../components/postings/PostingCollection';
 import PostingViewModeToggle from '../../components/postings/PostingViewModeToggle';
 import SkillsList from '../../components/skills/SkillsList';
+import { FormField, FormRootError } from '../../utils/formUtils';
 import requestServer, { SERVER_BASE_URL } from '../../utils/requestServer';
 import useAsync from '../../utils/useAsync';
 
@@ -28,9 +32,23 @@ const toDateFromParts = (dateValue: Date | string, timeValue?: string) => {
   return new Date(`${year}-${month}-${day}T${timePart}`);
 };
 
+const reportVolunteerSchema = zod.object({
+  title: zod.enum(['scam', 'impersonation', 'harassment', 'inappropriate_behavior', 'other']),
+});
+
+type ReportVolunteerFormData = zod.infer<typeof reportVolunteerSchema>;
+
 function OrganizationVolunteerProfile() {
   const { volunteerId } = useParams<{ volunteerId: string }>();
   const [reportModalOpen, setReportModalOpen] = useState(false);
+  const reportForm = useForm<ReportVolunteerFormData>({
+    resolver: zodResolver(reportVolunteerSchema),
+    mode: 'onTouched',
+    reValidateMode: 'onChange',
+    defaultValues: {
+      title: 'scam',
+    },
+  });
 
   const {
     data,
@@ -176,6 +194,20 @@ function OrganizationVolunteerProfile() {
     document.body.removeChild(link);
     URL.revokeObjectURL(link.href);
   };
+
+  const closeReportModal = () => {
+    setReportModalOpen(false);
+    reportForm.reset({
+      title: 'scam',
+    });
+  };
+
+  const submitReportForm = reportForm.handleSubmit(() => {
+    reportForm.setError('root', {
+      type: 'manual',
+      message: 'Report submission will be wired in the next step.',
+    });
+  });
 
   if (loading && !profile) {
     return (
@@ -398,28 +430,48 @@ function OrganizationVolunteerProfile() {
             <IconButton
               type="button"
               Icon={X}
-              onClick={() => setReportModalOpen(false)}
+              onClick={closeReportModal}
               aria-label="Close report modal"
               title="Close"
             />
           </div>
 
-          <p className="text-sm opacity-80">
-            Report form fields will be added here.
-          </p>
+          <form onSubmit={submitReportForm} className="space-y-2">
+            <FormField
+              form={reportForm}
+              name="title"
+              label="Report Type"
+              selectOptions={[
+                { label: 'Scam', value: 'scam' },
+                { label: 'Impersonation', value: 'impersonation' },
+                { label: 'Harassment', value: 'harassment' },
+                { label: 'Inappropriate behavior', value: 'inappropriate_behavior' },
+                { label: 'Other', value: 'other' },
+              ]}
+            />
 
-          <div className="modal-action">
-            <Button
-              type="button"
-              color="ghost"
-              Icon={X}
-              onClick={() => setReportModalOpen(false)}
-            >
-              Report
-            </Button>
-          </div>
+            <FormRootError form={reportForm} />
+
+            <div className="modal-action">
+              <Button
+                type="button"
+                color="ghost"
+                Icon={X}
+                onClick={closeReportModal}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                color="warning"
+                Icon={Flag}
+              >
+                Submit Report
+              </Button>
+            </div>
+          </form>
         </div>
-        <div className="modal-backdrop" onClick={() => setReportModalOpen(false)}>Close</div>
+        <div className="modal-backdrop" onClick={closeReportModal}>Close</div>
       </div>
     </div>
   );
