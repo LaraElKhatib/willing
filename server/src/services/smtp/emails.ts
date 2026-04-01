@@ -145,3 +145,23 @@ export async function sendVolunteerApplicationRejectedEmail(opts: {
 
   await sendEmail({ to: opts.volunteerEmail, subject, text, html });
 }
+
+export async function sendVolunteerVerificationEmail(opts: {
+  volunteerEmail: string;
+  volunteerName: string;
+  verificationToken: string;
+}) {
+  const subject = 'Verify your Willing account email';
+  const verifyUrl = `${config.CLIENT_URL}/volunteer/verify-email?key=${encodeURIComponent(opts.verificationToken)}&email=${encodeURIComponent(opts.volunteerEmail)}`;
+  const { html, text } = buildEmailBody({
+    title: 'Confirm Your Email Address',
+    intro: `Hello ${opts.volunteerName}, Welcome to Willing!`,
+    paragraphs: ['Please verify your email address to activate your volunteer account.'],
+    ctaLabel: 'Verify Email',
+    ctaUrl: verifyUrl,
+    note: 'If you did not create this account, you can safely ignore this email.',
+    tone: 'primary',
+  });
+
+  await sendEmail({ to: opts.volunteerEmail, subject, text, html });
+}

@@ -1,3 +1,6 @@
+import crypto from 'crypto';
+
+import bcrypt from 'bcrypt';
 import { Router, type Response } from 'express';
 import { sql, type Kysely } from 'kysely';
 import zod from 'zod';
@@ -12,18 +15,20 @@ import {
   type VolunteerOrganizationSearchResponse,
   type VolunteerPinnedCrisesResponse,
   type VolunteerProfileResponse,
+  type VolunteerResendVerificationResponse,
+  type VolunteerVerifyEmailResponse,
 } from './index.types.ts';
 import createVolunteerPostingRouter from './posting.ts';
 import authorizeOnly from '../../../auth/authorizeOnly.ts';
 import createResetPassword from '../../../auth/resetPassword.ts';
 import executeTransaction from '../../../db/executeTransaction.ts';
 import { type Database, type VolunteerAccountWithoutPassword, newVolunteerAccountSchema, volunteerAccountSchema } from '../../../db/tables/index.ts';
-import { hash } from '../../../services/bcrypt/index.ts';
 import {
   recomputeVolunteerExperienceVector,
   recomputeVolunteerProfileVector,
 } from '../../../services/embeddings/updates.ts';
 import { generateJWT } from '../../../services/jwt/index.ts';
+import { sendVolunteerVerificationEmail } from '../../../services/smtp/emails.ts';
 import { getVolunteerProfile } from '../../../services/volunteer/index.ts';
 import { normalizeSearchTerms } from '../utils/postingList.js';
 
@@ -61,6 +66,15 @@ const areSkillListsEqual = (left: string[], right: string[]) => {
   return left.every((skill, index) => skill === right[index]);
 };
 
+const verifyVolunteerEmailSchema = zod.object({
+  key: zod.string().min(1),
+});
+
+const VOLUNTEER_VERIFICATION_TOKEN_TTL_MS = 1 * 60 * 60 * 1000;
+
+const resendVolunteerVerificationSchema = zod.object({
+  email: zod.email(),
+});
 function createVolunteerRouter(db: Kysely<Database>) {
   const volunteerRouter = Router();
 
@@ -90,30 +104,158 @@ function createVolunteerRouter(db: Kysely<Database>) {
       throw new Error('Email already in use, log in or use another email');
     }
 
-    const hashedPassword = await hash(body.password);
-    const insertBody = {
-      ...body,
-      password: hashedPassword,
-    };
-
-    const newVolunteer = await db
-      .insertInto('volunteer_account')
-      .values(insertBody)
-      .returning(volunteerResponseColumns)
+    const hashedPassword = await bcrypt.hash(body.password, 10);
+    const existingPendingVolunteer = await db
+      .selectFrom('volunteer_pending_account')
+      .select('id')
+      .where('email', '=', body.email)
       .executeTakeFirst();
 
-    if (!newVolunteer) {
-      res.status(500);
-      throw new Error('Failed to create volunteer');
+    if (existingPendingVolunteer) {
+      await db
+        .deleteFrom('volunteer_pending_account')
+        .where('id', '=', existingPendingVolunteer.id)
+        .execute();
     }
 
-    await recomputeVolunteerProfileVector(newVolunteer.id, db);
-    await recomputeVolunteerExperienceVector(newVolunteer.id, db);
+    const verificationToken = crypto.randomBytes(32).toString('hex');
 
-    const token = await generateJWT({ id: newVolunteer.id, role: 'volunteer' });
+    await db
+      .insertInto('volunteer_pending_account')
+      .values({
+        ...body,
+        date_of_birth: new Date(body.date_of_birth),
+        password: hashedPassword,
+        token: verificationToken,
+      })
+      .execute();
 
-    res.status(201);
-    res.json({ volunteer: newVolunteer, token });
+    await sendVolunteerVerificationEmail({
+      volunteerEmail: body.email,
+      volunteerName: `${body.first_name} ${body.last_name}`,
+      verificationToken,
+    });
+
+    res.json({
+      requires_email_verification: true,
+    });
+  });
+
+  volunteerRouter.post('/verify-email', async (req, res: Response<VolunteerVerifyEmailResponse>) => {
+    const { key } = verifyVolunteerEmailSchema.parse(req.body);
+
+    const pendingVolunteer = await db
+      .selectFrom('volunteer_pending_account')
+      .selectAll()
+      .where('token', '=', key)
+      .executeTakeFirst();
+
+    if (!pendingVolunteer) {
+      res.status(400);
+      throw new Error('Invalid or expired verification token');
+    }
+
+    if ((Date.now() - pendingVolunteer.created_at.getTime()) > VOLUNTEER_VERIFICATION_TOKEN_TTL_MS) {
+      await db
+        .deleteFrom('volunteer_pending_account')
+        .where('id', '=', pendingVolunteer.id)
+        .execute();
+
+      res.status(400);
+      throw new Error('Invalid or expired verification token');
+    }
+
+    const existingVolunteer = await db
+      .selectFrom('volunteer_account')
+      .select('id')
+      .where('email', '=', pendingVolunteer.email)
+      .executeTakeFirst();
+
+    if (existingVolunteer) {
+      await db
+        .deleteFrom('volunteer_pending_account')
+        .where('id', '=', pendingVolunteer.id)
+        .execute();
+
+      res.status(409);
+      throw new Error('Account already exists, log in instead');
+    }
+
+    const volunteer = await db.transaction().execute(async (trx) => {
+      const createdVolunteer = await trx
+        .insertInto('volunteer_account')
+        .values({
+          first_name: pendingVolunteer.first_name,
+          last_name: pendingVolunteer.last_name,
+          email: pendingVolunteer.email,
+          password: pendingVolunteer.password,
+          date_of_birth: pendingVolunteer.date_of_birth.toISOString().slice(0, 10),
+          gender: pendingVolunteer.gender,
+        })
+        .returning(volunteerResponseColumns)
+        .executeTakeFirst();
+
+      if (!createdVolunteer) {
+        res.status(500);
+        throw new Error('Failed to verify volunteer account');
+      }
+
+      await trx
+        .deleteFrom('volunteer_pending_account')
+        .where('id', '=', pendingVolunteer.id)
+        .execute();
+
+      return createdVolunteer;
+    });
+
+    await recomputeVolunteerProfileVector(volunteer.id, db);
+    await recomputeVolunteerExperienceVector(volunteer.id, db);
+
+    const token = await generateJWT({ id: volunteer.id, role: 'volunteer' });
+
+    res.json({ volunteer, token });
+  });
+
+  volunteerRouter.post('/resend-verification', async (req, res: Response<VolunteerResendVerificationResponse>) => {
+    const { email } = resendVolunteerVerificationSchema.parse(req.body);
+
+    const existingVolunteer = await db
+      .selectFrom('volunteer_account')
+      .select('id')
+      .where('email', '=', email)
+      .executeTakeFirst();
+
+    if (existingVolunteer) {
+      res.json({});
+      return;
+    }
+
+    const pendingVolunteer = await db
+      .selectFrom('volunteer_pending_account')
+      .select(['id', 'first_name', 'last_name', 'email'])
+      .where('email', '=', email)
+      .executeTakeFirst();
+
+    if (!pendingVolunteer) {
+      res.json({});
+      return;
+    }
+
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+
+    await db
+      .updateTable('volunteer_pending_account')
+      .set({ token: verificationToken, created_at: new Date() })
+      .where('id', '=', pendingVolunteer.id)
+      .execute();
+
+    await sendVolunteerVerificationEmail({
+      volunteerEmail: pendingVolunteer.email,
+      volunteerName: `${pendingVolunteer.first_name} ${pendingVolunteer.last_name}`,
+      verificationToken,
+    });
+
+    res.json({});
   });
 
   volunteerRouter.use(authorizeOnly('volunteer'));
@@ -464,6 +606,6 @@ function createVolunteerRouter(db: Kysely<Database>) {
   volunteerRouter.post('/reset-password', createResetPassword(db));
 
   return volunteerRouter;
-};
+}
 
 export default createVolunteerRouter;
