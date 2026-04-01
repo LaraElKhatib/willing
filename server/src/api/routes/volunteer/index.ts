@@ -149,8 +149,7 @@ function createVolunteerRouter(db: Kysely<Database>) {
       .selectFrom('volunteer_pending_account')
       .selectAll('volunteer_pending_account')
       .select([
-        sql<boolean>`(extract(epoch from (now() - volunteer_pending_account.created_at)) * 1000) > ${VOLUNTEER_VERIFICATION_TOKEN_TTL_MS}`.as('is_expired'),
-      ])
+        sql<boolean>`volunteer_pending_account.created_at + (interval '1 millisecond' * ${VOLUNTEER_VERIFICATION_TOKEN_TTL_MS}) < now()`.as('is_expired')])
       .where('token', '=', key)
       .executeTakeFirst();
 
@@ -185,7 +184,7 @@ function createVolunteerRouter(db: Kysely<Database>) {
       throw new Error('Account already exists, log in instead');
     }
 
-    const volunteer = await db.transaction().execute(async (trx) => {
+    const volunteer = await executeTransaction(db, async (trx) => {
       const createdVolunteer = await trx
         .insertInto('volunteer_account')
         .values({
