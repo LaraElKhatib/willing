@@ -75,6 +75,7 @@ const VOLUNTEER_VERIFICATION_TOKEN_TTL_MS = 1 * 60 * 60 * 1000;
 const resendVolunteerVerificationSchema = zod.object({
   email: zod.email(),
 });
+
 function createVolunteerRouter(db: Kysely<Database>) {
   const volunteerRouter = Router();
 
@@ -146,7 +147,10 @@ function createVolunteerRouter(db: Kysely<Database>) {
 
     const pendingVolunteer = await db
       .selectFrom('volunteer_pending_account')
-      .selectAll()
+      .selectAll('volunteer_pending_account')
+      .select([
+        sql<boolean>`(extract(epoch from (now() - volunteer_pending_account.created_at)) * 1000) > ${VOLUNTEER_VERIFICATION_TOKEN_TTL_MS}`.as('is_expired'),
+      ])
       .where('token', '=', key)
       .executeTakeFirst();
 
@@ -155,7 +159,7 @@ function createVolunteerRouter(db: Kysely<Database>) {
       throw new Error('Invalid or expired verification token');
     }
 
-    if ((Date.now() - pendingVolunteer.created_at.getTime()) > VOLUNTEER_VERIFICATION_TOKEN_TTL_MS) {
+    if (pendingVolunteer.is_expired) {
       await db
         .deleteFrom('volunteer_pending_account')
         .where('id', '=', pendingVolunteer.id)
