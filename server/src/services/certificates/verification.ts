@@ -86,18 +86,6 @@ export const verifyCertificatePayloadAgainstDatabase = async (
     return { valid: false };
   }
 
-  if (orgIds.length > 0) {
-    const existingOrganizations = await database
-      .selectFrom('organization_account')
-      .select(['id'])
-      .where('id', 'in', orgIds)
-      .execute();
-
-    if (existingOrganizations.length !== orgIds.length) {
-      return { valid: false };
-    }
-  }
-
   const hoursSnapshot = await getVolunteerHoursSnapshot(volunteerId, issuedAt);
 
   const claimedHoursByOrg = payload.org_ids.reduce((map, orgId) => {

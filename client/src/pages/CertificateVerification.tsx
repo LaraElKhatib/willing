@@ -101,7 +101,7 @@ function CertificateVerification() {
               <p className="mt-1 text-sm">
                 Total Hours:
                 {' '}
-                <span className="font-semibold">{result.total_hours}</span>
+                <span className="font-semibold">{Math.floor(result.total_hours)}</span>
               </p>
             )}
             {result.valid && result.organizations && result.organizations.length > 0 && (

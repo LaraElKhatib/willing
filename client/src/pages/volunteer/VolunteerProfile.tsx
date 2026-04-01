@@ -555,17 +555,25 @@ function VolunteerProfile() {
                     <div className={saving ? 'pointer-events-none opacity-70' : ''}>
                       <div className="space-y-1">
                         <label className="text-sm font-medium">First Name</label>
-                        <div className="input input-bordered w-full flex items-center opacity-80">
-                          <span>{profile.volunteer.first_name}</span>
-                        </div>
+                        <input
+                          type="text"
+                          className="input input-bordered w-full opacity-80"
+                          value={profile.volunteer.first_name}
+                          disabled
+                          readOnly
+                        />
                       </div>
                     </div>
                     <div className={saving ? 'pointer-events-none opacity-70' : ''}>
                       <div className="space-y-1">
                         <label className="text-sm font-medium">Last Name</label>
-                        <div className="input input-bordered w-full flex items-center opacity-80">
-                          <span>{profile.volunteer.last_name}</span>
-                        </div>
+                        <input
+                          type="text"
+                          className="input input-bordered w-full opacity-80"
+                          value={profile.volunteer.last_name}
+                          disabled
+                          readOnly
+                        />
                       </div>
                     </div>
                     <div className={saving ? 'pointer-events-none opacity-70' : ''}>
@@ -592,10 +600,13 @@ function VolunteerProfile() {
                     <div className={saving ? 'pointer-events-none opacity-70' : ''}>
                       <div className="space-y-1">
                         <label className="text-sm font-medium">Date of Birth</label>
-                        <div className="input input-bordered w-full flex items-center gap-2 opacity-80">
-                          <Calendar size={16} />
-                          <span>{formattedDateOfBirth}</span>
-                        </div>
+                        <input
+                          type="text"
+                          className="input input-bordered w-full opacity-80"
+                          value={formattedDateOfBirth}
+                          disabled
+                          readOnly
+                        />
                       </div>
                     </div>
                   </div>

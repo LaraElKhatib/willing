@@ -370,7 +370,7 @@ function HomePage() {
                 <div className="md:shrink-0">
                   <LinkButton
                     to="/certificate/verify"
-                    color="secondary"
+                    color="primary"
                     layout="wide"
                     Icon={FileSearch}
                   >
@@ -386,7 +386,7 @@ function HomePage() {
               <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
                 <LinkButton
                   to="/guide"
-                  color="primary"
+                  color="secondary"
                   layout="wide"
                 >
                   Read Our Guide
