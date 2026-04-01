@@ -1,5 +1,5 @@
-import { AlertTriangle, Building2, Calendar, Clock3, Download, FileText, Mail, Mars, Users, Venus } from 'lucide-react';
-import { useMemo } from 'react';
+import { AlertTriangle, Building2, Calendar, Clock3, Download, FileText, Flag, Mail, Mars, Users, Venus, X } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { useParams } from 'react-router';
 
 import Alert from '../../components/Alert';
@@ -30,6 +30,7 @@ const toDateFromParts = (dateValue: Date | string, timeValue?: string) => {
 
 function OrganizationVolunteerProfile() {
   const { volunteerId } = useParams<{ volunteerId: string }>();
+  const [reportModalOpen, setReportModalOpen] = useState(false);
 
   const {
     data,
@@ -213,6 +214,17 @@ function OrganizationVolunteerProfile() {
           icon={FileText}
           showBack
           defaultBackTo="/organization"
+          actions={(
+            <Button
+              color="warning"
+              style="outline"
+              type="button"
+              Icon={Flag}
+              onClick={() => setReportModalOpen(true)}
+            >
+              Report volunteer
+            </Button>
+          )}
         />
 
         <div className="mt-4">
@@ -377,6 +389,37 @@ function OrganizationVolunteerProfile() {
             </div>
           </ColumnLayout>
         </div>
+      </div>
+
+      <div className={`modal ${reportModalOpen ? 'modal-open' : ''}`}>
+        <div className="modal-box border border-base-300">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-bold text-lg">Report Volunteer</h3>
+            <IconButton
+              type="button"
+              Icon={X}
+              onClick={() => setReportModalOpen(false)}
+              aria-label="Close report modal"
+              title="Close"
+            />
+          </div>
+
+          <p className="text-sm opacity-80">
+            Report form fields will be added here.
+          </p>
+
+          <div className="modal-action">
+            <Button
+              type="button"
+              color="ghost"
+              Icon={X}
+              onClick={() => setReportModalOpen(false)}
+            >
+              Report
+            </Button>
+          </div>
+        </div>
+        <div className="modal-backdrop" onClick={() => setReportModalOpen(false)}>Close</div>
       </div>
     </div>
   );
