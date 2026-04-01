@@ -1,4 +1,4 @@
-import { CheckCircle2, LoaderCircle, LogIn, RotateCcw } from 'lucide-react';
+import { CheckCircle2, LoaderCircle, LogIn } from 'lucide-react';
 import { useEffect, useState, useContext, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
@@ -106,25 +106,6 @@ export default function VolunteerVerifyEmail() {
             />
           </div>
           <div className="flex gap-2 justify-center">
-            <Button
-              color="primary"
-              type="button"
-              onClick={() => {
-                trigger()
-                  .then(() => {
-                    navigate('/volunteer', { replace: true });
-                  })
-                  .catch((err) => {
-                    notifications.push({
-                      type: 'error',
-                      message: err.message,
-                    });
-                  });
-              }}
-              Icon={RotateCcw}
-            >
-              Try again
-            </Button>
             <Button
               color="secondary"
               type="button"
