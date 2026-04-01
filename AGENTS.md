@@ -11,16 +11,20 @@ Willing is a full-stack TypeScript app:
 
 The server runs DB migrations automatically on startup in development mode.
 
+## Current Sprint
+
+- Active sprint: Sprint 5. See `docs/sprints/sprint-5.md` for planned features and schema changes.
+
 ## Product Purpose and Flow
 
 Willing connects volunteers with organizations that publish real-world help opportunities.
 
 ### Core Domain Concepts
 
-- **Volunteer**: End-user who creates a profile, adds skills, discovers postings, applies, enrolls, and may later be marked as attended by organizations.
-- **Organization**: Account type that creates and manages volunteer postings after being approved by an admin.
-- **Admin**: Platform moderator who reviews organization onboarding requests and manages crisis definitions.
-- **Posting**: A volunteer opportunity created by an organization (title, description, time window, location, requirements, skills, optional maximum number of volunteers, optional minimum age, optional linked crisis event, either open (anyone that applies is accepted) or review-based (requires acceptance from the organization)).
+- **Volunteer**: End-user who creates a profile, adds skills, discovers postings, applies, enrolls, may later be marked as attended by organizations, and can generate certificates.
+- **Organization**: Account type that gets approved by an admin. Can create postings, accept volunteers, edit profile, and allow certificate generation.
+- **Admin**: Platform moderator who reviews organization onboarding requests and manages crisis definitionsand pinning.
+- **Posting**: A volunteer opportunity created by an organization (title, description, time window, location, skills, optional maximum number of volunteers, optional minimum age, optional linked crisis event, either open (anyone that applies is accepted) or review-based (requires acceptance from the organization), and can also be closed (closed manually by an organization to disallow volunteers from signing up anymore)).
 - **Enrollment application**: A volunteer's application to a posting (optional message included).
 - **Enrollment**: Accepted application record; later can be marked attended.
 - **Crisis**: A specific real-world event bounded in time (for example, Beirut Port Explosion 2020, Lebanon War 2026), not a generic type or tag. Crises can be pinned to highlight priority events and surface urgent opportunities.
@@ -34,6 +38,10 @@ Willing connects volunteers with organizations that publish real-world help oppo
 5. Approved organizations log in, create/edit/open/close postings, and review applications.
 6. Volunteers apply to postings; organizations accept/reject applications.
 7. Accepted volunteers become enrollments and can be marked attended after participation.
+8. Organizations add profile pictures, a minimum threshold of hours (to be added to a volunteer's certificate), a signatory name and position, and a signature.
+9. The admin adds a signature, name, and position.
+10. Volunteers generate certificates with total number of hours, admin signature, and eligible organizations.
+11. Users check if certificates are valid through the website.
 
 ### Crisis Flow
 
@@ -118,6 +126,13 @@ Useful client scripts:
 ## Type Safety Requirements
 
 **This project is VERY STRICT with types.** All API responses must be properly typed.
+
+## Implementation Reality
+
+- All routes have `*Response` types under `server/src/api/routes/**/`.ts and are re-exported from `server/src/api/types.ts`.
+- Frontend calls use `requestServer<...>` with typed response interfaces from `server/src/api/types`.
+- `server` source uses `.ts` imports during development/build, while runtime ESM docs mention `.js` for distribution output path compatibility.
+- `useAsync` is used throughout client pages for async action handling, matching the conventions.
 
 ### Backend Type Rules
 
@@ -309,9 +324,4 @@ Before finishing code changes:
 3. Treat `AGENTS.md` updates as part of the definition of done for changes that affect shared developer workflows.
 
 AGENTS.md files may exist at multiple levels. The most specific one in the directory tree takes precedence for files under its scope.
-## Current Sprint
 
-Sprint 5 introduces features such as reporting, partial attendance, admin controls, and email verification.
-
-always see full details for clarification about databases, features, and roles:
-docs/sprints/sprint-5.md
