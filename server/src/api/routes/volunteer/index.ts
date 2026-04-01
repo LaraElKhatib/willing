@@ -72,6 +72,8 @@ const verifyVolunteerEmailSchema = zod.object({
   key: zod.string().min(1),
 });
 
+const VOLUNTEER_VERIFICATION_TOKEN_TTL_MS = 1 * 60 * 60 * 1000;
+
 const resendVolunteerVerificationSchema = zod.object({
   email: zod.email(),
 });
@@ -137,6 +139,16 @@ volunteerRouter.post('/verify-email', async (req, res: Response<VolunteerVerifyE
     .executeTakeFirst();
 
   if (!pendingVolunteer) {
+    res.status(400);
+    throw new Error('Invalid or expired verification token');
+  }
+
+  if ((Date.now() - pendingVolunteer.created_at.getTime()) > VOLUNTEER_VERIFICATION_TOKEN_TTL_MS) {
+    await database
+      .deleteFrom('volunteer_pending_account')
+      .where('id', '=', pendingVolunteer.id)
+      .execute();
+
     res.status(400);
     throw new Error('Invalid or expired verification token');
   }
@@ -225,7 +237,7 @@ volunteerRouter.post('/resend-verification', async (req, res: Response<Volunteer
 
   await database
     .updateTable('volunteer_pending_account')
-    .set({ token: verificationToken })
+    .set({ token: verificationToken, created_at: new Date() })
     .where('id', '=', pendingVolunteer.id)
     .execute();
 
