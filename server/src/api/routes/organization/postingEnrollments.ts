@@ -1,8 +1,13 @@
-import database from '../../../db/index.ts';
+import { type Kysely } from 'kysely';
+
+import { type Database } from '../../../db/tables/index.ts';
 import { type PostingEnrollment } from '../../../types.ts';
 
-export const getPostingEnrollments = async (postingId: number): Promise<PostingEnrollment[]> => {
-  const enrollments = await database
+export const getPostingEnrollments = async (
+  db: Kysely<Database>,
+  postingId: number,
+): Promise<PostingEnrollment[]> => {
+  const enrollments = await db
     .selectFrom('enrollment')
     .innerJoin('volunteer_account', 'volunteer_account.id', 'enrollment.volunteer_id')
     .select([
@@ -24,7 +29,7 @@ export const getPostingEnrollments = async (postingId: number): Promise<PostingE
 
   const volunteerIds = enrollments.map(enrollment => enrollment.volunteer_id);
   const skills = volunteerIds.length > 0
-    ? await database
+    ? await db
         .selectFrom('volunteer_skill')
         .selectAll()
         .where('volunteer_id', 'in', volunteerIds)

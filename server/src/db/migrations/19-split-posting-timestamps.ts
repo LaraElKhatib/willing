@@ -9,7 +9,7 @@ type DatabaseWithPostingTimestamps = Database & {
   };
 };
 
-export async function up(db: Kysely<Database>): Promise<void> {
+export async function up(db: Kysely<unknown>): Promise<void> {
   await db.schema
     .alterTable('organization_posting')
     .addColumn('start_date', 'date')
@@ -19,6 +19,7 @@ export async function up(db: Kysely<Database>): Promise<void> {
     .execute();
 
   await db
+    // @ts-expect-error We have to use Kysely<unknown> here because this is a migration
     .updateTable('organization_posting')
     .set({
       start_date: sql`start_timestamp::date`,
@@ -35,7 +36,7 @@ export async function up(db: Kysely<Database>): Promise<void> {
     .execute();
 }
 
-export async function down(db: Kysely<Database>): Promise<void> {
+export async function down(db: Kysely<unknown>): Promise<void> {
   await db.schema
     .alterTable('organization_posting')
     .addColumn('start_timestamp', 'timestamp')

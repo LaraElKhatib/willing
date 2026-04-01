@@ -11,16 +11,20 @@ Willing is a full-stack TypeScript app:
 
 The server runs DB migrations automatically on startup in development mode.
 
+## Current Sprint
+
+- Active sprint: Sprint 5. See `docs/sprints/sprint-5.md` for planned features and schema changes.
+
 ## Product Purpose and Flow
 
 Willing connects volunteers with organizations that publish real-world help opportunities.
 
 ### Core Domain Concepts
 
-- **Volunteer**: End-user who creates a profile, adds skills, discovers postings, applies, enrolls, and may later be marked as attended by organizations.
-- **Organization**: Account type that creates and manages volunteer postings after being approved by an admin.
-- **Admin**: Platform moderator who reviews organization onboarding requests and manages crisis definitions.
-- **Posting**: A volunteer opportunity created by an organization (title, description, time window, location, requirements, skills, optional maximum number of volunteers, optional minimum age, optional linked crisis event, either open (anyone that applies is accepted) or review-based (requires acceptance from the organization)).
+- **Volunteer**: End-user who creates a profile, adds skills, discovers postings, applies, enrolls, may later be marked as attended by organizations, and can generate certificates.
+- **Organization**: Account type that gets approved by an admin. Can create postings, accept volunteers, edit profile, and allow certificate generation.
+- **Admin**: Platform moderator who reviews organization onboarding requests and manages crisis definitionsand pinning.
+- **Posting**: A volunteer opportunity created by an organization (title, description, time window, location, skills, optional maximum number of volunteers, optional minimum age, optional linked crisis event, either open (anyone that applies is accepted) or review-based (requires acceptance from the organization), and can also be closed (closed manually by an organization to disallow volunteers from signing up anymore)).
 - **Enrollment application**: A volunteer's application to a posting (optional message included).
 - **Enrollment**: Accepted application record; later can be marked attended.
 - **Crisis**: A specific real-world event bounded in time (for example, Beirut Port Explosion 2020, Lebanon War 2026), not a generic type or tag. Crises can be pinned to highlight priority events and surface urgent opportunities.
@@ -34,6 +38,10 @@ Willing connects volunteers with organizations that publish real-world help oppo
 5. Approved organizations log in, create/edit/open/close postings, and review applications.
 6. Volunteers apply to postings; organizations accept/reject applications.
 7. Accepted volunteers become enrollments and can be marked attended after participation.
+8. Organizations add profile pictures, a minimum threshold of hours (to be added to a volunteer's certificate), a signatory name and position, and a signature.
+9. The admin adds a signature, name, and position.
+10. Volunteers generate certificates with total number of hours, admin signature, and eligible organizations.
+11. Users check if certificates are valid through the website.
 
 ### Crisis Flow
 
@@ -115,6 +123,31 @@ Useful client scripts:
 - `npm run build`
 - `npm run lint`
 
+## Testing Conventions
+
+1. Server tests are colocated with the modules they cover (e.g., `server/src/api/routes/posting.test.ts`). Use matching filenames to keep discovery simple.
+2. Shared infrastructure lives under `server/src/tests/`. Vitest is configured with `globalSetup: server/src/tests/globalSetup.ts` and `setupFiles: [server/src/tests/setup.ts]`.
+3. `server/src/tests/setup.ts` runs before test files and handles DB test initialization (`beforeAll`) plus per-test isolation (`beforeEach`) via `truncateAllTables()`. Do not duplicate table-truncation hooks in individual tests unless a test has a special isolation need.
+4. `server/src/tests/globalSetup.ts` handles suite lifecycle (`setup`/`teardown`): it ensures cleanup (DB connection destroy + upload dir cleanup) after the run.
+5. Reuse `server/src/tests/helpers/database.ts` for schema resets or truncation logic instead of repeating raw SQL. Add any reusable seed/fixture helpers under `server/src/tests/fixtures/`.
+6. Keep each test focused on one targeted behavior (one success path or one failure path). Do not bundle multiple role checks or unrelated assertions in a single test.
+7. For auth-protected endpoints, split access-control tests by actor (unauthenticated, wrong role(s), correct role) into separate tests.
+8. Add explicit edge-case coverage for each endpoint you touch (validation boundaries, missing data, invalid identifiers, empty-state responses, and provider/dependency failures where applicable).
+9. Prefer descriptive test names that state both condition and expected outcome (e.g., "returns 400 when query is not a string").
+
+### New Route Testing Checklist
+
+Every new route must have comprehensive tests covering **all behavioral paths and edge cases**:
+
+- **Authorization & Access Control**: Test unauthenticated, wrong role, and correct role access
+- **Input Validation**: Test valid payload, missing required fields, wrong data types, boundary values, invalid enums
+- **Business Logic & State**: Test success path, resource not found, invalid state transitions, missing dependencies
+- **Response Shape**: Verify correct HTTP status, response matches `*Response` type, no sensitive data leaks
+- **Edge Cases**: Empty results, concurrent writes, boundary conditions, dependency failures
+- **Test Names**: Use descriptive names stating condition and expected outcome (e.g., "returns 400 when email is already registered")
+
+Create tests as `<name>.test.ts` alongside your route file.
+
 ## Core Engineering Rules
 
 1. Reuse canonical schemas and types from `server/src/db/tables.ts`.
@@ -128,6 +161,13 @@ Useful client scripts:
 ## Type Safety Requirements
 
 **This project is VERY STRICT with types.** All API responses must be properly typed.
+
+## Implementation Reality
+
+- All routes have `*Response` types under `server/src/api/routes/**/`.ts and are re-exported from `server/src/api/types.ts`.
+- Frontend calls use `requestServer<...>` with typed response interfaces from `server/src/api/types`.
+- `server` source uses `.ts` imports during development/build, while runtime ESM docs mention `.js` for distribution output path compatibility.
+- `useAsync` is used throughout client pages for async action handling, matching the conventions.
 
 ### Backend Type Rules
 
@@ -257,6 +297,7 @@ All components are in `client/src/components/`. **Use these instead of recreatin
 8. Keep DB operations typed via Kysely and shared table types.
 9. Never return `{success: true}` in responses. Success status is inferred by the HTTP status code.
 10. Never manually call `res.error({/* ... */})`. Instead, throw an error and let the error handler middleware catch it.
+11. For transactional DB logic, use `executeTransaction` from `server/src/db/startTransaction.ts` instead of calling `db.transaction().execute(...)` directly.
 
 ## Schema & Type Patterns
 
@@ -319,9 +360,4 @@ Before finishing code changes:
 3. Treat `AGENTS.md` updates as part of the definition of done for changes that affect shared developer workflows.
 
 AGENTS.md files may exist at multiple levels. The most specific one in the directory tree takes precedence for files under its scope.
-## Current Sprint
 
-Sprint 5 introduces features such as reporting, partial attendance, admin controls, and email verification.
-
-always see full details for clarification about databases, features, and roles:
-docs/sprints/sprint-5.md

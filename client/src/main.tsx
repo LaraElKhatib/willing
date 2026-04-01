@@ -40,6 +40,7 @@ import VolunteerProfile from './pages/volunteer/VolunteerProfile';
 import VolunteerSearch from './pages/volunteer/VolunteerSearch';
 import VolunteerSettings from './pages/volunteer/VolunteerSettings';
 import VolunteerCreate from './pages/VolunteerCreate';
+import VolunteerVerifyEmail from './pages/VolunteerVerifyEmail';
 
 import 'leaflet/dist/leaflet.css';
 import './index.css';
@@ -57,6 +58,7 @@ createRoot(document.getElementById('root')!).render(
                 <Route path="login" element={<UserLogin />} />
                 <Route path="admin/login" element={<AdminLogin />} />
                 <Route path="volunteer/create" element={<VolunteerCreate />} />
+                <Route path="volunteer/verify-email" element={<VolunteerVerifyEmail />} />
                 <Route path="organization/request" element={<OrganizationRequest />} />
                 <Route path="forgot-password" element={<ForgotPassword />} />
               </Route>

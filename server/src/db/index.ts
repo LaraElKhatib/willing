@@ -14,9 +14,11 @@ const dialect = new PostgresDialect({
     password: config.POSTGRES_PASSWORD,
     port: config.POSTGRES_PORT,
     max: 10,
+    options: `-c search_path=${config.POSTGRES_SCHEMA},public`,
   }),
 });
-
-export default new Kysely<Database>({
+const database = new Kysely<Database>({
   dialect,
 });
+
+export default database;

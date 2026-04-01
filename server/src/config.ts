@@ -1,7 +1,12 @@
 import dotenv from 'dotenv';
 import zod from 'zod';
 
-dotenv.config();
+import { createTempDir } from './tests/helpers/tempDir.ts';
+
+dotenv.config({
+  quiet: true,
+  path: process.env.NODE_ENV === 'test' ? '.env.test' : '.env',
+});
 
 const deriveUploadDirFromLegacyCVDir = (cvUploadDir: string | undefined): string | undefined => {
   if (!cvUploadDir) return undefined;
@@ -24,7 +29,7 @@ const optionalInDev = <T>(schema: zod.ZodType<T>): zod.ZodType<T> =>
   zod.preprocess((val: unknown) => (val === '' ? undefined : val), schema);
 
 const schema = zod.object({
-  NODE_ENV: zod.enum(['development', 'production']).default('development'),
+  NODE_ENV: zod.enum(['development', 'production', 'test']).default('development'),
 
   SERVER_PORT: zod.string().regex(/[0-9]+/),
   CLIENT_URL: zod.url().refine((url: string) => !url.endsWith('/'), {
@@ -36,10 +41,11 @@ const schema = zod.object({
   POSTGRES_USER: zod.string().min(1),
   POSTGRES_PASSWORD: zod.string().min(1),
   POSTGRES_PORT: zod.coerce.number(),
+  POSTGRES_SCHEMA: zod.string().min(1),
 
   JWT_SECRET: zod.string().min(1),
   CERTIFICATE_VERIFICATION_SECRET: zod.string().min(1),
-  UPLOAD_DIR: zod.string().min(1),
+  UPLOAD_DIR: zod.string(),
 
   SMTP_HOST: optionalInDev(zod.string().optional()),
   SMTP_PORT: optionalInDev(zod.coerce.number().optional()),
@@ -51,7 +57,7 @@ const schema = zod.object({
   LOCATION_IQ_API_KEY: optionalInDev(zod.string().optional()),
 })
   .superRefine((values: Record<string, unknown>, ctx: zod.RefinementCtx) => {
-    if (values.NODE_ENV === 'development') return;
+    if (values.NODE_ENV !== 'production') return;
 
     const prodRequired: (keyof typeof values)[] = [
       'SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASS', 'MAIL_FROM', 'LOCATION_IQ_API_KEY',
@@ -71,5 +77,12 @@ const schema = zod.object({
   });
 
 const config = schema.parse(env);
+
+const workerId = process.env.VITEST_WORKER_ID || '0';
+
+if (config.NODE_ENV === 'test') {
+  config.POSTGRES_SCHEMA += '_' + workerId;
+  config.UPLOAD_DIR = await createTempDir();
+}
 
 export default config;
