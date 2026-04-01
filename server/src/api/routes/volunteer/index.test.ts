@@ -147,18 +147,22 @@ describe('GET /', () => {
 });
 
 describe('GET /volunteer/me', () => {
-  test('returns 403 if not logged in as volunteer', async () => {
+  test('returns 403 when unauthenticated', async () => {
     await server
       .get('/volunteer/me')
       .expect(403);
+  });
 
+  test('returns 403 when logged in as organization', async () => {
     const { token: orgToken } = await createOrganizationAccount();
 
     await server
       .get('/volunteer/me')
       .set('Authorization', 'Bearer ' + orgToken)
       .expect(403);
+  });
 
+  test('returns 403 when logged in as admin', async () => {
     const { token: adminToken } = await createAdminAccount();
 
     await server
@@ -184,18 +188,22 @@ describe('GET /volunteer/me', () => {
 });
 
 describe('GET /volunteer/profile', () => {
-  test('returns 403 if not logged in as volunteer', async () => {
+  test('returns 403 when unauthenticated', async () => {
     await server
       .get('/volunteer/profile')
       .expect(403);
+  });
 
+  test('returns 403 when logged in as organization', async () => {
     const { token: orgToken } = await createOrganizationAccount();
 
     await server
       .get('/volunteer/profile')
       .set('Authorization', 'Bearer ' + orgToken)
       .expect(403);
+  });
 
+  test('returns 403 when logged in as admin', async () => {
     const { token: adminToken } = await createAdminAccount();
 
     await server
@@ -248,21 +256,25 @@ describe('GET /volunteer/profile', () => {
       .spyOn(volunteerService, 'getVolunteerProfile')
       .mockResolvedValue(profileData);
 
-    try {
-      const response = await server
-        .get('/volunteer/profile')
-        .set('Authorization', 'Bearer ' + token)
-        .expect(200);
+    const response = await server
+      .get('/volunteer/profile')
+      .set('Authorization', 'Bearer ' + token)
+      .expect(200);
 
-      expect(getVolunteerProfileSpy).toHaveBeenCalledWith(volunteer.id);
-      expect(response.body).toEqual(JSON.parse(JSON.stringify(profileData)));
-    } finally {
-      getVolunteerProfileSpy.mockRestore();
-    }
+    expect(getVolunteerProfileSpy).toHaveBeenCalledWith(volunteer.id);
+    expect(response.body).toEqual(JSON.parse(JSON.stringify(profileData)));
+
+    getVolunteerProfileSpy.mockRestore();
   });
 });
 
 describe('GET /volunteer/certificate', () => {
+  test('returns 403 when unauthenticated', async () => {
+    await server
+      .get('/volunteer/certificate')
+      .expect(403);
+  });
+
   test('returns total hours, organization eligibility, and platform certificate info', async () => {
     const { volunteer, token } = await createVolunteerAccount({ email: 'certificate-volunteer@example.com' });
     const { organization } = await createOrganizationAccount({ email: 'certificate-org@example.com' });
@@ -303,7 +315,7 @@ describe('GET /volunteer/certificate', () => {
         is_closed: false,
         allows_partial_attendance: false,
         location_name: 'Beirut',
-        crisis_id: null,
+        crisis_id: undefined,
         created_at: new Date('2026-01-01T00:00:00.000Z'),
         updated_at: new Date('2026-01-01T00:00:00.000Z'),
       })
@@ -378,6 +390,26 @@ describe('GET /volunteer/certificate', () => {
       signature_path: 'uploads/org-signature.png',
     });
   });
+
+  test('returns empty organizations and null platform certificate when no certificate data exists', async () => {
+    const { volunteer, token } = await createVolunteerAccount({ email: 'certificate-empty@example.com' });
+
+    const response = await server
+      .get('/volunteer/certificate')
+      .set('Authorization', 'Bearer ' + token)
+      .expect(200);
+
+    expect(response.body).toMatchObject({
+      volunteer: {
+        id: volunteer.id,
+        first_name: volunteer.first_name,
+        last_name: volunteer.last_name,
+      },
+      total_hours: 0,
+      organizations: [],
+      platform_certificate: null,
+    });
+  });
 });
 
 describe('GET /volunteer/crises/pinned', () => {
@@ -430,6 +462,15 @@ describe('GET /volunteer/crises/pinned', () => {
 });
 
 describe('GET /volunteer/crises/:id', () => {
+  test('returns 400 for non-positive crisis id', async () => {
+    const { token } = await createVolunteerAccount({ email: 'crisis-invalid-id@example.com' });
+
+    await server
+      .get('/volunteer/crises/0')
+      .set('Authorization', 'Bearer ' + token)
+      .expect(400);
+  });
+
   test('returns 404 for unknown crisis', async () => {
     const { token } = await createVolunteerAccount({ email: 'crisis-lookup@example.com' });
 
@@ -468,6 +509,33 @@ describe('GET /volunteer/crises/:id', () => {
 });
 
 describe('PUT /volunteer/profile', () => {
+  test('returns 403 when unauthenticated', async () => {
+    await server
+      .put('/volunteer/profile')
+      .send({ first_name: 'Updated' })
+      .expect(403);
+  });
+
+  test('returns 403 when logged in as organization', async () => {
+    const { token } = await createOrganizationAccount({ email: 'profile-org-forbidden@example.com' });
+
+    await server
+      .put('/volunteer/profile')
+      .set('Authorization', 'Bearer ' + token)
+      .send({ first_name: 'Updated' })
+      .expect(403);
+  });
+
+  test('returns 403 when logged in as admin', async () => {
+    const { token } = await createAdminAccount({ email: 'profile-admin-forbidden@example.com' });
+
+    await server
+      .put('/volunteer/profile')
+      .set('Authorization', 'Bearer ' + token)
+      .send({ first_name: 'Updated' })
+      .expect(403);
+  });
+
   test('updates volunteer details, replaces skills, and recomputes profile vector', async () => {
     const { volunteer, token } = await createVolunteerAccount({ email: 'profile-update@example.com' });
 
@@ -488,7 +556,7 @@ describe('PUT /volunteer/profile', () => {
         email: volunteer.email,
         date_of_birth: volunteer.date_of_birth,
         gender: volunteer.gender,
-        cv_path: null,
+        cv_path: undefined,
         description: 'Available evenings',
       },
       skills: ['First Aid', 'Logistics'],
@@ -507,43 +575,168 @@ describe('PUT /volunteer/profile', () => {
       .spyOn(volunteerService, 'getVolunteerProfile')
       .mockResolvedValue(profileData);
 
-    try {
-      const response = await server
-        .put('/volunteer/profile')
-        .set('Authorization', 'Bearer ' + token)
-        .send({
-          first_name: 'Updated',
-          description: 'Available evenings',
-          skills: ['Logistics ', 'First Aid', 'Logistics'],
-        })
-        .expect(200);
-
-      expect(recomputeProfileSpy).toHaveBeenCalledWith(volunteer.id, transaction);
-      expect(getVolunteerProfileSpy).toHaveBeenCalledWith(volunteer.id);
-      expect(response.body).toEqual(JSON.parse(JSON.stringify(profileData)));
-
-      const updatedVolunteer = await transaction
-        .selectFrom('volunteer_account')
-        .select(['first_name', 'description'])
-        .where('id', '=', volunteer.id)
-        .executeTakeFirstOrThrow();
-
-      expect(updatedVolunteer).toMatchObject({
+    const response = await server
+      .put('/volunteer/profile')
+      .set('Authorization', 'Bearer ' + token)
+      .send({
         first_name: 'Updated',
         description: 'Available evenings',
-      });
+        skills: ['Logistics ', 'First Aid', 'Logistics'],
+      })
+      .expect(200);
 
-      const updatedSkills = await transaction
-        .selectFrom('volunteer_skill')
-        .select('name')
-        .where('volunteer_id', '=', volunteer.id)
-        .orderBy('name', 'asc')
-        .execute();
+    expect(recomputeProfileSpy).toHaveBeenCalledWith(volunteer.id, transaction);
+    expect(getVolunteerProfileSpy).toHaveBeenCalledWith(volunteer.id);
+    expect(response.body).toEqual(JSON.parse(JSON.stringify(profileData)));
 
-      expect(updatedSkills.map(skill => skill.name)).toEqual(['First Aid', 'Logistics']);
-    } finally {
-      recomputeProfileSpy.mockRestore();
-      getVolunteerProfileSpy.mockRestore();
-    }
+    const updatedVolunteer = await transaction
+      .selectFrom('volunteer_account')
+      .select(['first_name', 'description'])
+      .where('id', '=', volunteer.id)
+      .executeTakeFirst();
+
+    expect(updatedVolunteer).not.toBeUndefined();
+    expect(updatedVolunteer).toMatchObject({
+      first_name: 'Updated',
+      description: 'Available evenings',
+    });
+
+    const updatedSkills = await transaction
+      .selectFrom('volunteer_skill')
+      .select('name')
+      .where('volunteer_id', '=', volunteer.id)
+      .orderBy('name', 'asc')
+      .execute();
+
+    expect(updatedSkills.map(skill => skill.name)).toEqual(['First Aid', 'Logistics']);
+
+    recomputeProfileSpy.mockRestore();
+    getVolunteerProfileSpy.mockRestore();
+  });
+
+  test('does not recompute profile vector for a no-op update payload', async () => {
+    const { volunteer, token } = await createVolunteerAccount({ email: 'profile-noop@example.com' });
+
+    await transaction
+      .insertInto('volunteer_skill')
+      .values({ volunteer_id: volunteer.id, name: 'First Aid' })
+      .execute();
+
+    const recomputeProfileSpy = vi
+      .spyOn(embeddingUpdates, 'recomputeVolunteerProfileVector')
+      .mockResolvedValue(null);
+
+    const profileData: VolunteerProfileData = {
+      volunteer: {
+        id: volunteer.id,
+        first_name: volunteer.first_name,
+        last_name: volunteer.last_name,
+        email: volunteer.email,
+        date_of_birth: volunteer.date_of_birth,
+        gender: volunteer.gender,
+        cv_path: volunteer.cv_path,
+        description: volunteer.description ?? '',
+      },
+      skills: ['First Aid'],
+      experience_stats: {
+        total_completed_experiences: 0,
+        organizations_supported: 0,
+        crisis_related_experiences: 0,
+        total_hours_completed: 0,
+        total_skills_used: 0,
+        most_volunteered_crisis: null,
+      },
+      completed_experiences: [],
+    };
+
+    const getVolunteerProfileSpy = vi
+      .spyOn(volunteerService, 'getVolunteerProfile')
+      .mockResolvedValue(profileData);
+
+    const response = await server
+      .put('/volunteer/profile')
+      .set('Authorization', 'Bearer ' + token)
+      .send({})
+      .expect(200);
+
+    expect(recomputeProfileSpy).not.toHaveBeenCalled();
+    expect(getVolunteerProfileSpy).toHaveBeenCalledWith(volunteer.id);
+    expect(response.body).toEqual(JSON.parse(JSON.stringify(profileData)));
+
+    const skills = await transaction
+      .selectFrom('volunteer_skill')
+      .select('name')
+      .where('volunteer_id', '=', volunteer.id)
+      .orderBy('name', 'asc')
+      .execute();
+
+    expect(skills.map(skill => skill.name)).toEqual(['First Aid']);
+
+    recomputeProfileSpy.mockRestore();
+    getVolunteerProfileSpy.mockRestore();
+  });
+
+  test('clears all skills when skills is an empty array and recomputes profile vector', async () => {
+    const { volunteer, token } = await createVolunteerAccount({ email: 'profile-clear-skills@example.com' });
+
+    await transaction
+      .insertInto('volunteer_skill')
+      .values([
+        { volunteer_id: volunteer.id, name: 'First Aid' },
+        { volunteer_id: volunteer.id, name: 'Logistics' },
+      ])
+      .execute();
+
+    const recomputeProfileSpy = vi
+      .spyOn(embeddingUpdates, 'recomputeVolunteerProfileVector')
+      .mockResolvedValue(null);
+
+    const profileData: VolunteerProfileData = {
+      volunteer: {
+        id: volunteer.id,
+        first_name: volunteer.first_name,
+        last_name: volunteer.last_name,
+        email: volunteer.email,
+        date_of_birth: volunteer.date_of_birth,
+        gender: volunteer.gender,
+        cv_path: volunteer.cv_path,
+        description: volunteer.description ?? '',
+      },
+      skills: [],
+      experience_stats: {
+        total_completed_experiences: 0,
+        organizations_supported: 0,
+        crisis_related_experiences: 0,
+        total_hours_completed: 0,
+        total_skills_used: 0,
+        most_volunteered_crisis: null,
+      },
+      completed_experiences: [],
+    };
+
+    const getVolunteerProfileSpy = vi
+      .spyOn(volunteerService, 'getVolunteerProfile')
+      .mockResolvedValue(profileData);
+
+    const response = await server
+      .put('/volunteer/profile')
+      .set('Authorization', 'Bearer ' + token)
+      .send({ skills: [] })
+      .expect(200);
+
+    expect(recomputeProfileSpy).toHaveBeenCalledWith(volunteer.id, transaction);
+    expect(getVolunteerProfileSpy).toHaveBeenCalledWith(volunteer.id);
+    expect(response.body).toEqual(JSON.parse(JSON.stringify(profileData)));
+
+    const skills = await transaction
+      .selectFrom('volunteer_skill')
+      .select('name')
+      .where('volunteer_id', '=', volunteer.id)
+      .execute();
+
+    expect(skills).toEqual([]);
+
+    recomputeProfileSpy.mockRestore();
+    getVolunteerProfileSpy.mockRestore();
   });
 });

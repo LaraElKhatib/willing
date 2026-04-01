@@ -29,6 +29,13 @@ afterEach(async () => {
 });
 
 describe('POST /user/login', () => {
+  test('returns 400 for invalid login payload', async () => {
+    await server
+      .post('/user/login')
+      .send({ email: 'invalid-email-format' })
+      .expect(400);
+  });
+
   test('logs in organization account with valid credentials', async () => {
     const { organization, plainPassword } = await createOrganizationAccount();
 
@@ -113,6 +120,15 @@ describe('POST /user/login', () => {
 });
 
 describe('POST /user/forgot-password', () => {
+  test('returns 400 for invalid email format', async () => {
+    await server
+      .post('/user/forgot-password')
+      .send({ email: 'not-an-email' })
+      .expect(400);
+
+    expect(sendPasswordResetEmailSpy).not.toHaveBeenCalled();
+  });
+
   test('silently succeeds when the email is unknown', async () => {
     const response = await server
       .post('/user/forgot-password')
@@ -207,6 +223,13 @@ describe('POST /user/forgot-password', () => {
 });
 
 describe('POST /user/forgot-password/reset', () => {
+  test('returns 400 when reset payload is invalid', async () => {
+    await server
+      .post('/user/forgot-password/reset')
+      .send({ key: '', password: 'ValidPass123!' })
+      .expect(400);
+  });
+
   test('updates the password of a volunteer and deletes the token', async () => {
     const { volunteer } = await createVolunteerAccount({
       email: 'needs-reset@example.com',
@@ -314,10 +337,19 @@ describe('POST /user/forgot-password/reset', () => {
       })
       .execute();
 
-    await server
+    const response = await server
       .post('/user/forgot-password/reset')
       .send({ key: resetTokenKey, password: 'Whatever123!' })
       .expect(400);
+
+    expect(response.body.message).toBe('Reset token has expired');
+
+    const tokens = await transaction
+      .selectFrom('password_reset_token')
+      .selectAll()
+      .execute();
+
+    expect(tokens).toHaveLength(1);
   });
 
   test('doesn\'t allow setting a weak password', async () => {
@@ -343,5 +375,20 @@ describe('POST /user/forgot-password/reset', () => {
       .post('/user/forgot-password/reset')
       .send({ key: resetTokenKey, password: newPassword })
       .expect(400);
+
+    const unchangedVolunteer = await transaction
+      .selectFrom('volunteer_account')
+      .select(['password'])
+      .where('id', '=', volunteer.id)
+      .executeTakeFirstOrThrow();
+
+    expect(await compare('OldPassword123!', unchangedVolunteer.password)).toBe(true);
+
+    const tokens = await transaction
+      .selectFrom('password_reset_token')
+      .selectAll()
+      .execute();
+
+    expect(tokens).toHaveLength(1);
   });
 });

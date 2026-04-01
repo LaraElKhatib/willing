@@ -30,4 +30,12 @@ describe('GET unknown route', () => {
       message: 'Not Found - /not-a-real-route',
     });
   });
+
+  test('includes full original URL in 404 message', async () => {
+    const response = await server
+      .get('/unknown/path?tab=profile')
+      .expect(404);
+
+    expect(response.body.message).toBe('Not Found - /unknown/path?tab=profile');
+  });
 });

@@ -23,6 +23,7 @@ beforeEach(async () => {
 
 afterEach(async () => {
   await transaction.rollback().execute();
+  vi.mocked(queryLocationIQ).mockClear();
 });
 
 describe('GET /geocoding/search', () => {
@@ -40,12 +41,13 @@ describe('GET /geocoding/search', () => {
   });
 
   test('returns a list of geocoding entries if provided with a valid search term', async () => {
-    await server
+    const response = await server
       .get('/geocoding/search')
       .query({ query: 'aub' })
       .expect(200);
 
     expect(queryLocationIQ).toHaveBeenCalledWith('aub');
+    expect(response.body).toEqual([]);
   });
 
   test('trims the search query', async () => {
@@ -55,5 +57,21 @@ describe('GET /geocoding/search', () => {
       .expect(200);
 
     expect(queryLocationIQ).toHaveBeenCalledWith('aub');
+  });
+
+  test('returns 400 when query is not a string', async () => {
+    await server
+      .get('/geocoding/search')
+      .query({ query: ['aub', 'airport'] })
+      .expect(400);
+  });
+
+  test('returns 500 when geocoding provider fails', async () => {
+    vi.mocked(queryLocationIQ).mockRejectedValueOnce(new Error('LocationIQ unavailable'));
+
+    await server
+      .get('/geocoding/search')
+      .query({ query: 'aub' })
+      .expect(500);
   });
 });

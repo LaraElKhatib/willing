@@ -139,4 +139,51 @@ describe('GET /public/certificate-signature', () => {
       await fs.promises.rm(signatureAbsolutePath, { force: true });
     }
   });
+
+  test('falls back to jpeg content type for non-png and non-svg extensions', async () => {
+    const signatureFileName = 'platform-signature-test.jpg';
+    const signatureContents = Buffer.from('sample-platform-signature-jpg');
+    const signatureAbsolutePath = path.join(PLATFORM_SIGNATURE_UPLOAD_DIR, signatureFileName);
+
+    await fs.promises.mkdir(PLATFORM_SIGNATURE_UPLOAD_DIR, { recursive: true });
+    await fs.promises.writeFile(signatureAbsolutePath, signatureContents);
+
+    await transaction
+      .insertInto('platform_certificate_settings')
+      .values({
+        signatory_name: 'Signer',
+        signatory_position: 'Director',
+        signature_path: signatureFileName,
+        signature_uploaded_by_admin_id: null,
+      })
+      .execute();
+
+    try {
+      const response = await server
+        .get('/public/certificate-signature')
+        .buffer(true)
+        .expect(200);
+
+      expect(response.headers['content-type']).toBe('image/jpeg');
+      expect(Buffer.isBuffer(response.body)).toBe(true);
+    } finally {
+      await fs.promises.rm(signatureAbsolutePath, { force: true });
+    }
+  });
+
+  test('returns 500 when signature file path is stored but file does not exist', async () => {
+    await transaction
+      .insertInto('platform_certificate_settings')
+      .values({
+        signatory_name: 'Signer',
+        signatory_position: 'Director',
+        signature_path: 'missing-signature.png',
+        signature_uploaded_by_admin_id: null,
+      })
+      .execute();
+
+    await server
+      .get('/public/certificate-signature')
+      .expect(500);
+  });
 });
