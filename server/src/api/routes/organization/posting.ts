@@ -15,6 +15,7 @@ import {
   type OrganizationPostingUpdateResponse,
 } from './posting.types.ts';
 import { getPostingEnrollments } from './postingEnrollments.ts';
+import executeTransaction from '../../../db/executeTransaction.ts';
 import { type Database,
   newOrganizationPostingSchema,
   type NewOrganizationPosting,
@@ -119,7 +120,7 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
       await assertCrisisExists(body.crisis_id, res);
     }
 
-    const result = await db.transaction().execute(async (trx) => {
+    const result = await executeTransaction(db, async (trx) => {
       const postingInsertValues = {
         organization_id: orgId,
         ...postingBody,
@@ -384,7 +385,7 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
       || didSkillsChange
     );
 
-    await db.transaction().execute(async (trx) => {
+    await executeTransaction(db, async (trx) => {
       const postingFields: Record<string, unknown> = {};
 
       if (body.title !== undefined) postingFields.title = body.title;
@@ -480,7 +481,7 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
       .where('attended', '=', true)
       .execute();
 
-    await db.transaction().execute(async (trx) => {
+    await executeTransaction(db, async (trx) => {
       await trx.deleteFrom('posting_skill').where('posting_id', '=', postingId).execute();
       await trx.deleteFrom('enrollment_application').where('posting_id', '=', postingId).execute();
       await trx.deleteFrom('enrollment').where('posting_id', '=', postingId).execute();
@@ -624,7 +625,7 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
       res.status(404);
       throw new Error('Application not found');
     }
-    await db.transaction().execute(async (trx) => {
+    await executeTransaction(db, async (trx) => {
       const lockedPosting = await trx
         .selectFrom('organization_posting')
         .select(['id', 'is_closed', 'max_volunteers'])

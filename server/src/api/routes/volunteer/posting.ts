@@ -5,6 +5,7 @@ import zod from 'zod';
 import { type VolunteerEnrollmentsResponse, type VolunteerPostingEnrollResponse, type VolunteerPostingResponse, type VolunteerPostingSearchResponse, type VolunteerPostingWithdrawResponse } from './posting.types.ts';
 import { buildPostingsWithContext, postingWithContextSelectColumns } from './postingWithContext.ts';
 import authorizeOnly from '../../../auth/authorizeOnly.ts';
+import executeTransaction from '../../../db/executeTransaction.ts';
 import { type Database, type Enrollment, type EnrollmentApplication } from '../../../db/tables/index.ts';
 import { recomputeVolunteerExperienceVector } from '../../../services/embeddings/updates.ts';
 import { type PostingWithContext } from '../../../types.ts';
@@ -403,7 +404,7 @@ function createVolunteerPostingRouter(db: Kysely<Database>) {
     let enrollment: Enrollment | EnrollmentApplication | undefined;
 
     if (posting.automatic_acceptance) {
-      enrollment = await db.transaction().execute(async (trx) => {
+      enrollment = await executeTransaction(db, async (trx) => {
         const lockedPosting = await trx
           .selectFrom('organization_posting')
           .select(['id', 'is_closed', 'max_volunteers'])
@@ -455,7 +456,7 @@ function createVolunteerPostingRouter(db: Kysely<Database>) {
         return createdEnrollment;
       });
     } else {
-      enrollment = await db.transaction().execute(async (trx) => {
+      enrollment = await executeTransaction(db, async (trx) => {
         const lockedPosting = await trx
           .selectFrom('organization_posting')
           .select(['id', 'is_closed', 'max_volunteers'])
@@ -516,7 +517,7 @@ function createVolunteerPostingRouter(db: Kysely<Database>) {
     const volunteerId = req.userJWT!.id;
     const { id } = postingIdParamsSchema.parse(req.params);
 
-    const { existingEnrollment } = await db.transaction().execute(async (trx) => {
+    const { existingEnrollment } = await executeTransaction(db, async (trx) => {
       const posting = await trx
         .selectFrom('organization_posting')
         .select(['id', 'automatic_acceptance'])

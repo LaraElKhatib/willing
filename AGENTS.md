@@ -269,6 +269,7 @@ All components are in `client/src/components/`. **Use these instead of recreatin
 8. Keep DB operations typed via Kysely and shared table types.
 9. Never return `{success: true}` in responses. Success status is inferred by the HTTP status code.
 10. Never manually call `res.error({/* ... */})`. Instead, throw an error and let the error handler middleware catch it.
+11. For transactional DB logic, use `executeTransaction` from `server/src/db/startTransaction.ts` instead of calling `db.transaction().execute(...)` directly.
 
 ## Schema & Type Patterns
 

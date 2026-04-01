@@ -16,6 +16,7 @@ import {
 import createVolunteerPostingRouter from './posting.ts';
 import authorizeOnly from '../../../auth/authorizeOnly.ts';
 import createResetPassword from '../../../auth/resetPassword.ts';
+import executeTransaction from '../../../db/executeTransaction.ts';
 import { type Database, type VolunteerAccountWithoutPassword, newVolunteerAccountSchema, volunteerAccountSchema } from '../../../db/tables/index.ts';
 import { hash } from '../../../services/bcrypt/index.ts';
 import {
@@ -135,7 +136,7 @@ function createVolunteerRouter(db: Kysely<Database>) {
   volunteerRouter.get('/organizations', async (req, res: Response<VolunteerOrganizationSearchResponse>) => {
     const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
 
-    let query = database
+    let query = db
       .selectFrom('organization_account')
       .leftJoin('organization_posting', 'organization_posting.organization_id', 'organization_account.id')
       .select([
@@ -316,7 +317,7 @@ function createVolunteerRouter(db: Kysely<Database>) {
           : undefined
       : undefined;
 
-    let query = database
+    let query = db
       .selectFrom('crisis')
       .selectAll();
 
@@ -414,7 +415,7 @@ function createVolunteerRouter(db: Kysely<Database>) {
       || didSkillsChange
     );
 
-    await db.transaction().execute(async (trx) => {
+    await executeTransaction(db, async (executor) => {
       const volunteerUpdate: Partial<Omit<VolunteerAccountWithoutPassword, 'id'>> = {};
 
       if (body.first_name !== undefined) volunteerUpdate.first_name = body.first_name;
@@ -423,7 +424,7 @@ function createVolunteerRouter(db: Kysely<Database>) {
       if (body.cv_path !== undefined) volunteerUpdate.cv_path = body.cv_path;
       if (body.description !== undefined) volunteerUpdate.description = body.description;
       if (Object.keys(volunteerUpdate).length > 0) {
-        await trx
+        await executor
           .updateTable('volunteer_account')
           .set(volunteerUpdate)
           .where('id', '=', volunteerId)
@@ -431,13 +432,13 @@ function createVolunteerRouter(db: Kysely<Database>) {
       }
 
       if (didSkillsChange) {
-        await trx
+        await executor
           .deleteFrom('volunteer_skill')
           .where('volunteer_id', '=', volunteerId)
           .execute();
 
         if (normalizedIncomingSkills && normalizedIncomingSkills.length > 0) {
-          await trx
+          await executor
             .insertInto('volunteer_skill')
             .values(
               normalizedIncomingSkills.map(name => ({

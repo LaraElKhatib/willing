@@ -13,6 +13,7 @@ import {
 import authorizeOnly from '../../../auth/authorizeOnly.ts';
 import removePassword from '../../../auth/removePassword.ts';
 import createResetPassword from '../../../auth/resetPassword.ts';
+import executeTransaction from '../../../db/executeTransaction.ts';
 import { type Database } from '../../../db/tables/index.ts';
 import { compare, hash } from '../../../services/bcrypt/index.ts';
 import { recomputeOrganizationVector } from '../../../services/embeddings/updates.ts';
@@ -144,7 +145,7 @@ function createAdminRouter(db: Kysely<Database>) {
 
     const password = Math.random().toString(36).slice(-8);
 
-    const insertedOrganization = await db.transaction().execute(async (trx) => {
+    const insertedOrganization = await executeTransaction(db, async (trx) => {
       await trx
         .deleteFrom('organization_request')
         .where('id', '=', requestId)
