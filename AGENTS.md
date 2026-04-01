@@ -116,9 +116,14 @@ Useful client scripts:
 ## Testing Conventions
 
 1. Server tests are colocated with the modules they cover (e.g., `server/src/api/routes/posting.test.ts`). Use matching filenames to keep discovery simple.
-2. Shared infrastructure lives under `server/src/tests/`: `setup.ts` exports the common `server` (`supertest(app)`) and registers a global `beforeEach` that truncates all public tables, so specs never roll their own lifecycle hooks.
-3. `server/src/tests/globalSetup.ts` drops/recreates the schema and runs migrations once before the suite, while `server/src/tests/globalTeardown.ts` closes the shared Kysely connection after all tests.
-4. Reuse `server/src/tests/helpers/database.ts` for schema resets or truncation logic instead of repeating raw SQL. Add any reusable seed/fixture helpers under `server/src/tests/fixtures/`.
+2. Shared infrastructure lives under `server/src/tests/`. Vitest is configured with `globalSetup: server/src/tests/globalSetup.ts` and `setupFiles: [server/src/tests/setup.ts]`.
+3. `server/src/tests/setup.ts` runs before test files and handles DB test initialization (`beforeAll`) plus per-test isolation (`beforeEach`) via `truncateAllTables()`. Do not duplicate table-truncation hooks in individual tests unless a test has a special isolation need.
+4. `server/src/tests/globalSetup.ts` handles suite lifecycle (`setup`/`teardown`): it ensures cleanup (DB connection destroy + upload dir cleanup) after the run.
+5. Reuse `server/src/tests/helpers/database.ts` for schema resets or truncation logic instead of repeating raw SQL. Add any reusable seed/fixture helpers under `server/src/tests/fixtures/`.
+6. Keep each test focused on one targeted behavior (one success path or one failure path). Do not bundle multiple role checks or unrelated assertions in a single test.
+7. For auth-protected endpoints, split access-control tests by actor (unauthenticated, wrong role(s), correct role) into separate tests.
+8. Add explicit edge-case coverage for each endpoint you touch (validation boundaries, missing data, invalid identifiers, empty-state responses, and provider/dependency failures where applicable).
+9. Prefer descriptive test names that state both condition and expected outcome (e.g., "returns 400 when query is not a string").
 
 ## Core Engineering Rules
 
