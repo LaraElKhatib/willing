@@ -15,6 +15,7 @@ import {
   type OrganizationGetMeResponse,
   type OrganizationPinnedCrisesResponse,
   type OrganizationProfileResponse,
+  type OrganizationReportVolunteerResponse,
   type OrganizationRequestResponse,
   type OrganizationResetPasswordResponse,
   type OrganizationUpdateProfileResponse,
@@ -25,7 +26,12 @@ import {
 import postingRouter from './posting.ts';
 import resetPassword from '../../../auth/resetPassword.ts';
 import database from '../../../db/index.ts';
-import { newOrganizationRequestSchema, organizationAccountSchema, type PostingSkill } from '../../../db/tables/index.ts';
+import {
+  newOrganizationRequestSchema,
+  newVolunteerReportSchema,
+  organizationAccountSchema,
+  type PostingSkill,
+} from '../../../db/tables/index.ts';
 import { recomputeOrganizationVector } from '../../../services/embeddings/updates.ts';
 import { sendAdminOrganizationRequestEmail } from '../../../services/smtp/emails.ts';
 import { orgLogoMulter } from '../../../services/uploads/orgLogo.ts';
@@ -354,6 +360,33 @@ organizationRouter.get('/volunteer/:id', async (req, res: Response<OrganizationV
 
   const profile = await getVolunteerProfile(volunteerId);
   res.json({ profile });
+});
+
+organizationRouter.post('/volunteer/:id/report', async (req, res: Response<OrganizationReportVolunteerResponse>) => {
+  const { id: volunteerId } = zod.object({
+    id: zod.coerce.number().int().positive('Volunteer ID must be a positive number'),
+  }).parse(req.params);
+
+  const body = newVolunteerReportSchema.parse(req.body);
+  const organizationId = req.userJWT!.id;
+
+  const hasRelationship = await hasVolunteerRelationshipWithOrganization(organizationId, volunteerId);
+  if (!hasRelationship) {
+    res.status(403);
+    throw new Error('You can only report volunteers related to your postings.');
+  }
+
+  await database
+    .insertInto('volunteer_report')
+    .values({
+      reported_volunteer_id: volunteerId,
+      reporter_organization_id: organizationId,
+      title: body.title,
+      message: body.message,
+    })
+    .execute();
+
+  res.json({});
 });
 
 organizationRouter.get('/volunteer/:id/cv', async (req, res: Response<OrganizationVolunteerCvDownloadResponse>, next) => {
