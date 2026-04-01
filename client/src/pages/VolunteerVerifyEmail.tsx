@@ -17,7 +17,6 @@ export default function VolunteerVerifyEmail() {
   const navigate = useNavigate();
   const auth = useContext(AuthContext);
   const notifications = useNotifications();
-  const [hasStartedVerification, setHasStartedVerification] = useState(false);
   const [resendEmail, setResendEmail] = useState(initialEmail);
   const hasAttemptedRef = useRef(false);
 
@@ -42,7 +41,6 @@ export default function VolunteerVerifyEmail() {
     }
 
     hasAttemptedRef.current = true;
-    setHasStartedVerification(true);
 
     trigger()
       .then(() => {
@@ -72,7 +70,7 @@ export default function VolunteerVerifyEmail() {
     );
   }
 
-  if (loading || !hasStartedVerification) {
+  if (loading) {
     return (
       <Hero>
         <Card>
@@ -112,7 +110,6 @@ export default function VolunteerVerifyEmail() {
               color="primary"
               type="button"
               onClick={() => {
-                setHasStartedVerification(true);
                 trigger()
                   .then(() => {
                     navigate('/volunteer', { replace: true });
