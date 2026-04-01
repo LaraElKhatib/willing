@@ -14,11 +14,12 @@ import Loading from '../../components/Loading';
 import PostingCollection from '../../components/postings/PostingCollection';
 import PostingViewModeToggle from '../../components/postings/PostingViewModeToggle';
 import SkillsList from '../../components/skills/SkillsList';
+import useNotifications from '../../notifications/useNotifications';
 import { FormField, FormRootError } from '../../utils/formUtils';
 import requestServer, { SERVER_BASE_URL } from '../../utils/requestServer';
 import useAsync from '../../utils/useAsync';
 
-import type { OrganizationVolunteerProfileResponse } from '../../../../server/src/api/types';
+import type { OrganizationReportVolunteerResponse, OrganizationVolunteerProfileResponse } from '../../../../server/src/api/types';
 import type { PostingWithContext } from '../../../../server/src/types';
 
 const toTimeString = (value: Date) => `${String(value.getHours()).padStart(2, '0')}:${String(value.getMinutes()).padStart(2, '0')}`;
@@ -42,6 +43,7 @@ type ReportVolunteerFormData = zod.infer<typeof reportVolunteerSchema>;
 function OrganizationVolunteerProfile() {
   const { volunteerId } = useParams<{ volunteerId: string }>();
   const [reportModalOpen, setReportModalOpen] = useState(false);
+  const notifications = useNotifications();
   const reportForm = useForm<ReportVolunteerFormData>({
     resolver: zodResolver(reportVolunteerSchema),
     mode: 'onTouched',
@@ -100,6 +102,19 @@ function OrganizationVolunteerProfile() {
     },
     { notifyOnError: true },
   );
+
+  const {
+    loading: submittingReport,
+    trigger: submitVolunteerReport,
+  } = useAsync(async (reportData: ReportVolunteerFormData) => {
+    if (!volunteerId) throw new Error('Volunteer ID is missing.');
+
+    await requestServer<OrganizationReportVolunteerResponse>(`/organization/volunteer/${volunteerId}/report`, {
+      method: 'POST',
+      includeJwt: true,
+      body: reportData,
+    });
+  }, { notifyOnError: false });
 
   const profile = data?.profile;
 
@@ -198,6 +213,7 @@ function OrganizationVolunteerProfile() {
   };
 
   const closeReportModal = () => {
+    if (submittingReport) return;
     setReportModalOpen(false);
     reportForm.reset({
       title: 'scam',
@@ -205,11 +221,23 @@ function OrganizationVolunteerProfile() {
     });
   };
 
-  const submitReportForm = reportForm.handleSubmit(() => {
-    reportForm.setError('root', {
-      type: 'manual',
-      message: 'Report submission will be wired in the next step.',
-    });
+  const submitReportForm = reportForm.handleSubmit(async (reportData) => {
+    reportForm.clearErrors('root');
+
+    try {
+      await submitVolunteerReport(reportData);
+      notifications.push({
+        type: 'success',
+        message: 'Report submitted successfully.',
+      });
+      closeReportModal();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to submit report.';
+      reportForm.setError('root', {
+        type: 'server',
+        message,
+      });
+    }
   });
 
   if (loading && !profile) {
@@ -434,6 +462,7 @@ function OrganizationVolunteerProfile() {
               type="button"
               Icon={X}
               onClick={closeReportModal}
+              loading={submittingReport}
               aria-label="Close report modal"
               title="Close"
             />
@@ -469,6 +498,7 @@ function OrganizationVolunteerProfile() {
                 color="ghost"
                 Icon={X}
                 onClick={closeReportModal}
+                disabled={submittingReport}
               >
                 Cancel
               </Button>
@@ -476,6 +506,8 @@ function OrganizationVolunteerProfile() {
                 type="submit"
                 color="warning"
                 Icon={Flag}
+                loading={submittingReport}
+                disabled={submittingReport}
               >
                 Submit Report
               </Button>
