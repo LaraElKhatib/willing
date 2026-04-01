@@ -34,6 +34,7 @@ const toDateFromParts = (dateValue: Date | string, timeValue?: string) => {
 
 const reportVolunteerSchema = zod.object({
   title: zod.enum(['scam', 'impersonation', 'harassment', 'inappropriate_behavior', 'other']),
+  message: zod.string().trim().min(1, 'Message is required').max(1000, 'Message must be at most 1000 characters'),
 });
 
 type ReportVolunteerFormData = zod.infer<typeof reportVolunteerSchema>;
@@ -47,6 +48,7 @@ function OrganizationVolunteerProfile() {
     reValidateMode: 'onChange',
     defaultValues: {
       title: 'scam',
+      message: '',
     },
   });
 
@@ -199,6 +201,7 @@ function OrganizationVolunteerProfile() {
     setReportModalOpen(false);
     reportForm.reset({
       title: 'scam',
+      message: '',
     });
   };
 
@@ -448,6 +451,14 @@ function OrganizationVolunteerProfile() {
                 { label: 'Inappropriate behavior', value: 'inappropriate_behavior' },
                 { label: 'Other', value: 'other' },
               ]}
+            />
+
+            <FormField
+              form={reportForm}
+              name="message"
+              label="Message"
+              type="textarea"
+              placeholder="Describe what happened and why you are reporting this volunteer"
             />
 
             <FormRootError form={reportForm} />
