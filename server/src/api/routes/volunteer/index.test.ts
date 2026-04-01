@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import createApp from '../../../app.ts';
 import database from '../../../db/index.ts';
+import { compare } from '../../../services/bcrypt/index.ts';
 import * as embeddingUpdates from '../../../services/embeddings/updates.ts';
 import * as jwtService from '../../../services/jwt/index.ts';
 import * as emailService from '../../../services/smtp/emails.ts';
@@ -1022,5 +1023,289 @@ describe('PUT /volunteer/profile', () => {
 
     recomputeProfileSpy.mockRestore();
     getVolunteerProfileSpy.mockRestore();
+  });
+});
+
+describe('GET /volunteer/organizations', () => {
+  test('returns 403 when unauthenticated', async () => {
+    await server
+      .get('/volunteer/organizations')
+      .expect(403);
+  });
+
+  test('returns organizations with posting counts sorted by name by default', async () => {
+    const { token } = await createVolunteerAccount({ email: 'org-search-viewer@example.com' });
+    const { organization: firstOrg } = await createOrganizationAccount({
+      email: 'org-a@example.com',
+      name: 'Alpha Responders',
+      phone_number: '123-456-7890',
+      url: 'https://alpharesponders.org',
+    });
+    const { organization: secondOrg } = await createOrganizationAccount({
+      email: 'org-b@example.com',
+      name: 'Bravo Collective',
+      phone_number: '987-654-3210',
+      url: 'https://bravocollective.org',
+    });
+
+    await transaction
+      .insertInto('organization_posting')
+      .values([
+        {
+          organization_id: firstOrg.id,
+          title: 'First Posting',
+          description: 'Support first area',
+          latitude: 33.9,
+          longitude: 35.5,
+          start_date: new Date('2026-02-01T00:00:00.000Z'),
+          start_time: '09:00:00',
+          end_date: new Date('2026-02-01T00:00:00.000Z'),
+          end_time: '13:00:00',
+          automatic_acceptance: true,
+          is_closed: false,
+          allows_partial_attendance: false,
+          location_name: 'Beirut Downtown',
+        },
+        {
+          organization_id: firstOrg.id,
+          title: 'Second Posting',
+          description: 'Support second area',
+          latitude: 33.91,
+          longitude: 35.51,
+          start_date: new Date('2026-02-02T00:00:00.000Z'),
+          start_time: '09:00:00',
+          end_date: new Date('2026-02-02T00:00:00.000Z'),
+          end_time: '13:00:00',
+          automatic_acceptance: true,
+          is_closed: false,
+          allows_partial_attendance: false,
+          location_name: 'Beirut Waterfront',
+        },
+        {
+          organization_id: secondOrg.id,
+          title: 'Third Posting',
+          description: 'Support third area',
+          latitude: 33.92,
+          longitude: 35.52,
+          start_date: new Date('2026-02-03T00:00:00.000Z'),
+          start_time: '09:00:00',
+          end_date: new Date('2026-02-03T00:00:00.000Z'),
+          end_time: '13:00:00',
+          automatic_acceptance: true,
+          is_closed: false,
+          allows_partial_attendance: false,
+          location_name: 'Beirut Suburbs',
+        },
+      ])
+      .execute();
+
+    const response = await server
+      .get('/volunteer/organizations')
+      .set('Authorization', 'Bearer ' + token)
+      .expect(200);
+
+    expect(response.body.organizations.map((org: { name: string }) => org.name)).toEqual([
+      'Alpha Responders',
+      'Bravo Collective',
+    ]);
+
+    expect(response.body.organizations).toEqual([
+      {
+        id: firstOrg.id,
+        name: 'Alpha Responders',
+        description: null,
+        location_name: 'Beirut',
+        logo_path: null,
+        posting_count: 2,
+      },
+      {
+        id: secondOrg.id,
+        name: 'Bravo Collective',
+        description: null,
+        location_name: 'Beirut',
+        logo_path: null,
+        posting_count: 1,
+      },
+    ]);
+  });
+
+  test('applies search across organization fields', async () => {
+    const { token } = await createVolunteerAccount({ email: 'org-search-filter@example.com' });
+    const { organization: matchingOrg } = await createOrganizationAccount({
+      email: 'beirut-helpers@example.com',
+      name: 'Beirut Helpers',
+      phone_number: '111-222-3333',
+      url: 'https://beirut-helpers.example.org',
+    });
+
+    await transaction
+      .updateTable('organization_account')
+      .set({
+        description: 'Emergency logistics and food support',
+        location_name: 'Beirut Downtown',
+      })
+      .where('id', '=', matchingOrg.id)
+      .execute();
+
+    await createOrganizationAccount({
+      email: 'tripoli-care@example.com',
+      name: 'Tripoli Care Network',
+      phone_number: '444-555-6666',
+      url: 'https://tripoli-care.example.org',
+    });
+
+    const response = await server
+      .get('/volunteer/organizations?search=beiruthelpers')
+      .set('Authorization', 'Bearer ' + token)
+      .expect(200);
+
+    expect(response.body.organizations).toHaveLength(1);
+    expect(response.body.organizations[0]).toMatchObject({
+      id: matchingOrg.id,
+      name: 'Beirut Helpers',
+    });
+  });
+});
+
+describe('GET /volunteer/crises', () => {
+  test('returns 403 when unauthenticated', async () => {
+    await server
+      .get('/volunteer/crises')
+      .expect(403);
+  });
+
+  test('returns crises with pinned entries first by default sorting', async () => {
+    const { token } = await createVolunteerAccount({ email: 'crises-default-sort@example.com' });
+
+    await transaction
+      .insertInto('crisis')
+      .values([
+        {
+          name: 'Bravo Crisis',
+          description: 'Unpinned crisis',
+          pinned: false,
+          created_at: new Date('2026-01-01T00:00:00.000Z'),
+        },
+        {
+          name: 'Zulu Crisis',
+          description: 'Pinned crisis',
+          pinned: true,
+          created_at: new Date('2026-01-02T00:00:00.000Z'),
+        },
+        {
+          name: 'Alpha Crisis',
+          description: 'Pinned crisis',
+          pinned: true,
+          created_at: new Date('2026-01-03T00:00:00.000Z'),
+        },
+      ])
+      .execute();
+
+    const response = await server
+      .get('/volunteer/crises')
+      .set('Authorization', 'Bearer ' + token)
+      .expect(200);
+
+    expect(response.body.crises.map((crisis: { name: string }) => crisis.name)).toEqual([
+      'Alpha Crisis',
+      'Zulu Crisis',
+      'Bravo Crisis',
+    ]);
+  });
+
+  test('filters by pinned flag and supports title_desc sorting', async () => {
+    const { token } = await createVolunteerAccount({ email: 'crises-filter-sort@example.com' });
+
+    await transaction
+      .insertInto('crisis')
+      .values([
+        {
+          name: 'Storm Aid',
+          description: 'Primary storm response',
+          pinned: true,
+          created_at: new Date('2026-02-01T00:00:00.000Z'),
+        },
+        {
+          name: 'Avalanche Rescue',
+          description: 'Mountain response',
+          pinned: true,
+          created_at: new Date('2026-02-02T00:00:00.000Z'),
+        },
+        {
+          name: 'Storm Recovery',
+          description: 'Long-term support',
+          pinned: false,
+          created_at: new Date('2026-02-03T00:00:00.000Z'),
+        },
+      ])
+      .execute();
+
+    const response = await server
+      .get('/volunteer/crises?pinned=true&sort_by=title_desc')
+      .set('Authorization', 'Bearer ' + token)
+      .expect(200);
+
+    expect(response.body.crises.map((crisis: { name: string }) => crisis.name)).toEqual([
+      'Storm Aid',
+      'Avalanche Rescue',
+    ]);
+  });
+});
+
+describe('POST /volunteer/reset-password', () => {
+  test('returns 403 when unauthenticated', async () => {
+    await server
+      .post('/volunteer/reset-password')
+      .send({ currentPassword: 'current', newPassword: 'NewPassword123!' })
+      .expect(403);
+  });
+
+  test('returns 403 when logged in as organization', async () => {
+    const { token } = await createOrganizationAccount({ email: 'reset-password-org@example.com' });
+
+    await server
+      .post('/volunteer/reset-password')
+      .set('Authorization', 'Bearer ' + token)
+      .send({ currentPassword: 'OrgPassword123!', newPassword: 'NewPassword123!' })
+      .expect(403);
+  });
+
+  test('returns 403 when current password is incorrect', async () => {
+    const { token } = await createVolunteerAccount({ email: 'reset-password-invalid-current@example.com' });
+
+    await server
+      .post('/volunteer/reset-password')
+      .set('Authorization', 'Bearer ' + token)
+      .send({ currentPassword: 'WrongPassword123!', newPassword: 'NewPassword123!' })
+      .expect(403);
+  });
+
+  test('updates password hash and returns a fresh token when current password is correct', async () => {
+    const { volunteer, token, plainPassword } = await createVolunteerAccount({ email: 'reset-password-success@example.com' });
+
+    const beforeUpdate = await transaction
+      .selectFrom('volunteer_account')
+      .select('password')
+      .where('id', '=', volunteer.id)
+      .executeTakeFirstOrThrow();
+
+    const response = await server
+      .post('/volunteer/reset-password')
+      .set('Authorization', 'Bearer ' + token)
+      .send({ currentPassword: plainPassword, newPassword: 'NewPassword123!' })
+      .expect(200);
+
+    expect(typeof response.body.token).toBe('string');
+    expect(response.body.token.length).toBeGreaterThan(0);
+
+    const afterUpdate = await transaction
+      .selectFrom('volunteer_account')
+      .select('password')
+      .where('id', '=', volunteer.id)
+      .executeTakeFirstOrThrow();
+
+    expect(afterUpdate.password).not.toBe(beforeUpdate.password);
+    expect(await compare(plainPassword, afterUpdate.password)).toBe(false);
+    expect(await compare('NewPassword123!', afterUpdate.password)).toBe(true);
   });
 });

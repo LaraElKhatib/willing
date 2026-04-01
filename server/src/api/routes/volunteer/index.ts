@@ -485,6 +485,8 @@ function createVolunteerRouter(db: Kysely<Database>) {
       query = query.where('pinned', '=', pinnedFilter);
     }
 
+    query = query.orderBy('pinned', 'desc');
+
     switch (sortBy) {
       case 'title_asc':
         query = query.orderBy('name', 'asc');
@@ -492,8 +494,6 @@ function createVolunteerRouter(db: Kysely<Database>) {
       case 'title_desc':
         query = query.orderBy('name', 'desc');
         break;
-      default:
-        query = query.orderBy('pinned', 'desc').orderBy('name', 'asc');
     }
 
     const crises = await query.execute();
