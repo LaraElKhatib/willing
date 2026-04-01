@@ -16,7 +16,6 @@ import {
   type OrganizationPinnedCrisesResponse,
   type OrganizationProfileResponse,
   type OrganizationRequestResponse,
-  type OrganizationResetPasswordResponse,
   type OrganizationUpdateProfileResponse,
   type OrganizationVolunteerCvDownloadResponse,
   type OrganizationVolunteerProfileResponse,
@@ -422,7 +421,7 @@ function createOrganizationRouter(db: Kysely<Database>) {
     }
 
     if (shouldRecomputeOrganizationVector) {
-      await recomputeOrganizationVector(organizationId);
+      await recomputeOrganizationVector(organizationId, db);
     }
 
     const organization = await db
@@ -434,41 +433,44 @@ function createOrganizationRouter(db: Kysely<Database>) {
     res.json({ organization });
   });
 
-  organizationRouter.post('/logo', uploadSingle(orgLogoMulter, 'logo'), async (req, res: Response<OrganizationUploadLogoResponse>) => {
-    if (!req.file) {
-      res.status(400);
-      throw new Error('No logo file provided');
-    }
-
-    const organizationId = req.userJWT!.id;
-    const existingOrganization = await db
-      .selectFrom('organization_account')
-      .select(['logo_path'])
-      .where('id', '=', organizationId)
-      .executeTakeFirstOrThrow();
-
-    if (existingOrganization.logo_path) {
-      try {
-        await fs.promises.unlink(path.join(ORG_LOGO_UPLOAD_DIR, existingOrganization.logo_path));
-      } catch {
-      // ignore missing old logo file
+  organizationRouter.post(
+    '/logo',
+    uploadSingle(orgLogoMulter, 'logo'),
+    async (req, res: Response<OrganizationUploadLogoResponse>) => {
+      if (!req.file) {
+        res.status(400);
+        throw new Error('No logo file provided');
       }
-    }
 
-    await db
-      .updateTable('organization_account')
-      .set({ logo_path: req.file.filename })
-      .where('id', '=', organizationId)
-      .execute();
+      const organizationId = req.userJWT!.id;
+      const existingOrganization = await db
+        .selectFrom('organization_account')
+        .select(['logo_path'])
+        .where('id', '=', organizationId)
+        .executeTakeFirstOrThrow();
 
-    const organization = await db
-      .selectFrom('organization_account')
-      .select(organizationPrivateResponseColumns)
-      .where('id', '=', organizationId)
-      .executeTakeFirstOrThrow();
+      if (existingOrganization.logo_path) {
+        try {
+          await fs.promises.unlink(path.join(ORG_LOGO_UPLOAD_DIR, existingOrganization.logo_path));
+        } catch {
+          // ignore missing old logo file
+        }
+      }
 
-    res.json({ organization });
-  });
+      await db
+        .updateTable('organization_account')
+        .set({ logo_path: req.file.filename })
+        .where('id', '=', organizationId)
+        .execute();
+
+      const organization = await db
+        .selectFrom('organization_account')
+        .select(organizationPrivateResponseColumns)
+        .where('id', '=', organizationId)
+        .executeTakeFirstOrThrow();
+
+      res.json({ organization });
+    });
 
   organizationRouter.delete('/logo', async (req, res: Response<OrganizationDeleteLogoResponse>) => {
     const organizationId = req.userJWT!.id;

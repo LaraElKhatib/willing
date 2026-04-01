@@ -91,7 +91,7 @@ function createOrganizationAttendanceRouter(db: Kysely<Database>) {
       .execute();
 
     const volunteerIds = Array.from(new Set(changed.map(row => row.volunteer_id)));
-    await Promise.all(volunteerIds.map(volunteerId => recomputeVolunteerExperienceVector(volunteerId)));
+    await Promise.all(volunteerIds.map(volunteerId => recomputeVolunteerExperienceVector(volunteerId, db)));
 
     res.json({ updated_count: changed.length });
   });

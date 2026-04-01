@@ -148,7 +148,7 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
       return { postingId: newPosting.id };
     });
 
-    await recomputePostingVectors(result.postingId);
+    await recomputePostingVectors(result.postingId, db);
 
     const posting = await db
       .selectFrom('organization_posting')

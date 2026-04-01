@@ -555,7 +555,7 @@ function createVolunteerPostingRouter(db: Kysely<Database>) {
     });
 
     if (existingEnrollment?.attended) {
-      await recomputeVolunteerExperienceVector(volunteerId);
+      await recomputeVolunteerExperienceVector(volunteerId, db);
     }
 
     res.json({});

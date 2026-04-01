@@ -163,7 +163,7 @@ async function verifyEmbeddings() {
   const postingId = await ensurePosting(organizationId);
   const volunteerId = await ensureVolunteer();
 
-  await recomputeOrganizationVector(organizationId);
+  await recomputeOrganizationVector(organizationId, database);
   const orgDims = await getVectorDims(sql`
     SELECT vector_dims(org_vector) as org_vector_dims
     FROM organization_account
@@ -172,7 +172,7 @@ async function verifyEmbeddings() {
   assertDim('organization.org_vector', orgDims?.org_vector_dims);
   console.log('organization.org_vector dims:', orgDims?.org_vector_dims);
 
-  await recomputePostingVectors(postingId);
+  await recomputePostingVectors(postingId, database);
   const postingDims = await getVectorDims(sql`
     SELECT
       vector_dims(opportunity_vector) as opportunity_vector_dims,
@@ -186,7 +186,7 @@ async function verifyEmbeddings() {
   console.log('organization_posting.posting_context_vector dims:', postingDims?.posting_context_vector_dims);
   console.log('posting context combine rule: 0.7 * opportunity + 0.3 * organization');
 
-  await recomputeVolunteerProfileVector(volunteerId);
+  await recomputeVolunteerProfileVector(volunteerId, database);
   const volunteerProfileDims = await getVectorDims(sql`
     SELECT vector_dims(profile_vector) as profile_vector_dims
     FROM volunteer_account
@@ -196,7 +196,7 @@ async function verifyEmbeddings() {
   console.log('volunteer_account.profile_vector dims:', volunteerProfileDims?.profile_vector_dims);
 
   await ensureAttendedEnrollment(volunteerId, postingId);
-  await recomputeVolunteerExperienceVector(volunteerId);
+  await recomputeVolunteerExperienceVector(volunteerId, database);
   const volunteerExperienceDims = await getVectorDims(sql`
     SELECT vector_dims(experience_vector) as experience_vector_dims
     FROM volunteer_account

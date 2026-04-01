@@ -68,7 +68,7 @@ export async function createOrganizationPosting({
       is_closed: overrides?.is_closed ?? false,
       allows_partial_attendance: overrides?.allows_partial_attendance ?? false,
       location_name: overrides?.location_name ?? 'Beirut',
-      crisis_id: overrides?.crisis_id ?? null,
+      crisis_id: overrides?.crisis_id ?? undefined,
       created_at: now,
       updated_at: overrides?.updated_at ?? now,
     })

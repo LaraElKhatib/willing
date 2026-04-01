@@ -49,7 +49,7 @@ function createVolunteerCvRouter(db: Kysely<Database>) {
         .where('id', '=', volunteerId)
         .execute();
 
-      await recomputeVolunteerProfileVector(volunteerId);
+      await recomputeVolunteerProfileVector(volunteerId, db);
 
       const profile = await getVolunteerProfile(volunteerId);
       res.status(201).json(profile);
@@ -117,7 +117,7 @@ function createVolunteerCvRouter(db: Kysely<Database>) {
       .where('id', '=', req.userJWT!.id)
       .execute();
 
-    await recomputeVolunteerProfileVector(req.userJWT!.id);
+    await recomputeVolunteerProfileVector(req.userJWT!.id, db);
 
     const profile = await getVolunteerProfile(req.userJWT!.id);
     res.json(profile);
