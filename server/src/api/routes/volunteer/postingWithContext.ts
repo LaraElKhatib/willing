@@ -1,6 +1,6 @@
-import { sql } from 'kysely';
+import { sql, type Kysely } from 'kysely';
 
-import database from '../../../db/index.ts';
+import { type Database } from '../../../db/tables/index.ts';
 import { type PostingWithContext, type PostingApplicationStatus } from '../../../types.ts';
 
 export const postingWithContextSelectColumns = [
@@ -36,11 +36,14 @@ type BuildPostingsWithContextOptions = {
   applicationStatusByPostingId?: ReadonlyMap<number, Extract<PostingApplicationStatus, 'registered' | 'pending'>>;
 };
 
-export async function buildPostingsWithContext({
-  volunteerId,
-  postings,
-  applicationStatusByPostingId,
-}: BuildPostingsWithContextOptions): Promise<PostingWithContext[]> {
+export async function buildPostingsWithContext(
+  db: Kysely<Database>,
+  {
+    volunteerId,
+    postings,
+    applicationStatusByPostingId,
+  }: BuildPostingsWithContextOptions,
+): Promise<PostingWithContext[]> {
   if (postings.length === 0) {
     return [];
   }
@@ -48,12 +51,12 @@ export async function buildPostingsWithContext({
   const postingIds = postings.map(posting => posting.id);
 
   const [skills, enrollmentCounts, volunteerEnrollments, volunteerPendingApplications] = await Promise.all([
-    database
+    db
       .selectFrom('posting_skill')
       .selectAll()
       .where('posting_id', 'in', postingIds)
       .execute(),
-    database
+    db
       .selectFrom('enrollment')
       .select([
         'posting_id',
@@ -64,7 +67,7 @@ export async function buildPostingsWithContext({
       .execute(),
     applicationStatusByPostingId
       ? Promise.resolve([])
-      : database
+      : db
           .selectFrom('enrollment')
           .select('posting_id')
           .where('volunteer_id', '=', volunteerId)
@@ -72,7 +75,7 @@ export async function buildPostingsWithContext({
           .execute(),
     applicationStatusByPostingId
       ? Promise.resolve([])
-      : database
+      : db
           .selectFrom('enrollment_application')
           .select('posting_id')
           .where('volunteer_id', '=', volunteerId)

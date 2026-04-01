@@ -1,14 +1,13 @@
 import { type Kysely, sql } from 'kysely';
 
-import type { Database } from '../tables/index.ts';
-
-export async function up(db: Kysely<Database>): Promise<void> {
+export async function up(db: Kysely<unknown>): Promise<void> {
   await db.schema
     .alterTable('volunteer_account')
     .dropColumn('privacy')
     .execute();
 
   await db
+    // @ts-expect-error We have to use Kysely<unknown> here because this is a migration
     .updateTable('organization_posting')
     .set({
       end_date: sql`COALESCE(end_date, start_date)`,
@@ -23,7 +22,7 @@ export async function up(db: Kysely<Database>): Promise<void> {
     .execute();
 }
 
-export async function down(db: Kysely<Database>): Promise<void> {
+export async function down(db: Kysely<unknown>): Promise<void> {
   await db.schema
     .alterTable('organization_posting')
     .alterColumn('end_date', col => col.dropNotNull())

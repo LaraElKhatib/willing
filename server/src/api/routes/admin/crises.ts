@@ -1,4 +1,5 @@
 import { Router, type Response } from 'express';
+import { type Kysely } from 'kysely';
 import zod from 'zod';
 
 import {
@@ -8,13 +9,8 @@ import {
   type AdminCrisisUpdateResponse,
   type AdminCrisesResponse,
 } from './crises.types.ts';
-import database from '../../../db/index.ts';
-import { newCrisisSchema } from '../../../db/tables/index.ts';
+import { type Database, newCrisisSchema } from '../../../db/tables/index.ts';
 import { parseListQuery, parseOptionalBooleanQueryParam } from '../utils/listQuery.ts';
-
-const adminCrisesRouter = Router();
-
-const createCrisisBodySchema = newCrisisSchema;
 
 const crisisParamsSchema = zod.object({
   id: zod.coerce.number().int().positive('ID must be a positive number'),
@@ -24,122 +20,128 @@ const crisisPinBodySchema = zod.object({
   pinned: zod.boolean(),
 });
 
-adminCrisesRouter.get('/', async (req, res: Response<AdminCrisesResponse>) => {
-  const { search, sortBy, sortDir } = parseListQuery(req.query, {
-    allowedSortBy: ['pinned', 'created_at', 'name'],
-    defaultSortBy: 'pinned',
+function createAdminCrisesRouter(db: Kysely<Database>) {
+  const adminCrisesRouter = Router();
+
+  adminCrisesRouter.get('/', async (req, res: Response<AdminCrisesResponse>) => {
+    const { search, sortBy, sortDir } = parseListQuery(req.query, {
+      allowedSortBy: ['pinned', 'created_at', 'name'],
+      defaultSortBy: 'pinned',
+    });
+    const pinnedFilter = parseOptionalBooleanQueryParam(req.query.pinned);
+
+    let crisesQuery = db
+      .selectFrom('crisis')
+      .selectAll();
+
+    if (search) {
+      const searchPattern = `%${search}%`;
+      crisesQuery = crisesQuery.where(eb => eb.or([
+        eb('crisis.name', 'ilike', searchPattern),
+        eb('crisis.description', 'ilike', searchPattern),
+      ]));
+    }
+
+    if (pinnedFilter !== undefined) {
+      crisesQuery = crisesQuery.where('crisis.pinned', '=', pinnedFilter);
+    }
+
+    switch (sortBy) {
+      case 'name':
+        crisesQuery = crisesQuery.orderBy('crisis.name', sortDir);
+        break;
+      case 'created_at':
+        crisesQuery = crisesQuery
+          .orderBy('crisis.created_at', sortDir)
+          .orderBy('crisis.id', sortDir);
+        break;
+      case 'pinned':
+      default:
+        crisesQuery = crisesQuery
+          .orderBy('crisis.pinned', sortDir)
+          .orderBy('crisis.created_at', 'desc')
+          .orderBy('crisis.id', 'desc');
+        break;
+    }
+
+    const crises = await crisesQuery.execute();
+
+    res.json({ crises });
   });
-  const pinnedFilter = parseOptionalBooleanQueryParam(req.query.pinned);
 
-  let crisesQuery = database
-    .selectFrom('crisis')
-    .selectAll();
+  adminCrisesRouter.post('/', async (req, res: Response<AdminCrisisCreateResponse>) => {
+    const body = newCrisisSchema.parse(req.body);
 
-  if (search) {
-    const searchPattern = `%${search}%`;
-    crisesQuery = crisesQuery.where(eb => eb.or([
-      eb('crisis.name', 'ilike', searchPattern),
-      eb('crisis.description', 'ilike', searchPattern),
-    ]));
-  }
+    const crisis = await db
+      .insertInto('crisis')
+      .values({ ...body, pinned: false })
+      .returningAll()
+      .executeTakeFirst();
 
-  if (pinnedFilter !== undefined) {
-    crisesQuery = crisesQuery.where('crisis.pinned', '=', pinnedFilter);
-  }
+    if (!crisis) {
+      res.status(500);
+      throw new Error('Failed to create crisis');
+    }
 
-  switch (sortBy) {
-    case 'name':
-      crisesQuery = crisesQuery.orderBy('crisis.name', sortDir);
-      break;
-    case 'created_at':
-      crisesQuery = crisesQuery
-        .orderBy('crisis.created_at', sortDir)
-        .orderBy('crisis.id', sortDir);
-      break;
-    case 'pinned':
-    default:
-      crisesQuery = crisesQuery
-        .orderBy('crisis.pinned', sortDir)
-        .orderBy('crisis.created_at', 'desc')
-        .orderBy('crisis.id', 'desc');
-      break;
-  }
+    res.status(201).json({ crisis });
+  });
 
-  const crises = await crisesQuery.execute();
+  adminCrisesRouter.put('/:id', async (req, res: Response<AdminCrisisUpdateResponse>) => {
+    const { id } = crisisParamsSchema.parse(req.params);
+    const body = newCrisisSchema.parse(req.body);
 
-  res.json({ crises });
-});
+    const crisis = await db
+      .updateTable('crisis')
+      .set(body)
+      .where('id', '=', id)
+      .returningAll()
+      .executeTakeFirst();
 
-adminCrisesRouter.post('/', async (req, res: Response<AdminCrisisCreateResponse>) => {
-  const body = createCrisisBodySchema.parse(req.body);
+    if (!crisis) {
+      res.status(404);
+      throw new Error('Crisis not found');
+    }
 
-  const crisis = await database
-    .insertInto('crisis')
-    .values({ ...body, pinned: false })
-    .returningAll()
-    .executeTakeFirst();
+    res.json({ crisis });
+  });
 
-  if (!crisis) {
-    res.status(500);
-    throw new Error('Failed to create crisis');
-  }
+  adminCrisesRouter.patch('/:id/pin', async (req, res: Response<AdminCrisisPinResponse>) => {
+    const { id } = crisisParamsSchema.parse(req.params);
+    const { pinned } = crisisPinBodySchema.parse(req.body);
 
-  res.status(201).json({ crisis });
-});
+    const crisis = await db
+      .updateTable('crisis')
+      .set({ pinned })
+      .where('id', '=', id)
+      .returningAll()
+      .executeTakeFirst();
 
-adminCrisesRouter.put('/:id', async (req, res: Response<AdminCrisisUpdateResponse>) => {
-  const { id } = crisisParamsSchema.parse(req.params);
-  const body = createCrisisBodySchema.parse(req.body);
+    if (!crisis) {
+      res.status(404);
+      throw new Error('Crisis not found');
+    }
 
-  const crisis = await database
-    .updateTable('crisis')
-    .set(body)
-    .where('id', '=', id)
-    .returningAll()
-    .executeTakeFirst();
+    res.json({ crisis });
+  });
 
-  if (!crisis) {
-    res.status(404);
-    throw new Error('Crisis not found');
-  }
+  adminCrisesRouter.delete('/:id', async (req, res: Response<AdminCrisisDeleteResponse>) => {
+    const { id } = crisisParamsSchema.parse(req.params);
 
-  res.json({ crisis });
-});
+    const deleted = await db
+      .deleteFrom('crisis')
+      .where('id', '=', id)
+      .returning('id')
+      .executeTakeFirst();
 
-adminCrisesRouter.patch('/:id/pin', async (req, res: Response<AdminCrisisPinResponse>) => {
-  const { id } = crisisParamsSchema.parse(req.params);
-  const { pinned } = crisisPinBodySchema.parse(req.body);
+    if (!deleted) {
+      res.status(404);
+      throw new Error('Crisis not found');
+    }
 
-  const crisis = await database
-    .updateTable('crisis')
-    .set({ pinned })
-    .where('id', '=', id)
-    .returningAll()
-    .executeTakeFirst();
+    res.json({});
+  });
 
-  if (!crisis) {
-    res.status(404);
-    throw new Error('Crisis not found');
-  }
+  return adminCrisesRouter;
+}
 
-  res.json({ crisis });
-});
-
-adminCrisesRouter.delete('/:id', async (req, res: Response<AdminCrisisDeleteResponse>) => {
-  const { id } = crisisParamsSchema.parse(req.params);
-
-  const deleted = await database
-    .deleteFrom('crisis')
-    .where('id', '=', id)
-    .returning('id')
-    .executeTakeFirst();
-
-  if (!deleted) {
-    res.status(404);
-    throw new Error('Crisis not found');
-  }
-
-  res.json({});
-});
-
-export default adminCrisesRouter;
+export default createAdminCrisesRouter;
