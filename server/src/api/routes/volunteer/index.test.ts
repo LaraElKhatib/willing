@@ -1,3 +1,4 @@
+import { sql, type ControlledTransaction } from 'kysely';
 import supertest from 'supertest';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
@@ -5,13 +6,13 @@ import createApp from '../../../app.ts';
 import database from '../../../db/index.ts';
 import * as embeddingUpdates from '../../../services/embeddings/updates.ts';
 import * as jwtService from '../../../services/jwt/index.ts';
+import * as emailService from '../../../services/smtp/emails.ts';
 import * as volunteerService from '../../../services/volunteer/index.ts';
 import { createAdminAccount, createOrganizationAccount, createVolunteerAccount } from '../../../tests/fixtures/accounts.ts';
 import { createOrganizationRequest } from '../../../tests/fixtures/organizationData.ts';
 
 import type { Database } from '../../../db/tables/index.ts';
 import type { VolunteerProfileData } from '../../../services/volunteer/index.ts';
-import type { ControlledTransaction, TransactionBuilder } from 'kysely';
 import type TestAgent from 'supertest/lib/agent.js';
 
 let transaction: ControlledTransaction<Database, []>;
@@ -19,6 +20,9 @@ let server: TestAgent;
 
 const generateJWTSpy = vi
   .spyOn(jwtService, 'generateJWT');
+const sendVolunteerVerificationEmailSpy = vi
+  .spyOn(emailService, 'sendVolunteerVerificationEmail')
+  .mockResolvedValue(undefined);
 
 beforeEach(async () => {
   transaction = await database.startTransaction().execute();
@@ -27,9 +31,11 @@ beforeEach(async () => {
 
 afterEach(async () => {
   await transaction.rollback().execute();
+  generateJWTSpy.mockClear();
+  sendVolunteerVerificationEmailSpy.mockClear();
 });
 
-describe('GET /', () => {
+describe('POST /volunteer/create', () => {
   test('returns 409 if email is used by another volunteer', async () => {
     const { volunteer } = await createVolunteerAccount();
 
@@ -50,7 +56,14 @@ describe('GET /', () => {
       .select(({ fn }) => fn.count('id').as('volunteer_count'))
       .executeTakeFirst();
 
+    const pendingVolunteersNumber = await transaction
+      .selectFrom('volunteer_pending_account')
+      .select(({ fn }) => fn.count('id').as('pending_volunteer_count'))
+      .executeTakeFirst();
+
     expect(volunteersNumber?.volunteer_count).toBe('1');
+    expect(pendingVolunteersNumber?.pending_volunteer_count).toBe('0');
+    expect(sendVolunteerVerificationEmailSpy).not.toHaveBeenCalled();
   });
 
   test('returns 409 if email is used in organization request', async () => {
@@ -68,7 +81,7 @@ describe('GET /', () => {
       })
       .expect(409);
 
-    const [{ volunteer_count }, { organization_request_count }] = await Promise.all([
+    const [{ volunteer_count }, { organization_request_count }, { pending_volunteer_count }] = await Promise.all([
       transaction
         .selectFrom('volunteer_account')
         .select(({ fn }) => fn.count('id').as('volunteer_count'))
@@ -77,10 +90,16 @@ describe('GET /', () => {
         .selectFrom('organization_request')
         .select(({ fn }) => fn.count('id').as('organization_request_count'))
         .executeTakeFirstOrThrow(),
+      transaction
+        .selectFrom('volunteer_pending_account')
+        .select(({ fn }) => fn.count('id').as('pending_volunteer_count'))
+        .executeTakeFirstOrThrow(),
     ]);
 
     expect(volunteer_count).toBe('0');
     expect(organization_request_count).toBe('1');
+    expect(pending_volunteer_count).toBe('0');
+    expect(sendVolunteerVerificationEmailSpy).not.toHaveBeenCalled();
   });
 
   test('returns 409 if email is used by an organization', async () => {
@@ -98,7 +117,7 @@ describe('GET /', () => {
       })
       .expect(409);
 
-    const [{ volunteer_count }, { organization_count }] = await Promise.all([
+    const [{ volunteer_count }, { organization_count }, { pending_volunteer_count }] = await Promise.all([
       transaction
         .selectFrom('volunteer_account')
         .select(({ fn }) => fn.count('id').as('volunteer_count'))
@@ -107,13 +126,19 @@ describe('GET /', () => {
         .selectFrom('organization_account')
         .select(({ fn }) => fn.count('id').as('organization_count'))
         .executeTakeFirstOrThrow(),
+      transaction
+        .selectFrom('volunteer_pending_account')
+        .select(({ fn }) => fn.count('id').as('pending_volunteer_count'))
+        .executeTakeFirstOrThrow(),
     ]);
 
     expect(volunteer_count).toBe('0');
     expect(organization_count).toBe('1');
+    expect(pending_volunteer_count).toBe('0');
+    expect(sendVolunteerVerificationEmailSpy).not.toHaveBeenCalled();
   });
 
-  test('returns 201 and creates a volunteer', async () => {
+  test('returns 200, creates a pending volunteer, and sends verification email', async () => {
     const response = await server
       .post('/volunteer/create')
       .send({
@@ -122,11 +147,184 @@ describe('GET /', () => {
         gender: 'male',
         first_name: 'John',
         last_name: 'Doe',
-        date_of_birth: new Date(),
+        date_of_birth: '2000-01-01',
       })
-      .expect(201);
+      .expect(200);
 
-    expect(response.body.volunteer.email).toBe('volunteer@willing.social');
+    expect(response.body).toEqual({ requires_email_verification: true });
+    expect(generateJWTSpy).not.toHaveBeenCalled();
+    expect(sendVolunteerVerificationEmailSpy).toHaveBeenCalledTimes(1);
+
+    const pendingVolunteer = await transaction
+      .selectFrom('volunteer_pending_account')
+      .selectAll()
+      .where('email', '=', 'volunteer@willing.social')
+      .executeTakeFirstOrThrow();
+
+    expect(pendingVolunteer.first_name).toBe('John');
+    expect(pendingVolunteer.last_name).toBe('Doe');
+    expect(pendingVolunteer.password).not.toBe('TestPassword123!');
+    expect(pendingVolunteer.token.length).toBeGreaterThan(0);
+
+    expect(sendVolunteerVerificationEmailSpy).toHaveBeenCalledWith({
+      volunteerEmail: 'volunteer@willing.social',
+      volunteerName: 'John Doe',
+      verificationToken: pendingVolunteer.token,
+    });
+
+    const [volunteerCountRow, pendingVolunteerCountRow] = await Promise.all([
+      transaction
+        .selectFrom('volunteer_account')
+        .select(({ fn }) => fn.count('id').as('volunteer_count'))
+        .executeTakeFirstOrThrow(),
+      transaction
+        .selectFrom('volunteer_pending_account')
+        .select(({ fn }) => fn.count('id').as('pending_volunteer_count'))
+        .executeTakeFirstOrThrow(),
+    ]);
+
+    expect(volunteerCountRow.volunteer_count).toBe('0');
+    expect(pendingVolunteerCountRow.pending_volunteer_count).toBe('1');
+  });
+
+  test('replaces existing pending volunteer entry for same email', async () => {
+    await transaction
+      .insertInto('volunteer_pending_account')
+      .values({
+        first_name: 'Old',
+        last_name: 'User',
+        password: 'old-hash',
+        email: 'pending@willing.social',
+        gender: 'male',
+        date_of_birth: new Date('1999-01-01T00:00:00.000Z'),
+        token: 'old-token',
+      })
+      .execute();
+
+    await server
+      .post('/volunteer/create')
+      .send({
+        password: 'TestPassword123!',
+        email: 'pending@willing.social',
+        gender: 'female',
+        first_name: 'New',
+        last_name: 'User',
+        date_of_birth: '2001-02-03',
+      })
+      .expect(200);
+
+    const pendingVolunteers = await transaction
+      .selectFrom('volunteer_pending_account')
+      .selectAll()
+      .where('email', '=', 'pending@willing.social')
+      .execute();
+
+    expect(pendingVolunteers).toHaveLength(1);
+    expect(pendingVolunteers[0]!.first_name).toBe('New');
+    expect(pendingVolunteers[0]!.last_name).toBe('User');
+    expect(pendingVolunteers[0]!.gender).toBe('female');
+    expect(pendingVolunteers[0]!.token).not.toBe('old-token');
+    expect(sendVolunteerVerificationEmailSpy).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('POST /volunteer/verify-email', () => {
+  test('returns 400 for an invalid verification token', async () => {
+    await server
+      .post('/volunteer/verify-email')
+      .send({ key: 'invalid-token' })
+      .expect(400);
+  });
+
+  test('returns 400 and deletes pending account when token is expired', async () => {
+    await transaction
+      .insertInto('volunteer_pending_account')
+      .values({
+        first_name: 'Expired',
+        last_name: 'Token',
+        password: 'hashed-password',
+        email: 'expired-token@example.com',
+        gender: 'male',
+        date_of_birth: new Date('2000-01-01T00:00:00.000Z'),
+        token: 'expired-token',
+        created_at: sql`now() - interval '2 hours'`,
+      })
+      .execute();
+
+    await server
+      .post('/volunteer/verify-email')
+      .send({ key: 'expired-token' })
+      .expect(400);
+
+    const pendingVolunteer = await transaction
+      .selectFrom('volunteer_pending_account')
+      .select('id')
+      .where('email', '=', 'expired-token@example.com')
+      .executeTakeFirst();
+
+    expect(pendingVolunteer).toBeUndefined();
+    expect(generateJWTSpy).not.toHaveBeenCalled();
+  });
+
+  test('returns 409 and removes pending account when account already exists', async () => {
+    const { volunteer } = await createVolunteerAccount({ email: 'existing-verify@example.com' });
+    generateJWTSpy.mockClear();
+
+    await transaction
+      .insertInto('volunteer_pending_account')
+      .values({
+        first_name: volunteer.first_name,
+        last_name: volunteer.last_name,
+        password: 'hashed-password',
+        email: volunteer.email,
+        gender: volunteer.gender,
+        date_of_birth: new Date(volunteer.date_of_birth),
+        token: 'existing-token',
+      })
+      .execute();
+
+    await server
+      .post('/volunteer/verify-email')
+      .send({ key: 'existing-token' })
+      .expect(409);
+
+    const pendingVolunteer = await transaction
+      .selectFrom('volunteer_pending_account')
+      .select('id')
+      .where('email', '=', volunteer.email)
+      .executeTakeFirst();
+
+    expect(pendingVolunteer).toBeUndefined();
+    expect(generateJWTSpy).not.toHaveBeenCalled();
+  });
+
+  test('returns 200, creates volunteer account, and returns jwt token', async () => {
+    const recomputeProfileSpy = vi
+      .spyOn(embeddingUpdates, 'recomputeVolunteerProfileVector')
+      .mockResolvedValue(null);
+    const recomputeExperienceSpy = vi
+      .spyOn(embeddingUpdates, 'recomputeVolunteerExperienceVector')
+      .mockResolvedValue(null);
+
+    await transaction
+      .insertInto('volunteer_pending_account')
+      .values({
+        first_name: 'Verified',
+        last_name: 'Volunteer',
+        password: 'hashed-password',
+        email: 'verify-success@example.com',
+        gender: 'female',
+        date_of_birth: new Date('2002-05-06T00:00:00.000Z'),
+        token: 'valid-token',
+      })
+      .execute();
+
+    const response = await server
+      .post('/volunteer/verify-email')
+      .send({ key: 'valid-token' })
+      .expect(200);
+
+    expect(response.body.volunteer.email).toBe('verify-success@example.com');
     expect(response.body.volunteer.password).toBeUndefined();
     expect(response.body.volunteer.profile_vector).toBeUndefined();
     expect(response.body.volunteer.experience_vector).toBeUndefined();
@@ -136,13 +334,99 @@ describe('GET /', () => {
       id: response.body.volunteer.id,
       role: 'volunteer',
     });
+    expect(recomputeProfileSpy).toHaveBeenCalledWith(response.body.volunteer.id, transaction);
+    expect(recomputeExperienceSpy).toHaveBeenCalledWith(response.body.volunteer.id, transaction);
 
-    const { volunteer_count } = await transaction
+    const volunteer = await transaction
       .selectFrom('volunteer_account')
-      .select(({ fn }) => fn.count('id').as('volunteer_count'))
+      .selectAll()
+      .where('email', '=', 'verify-success@example.com')
+      .executeTakeFirst();
+
+    expect(volunteer).not.toBeUndefined();
+
+    const pendingVolunteer = await transaction
+      .selectFrom('volunteer_pending_account')
+      .select('id')
+      .where('email', '=', 'verify-success@example.com')
+      .executeTakeFirst();
+
+    expect(pendingVolunteer).toBeUndefined();
+
+    recomputeProfileSpy.mockRestore();
+    recomputeExperienceSpy.mockRestore();
+  });
+});
+
+describe('POST /volunteer/resend-verification', () => {
+  test('returns 200 and does nothing when email already belongs to a volunteer', async () => {
+    const { volunteer } = await createVolunteerAccount({ email: 'resend-existing@example.com' });
+
+    const response = await server
+      .post('/volunteer/resend-verification')
+      .send({ email: volunteer.email })
+      .expect(200);
+
+    expect(response.body).toEqual({});
+    expect(sendVolunteerVerificationEmailSpy).not.toHaveBeenCalled();
+
+    const { pending_volunteer_count } = await transaction
+      .selectFrom('volunteer_pending_account')
+      .select(({ fn }) => fn.count('id').as('pending_volunteer_count'))
       .executeTakeFirstOrThrow();
 
-    expect(volunteer_count).toBe('1');
+    expect(pending_volunteer_count).toBe('0');
+  });
+
+  test('returns 200 and does nothing when pending volunteer is not found', async () => {
+    const response = await server
+      .post('/volunteer/resend-verification')
+      .send({ email: 'missing-pending@example.com' })
+      .expect(200);
+
+    expect(response.body).toEqual({});
+    expect(sendVolunteerVerificationEmailSpy).not.toHaveBeenCalled();
+  });
+
+  test('returns 200, rotates pending token, and resends verification email', async () => {
+    const oldCreatedAt = new Date('2025-01-01T00:00:00.000Z');
+
+    await transaction
+      .insertInto('volunteer_pending_account')
+      .values({
+        first_name: 'Resend',
+        last_name: 'Volunteer',
+        password: 'hashed-password',
+        email: 'resend@example.com',
+        gender: 'male',
+        date_of_birth: new Date('2001-07-08T00:00:00.000Z'),
+        token: 'old-token',
+        created_at: oldCreatedAt,
+      })
+      .execute();
+
+    const response = await server
+      .post('/volunteer/resend-verification')
+      .send({ email: 'resend@example.com' })
+      .expect(200);
+
+    expect(response.body).toEqual({});
+    expect(sendVolunteerVerificationEmailSpy).toHaveBeenCalledTimes(1);
+
+    const pendingVolunteer = await transaction
+      .selectFrom('volunteer_pending_account')
+      .selectAll()
+      .where('email', '=', 'resend@example.com')
+      .executeTakeFirstOrThrow();
+
+    expect(pendingVolunteer.token).not.toBe('old-token');
+    expect(pendingVolunteer.created_at.getTime()).toBeGreaterThan(oldCreatedAt.getTime());
+
+    expect(sendVolunteerVerificationEmailSpy).toHaveBeenCalledWith({
+      volunteerEmail: 'resend@example.com',
+      volunteerName: 'Resend Volunteer',
+      verificationToken: pendingVolunteer.token,
+    });
   });
 });
 
