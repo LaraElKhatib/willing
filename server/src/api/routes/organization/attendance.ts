@@ -189,7 +189,7 @@ function createOrganizationAttendanceRouter(db: Kysely<Database>) {
       .where('id', '=', enrollmentId)
       .execute();
 
-    await recomputeVolunteerExperienceVector(enrollment.volunteer_id);
+    await recomputeVolunteerExperienceVector(enrollment.volunteer_id, db);
 
     res.json({});
   });

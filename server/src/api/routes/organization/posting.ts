@@ -432,7 +432,7 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
     });
 
     if (shouldRecomputePostingVectors) {
-      await recomputePostingVectors(postingId);
+      await recomputePostingVectors(postingId, db);
     }
 
     const updatedPosting = await db
@@ -490,7 +490,7 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
 
     const impactedVolunteerIds = Array.from(new Set(impactedVolunteerRows.map(row => row.volunteer_id)));
     for (const volunteerId of impactedVolunteerIds) {
-      await recomputeVolunteerExperienceVector(volunteerId);
+      await recomputeVolunteerExperienceVector(volunteerId, db);
     }
 
     res.json({});
