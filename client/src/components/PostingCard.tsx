@@ -76,6 +76,15 @@ function PostingCard({ posting, showCrisis = true, crisisTagClickable = true }: 
   if (volunteerPercent >= 100) radialColor = 'text-error';
   else if (volunteerPercent > 70) radialColor = 'text-warning';
 
+  const crisisTagContent = (
+    <>
+      <AlertCircle size={14} />
+      <span className="truncate max-w-40 text-sm font-semibold">
+        {posting.crisis_name}
+      </span>
+    </>
+  );
+
   return (
     // <article className="relative rounded-xl border border-base-200 bg-base-100 shadow-sm hover:shadow-md transition-shadow h-full flex flex-col overflow-visible">
     <Card padding={false}>
@@ -86,18 +95,12 @@ function PostingCard({ posting, showCrisis = true, crisisTagClickable = true }: 
                 to={`/volunteer/crises/${posting.crisis_id}/postings`}
                 className="absolute -top-2 -right-2 z-20 inline-flex items-center gap-1 rounded-md bg-accent text-accent-content px-2 py-1 shadow-sm rotate-3 transition-transform duration-200 hover:rotate-0"
               >
-                <AlertCircle size={14} />
-                <span className="truncate max-w-40 text-sm font-semibold">
-                  {posting.crisis_name}
-                </span>
+                {crisisTagContent}
               </Link>
             )
           : (
               <span className="absolute -top-2 -right-2 z-20 inline-flex items-center gap-1 rounded-md bg-accent text-accent-content px-2 py-1 shadow-sm rotate-3">
-                <AlertCircle size={14} />
-                <span className="truncate max-w-40 text-sm font-semibold">
-                  {posting.crisis_name}
-                </span>
+                {crisisTagContent}
               </span>
             )
       )}

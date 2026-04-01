@@ -160,6 +160,13 @@ function PostingList({
     ? 'hidden min-[1700px]:block'
     : 'hidden lg:block 2xl:hidden';
 
+  const crisisTagContent = (
+    <>
+      <AlertCircle size={14} />
+      <span className="truncate max-w-40 font-semibold">{posting.crisis_name}</span>
+    </>
+  );
+
   return (
 
     <div className="relative overflow-visible">
@@ -171,14 +178,12 @@ function PostingList({
                 onClick={event => event.stopPropagation()}
                 className="absolute -top-2 right-1 z-20 pointer-events-auto inline-flex items-center gap-1 rounded-md bg-accent px-2 py-1 text-sm text-accent-content shadow-sm rotate-3 transition-transform duration-200 hover:rotate-0"
               >
-                <AlertCircle size={14} />
-                <span className="truncate max-w-40 font-semibold">{posting.crisis_name}</span>
+                {crisisTagContent}
               </Link>
             )
           : (
               <span className="absolute -top-2 right-1 z-20 inline-flex items-center gap-1 rounded-md bg-accent px-2 py-1 text-sm text-accent-content shadow-sm rotate-3">
-                <AlertCircle size={14} />
-                <span className="truncate max-w-40 font-semibold">{posting.crisis_name}</span>
+                {crisisTagContent}
               </span>
             )
       )}
