@@ -125,6 +125,19 @@ Useful client scripts:
 8. Add explicit edge-case coverage for each endpoint you touch (validation boundaries, missing data, invalid identifiers, empty-state responses, and provider/dependency failures where applicable).
 9. Prefer descriptive test names that state both condition and expected outcome (e.g., "returns 400 when query is not a string").
 
+### New Route Testing Checklist
+
+Every new route must have comprehensive tests covering **all behavioral paths and edge cases**:
+
+- **Authorization & Access Control**: Test unauthenticated, wrong role, and correct role access
+- **Input Validation**: Test valid payload, missing required fields, wrong data types, boundary values, invalid enums
+- **Business Logic & State**: Test success path, resource not found, invalid state transitions, missing dependencies
+- **Response Shape**: Verify correct HTTP status, response matches `*Response` type, no sensitive data leaks
+- **Edge Cases**: Empty results, concurrent writes, boundary conditions, dependency failures
+- **Test Names**: Use descriptive names stating condition and expected outcome (e.g., "returns 400 when email is already registered")
+
+Create tests as `<name>.test.ts` alongside your route file.
+
 ## Core Engineering Rules
 
 1. Reuse canonical schemas and types from `server/src/db/tables.ts`.
