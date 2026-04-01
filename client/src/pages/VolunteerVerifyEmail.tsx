@@ -52,7 +52,7 @@ export default function VolunteerVerifyEmail() {
           message: err.message,
         });
       });
-  }, [verificationKey]);
+  }, [verificationKey, trigger, notifications, navigate]);
 
   if (!verificationKey) {
     return (
