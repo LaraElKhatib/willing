@@ -77,9 +77,14 @@ export function FormField<T extends FieldValues>({
 
   return (
     <fieldset className="fieldset w-full">
-      <label className="label">
-        <span className="label-text font-medium">{label}</span>
-      </label>
+      {
+        type !== 'date'
+        && (
+          <label className="label">
+            <span className="label-text font-medium">{label}</span>
+          </label>
+        )
+      }
       <div className="relative">
         {Icon && type !== 'date' && (
           <Icon
