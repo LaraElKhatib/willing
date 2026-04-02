@@ -253,119 +253,132 @@ function AdminReports() {
         </form>
       </Card>
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        {(activeFilters.scope === 'all' || activeFilters.scope === 'organization') && (activeFilters.reportType === 'all' || organizationReports.length > 0) && (
-          <Card
-            title="Organization Reports"
-            description="Reports submitted by volunteers about organizations."
-            Icon={Building2}
-            right={(
-              <span className="badge badge-accent">
-                {organizationReports.length}
-                {' '}
-                Total
-              </span>
-            )}
-          >
-            {loading && !data
-              ? (
-                  <div className="space-y-3">
-                    <div className="h-20 w-full rounded-xl skeleton" />
-                    <div className="h-20 w-full rounded-xl skeleton" />
-                  </div>
-                )
-              : organizationReports.length === 0
-                ? (
-                    <EmptyState
-                      Icon={Inbox}
-                      title="No organization reports"
-                      description="No reports submitted by volunteers against organizations yet."
-                    />
-                  )
-                : (
-                    <div className="space-y-3">
-                      {organizationReports.map(report => (
-                        <div key={report.id} className="rounded-xl border border-base-300 bg-base-100 p-4">
-                          <div className="mb-2 flex flex-wrap items-center gap-2">
-                            <span className="badge badge-error badge-outline">{report.title}</span>
-                            <span className="text-xs text-base-content/60">{new Date(report.created_at).toLocaleString()}</span>
+      {(loading && !data)
+        ? (
+            <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+              <Card title="Organization Reports">
+                <div className="space-y-3">
+                  <div className="h-20 w-full rounded-xl skeleton" />
+                  <div className="h-20 w-full rounded-xl skeleton" />
+                </div>
+              </Card>
+              <Card title="Volunteer Reports">
+                <div className="space-y-3">
+                  <div className="h-20 w-full rounded-xl skeleton" />
+                  <div className="h-20 w-full rounded-xl skeleton" />
+                </div>
+              </Card>
+            </div>
+          )
+        : organizationReports.length === 0 && volunteerReports.length === 0
+          ? (
+              <EmptyState
+                Icon={Flag}
+                title="No reports found"
+                description="There are no reports matching your filters. Check back later or adjust your search criteria."
+              />
+            )
+          : (
+              <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+                {(activeFilters.scope === 'all' || activeFilters.scope === 'organization') && (activeFilters.reportType === 'all' || organizationReports.length > 0) && (
+                  <Card
+                    title="Organization Reports"
+                    description="Reports submitted by volunteers about organizations."
+                    Icon={Building2}
+                    right={(
+                      <span className="badge badge-accent">
+                        {organizationReports.length}
+                        {' '}
+                        Total
+                      </span>
+                    )}
+                  >
+                    {organizationReports.length === 0
+                      ? (
+                          <EmptyState
+                            Icon={Inbox}
+                            title="No organization reports"
+                            description="No reports submitted by volunteers against organizations yet."
+                          />
+                        )
+                      : (
+                          <div className="space-y-3">
+                            {organizationReports.map(report => (
+                              <div key={report.id} className="rounded-xl border border-base-300 bg-base-100 p-4">
+                                <div className="mb-2 flex flex-wrap items-center gap-2">
+                                  <span className="badge badge-error badge-outline">{report.title}</span>
+                                  <span className="text-xs text-base-content/60">{new Date(report.created_at).toLocaleString()}</span>
+                                </div>
+                                <p className="text-sm text-base-content/80 whitespace-pre-wrap mb-3">{report.message}</p>
+                                <div className="text-xs text-base-content/70 space-y-1">
+                                  <p>
+                                    <span className="font-semibold">Reported organization:</span>
+                                    {' '}
+                                    {`${report.reported_organization.name} (${report.reported_organization.email})`}
+                                  </p>
+                                  <p>
+                                    <span className="font-semibold">Reporter volunteer:</span>
+                                    {' '}
+                                    {`${report.reporter_volunteer.first_name} ${report.reporter_volunteer.last_name} (${report.reporter_volunteer.email})`}
+                                  </p>
+                                </div>
+                              </div>
+                            ))}
                           </div>
-                          <p className="text-sm text-base-content/80 whitespace-pre-wrap mb-3">{report.message}</p>
-                          <div className="text-xs text-base-content/70 space-y-1">
-                            <p>
-                              <span className="font-semibold">Reported organization:</span>
-                              {' '}
-                              {`${report.reported_organization.name} (${report.reported_organization.email})`}
-                            </p>
-                            <p>
-                              <span className="font-semibold">Reporter volunteer:</span>
-                              {' '}
-                              {`${report.reporter_volunteer.first_name} ${report.reporter_volunteer.last_name} (${report.reporter_volunteer.email})`}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-          </Card>
-        )}
+                        )}
+                  </Card>
+                )}
 
-        {(activeFilters.scope === 'all' || activeFilters.scope === 'volunteer') && (activeFilters.reportType === 'all' || volunteerReports.length > 0) && (
-          <Card
-            title="Volunteer Reports"
-            description="Reports submitted by organizations about volunteers."
-            Icon={UserRound}
-            right={(
-              <span className="badge badge-accent">
-                {volunteerReports.length}
-                {' '}
-                Total
-              </span>
+                {(activeFilters.scope === 'all' || activeFilters.scope === 'volunteer') && (activeFilters.reportType === 'all' || volunteerReports.length > 0) && (
+                  <Card
+                    title="Volunteer Reports"
+                    description="Reports submitted by organizations about volunteers."
+                    Icon={UserRound}
+                    right={(
+                      <span className="badge badge-accent">
+                        {volunteerReports.length}
+                        {' '}
+                        Total
+                      </span>
+                    )}
+                  >
+                    {volunteerReports.length === 0
+                      ? (
+                          <EmptyState
+                            Icon={Inbox}
+                            title="No volunteer reports"
+                            description="No reports submitted by organizations against volunteers yet."
+                          />
+                        )
+                      : (
+                          <div className="space-y-3">
+                            {volunteerReports.map(report => (
+                              <div key={report.id} className="rounded-xl border border-base-300 bg-base-100 p-4">
+                                <div className="mb-2 flex flex-wrap items-center gap-2">
+                                  <span className="badge badge-error badge-outline">{report.title}</span>
+                                  <span className="text-xs text-base-content/60">{new Date(report.created_at).toLocaleString()}</span>
+                                </div>
+                                <p className="text-sm text-base-content/80 whitespace-pre-wrap mb-3">{report.message}</p>
+                                <div className="text-xs text-base-content/70 space-y-1">
+                                  <p>
+                                    <span className="font-semibold">Reported volunteer:</span>
+                                    {' '}
+                                    {`${report.reported_volunteer.first_name} ${report.reported_volunteer.last_name} (${report.reported_volunteer.email})`}
+                                  </p>
+                                  <p>
+                                    <span className="font-semibold">Reporter organization:</span>
+                                    {' '}
+                                    {`${report.reporter_organization.name} (${report.reporter_organization.email})`}
+                                  </p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                  </Card>
+                )}
+              </div>
             )}
-          >
-            {loading && !data
-              ? (
-                  <div className="space-y-3">
-                    <div className="h-20 w-full rounded-xl skeleton" />
-                    <div className="h-20 w-full rounded-xl skeleton" />
-                  </div>
-                )
-              : volunteerReports.length === 0
-                ? (
-                    <EmptyState
-                      Icon={Inbox}
-                      title="No volunteer reports"
-                      description="No reports submitted by organizations against volunteers yet."
-                    />
-                  )
-                : (
-                    <div className="space-y-3">
-                      {volunteerReports.map(report => (
-                        <div key={report.id} className="rounded-xl border border-base-300 bg-base-100 p-4">
-                          <div className="mb-2 flex flex-wrap items-center gap-2">
-                            <span className="badge badge-error badge-outline">{report.title}</span>
-                            <span className="text-xs text-base-content/60">{new Date(report.created_at).toLocaleString()}</span>
-                          </div>
-                          <p className="text-sm text-base-content/80 whitespace-pre-wrap mb-3">{report.message}</p>
-                          <div className="text-xs text-base-content/70 space-y-1">
-                            <p>
-                              <span className="font-semibold">Reported volunteer:</span>
-                              {' '}
-                              {`${report.reported_volunteer.first_name} ${report.reported_volunteer.last_name} (${report.reported_volunteer.email})`}
-                            </p>
-                            <p>
-                              <span className="font-semibold">Reporter organization:</span>
-                              {' '}
-                              {`${report.reporter_organization.name} (${report.reporter_organization.email})`}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-          </Card>
-        )}
-      </div>
     </PageContainer>
   );
 }
