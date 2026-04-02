@@ -16,11 +16,12 @@ import LocationPicker from '../components/LocationPicker';
 import OrganizationProfilePicture from '../components/OrganizationProfilePicture';
 import PostingCollection from '../components/postings/PostingCollection';
 import PostingViewModeToggle from '../components/postings/PostingViewModeToggle';
+import useNotifications from '../notifications/useNotifications';
 import { FormField, FormRootError } from '../utils/formUtils';
 import requestServer from '../utils/requestServer';
 import useAsync from '../utils/useAsync';
 
-import type { OrganizationProfileResponse } from '../../../server/src/api/types';
+import type { OrganizationProfileResponse, VolunteerReportOrganizationResponse } from '../../../server/src/api/types';
 import type { PostingWithContext } from '../../../server/src/types';
 
 const reportOrganizationSchema = zod.object({
@@ -33,6 +34,7 @@ type ReportOrganizationFormData = zod.infer<typeof reportOrganizationSchema>;
 function OrganizationProfile() {
   const { id } = useParams<{ id: string }>();
   const [reportModalOpen, setReportModalOpen] = useState(false);
+  const notifications = useNotifications();
   const reportForm = useForm<ReportOrganizationFormData>({
     resolver: zodResolver(reportOrganizationSchema),
     mode: 'onTouched',
@@ -72,8 +74,36 @@ function OrganizationProfile() {
     });
   };
 
-  const submitReportForm = async (_formData: ReportOrganizationFormData) => {
+  const {
+    loading: submittingReport,
+    trigger: submitOrganizationReport,
+  } = useAsync(async (reportData: ReportOrganizationFormData) => {
+    if (!id) throw new Error('Organization ID is missing.');
 
+    await requestServer<VolunteerReportOrganizationResponse>(`/volunteer/organization/${id}/report`, {
+      method: 'POST',
+      includeJwt: true,
+      body: reportData,
+    });
+  }, { notifyOnError: false });
+
+  const submitReportForm = async (formData: ReportOrganizationFormData) => {
+    reportForm.clearErrors('root');
+
+    try {
+      await submitOrganizationReport(formData);
+      notifications.push({
+        type: 'success',
+        message: 'Report submitted successfully.',
+      });
+      closeReportModal();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to submit report.';
+      reportForm.setError('root', {
+        type: 'server',
+        message,
+      });
+    }
   };
 
   const handleSubmitReportForm = reportForm.handleSubmit(submitReportForm);
@@ -340,8 +370,8 @@ function OrganizationProfile() {
             <Button
               type="submit"
               color="error"
-              loading={false}
-              disabled={!reportForm.formState.isValid}
+              loading={submittingReport}
+              disabled={!reportForm.formState.isValid || submittingReport}
               onClick={handleSubmitReportForm}
             >
               Report Organization
