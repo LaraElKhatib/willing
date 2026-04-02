@@ -393,7 +393,7 @@ describe('POST /user/forgot-password/reset', () => {
   });
 
   test('invalidates previous token after password reset', async () => {
-    const { volunteer, plainPassword } = await createVolunteerAccount({
+    const { volunteer, plainPassword } = await createVolunteerAccount(transaction, {
       email: 'invalidates-token@example.com',
       password: 'OldPassword123!',
     });
