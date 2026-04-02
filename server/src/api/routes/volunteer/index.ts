@@ -15,6 +15,7 @@ import {
   type VolunteerOrganizationSearchResponse,
   type VolunteerPinnedCrisesResponse,
   type VolunteerProfileResponse,
+  type VolunteerReportOrganizationResponse,
   type VolunteerResendVerificationResponse,
   type VolunteerVerifyEmailResponse,
 } from './index.types.ts';
@@ -22,7 +23,7 @@ import createVolunteerPostingRouter from './posting.ts';
 import authorizeOnly from '../../../auth/authorizeOnly.ts';
 import createResetPassword from '../../../auth/resetPassword.ts';
 import executeTransaction from '../../../db/executeTransaction.ts';
-import { type Database, type VolunteerAccountWithoutPassword, newVolunteerAccountSchema, volunteerAccountSchema } from '../../../db/tables/index.ts';
+import { type Database, type VolunteerAccountWithoutPassword, newVolunteerAccountSchema, newOrganizationReportSchema, volunteerAccountSchema } from '../../../db/tables/index.ts';
 import {
   recomputeVolunteerExperienceVector,
   recomputeVolunteerProfileVector,
@@ -602,6 +603,27 @@ function createVolunteerRouter(db: Kysely<Database>) {
 
     const profile = await getVolunteerProfile(volunteerId);
     res.json(profile);
+  });
+
+  volunteerRouter.post('/organization/:id/report', async (req, res: Response<VolunteerReportOrganizationResponse>) => {
+    const { id: organizationId } = zod.object({
+      id: zod.coerce.number().int().positive('Organization ID must be a positive number'),
+    }).parse(req.params);
+
+    const body = newOrganizationReportSchema.parse(req.body);
+    const volunteerId = req.userJWT!.id;
+
+    await db
+      .insertInto('organization_report')
+      .values({
+        reported_organization_id: organizationId,
+        reporter_volunteer_id: volunteerId,
+        title: body.title,
+        message: body.message,
+      })
+      .execute();
+
+    res.json({});
   });
 
   volunteerRouter.use('/profile/cv', createVolunteerCvRouter(db));
