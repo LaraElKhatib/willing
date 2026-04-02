@@ -259,7 +259,7 @@ function AdminReports() {
 
       {(loading && !data)
         ? (
-            <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+            <div className="grid grid-cols-1 gap-6 xl:grid-cols-2 items-start">
               <Card title="Organization Reports">
                 <div className="space-y-3">
                   <div className="h-20 w-full rounded-xl skeleton" />
@@ -283,7 +283,7 @@ function AdminReports() {
               />
             )
           : (
-              <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+              <div className="grid grid-cols-1 gap-6 xl:grid-cols-2 items-start">
                 {(activeFilters.scope === 'all' || activeFilters.scope === 'organization') && (activeFilters.reportType === 'all' || organizationReports.length > 0) && (
                   <Card
                     title="Organization Reports"
@@ -310,14 +310,14 @@ function AdminReports() {
                             {organizationReports.map(report => (
                               <div
                                 key={report.id}
-                                className="rounded-xl border border-base-300 bg-base-100 p-4 flex flex-col"
+                                className="rounded-xl border border-base-300 bg-base-100 p-4 flex flex-col items-start"
                               >
                                 <div className="mb-2 flex flex-wrap items-center gap-2">
                                   <span className="badge badge-error badge-outline">{formatReportTitle(report.title)}</span>
                                   <span className="text-xs text-base-content/60">{new Date(report.created_at).toLocaleString()}</span>
                                 </div>
                                 <p className="text-sm text-base-content/80 whitespace-pre-wrap mb-3">{report.message}</p>
-                                <div className="text-xs text-base-content/70 space-y-1 mb-4 flex-grow">
+                                <div className="text-xs text-base-content/70 space-y-1 mb-4">
                                   <p>
                                     <span className="font-semibold">Reported organization:</span>
                                     {' '}
@@ -369,14 +369,14 @@ function AdminReports() {
                             {volunteerReports.map(report => (
                               <div
                                 key={report.id}
-                                className="rounded-xl border border-base-300 bg-base-100 p-4 flex flex-col"
+                                className="rounded-xl border border-base-300 bg-base-100 p-4 flex flex-col items-start"
                               >
                                 <div className="mb-2 flex flex-wrap items-center gap-2">
                                   <span className="badge badge-error badge-outline">{formatReportTitle(report.title)}</span>
                                   <span className="text-xs text-base-content/60">{new Date(report.created_at).toLocaleString()}</span>
                                 </div>
                                 <p className="text-sm text-base-content/80 whitespace-pre-wrap mb-3">{report.message}</p>
-                                <div className="text-xs text-base-content/70 space-y-1 mb-4 flex-grow">
+                                <div className="text-xs text-base-content/70 space-y-1 mb-4">
                                   <p>
                                     <span className="font-semibold">Reported volunteer:</span>
                                     {' '}
