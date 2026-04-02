@@ -493,7 +493,7 @@ function OrganizationVolunteerProfile() {
               name="message"
               label="Message"
               type="textarea"
-              placeholder="Describe what happened and why you are reporting this volunteer"
+              placeholder="Describe what happened and why you are reporting this volunteer."
             />
             <p className="text-xs opacity-70 text-right px-1">
               {`${reportMessageLength}/1000`}
@@ -518,7 +518,7 @@ function OrganizationVolunteerProfile() {
                 loading={submittingReport}
                 disabled={!canSubmitReport}
               >
-                Submit Report
+                Report volunteer
               </Button>
             </div>
           </form>

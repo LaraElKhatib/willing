@@ -347,7 +347,7 @@ function OrganizationProfile() {
               name="message"
               label="Message"
               type="textarea"
-              placeholder="Describe what happened and why you are reporting this organization"
+              placeholder="Describe what happened and why you are reporting this organization."
             />
 
             <div className="text-xs text-base-content/50 text-right">
