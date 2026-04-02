@@ -9,6 +9,7 @@ import {
   type AdminMeResponse,
   type AdminOrganizationRequestReviewResponse,
   type AdminOrganizationRequestsResponse,
+  type AdminReportsResponse,
 } from './index.types.ts';
 import authorizeOnly from '../../../auth/authorizeOnly.ts';
 import removePassword from '../../../auth/removePassword.ts';
@@ -114,6 +115,89 @@ function createAdminRouter(db: Kysely<Database>) {
     const organizationRequests = await organizationRequestsQuery.execute();
 
     res.json({ organizationRequests });
+  });
+
+  adminRouter.get('/reports', async (_req, res: Response<AdminReportsResponse>) => {
+    const organizationReportsRows = await db
+      .selectFrom('organization_report')
+      .innerJoin('organization_account as reported_organization', 'reported_organization.id', 'organization_report.reported_organization_id')
+      .innerJoin('volunteer_account as reporter_volunteer', 'reporter_volunteer.id', 'organization_report.reporter_volunteer_id')
+      .select([
+        'organization_report.id as id',
+        'organization_report.title as title',
+        'organization_report.message as message',
+        'organization_report.created_at as created_at',
+        'reported_organization.id as reported_organization_id',
+        'reported_organization.name as reported_organization_name',
+        'reported_organization.email as reported_organization_email',
+        'reporter_volunteer.id as reporter_volunteer_id',
+        'reporter_volunteer.first_name as reporter_volunteer_first_name',
+        'reporter_volunteer.last_name as reporter_volunteer_last_name',
+        'reporter_volunteer.email as reporter_volunteer_email',
+      ])
+      .orderBy('organization_report.created_at', 'desc')
+      .execute();
+
+    const volunteerReportsRows = await db
+      .selectFrom('volunteer_report')
+      .innerJoin('volunteer_account as reported_volunteer', 'reported_volunteer.id', 'volunteer_report.reported_volunteer_id')
+      .innerJoin('organization_account as reporter_organization', 'reporter_organization.id', 'volunteer_report.reporter_organization_id')
+      .select([
+        'volunteer_report.id as id',
+        'volunteer_report.title as title',
+        'volunteer_report.message as message',
+        'volunteer_report.created_at as created_at',
+        'reported_volunteer.id as reported_volunteer_id',
+        'reported_volunteer.first_name as reported_volunteer_first_name',
+        'reported_volunteer.last_name as reported_volunteer_last_name',
+        'reported_volunteer.email as reported_volunteer_email',
+        'reporter_organization.id as reporter_organization_id',
+        'reporter_organization.name as reporter_organization_name',
+        'reporter_organization.email as reporter_organization_email',
+      ])
+      .orderBy('volunteer_report.created_at', 'desc')
+      .execute();
+
+    const organizationReports = organizationReportsRows.map(report => ({
+      id: report.id,
+      title: report.title,
+      message: report.message,
+      created_at: report.created_at,
+      reported_organization: {
+        id: report.reported_organization_id,
+        name: report.reported_organization_name,
+        email: report.reported_organization_email,
+      },
+      reporter_volunteer: {
+        id: report.reporter_volunteer_id,
+        first_name: report.reporter_volunteer_first_name,
+        last_name: report.reporter_volunteer_last_name,
+        email: report.reporter_volunteer_email,
+      },
+    }));
+
+    const volunteerReports = volunteerReportsRows.map(report => ({
+      id: report.id,
+      title: report.title,
+      message: report.message,
+      created_at: report.created_at,
+      reported_volunteer: {
+        id: report.reported_volunteer_id,
+        first_name: report.reported_volunteer_first_name,
+        last_name: report.reported_volunteer_last_name,
+        email: report.reported_volunteer_email,
+      },
+      reporter_organization: {
+        id: report.reporter_organization_id,
+        name: report.reporter_organization_name,
+        email: report.reporter_organization_email,
+      },
+    }));
+
+    res.json({
+      organizationReports,
+      volunteerReports,
+    });
   });
 
   adminRouter.post('/reviewOrganizationRequest', async (req, res: Response<AdminOrganizationRequestReviewResponse>, next) => {
