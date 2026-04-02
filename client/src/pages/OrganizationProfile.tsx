@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Building2, ClipboardList, Flag, Globe, Mail, MapPin, Phone, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { useParams } from 'react-router-dom';
 import zod from 'zod';
 
@@ -42,6 +42,12 @@ function OrganizationProfile() {
       message: '',
     },
   });
+  const reportMessage = useWatch({
+    control: reportForm.control,
+    name: 'message',
+    defaultValue: '',
+  });
+  const reportMessageLength = reportMessage.length;
 
   const { data, loading, error } = useAsync(
     async () => {
@@ -65,6 +71,12 @@ function OrganizationProfile() {
       message: '',
     });
   };
+
+  const submitReportForm = async (_formData: ReportOrganizationFormData) => {
+
+  };
+
+  const handleSubmitReportForm = reportForm.handleSubmit(submitReportForm);
 
   const postingsWithContext = useMemo<PostingWithContext[]>(() => {
     if (!data) return [];
@@ -308,8 +320,33 @@ function OrganizationProfile() {
               placeholder="Describe what happened and why you are reporting this organization"
             />
 
+            <div className="text-xs text-base-content/50 text-right">
+              {reportMessageLength}
+              /1000 characters
+            </div>
+
             <FormRootError form={reportForm} />
           </form>
+
+          <div className="modal-action mt-6">
+            <Button
+              type="button"
+              color="ghost"
+              Icon={X}
+              onClick={closeReportModal}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              color="error"
+              loading={false}
+              disabled={!reportForm.formState.isValid}
+              onClick={handleSubmitReportForm}
+            >
+              Report Organization
+            </Button>
+          </div>
         </div>
         <div className="modal-backdrop" onClick={closeReportModal}>Close</div>
       </div>
