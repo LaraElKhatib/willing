@@ -222,16 +222,16 @@ function AdminReports() {
               <select
                 id="reports-sort"
                 className="select select-bordered w-full"
-                value={`${filters.sortBy}_${filters.sortDir}`}
+                value={`${filters.sortBy}|${filters.sortDir}`}
                 onChange={(event) => {
-                  const [sortBy, sortDir] = event.target.value.split('_') as [ReportsSortBy, ReportsSortDir];
+                  const [sortBy, sortDir] = event.target.value.split('|') as [ReportsSortBy, ReportsSortDir];
                   setFilters(prev => ({ ...prev, sortBy, sortDir }));
                 }}
               >
-                <option value="created_at_desc">Newest first</option>
-                <option value="created_at_asc">Oldest first</option>
-                <option value="title_asc">Title (A-Z)</option>
-                <option value="title_desc">Title (Z-A)</option>
+                <option value="created_at|desc">Newest first</option>
+                <option value="created_at|asc">Oldest first</option>
+                <option value="title|asc">Title (A-Z)</option>
+                <option value="title|desc">Title (Z-A)</option>
               </select>
             </div>
           </div>
