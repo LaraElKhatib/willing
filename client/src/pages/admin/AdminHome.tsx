@@ -11,6 +11,7 @@ import useAsync from '../../utils/useAsync';
 import type {
   AdminCrisesResponse,
   AdminOrganizationRequestsResponse,
+  AdminReportsResponse,
 } from '../../../../server/src/api/types';
 
 function AdminHome() {
@@ -24,10 +25,17 @@ function AdminHome() {
     return res.crises;
   }, []);
 
+  const getReports = useCallback(async () => {
+    const res = await requestServer<AdminReportsResponse>('/admin/reports', { includeJwt: true });
+    return res;
+  }, []);
+
   const { data: organizationRequests } = useAsync(getOrganizationRequests, { immediate: true });
   const { data: crises } = useAsync(getCrises, { immediate: true });
+  const { data: reports } = useAsync(getReports, { immediate: true });
 
   const pinnedCrises = crises?.filter(crisis => crisis.pinned) ?? [];
+  const totalReports = (reports?.organizationReports.length ?? 0) + (reports?.volunteerReports.length ?? 0);
 
   return (
     <PageContainer>
@@ -102,6 +110,17 @@ function AdminHome() {
           title="Reports"
           description="Review reports submitted by volunteers and organizations and take moderation actions."
           Icon={Flag}
+          right={
+            !reports
+              ? <div className="skeleton w-16 h-6" />
+              : (
+                  <span className="badge badge-accent">
+                    {totalReports}
+                    {' '}
+                    Total
+                  </span>
+                )
+          }
         >
           <LinkButton
             to="/admin/reports"
