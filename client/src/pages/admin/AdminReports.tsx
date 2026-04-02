@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 
 import Alert from '../../components/Alert';
 import Button from '../../components/Button';
+import CalendarInfo from '../../components/CalendarInfo';
 import Card from '../../components/Card';
 import EmptyState from '../../components/EmptyState';
 import PageContainer from '../../components/layout/PageContainer';
@@ -189,29 +190,15 @@ function AdminReports() {
               />
             </div>
 
-            <div>
-              <label className="label" htmlFor="reports-start-date">
-                <span className="label-text">Start Date</span>
-              </label>
-              <input
-                id="reports-start-date"
-                type="date"
-                className="input input-bordered w-full"
-                value={filters.startDate}
-                onChange={event => setFilters(prev => ({ ...prev, startDate: event.target.value }))}
-              />
-            </div>
-
-            <div>
-              <label className="label" htmlFor="reports-end-date">
-                <span className="label-text">End Date</span>
-              </label>
-              <input
-                id="reports-end-date"
-                type="date"
-                className="input input-bordered w-full"
-                value={filters.endDate}
-                onChange={event => setFilters(prev => ({ ...prev, endDate: event.target.value }))}
+            <div className="md:col-span-2 xl:col-span-2">
+              <CalendarInfo
+                startLabel="Start Date"
+                endLabel="End Date"
+                startValue={filters.startDate}
+                endValue={filters.endDate}
+                onStartChange={value => setFilters(prev => ({ ...prev, startDate: value }))}
+                onEndChange={value => setFilters(prev => ({ ...prev, endDate: value }))}
+                className="grid grid-cols-1 gap-4 md:grid-cols-2"
               />
             </div>
 
