@@ -38,6 +38,8 @@ const defaultFilters: ReportsFilters = {
   sortDir: 'desc',
 };
 
+const formatReportTitle = (title: string) => title.replaceAll('_', ' ').replace(/^./, firstLetter => firstLetter.toUpperCase());
+
 function AdminReports() {
   const navigate = useNavigate();
   const [filters, setFilters] = useState<ReportsFilters>(defaultFilters);
@@ -311,7 +313,7 @@ function AdminReports() {
                                 className="rounded-xl border border-base-300 bg-base-100 p-4 flex flex-col"
                               >
                                 <div className="mb-2 flex flex-wrap items-center gap-2">
-                                  <span className="badge badge-error badge-outline">{report.title}</span>
+                                  <span className="badge badge-error badge-outline">{formatReportTitle(report.title)}</span>
                                   <span className="text-xs text-base-content/60">{new Date(report.created_at).toLocaleString()}</span>
                                 </div>
                                 <p className="text-sm text-base-content/80 whitespace-pre-wrap mb-3">{report.message}</p>
@@ -370,7 +372,7 @@ function AdminReports() {
                                 className="rounded-xl border border-base-300 bg-base-100 p-4 flex flex-col"
                               >
                                 <div className="mb-2 flex flex-wrap items-center gap-2">
-                                  <span className="badge badge-error badge-outline">{report.title}</span>
+                                  <span className="badge badge-error badge-outline">{formatReportTitle(report.title)}</span>
                                   <span className="text-xs text-base-content/60">{new Date(report.created_at).toLocaleString()}</span>
                                 </div>
                                 <p className="text-sm text-base-content/80 whitespace-pre-wrap mb-3">{report.message}</p>
