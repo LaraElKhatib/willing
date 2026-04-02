@@ -285,7 +285,7 @@ function OrganizationVolunteerProfile() {
           defaultBackTo="/organization"
           actions={(
             <Button
-              color="warning"
+              color="error"
               style="outline"
               type="button"
               Icon={Flag}
@@ -513,7 +513,7 @@ function OrganizationVolunteerProfile() {
               </Button>
               <Button
                 type="submit"
-                color="warning"
+                color="error"
                 Icon={Flag}
                 loading={submittingReport}
                 disabled={!canSubmitReport}
