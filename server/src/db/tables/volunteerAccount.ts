@@ -19,6 +19,7 @@ export const volunteerAccountSchema = zod.object({
   description: zod.string().max(500, 'Description must be less than 500 characters').optional(),
   profile_vector: zod.string().optional(),
   experience_vector: zod.string().optional(),
+  token_version: zod.number().int().nonnegative().default(0),
   is_disabled: zod.boolean().default(false),
   is_deleted: zod.boolean().default(false),
   updated_at: zod.date(),
@@ -27,7 +28,7 @@ export const volunteerAccountSchema = zod.object({
 export type VolunteerAccount = zod.infer<typeof volunteerAccountSchema>;
 
 export type VolunteerAccountTable = WithGeneratedIDAndTimestamps<
-  WithGeneratedColumns<VolunteerAccount, 'is_disabled' | 'is_deleted'>
+  WithGeneratedColumns<VolunteerAccount, 'is_disabled' | 'is_deleted' | 'token_version'>
 >;
 
 export const newVolunteerAccountSchema = volunteerAccountSchema.omit({
@@ -38,6 +39,7 @@ export const newVolunteerAccountSchema = volunteerAccountSchema.omit({
   experience_vector: true,
   is_disabled: true,
   is_deleted: true,
+  token_version: true,
   created_at: true,
   updated_at: true,
 }).strict();
@@ -49,6 +51,7 @@ export const volunteerAccountWithoutPasswordSchema = volunteerAccountSchema.omit
   experience_vector: true,
   is_disabled: true,
   is_deleted: true,
+  token_version: true,
   created_at: true,
   updated_at: true,
 });

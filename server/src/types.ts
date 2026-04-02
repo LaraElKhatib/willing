@@ -17,6 +17,7 @@ export type SuccessResponse = Record<string, never>;
 export interface UserJWT {
   id: number;
   role: Role;
+  token_version: number;
 }
 
 export const loginInfoSchema = zod.object({

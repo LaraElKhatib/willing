@@ -1,8 +1,8 @@
-import { AlertCircle, Ban, Building2, Cake, Calendar, Clock, ExternalLink, LockOpen, MapPin, Users } from 'lucide-react';
+import { AlertCircle, Ban, Cake, Calendar, Clock, ExternalLink, LockOpen, MapPin, Users } from 'lucide-react';
 import { Link } from 'react-router';
 
+import OrganizationProfilePicture from './OrganizationProfilePicture';
 import SkillsList from './skills/SkillsList';
-import { SERVER_BASE_URL } from '../utils/requestServer';
 
 import type { PostingWithContext } from '../../../server/src/types';
 
@@ -74,18 +74,6 @@ function PostingList({
     : `${volunteerFilled}`;
   const locationText = posting.location_name || 'TBA';
   const isPostingFull = Boolean(posting.max_volunteers && volunteerFilled >= posting.max_volunteers);
-  const organizationInitials = posting.organization_name
-    ? posting.organization_name
-        .split(/\s+/)
-        .filter(Boolean)
-        .slice(0, 2)
-        .map((word: string) => word[0]?.toUpperCase() ?? '')
-        .join('')
-    : '';
-  const organizationLogoUrl = posting.organization_logo_path
-    ? `${SERVER_BASE_URL}/organization/${posting.organization_id}/logo`
-    : null;
-  const organizationLogoIsPng = posting.organization_logo_path?.toLowerCase().endsWith('.png') ?? false;
 
   const statusTag = posting.is_closed
     ? (
@@ -194,23 +182,12 @@ function PostingList({
         <div className="collapse-title z-10 pointer-events-none flex items-center gap-3 pr-12">
           <div className="relative shrink-0 pointer-events-auto">
             <Link to={`/organization/${posting.organization_id}`} onClick={event => event.stopPropagation()} className="avatar avatar-placeholder">
-              {organizationLogoUrl
-                ? (
-                    <div className={`rounded-full w-11 h-11 overflow-hidden ring-1 ring-base-300 ${organizationLogoIsPng ? 'bg-white' : 'bg-base-100'} flex items-center justify-center`}>
-                      <img
-                        src={organizationLogoUrl}
-                        alt={`${posting.organization_name ?? 'Organization'} logo`}
-                        className="h-full w-full object-contain"
-                      />
-                    </div>
-                  )
-                : (
-                    <div className="bg-primary text-primary-content rounded-full w-11 h-11">
-                      {organizationInitials
-                        ? <span className="text-sm font-semibold">{organizationInitials}</span>
-                        : <Building2 size={18} />}
-                    </div>
-                  )}
+              <OrganizationProfilePicture
+                organizationName={posting.organization_name ?? 'Organization'}
+                organizationId={posting.organization_id}
+                logoPath={posting.organization_logo_path}
+                size={44}
+              />
             </Link>
           </div>
 

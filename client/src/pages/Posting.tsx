@@ -2,7 +2,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Check,
   AlertTriangle,
-  Building2,
   Calendar,
   Cake,
   Clock,
@@ -38,6 +37,7 @@ import PageHeader from '../components/layout/PageHeader.tsx';
 import LinkButton from '../components/LinkButton.tsx';
 import Loading from '../components/Loading.tsx';
 import LocationPicker from '../components/LocationPicker.tsx';
+import OrganizationProfilePicture from '../components/OrganizationProfilePicture.tsx';
 import SkillsInput from '../components/skills/SkillsInput.tsx';
 import SkillsList from '../components/skills/SkillsList.tsx';
 import { ToggleButton } from '../components/ToggleButton.tsx';
@@ -45,7 +45,7 @@ import VolunteerInfoCollapse from '../components/VolunteerInfoCollapse.tsx';
 import useNotifications from '../notifications/useNotifications';
 import { organizationPostingEditFormSchema, type OrganizationPostingEditFormData } from '../schemas/posting';
 import { executeAndShowError, FormField } from '../utils/formUtils.tsx';
-import requestServer, { SERVER_BASE_URL } from '../utils/requestServer.ts';
+import requestServer from '../utils/requestServer.ts';
 import useAsync from '../utils/useAsync';
 import { useOrganization } from '../utils/useUsers.ts';
 
@@ -837,23 +837,12 @@ function PostingPage() {
               <div className="flex items-start gap-3 mb-4">
                 {postingOrganization && (
                   <Link to={`/organization/${postingOrganization.id}`} className="shrink-0">
-                    <div className="avatar avatar-placeholder">
-                      {postingOrganization.logoPath
-                        ? (
-                            <div className={`w-12 h-12 rounded-full overflow-hidden ring-1 ring-base-300 ${postingOrganization.logoPath.toLowerCase().endsWith('.png') ? 'bg-white' : 'bg-base-100'} flex items-center justify-center`}>
-                              <img
-                                src={`${SERVER_BASE_URL}/organization/${postingOrganization.id}/logo`}
-                                alt={`${postingOrganization.name} logo`}
-                                className="h-full w-full object-contain"
-                              />
-                            </div>
-                          )
-                        : (
-                            <div className="bg-primary text-primary-content w-12 h-12 rounded-full flex items-center justify-center">
-                              <Building2 size={18} />
-                            </div>
-                          )}
-                    </div>
+                    <OrganizationProfilePicture
+                      organizationName={postingOrganization.name}
+                      organizationId={postingOrganization.id}
+                      logoPath={postingOrganization.logoPath}
+                      size={48}
+                    />
                   </Link>
                 )}
 

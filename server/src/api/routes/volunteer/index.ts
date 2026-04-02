@@ -231,7 +231,7 @@ function createVolunteerRouter(db: Kysely<Database>) {
     await recomputeVolunteerProfileVector(volunteer.id, db);
     await recomputeVolunteerExperienceVector(volunteer.id, db);
 
-    const token = await generateJWT({ id: volunteer.id, role: 'volunteer' });
+    const token = await generateJWT({ id: volunteer.id, role: 'volunteer', token_version: 0 });
 
     res.json({ volunteer, token });
   });

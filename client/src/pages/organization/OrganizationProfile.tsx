@@ -14,6 +14,7 @@ import PageContainer from '../../components/layout/PageContainer';
 import PageHeader from '../../components/layout/PageHeader';
 import Loading from '../../components/Loading';
 import LocationPicker from '../../components/LocationPicker';
+import OrganizationProfilePicture from '../../components/OrganizationProfilePicture';
 import SignatureUploadField from '../../components/SignatureUploadField';
 import { ToggleButton } from '../../components/ToggleButton';
 import useNotifications from '../../notifications/useNotifications';
@@ -24,7 +25,7 @@ import type {
   DeleteCertificateSignatureResponse,
   GetCertificateInfoResponse,
   OrganizationDeleteLogoResponse,
-  OrganizationMeResponse,
+  OrganizationGetMeResponse,
   OrganizationUploadLogoResponse,
   UpdateCertificateInfoResponse,
   UploadCertificateSignatureResponse,
@@ -39,6 +40,9 @@ const profileFormSchema = organizationAccountSchema.omit({
   name: true,
   url: true,
   org_vector: true,
+  token_version: true,
+  is_disabled: true,
+  is_deleted: true,
   created_at: true,
   updated_at: true,
 });
@@ -52,7 +56,11 @@ const certificateFormSchema = newOrganizationCertificateInfoSchema.pick({
     (value) => {
       if (value === '' || value === null || value === undefined) return null;
       if (typeof value === 'number') return value;
-      return Number(value);
+      if (typeof value === 'string') {
+        const parsed = Number(value);
+        return Number.isNaN(parsed) ? value : parsed;
+      }
+      return value;
     },
     z.number().int().min(0, 'Hours threshold must be >= 0').nullable(),
   ),
@@ -99,12 +107,12 @@ const certificateFormSchema = newOrganizationCertificateInfoSchema.pick({
 });
 
 type ProfileFormData = z.infer<typeof profileFormSchema>;
-type CertificateFormData = z.infer<typeof certificateFormSchema>;
+type CertificateFormInput = z.input<typeof certificateFormSchema>;
 
 function OrganizationProfile() {
   const organizationFromAuth = useOrganization();
   const notifications = useNotifications();
-  const [profile, setProfile] = useState<OrganizationMeResponse | null>(null);
+  const [profile, setProfile] = useState<OrganizationGetMeResponse | null>(null);
   const [certificateInfo, setCertificateInfo] = useState<GetCertificateInfoResponse['certificateInfo']>(null);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -113,7 +121,6 @@ function OrganizationProfile() {
   const [position, setPosition] = useState<[number, number]>([33.90192863620578, 35.477959277880416]);
   const [logoBusy, setLogoBusy] = useState(false);
   const [signatureBusy, setSignatureBusy] = useState(false);
-  const [logoVersion, setLogoVersion] = useState(0);
   const logoInputRef = useRef<HTMLInputElement | null>(null);
 
   const form = useForm<ProfileFormData>({
@@ -128,7 +135,7 @@ function OrganizationProfile() {
     },
   });
 
-  const certificateForm = useForm<CertificateFormData>({
+  const certificateForm = useForm<CertificateFormInput>({
     resolver: zodResolver(certificateFormSchema),
     mode: 'onTouched',
     defaultValues: {
@@ -142,7 +149,7 @@ function OrganizationProfile() {
   });
 
   const resetFormsFromData = useCallback((
-    organizationResponse: OrganizationMeResponse,
+    organizationResponse: OrganizationGetMeResponse,
     certificateInfoResponse: GetCertificateInfoResponse['certificateInfo'],
   ) => {
     form.reset({
@@ -172,7 +179,7 @@ function OrganizationProfile() {
       setFetchError(null);
 
       const [organizationResponse, certificateResponse] = await Promise.all([
-        requestServer<OrganizationMeResponse>('/organization/me', { includeJwt: true }),
+        requestServer<OrganizationGetMeResponse>('/organization/me', { includeJwt: true }),
         requestServer<GetCertificateInfoResponse>('/organization/certificate-info', { includeJwt: true }),
       ]);
 
@@ -193,16 +200,6 @@ function OrganizationProfile() {
 
   const formValues = form.watch();
   const certificateValues = certificateForm.watch();
-
-  const initials = useMemo(() => {
-    const words = (profile?.organization.name ?? '').trim().split(/\s+/).filter(Boolean);
-    return words.slice(0, 2).map(word => word.charAt(0).toUpperCase()).join('');
-  }, [profile?.organization.name]);
-
-  const logoUrl = useMemo(() => {
-    if (!profile?.organization.logo_path) return '';
-    return `${SERVER_BASE_URL}/organization/${profile.organization.id}/logo?v=${logoVersion}`;
-  }, [logoVersion, profile]);
 
   const signatureUrl = useMemo(() => {
     if (!profile || !certificateInfo?.signature_path) return '';
@@ -239,7 +236,6 @@ function OrganizationProfile() {
 
       setProfile(response);
       certificateForm.setValue('hasLogo', true, { shouldValidate: true });
-      setLogoVersion(prev => prev + 1);
       notifications.push({ type: 'success', message: 'Profile picture uploaded.' });
     } catch (error) {
       notifications.push({
@@ -280,7 +276,6 @@ function OrganizationProfile() {
 
       setProfile(response);
       certificateForm.setValue('hasLogo', false, { shouldValidate: true });
-      setLogoVersion(prev => prev + 1);
       notifications.push({ type: 'success', message: 'Profile picture removed.' });
     } catch (error) {
       notifications.push({
@@ -369,7 +364,7 @@ function OrganizationProfile() {
         setSaving(true);
 
         const [organizationResponse, certificateResponse] = await Promise.all([
-          requestServer<OrganizationMeResponse>(
+          requestServer<OrganizationGetMeResponse>(
             '/organization/profile',
             {
               method: 'PUT',
@@ -495,25 +490,12 @@ function OrganizationProfile() {
         sidebar={(
           <Card>
             <div className="flex items-center gap-4">
-              <div className="avatar">
-                {logoUrl
-                  ? (
-                      <div
-                        className={`w-20 h-20 rounded-full overflow-hidden ring-1 ring-base-300 ${profile.organization.logo_path.toLowerCase().endsWith('.png') ? 'bg-white' : 'bg-base-100'} flex items-center justify-center`}
-                      >
-                        <img
-                          src={logoUrl}
-                          alt={`${profile.organization.name} logo`}
-                          className="h-full w-full object-contain"
-                        />
-                      </div>
-                    )
-                  : (
-                      <div className="bg-primary text-primary-content rounded-full w-20 h-20 flex items-center justify-center">
-                        <span className="text-2xl">{initials || 'O'}</span>
-                      </div>
-                    )}
-              </div>
+              <OrganizationProfilePicture
+                organizationName={profile.organization.name || organizationFromAuth?.name || 'Organization'}
+                organizationId={profile.organization.id!}
+                logoPath={profile.organization.logo_path}
+                size={80}
+              />
               <div>
                 <h4 className="text-xl font-bold">{profile.organization.name || organizationFromAuth?.name || 'Organization'}</h4>
                 <span className="badge badge-primary badge-sm mt-1 gap-1">
