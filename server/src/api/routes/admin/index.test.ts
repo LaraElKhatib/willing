@@ -206,6 +206,157 @@ describe('GET /admin/reports', () => {
   });
 });
 
+describe('GET /admin/reports/organization/:reportId', () => {
+  test('returns 403 when unauthenticated', async () => {
+    await server
+      .get('/admin/reports/organization/1')
+      .expect(403);
+  });
+
+  test('returns 403 when requester is not an admin', async () => {
+    const { token } = await createVolunteerAccount();
+
+    await server
+      .get('/admin/reports/organization/1')
+      .set(authHeader(token))
+      .expect(403);
+  });
+
+  test('returns the organization report details for admin', async () => {
+    const { token: adminToken } = await createAdminAccount();
+    const { organization: reportedOrganization } = await createOrganizationAccount({
+      email: 'reported-org-details@example.com',
+      name: 'Reported Org Details',
+      phone_number: '+10000000008',
+      url: 'https://reported-org-details.example.com',
+    });
+    const { volunteer: reporterVolunteer } = await createVolunteerAccount({
+      email: 'reporter-vol-details@example.com',
+      first_name: 'Reporter',
+      last_name: 'Volunteer',
+    });
+
+    const report = await transaction
+      .insertInto('organization_report')
+      .values({
+        reported_organization_id: reportedOrganization.id,
+        reporter_volunteer_id: reporterVolunteer.id,
+        title: 'scam',
+        message: 'Organization report details',
+      })
+      .returning(['id'])
+      .executeTakeFirstOrThrow();
+
+    const response = await server
+      .get(`/admin/reports/organization/${report.id}`)
+      .set(authHeader(adminToken))
+      .expect(200);
+
+    expect(response.body).toMatchObject({
+      id: report.id,
+      title: 'scam',
+      message: 'Organization report details',
+      reported_organization: {
+        id: reportedOrganization.id,
+        name: 'Reported Org Details',
+        email: 'reported-org-details@example.com',
+      },
+      reporter_volunteer: {
+        id: reporterVolunteer.id,
+        first_name: 'Reporter',
+        last_name: 'Volunteer',
+        email: 'reporter-vol-details@example.com',
+      },
+    });
+  });
+
+  test('returns 404 when organization report does not exist', async () => {
+    const { token: adminToken } = await createAdminAccount();
+
+    await server
+      .get('/admin/reports/organization/999999')
+      .set(authHeader(adminToken))
+      .expect(404);
+  });
+});
+
+describe('GET /admin/reports/volunteer/:reportId', () => {
+  test('returns 403 when unauthenticated', async () => {
+    await server
+      .get('/admin/reports/volunteer/1')
+      .expect(403);
+  });
+
+  test('returns 403 when requester is not an admin', async () => {
+    const { token } = await createOrganizationAccount({
+      phone_number: '+10000000009',
+      url: 'https://non-admin-org-details.example.com',
+    });
+
+    await server
+      .get('/admin/reports/volunteer/1')
+      .set(authHeader(token))
+      .expect(403);
+  });
+
+  test('returns the volunteer report details for admin', async () => {
+    const { token: adminToken } = await createAdminAccount();
+    const { volunteer: reportedVolunteer } = await createVolunteerAccount({
+      email: 'reported-vol-details@example.com',
+      first_name: 'Reported',
+      last_name: 'Volunteer',
+    });
+    const { organization: reporterOrganization } = await createOrganizationAccount({
+      email: 'reporter-org-details@example.com',
+      name: 'Reporter Org Details',
+      phone_number: '+10000000010',
+      url: 'https://reporter-org-details.example.com',
+    });
+
+    const report = await transaction
+      .insertInto('volunteer_report')
+      .values({
+        reported_volunteer_id: reportedVolunteer.id,
+        reporter_organization_id: reporterOrganization.id,
+        title: 'harassment',
+        message: 'Volunteer report details',
+      })
+      .returning(['id'])
+      .executeTakeFirstOrThrow();
+
+    const response = await server
+      .get(`/admin/reports/volunteer/${report.id}`)
+      .set(authHeader(adminToken))
+      .expect(200);
+
+    expect(response.body).toMatchObject({
+      id: report.id,
+      title: 'harassment',
+      message: 'Volunteer report details',
+      reported_volunteer: {
+        id: reportedVolunteer.id,
+        first_name: 'Reported',
+        last_name: 'Volunteer',
+        email: 'reported-vol-details@example.com',
+      },
+      reporter_organization: {
+        id: reporterOrganization.id,
+        name: 'Reporter Org Details',
+        email: 'reporter-org-details@example.com',
+      },
+    });
+  });
+
+  test('returns 404 when volunteer report does not exist', async () => {
+    const { token: adminToken } = await createAdminAccount();
+
+    await server
+      .get('/admin/reports/volunteer/999999')
+      .set(authHeader(adminToken))
+      .expect(404);
+  });
+});
+
 describe('POST /admin/reports/organization/:organizationId/disable', () => {
   test('returns 403 when unauthenticated', async () => {
     await server
