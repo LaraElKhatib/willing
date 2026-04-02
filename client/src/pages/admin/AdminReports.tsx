@@ -1,5 +1,6 @@
 import { Building2, Flag, Inbox, RotateCcw, UserRound } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import Alert from '../../components/Alert';
 import Button from '../../components/Button';
@@ -38,6 +39,7 @@ const defaultFilters: ReportsFilters = {
 };
 
 function AdminReports() {
+  const navigate = useNavigate();
   const [filters, setFilters] = useState<ReportsFilters>(defaultFilters);
   const [activeFilters, setActiveFilters] = useState<ReportsFilters>(defaultFilters);
 
@@ -304,7 +306,12 @@ function AdminReports() {
                       : (
                           <div className="space-y-3">
                             {organizationReports.map(report => (
-                              <div key={report.id} className="rounded-xl border border-base-300 bg-base-100 p-4">
+                              <button
+                                key={report.id}
+                                type="button"
+                                className="rounded-xl border border-base-300 bg-base-100 p-4 text-left hover:border-primary hover:shadow-lg transition-all w-full"
+                                onClick={() => navigate(`/admin/reports/organization/${report.id}`)}
+                              >
                                 <div className="mb-2 flex flex-wrap items-center gap-2">
                                   <span className="badge badge-error badge-outline">{report.title}</span>
                                   <span className="text-xs text-base-content/60">{new Date(report.created_at).toLocaleString()}</span>
@@ -322,7 +329,7 @@ function AdminReports() {
                                     {`${report.reporter_volunteer.first_name} ${report.reporter_volunteer.last_name} (${report.reporter_volunteer.email})`}
                                   </p>
                                 </div>
-                              </div>
+                              </button>
                             ))}
                           </div>
                         )}
@@ -353,7 +360,12 @@ function AdminReports() {
                       : (
                           <div className="space-y-3">
                             {volunteerReports.map(report => (
-                              <div key={report.id} className="rounded-xl border border-base-300 bg-base-100 p-4">
+                              <button
+                                key={report.id}
+                                type="button"
+                                className="rounded-xl border border-base-300 bg-base-100 p-4 text-left hover:border-primary hover:shadow-lg transition-all w-full"
+                                onClick={() => navigate(`/admin/reports/volunteer/${report.id}`)}
+                              >
                                 <div className="mb-2 flex flex-wrap items-center gap-2">
                                   <span className="badge badge-error badge-outline">{report.title}</span>
                                   <span className="text-xs text-base-content/60">{new Date(report.created_at).toLocaleString()}</span>
@@ -371,7 +383,7 @@ function AdminReports() {
                                     {`${report.reporter_organization.name} (${report.reporter_organization.email})`}
                                   </p>
                                 </div>
-                              </div>
+                              </button>
                             ))}
                           </div>
                         )}
