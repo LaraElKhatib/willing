@@ -1,4 +1,4 @@
-import { AlertCircle, ArrowRight, ClipboardCheck, LayoutDashboard } from 'lucide-react';
+import { AlertCircle, ArrowRight, ClipboardCheck, Flag, LayoutDashboard } from 'lucide-react';
 import { useCallback } from 'react';
 
 import Card from '../../components/Card';
@@ -64,6 +64,7 @@ function AdminHome() {
             Open Requests
           </LinkButton>
         </Card>
+
         <Card
           title="Crisis"
           description={
@@ -94,6 +95,22 @@ function AdminHome() {
             className="ml-auto"
           >
             Open Crises
+          </LinkButton>
+        </Card>
+
+        <Card
+          title="Reports"
+          description="Review reports submitted by volunteers and organizations and take moderation actions."
+          Icon={Flag}
+        >
+          <LinkButton
+            to="/admin/reports"
+            style="outline"
+            size="sm"
+            Icon={ArrowRight}
+            className="ml-auto"
+          >
+            Open Reports
           </LinkButton>
         </Card>
       </div>
