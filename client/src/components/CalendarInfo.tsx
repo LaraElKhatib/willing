@@ -317,7 +317,7 @@ function ControlledCalendarInfo({
   const startTriggerRef = useRef<HTMLButtonElement>(null);
   const endTriggerRef = useRef<HTMLButtonElement>(null);
   const activePopoverRef = useRef<HTMLDivElement>(null);
-  const closeTimeoutRef = useRef<number>();
+  const closeTimeoutRef = useRef<number | undefined>(undefined);
 
   const mode = selectionMode ?? 'interval';
 

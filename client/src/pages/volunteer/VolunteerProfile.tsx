@@ -68,6 +68,7 @@ const profileFormSchema = volunteerAccountSchema.omit({
   updated_at: true,
   is_disabled: true,
   is_deleted: true,
+  token_version: true,
 }).extend({
   description: z.string().max(
     DESCRIPTION_MAX_LENGTH,
@@ -302,8 +303,8 @@ function VolunteerProfile() {
         end_date: safeEndDate ?? safeStartDate,
         end_time: safeEndDate ? toTimeString(safeEndDate) : toTimeString(safeStartDate),
         minimum_age: undefined,
-        automatic_acceptance: true,
-        is_closed: true,
+        automatic_acceptance: experience.automatic_acceptance,
+        is_closed: experience.is_closed,
         allows_partial_attendance: false,
         location_name: experience.location_name,
         created_at: safeStartDate,
@@ -311,10 +312,10 @@ function VolunteerProfile() {
         crisis_id: undefined,
         skills: [],
         organization_name: experience.organization_name,
-        organization_logo_path: undefined,
+        organization_logo_path: experience.organization_logo_path ?? undefined,
         crisis_name: experience.crisis_name,
-        enrollment_count: 1,
-        application_status: 'registered',
+        enrollment_count: experience.enrollment_count,
+        application_status: 'none',
       };
     })
   ), [visibleCompletedExperiences]);

@@ -59,7 +59,7 @@ export async function createOrganizationAccount({
   return {
     organization,
     plainPassword: password === undefined ? DEFAULT_ORG_PASSWORD : password,
-    token: await generateJWT({ id: organization.id, role: 'organization' }),
+    token: await generateJWT({ id: organization.id, role: 'organization', token_version: organization.token_version }),
   };
 }
 
@@ -93,7 +93,7 @@ export async function createVolunteerAccount({
   return {
     volunteer,
     plainPassword: password === undefined ? DEFAULT_VOL_PASSWORD : password,
-    token: await generateJWT({ id: volunteer.id, role: 'volunteer' }),
+    token: await generateJWT({ id: volunteer.id, role: 'volunteer', token_version: volunteer.token_version }),
   };
 }
 
@@ -129,6 +129,6 @@ export async function createAdminAccount({
   return {
     admin,
     plainPassword: password === undefined ? DEFAULT_ADMIN_PASSWORD : password,
-    token: await generateJWT({ id: admin.id, role: 'admin' }),
+    token: await generateJWT({ id: admin.id, role: 'admin', token_version: admin.token_version }),
   };
 }

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 
-import setUserJWT from '../auth/setUserJWT.ts';
+import createSetUserJWT from '../auth/setUserJWT.ts';
 import createAdminRouter from './routes/admin/index.ts';
 import createGeocodingRouter from './routes/geocoding.ts';
 import createOrganizationRouter from './routes/organization/index.ts';
@@ -13,7 +13,7 @@ import type { Kysely } from 'kysely';
 
 function createAPIRouter(db: Kysely<Database>) {
   const api = Router();
-  api.use(setUserJWT);
+  api.use(createSetUserJWT(db));
 
   api.use('/user', createUserRouter(db));
   api.use('/public', createPublicRouter(db));

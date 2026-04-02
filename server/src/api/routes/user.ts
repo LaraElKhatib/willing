@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 
 import { Router, type Response } from 'express';
-import { type Kysely } from 'kysely';
+import { sql, type Kysely } from 'kysely';
 import zod from 'zod';
 
 import {
@@ -27,6 +27,7 @@ const organizationLoginColumns = [
   'longitude',
   'location_name',
   'password',
+  'token_version',
 ] as const;
 
 const volunteerLoginColumns = [
@@ -39,10 +40,11 @@ const volunteerLoginColumns = [
   'gender',
   'cv_path',
   'description',
+  'token_version',
 ] as const;
 
 const forgotPasswordRequestSchema = zod.object({
-  email: zod.email(),
+  email: zod.string().email(),
 });
 
 const forgotPasswordResetSchema = zod.object({
@@ -56,16 +58,13 @@ function createUserRouter(db: Kysely<Database>) {
   userRouter.post('/login', async (req, res: Response<UserLoginResponse>) => {
     const body = loginInfoSchema.parse(req.body);
 
-    let organizationAccount;
-    let volunteerAccount;
-
-    // eslint-disable-next-line prefer-const
-    organizationAccount = await db
+    const organizationAccount = await db
       .selectFrom('organization_account')
       .select(organizationLoginColumns)
       .where('organization_account.email', '=', body.email)
       .executeTakeFirst();
 
+    let volunteerAccount;
     if (!organizationAccount) {
       volunteerAccount = await db
         .selectFrom('volunteer_account')
@@ -74,33 +73,35 @@ function createUserRouter(db: Kysely<Database>) {
         .executeTakeFirst();
     }
 
-    if ((!organizationAccount) && (!volunteerAccount)) {
+    if (!organizationAccount && !volunteerAccount) {
       res.status(403);
       throw new Error('Invalid email or password');
     }
 
-    let valid;
-    if (organizationAccount)
-      valid = await compare(body.password, organizationAccount.password);
-
-    if (volunteerAccount)
-      valid = await compare(body.password, volunteerAccount.password);
+    const valid = organizationAccount
+      ? await compare(body.password, organizationAccount.password)
+      : volunteerAccount
+        ? await compare(body.password, volunteerAccount.password)
+        : false;
 
     if (!valid) {
       res.status(403);
       throw new Error('Invalid email or password');
     }
 
+    const account = organizationAccount || volunteerAccount!;
+    const role = organizationAccount ? 'organization' : 'volunteer';
+
     const token = await generateJWT({
-      id: (organizationAccount || volunteerAccount)!.id,
-      role: organizationAccount ? 'organization' : 'volunteer',
+      id: account.id,
+      role,
+      token_version: account.token_version,
     });
 
     res.json({
       token,
-      role: organizationAccount ? 'organization' : 'volunteer',
-      [organizationAccount ? 'organization' : 'volunteer']:
-        organizationAccount ? removePassword(organizationAccount) : removePassword(volunteerAccount!),
+      role,
+      [role]: removePassword(account),
     });
   });
 
@@ -135,15 +136,18 @@ function createUserRouter(db: Kysely<Database>) {
       return;
     }
 
-    const account = organizationAccount || volunteerAccount;
-    const accountName = organizationAccount ? organizationAccount.name : `${volunteerAccount!.first_name} ${volunteerAccount!.last_name}`;
+    const account = organizationAccount || volunteerAccount!;
+    const accountName = organizationAccount
+      ? organizationAccount.name
+      : `${volunteerAccount!.first_name} ${volunteerAccount!.last_name}`;
+
     const resetToken = crypto.randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + 1 * 60 * 60 * 1000); // 1 hour
 
     await db
       .insertInto('password_reset_token')
       .values({
-        user_id: account!.id,
+        user_id: account.id,
         role: role!,
         token: resetToken,
         expires_at: expiresAt,
@@ -181,13 +185,13 @@ function createUserRouter(db: Kysely<Database>) {
       await db
         .updateTable('organization_account')
         .where('id', '=', resetToken.user_id)
-        .set({ password: hashedPassword })
+        .set({ password: hashedPassword, token_version: sql`token_version + 1` })
         .execute();
     } else if (resetToken.role === 'volunteer') {
       await db
         .updateTable('volunteer_account')
         .where('id', '=', resetToken.user_id)
-        .set({ password: hashedPassword })
+        .set({ password: hashedPassword, token_version: sql`token_version + 1` })
         .execute();
     }
 

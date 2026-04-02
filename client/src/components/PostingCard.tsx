@@ -1,9 +1,9 @@
-import { Calendar, Cake, Clock, ExternalLink, LockOpen, MapPin, Users, AlertCircle, Building2, Ban } from 'lucide-react';
+import { Calendar, Cake, Clock, ExternalLink, LockOpen, MapPin, Users, AlertCircle, Ban } from 'lucide-react';
 import { Link } from 'react-router';
 
 import Card from './Card';
+import OrganizationProfilePicture from './OrganizationProfilePicture';
 import SkillsList from './skills/SkillsList';
-import { SERVER_BASE_URL } from '../utils/requestServer';
 
 import type { PostingWithContext } from '../../../server/src/types';
 
@@ -55,18 +55,6 @@ function PostingCard({ posting, showCrisis = true }: PostingCardProps) {
   const endDateStr = formatCardDate(endDt);
   const startTimeStr = formatTime12Hour(startTimeValue) || (startDt ? startDt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true }) : '');
   const endTimeStr = formatTime12Hour(endTimeValue) || (endDt ? endDt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true }) : '');
-  const organizationInitials = posting.organization_name
-    ? posting.organization_name
-        .split(/\s+/)
-        .filter(Boolean)
-        .slice(0, 2)
-        .map((word: string) => word[0]?.toUpperCase() ?? '')
-        .join('')
-    : '';
-  const organizationLogoUrl = posting.organization_logo_path
-    ? `${SERVER_BASE_URL}/organization/${posting.organization_id}/logo`
-    : null;
-  const organizationLogoIsPng = posting.organization_logo_path?.toLowerCase().endsWith('.png') ?? false;
 
   const volunteerFilled = posting.enrollment_count ?? 0;
   const volunteerPercent = posting.max_volunteers ? Math.round((volunteerFilled / posting.max_volunteers) * 100) : 0;
@@ -93,27 +81,13 @@ function PostingCard({ posting, showCrisis = true }: PostingCardProps) {
       <div className="p-4 md:p-5 mt-1 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3 min-w-0">
           <Link to={`/organization/${posting.organization_id}`} className="shrink-0">
-            <div className="avatar avatar-placeholder">
-              {organizationLogoUrl
-                ? (
-                    <div className={`w-12 h-12 rounded-full overflow-hidden ring-1 ring-base-300 ${organizationLogoIsPng ? 'bg-white' : 'bg-base-100'} flex items-center justify-center`}>
-                      <img
-                        src={organizationLogoUrl}
-                        alt={`${posting.organization_name ?? 'Organization'} logo`}
-                        className="h-full w-full object-contain"
-                      />
-                    </div>
-                  )
-                : (
-                    <div className="bg-primary text-primary-content w-12 rounded-full">
-                      {organizationInitials
-                        ? <span className="text-md font-semibold">{organizationInitials}</span>
-                        : <Building2 size={18} />}
-                    </div>
-                  )}
-            </div>
+            <OrganizationProfilePicture
+              organizationName={posting.organization_name ?? 'Organization'}
+              organizationId={posting.organization_id}
+              logoPath={posting.organization_logo_path}
+              size={48}
+            />
           </Link>
-
           {posting.organization_name
             ? (
                 <div className="min-w-0">
