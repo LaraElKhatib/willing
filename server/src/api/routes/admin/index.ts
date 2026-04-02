@@ -1,10 +1,12 @@
 import { Router, type Response } from 'express';
-import { type Kysely } from 'kysely';
+import { sql, type Kysely } from 'kysely';
 import zod from 'zod';
 
 import createAdminCertificateSettingsRouter from './certificateSettings.ts';
 import createAdminCrisesRouter from './crises.ts';
 import {
+  type AdminDisableOrganizationAccountResponse,
+  type AdminDisableVolunteerAccountResponse,
   type AdminLoginResponse,
   type AdminMeResponse,
   type AdminOrganizationRequestReviewResponse,
@@ -283,6 +285,62 @@ function createAdminRouter(db: Kysely<Database>) {
       organizationReports,
       volunteerReports,
     });
+  });
+
+  adminRouter.post('/reports/organization/:organizationId/disable', async (req, res: Response<AdminDisableOrganizationAccountResponse>) => {
+    const organizationId = zod.coerce.number().int().positive().parse(req.params.organizationId);
+
+    const organization = await db
+      .selectFrom('organization_account')
+      .select(['id', 'is_disabled'])
+      .where('id', '=', organizationId)
+      .executeTakeFirst();
+
+    if (!organization) {
+      res.status(404);
+      throw new Error('Organization account not found.');
+    }
+
+    if (!organization.is_disabled) {
+      await db
+        .updateTable('organization_account')
+        .set({
+          is_disabled: true,
+          token_version: sql`token_version + 1`,
+        })
+        .where('id', '=', organizationId)
+        .execute();
+    }
+
+    res.json({});
+  });
+
+  adminRouter.post('/reports/volunteer/:volunteerId/disable', async (req, res: Response<AdminDisableVolunteerAccountResponse>) => {
+    const volunteerId = zod.coerce.number().int().positive().parse(req.params.volunteerId);
+
+    const volunteer = await db
+      .selectFrom('volunteer_account')
+      .select(['id', 'is_disabled'])
+      .where('id', '=', volunteerId)
+      .executeTakeFirst();
+
+    if (!volunteer) {
+      res.status(404);
+      throw new Error('Volunteer account not found.');
+    }
+
+    if (!volunteer.is_disabled) {
+      await db
+        .updateTable('volunteer_account')
+        .set({
+          is_disabled: true,
+          token_version: sql`token_version + 1`,
+        })
+        .where('id', '=', volunteerId)
+        .execute();
+    }
+
+    res.json({});
   });
 
   adminRouter.post('/reviewOrganizationRequest', async (req, res: Response<AdminOrganizationRequestReviewResponse>, next) => {

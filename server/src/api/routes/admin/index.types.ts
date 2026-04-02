@@ -63,4 +63,8 @@ export type AdminReportsResponse = {
   volunteerReports: AdminVolunteerReportListItem[];
 };
 
+export type AdminDisableOrganizationAccountResponse = object;
+
+export type AdminDisableVolunteerAccountResponse = object;
+
 export type AdminResetPasswordResponse = ResetPasswordResponse;
