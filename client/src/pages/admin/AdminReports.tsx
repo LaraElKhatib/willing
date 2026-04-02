@@ -254,7 +254,7 @@ function AdminReports() {
       </Card>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        {(activeFilters.scope === 'all' || activeFilters.scope === 'organization') && (
+        {(activeFilters.scope === 'all' || activeFilters.scope === 'organization') && (activeFilters.reportType === 'all' || organizationReports.length > 0) && (
           <Card
             title="Organization Reports"
             description="Reports submitted by volunteers about organizations."
@@ -310,7 +310,7 @@ function AdminReports() {
           </Card>
         )}
 
-        {(activeFilters.scope === 'all' || activeFilters.scope === 'volunteer') && (
+        {(activeFilters.scope === 'all' || activeFilters.scope === 'volunteer') && (activeFilters.reportType === 'all' || volunteerReports.length > 0) && (
           <Card
             title="Volunteer Reports"
             description="Reports submitted by organizations about volunteers."
