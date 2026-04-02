@@ -188,9 +188,10 @@ Create tests as `<name>.test.ts` alongside your route file.
 2. Wrap form submissions in `executeAndShowError(form, async () => {...})` from `formUtils.tsx` for consistent error handling.
 3. Reuse and compose server schemas from `server/src/db/tables.ts` for client-side validation.
 4. Use reusable form primitives from `client/src/utils/formUtils.tsx` (`FormField`, `FormRootError`).
-5. Import response types from server using relative paths (e.g., `../../../../server/src/api/types`).
-6. Keep existing DaisyUI/Tailwind visual language unless explicitly asked to redesign.
-7. Handle loading, error, and success states explicitly.
+5. `FormField` supports `registerOptions` for custom react-hook-form registration behavior and `inputProps` for native input attributes when needed.
+6. Import response types from server using relative paths (e.g., `../../../../server/src/api/types`).
+7. Keep existing DaisyUI/Tailwind visual language unless explicitly asked to redesign.
+8. Handle loading, error, and success states explicitly.
 
 ## Async Hook Conventions
 

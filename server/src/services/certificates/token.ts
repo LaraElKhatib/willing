@@ -3,8 +3,9 @@ import zlib from 'zlib';
 
 import zod from 'zod';
 
+import { idSchema } from '../../schemas/index.ts';
+
 export const CERTIFICATE_PAYLOAD_VERSION = 2 as const;
-const LEGACY_CERTIFICATE_PAYLOAD_VERSION = 1 as const;
 export const CERTIFICATE_TYPE = 'volunteer_hours_certificate' as const;
 
 const HOURS_DECIMAL_PLACES = 2;
@@ -12,19 +13,19 @@ const HOURS_SCALE_FACTOR = 10 ** HOURS_DECIMAL_PLACES;
 const CERTIFICATE_TYPE_CODE = 0;
 const TRUNCATED_SIGNATURE_BYTES = 16;
 
-const orgIdStringSchema = zod.string().regex(/^[1-9]\d*$/, 'Organization IDs must be positive integers');
-const payloadVersionSchema = zod.union([
-  zod.literal(CERTIFICATE_PAYLOAD_VERSION),
-  zod.literal(LEGACY_CERTIFICATE_PAYLOAD_VERSION),
-]);
+const idStringSchema = zod.string()
+  .trim()
+  .transform(value => Number(value))
+  .pipe(idSchema)
+  .transform(value => String(value));
 
 export const certificateVerificationPayloadSchema = zod.object({
-  v: payloadVersionSchema,
-  uid: zod.string().regex(/^[1-9]\d*$/, 'User ID must be a positive integer'),
+  v: zod.literal(CERTIFICATE_PAYLOAD_VERSION),
+  uid: idStringSchema,
   issued_at: zod.string().datetime({ offset: true }),
-  org_ids: zod.array(orgIdStringSchema).max(4, 'Up to 4 organization IDs are allowed'),
+  org_ids: zod.array(idStringSchema).max(4, 'Up to 4 organization IDs are allowed'),
   total_hours: zod.number().finite().nonnegative(),
-  hours_per_org: zod.record(orgIdStringSchema, zod.number().finite().nonnegative()),
+  hours_per_org: zod.record(idStringSchema, zod.number().finite().nonnegative()),
   type: zod.literal(CERTIFICATE_TYPE),
 }).superRefine((payload, ctx) => {
   const uniqueOrgIds = new Set(payload.org_ids);
@@ -72,9 +73,9 @@ type CompactCertificatePayloadTuple = readonly [
 
 const compactCertificatePayloadSchema = zod.tuple([
   zod.literal(CERTIFICATE_PAYLOAD_VERSION),
+  idSchema,
   zod.number().int().positive(),
-  zod.number().int().positive(),
-  zod.array(zod.number().int().positive()).max(4),
+  zod.array(idSchema).max(4),
   zod.number().int().nonnegative(),
   zod.array(zod.number().int().nonnegative()),
   zod.literal(CERTIFICATE_TYPE_CODE),
@@ -190,17 +191,6 @@ const tryParseCompactPayload = (payloadBytes: Buffer): CertificateVerificationPa
   }
 };
 
-const tryParseLegacyPayload = (payloadBytes: Buffer): CertificateVerificationPayload | null => {
-  try {
-    const parsed = JSON.parse(payloadBytes.toString('utf8'));
-    const payloadResult = certificateVerificationPayloadSchema.safeParse(parsed);
-    if (!payloadResult.success) return null;
-    return toCanonicalPayload(payloadResult.data);
-  } catch {
-    return null;
-  }
-};
-
 export const signCertificateVerificationPayload = (
   rawPayload: CertificateVerificationPayload,
   secret: string,
@@ -243,11 +233,6 @@ export const verifySignedCertificateToken = (
   const compactPayload = tryParseCompactPayload(payloadBytes);
   if (compactPayload) {
     return { valid: true, payload: compactPayload };
-  }
-
-  const legacyPayload = tryParseLegacyPayload(payloadBytes);
-  if (legacyPayload) {
-    return { valid: true, payload: legacyPayload };
   }
 
   return { valid: false, reason: 'invalid_payload' };

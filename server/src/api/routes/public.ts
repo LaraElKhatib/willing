@@ -1,6 +1,6 @@
 import path from 'path';
 
-import { type Request, type Response, Router } from 'express';
+import { type Response, Router } from 'express';
 import { type Kysely } from 'kysely';
 import zod from 'zod';
 
@@ -14,56 +14,6 @@ import { PLATFORM_SIGNATURE_UPLOAD_DIR } from '../../services/uploads/paths.ts';
 const certificateVerificationBodySchema = zod.object({
   token: zod.string().trim().min(1, 'Certificate token is required.').max(512, 'Certificate token is too long.'),
 });
-
-const VERIFICATION_RATE_LIMIT_WINDOW_MS = 60_000;
-const VERIFICATION_RATE_LIMIT_MAX_ATTEMPTS = 20;
-const verificationRateLimitBuckets = new Map<string, { count: number; resetAt: number }>();
-
-const getRequestSource = (req: Request) => {
-  const trustProxy = req.app.get('trust proxy');
-  const forwardedFor = req.headers['x-forwarded-for'];
-
-  if (trustProxy) {
-    if (typeof forwardedFor === 'string' && forwardedFor.trim()) {
-      const firstForwardedAddress = forwardedFor.split(',')[0]?.trim();
-      if (firstForwardedAddress) return firstForwardedAddress;
-    }
-    if (Array.isArray(forwardedFor) && forwardedFor.length > 0) {
-      const firstForwardedAddress = forwardedFor[0];
-      if (firstForwardedAddress) return firstForwardedAddress;
-    }
-  }
-
-  return req.ip || 'unknown';
-};
-
-const isRateLimited = (source: string) => {
-  const now = Date.now();
-
-  if (verificationRateLimitBuckets.size > 2000) {
-    verificationRateLimitBuckets.forEach((entry, key) => {
-      if (entry.resetAt <= now) verificationRateLimitBuckets.delete(key);
-    });
-  }
-
-  const bucket = verificationRateLimitBuckets.get(source);
-
-  if (!bucket || bucket.resetAt <= now) {
-    verificationRateLimitBuckets.set(source, {
-      count: 1,
-      resetAt: now + VERIFICATION_RATE_LIMIT_WINDOW_MS,
-    });
-    return false;
-  }
-
-  if (bucket.count >= VERIFICATION_RATE_LIMIT_MAX_ATTEMPTS) {
-    return true;
-  }
-
-  bucket.count += 1;
-  verificationRateLimitBuckets.set(source, bucket);
-  return false;
-};
 
 function createPublicRouter(db: Kysely<Database>) {
   const publicRouter = Router();
@@ -140,16 +90,6 @@ function createPublicRouter(db: Kysely<Database>) {
   });
 
   publicRouter.post('/certificate/verify', async (req, res: Response<PublicCertificateVerificationResponse>) => {
-    const source = getRequestSource(req);
-    if (isRateLimited(source)) {
-      res.setHeader('Retry-After', String(Math.ceil(VERIFICATION_RATE_LIMIT_WINDOW_MS / 1000)));
-      res.status(429).json({
-        valid: false,
-        message: 'Too many verification attempts. Please retry in a minute.',
-      });
-      return;
-    }
-
     const parsedBody = certificateVerificationBodySchema.safeParse(req.body);
     if (!parsedBody.success) {
       res.status(400).json({

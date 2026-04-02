@@ -657,33 +657,26 @@ function OrganizationProfile() {
 
                   {certificateValues.certificate_feature_enabled && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <fieldset className="fieldset w-full">
-                        <label className="label">
-                          <span className="label-text font-medium">Minimum Volunteer Hours (for certificate eligibility)</span>
-                        </label>
-                        <input
-                          type="number"
-                          min={0}
-                          step={1}
-                          className={`input input-bordered w-full focus:input-primary ${certificateForm.formState.errors.hours_threshold ? 'input-error' : ''}`}
-                          placeholder="Minimum Volunteer Hours (for certificate eligibility)"
-                          {...certificateForm.register('hours_threshold', {
-                            onChange: () => certificateForm.clearErrors('root'),
-                            setValueAs: (value) => {
-                              if (value === '' || value === null || value === undefined) return null;
-                              const parsed = Number(value);
-                              if (!Number.isFinite(parsed)) return null;
-                              return Math.trunc(parsed);
-                            },
-                          })}
-                          onWheel={(event) => {
-                            event.currentTarget.blur();
-                          }}
-                        />
-                        {certificateForm.formState.errors.hours_threshold?.message && (
-                          <p className="text-error text-sm mt-1">{certificateForm.formState.errors.hours_threshold.message}</p>
-                        )}
-                      </fieldset>
+                      <FormField
+                        form={certificateForm}
+                        name="hours_threshold"
+                        label="Minimum Volunteer Hours (for certificate eligibility)"
+                        type="number"
+                        placeholder="Minimum Volunteer Hours (for certificate eligibility)"
+                        registerOptions={{
+                          onChange: () => certificateForm.clearErrors('root'),
+                          setValueAs: (value) => {
+                            if (value === '' || value === null || value === undefined) return null;
+                            const parsed = Number(value);
+                            if (!Number.isFinite(parsed)) return null;
+                            return Math.trunc(parsed);
+                          },
+                        }}
+                        inputProps={{
+                          min: 0,
+                          step: 1,
+                        }}
+                      />
                       <FormField
                         form={certificateForm}
                         name="signatory_name"
