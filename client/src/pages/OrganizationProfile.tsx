@@ -8,9 +8,10 @@ import ColumnLayout from '../components/layout/ColumnLayout';
 import PageContainer from '../components/layout/PageContainer';
 import PageHeader from '../components/layout/PageHeader';
 import LocationPicker from '../components/LocationPicker';
+import OrganizationProfilePicture from '../components/OrganizationProfilePicture';
 import PostingCollection from '../components/postings/PostingCollection';
 import PostingViewModeToggle from '../components/postings/PostingViewModeToggle';
-import requestServer, { SERVER_BASE_URL } from '../utils/requestServer';
+import requestServer from '../utils/requestServer';
 import useAsync from '../utils/useAsync';
 
 import type { OrganizationProfileResponse } from '../../../server/src/api/types';
@@ -83,32 +84,16 @@ function OrganizationProfile() {
             <>
               <Card>
                 <div className="flex flex-col items-center text-center">
-                  <div className="avatar mb-4">
-                    {data.organization.logo_path
-                      ? (
-                          <div
-                            className={`w-24 h-24 rounded-full overflow-hidden ring-1 ring-base-300 ${data.organization.logo_path.toLowerCase().endsWith('.png') ? 'bg-white' : 'bg-base-100'} flex items-center justify-center`}
-                          >
-                            <img
-                              src={`${SERVER_BASE_URL}/organization/${data.organization.id}/logo`}
-                              alt={`${data.organization.name} logo`}
-                              className="h-full w-full object-contain"
-                            />
-                          </div>
-                        )
-                      : (
-                          <div className="bg-linear-to-br from-primary to-primary/70 text-primary-content rounded-full w-24 h-24 flex items-center justify-center">
-                            <span className="text-4xl font-bold">
-                              {data.organization.name.charAt(0).toUpperCase()}
-                            </span>
-                          </div>
-                        )}
-                  </div>
-                  <h2 className="text-2xl font-bold">
+                  <OrganizationProfilePicture
+                    organizationName={data.organization.name}
+                    organizationId={data.organization.id}
+                    logoPath={data.organization.logo_path}
+                    size={96}
+                  />
+                  <h2 className="text-2xl font-bold mt-4">
                     {data.organization.name}
                   </h2>
                 </div>
-
                 <div className="divider my-4" />
 
                 <div className="space-y-4">

@@ -56,9 +56,11 @@ function createAdminRouter(db: Kysely<Database>) {
       res.status(403);
       throw new Error('Invalid email or password');
     }
+
     const token = await generateJWT({
       id: account.id,
       role: 'admin',
+      token_version: account.token_version,
     });
 
     res.json({
@@ -90,7 +92,7 @@ function createAdminRouter(db: Kysely<Database>) {
       .selectAll();
 
     if (search) {
-      const searchPattern = `%${search}%`;
+      const searchPattern = `%${search};%`;
       organizationRequestsQuery = organizationRequestsQuery.where(eb => eb.or([
         eb('organization_request.name', 'ilike', searchPattern),
         eb('organization_request.email', 'ilike', searchPattern),

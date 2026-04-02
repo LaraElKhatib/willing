@@ -334,6 +334,7 @@ describe('POST /volunteer/verify-email', () => {
     expect(generateJWTSpy).toHaveBeenCalledWith({
       id: response.body.volunteer.id,
       role: 'volunteer',
+      token_version: 0,
     });
     expect(recomputeProfileSpy).toHaveBeenCalledWith(response.body.volunteer.id, transaction);
     expect(recomputeExperienceSpy).toHaveBeenCalledWith(response.body.volunteer.id, transaction);
@@ -527,12 +528,16 @@ describe('GET /volunteer/profile', () => {
           posting_title: 'Food Drive',
           organization_id: 303,
           organization_name: 'Helping Hands',
+          organization_logo_path: null,
           location_name: 'Community Center',
           start_date: new Date('2025-01-15T00:00:00.000Z'),
           start_time: '08:00:00',
           end_date: new Date('2025-01-15T00:00:00.000Z'),
           end_time: '12:00:00',
           crisis_name: null,
+          is_closed: false,
+          automatic_acceptance: true,
+          enrollment_count: 12,
         },
       ],
     };

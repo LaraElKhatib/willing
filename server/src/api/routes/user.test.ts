@@ -391,4 +391,58 @@ describe('POST /user/forgot-password/reset', () => {
 
     expect(tokens).toHaveLength(1);
   });
+
+  test('invalidates previous token after password reset', async () => {
+    const { volunteer, plainPassword } = await createVolunteerAccount({
+      email: 'invalidates-token@example.com',
+      password: 'OldPassword123!',
+    });
+
+    const loginResult = await server
+      .post('/user/login')
+      .send({ email: volunteer.email, password: plainPassword })
+      .expect(200);
+
+    const oldToken = loginResult.body.token;
+
+    await server
+      .get('/volunteer/me')
+      .set('Authorization', `Bearer ${oldToken}`)
+      .expect(200);
+
+    const resetTokenKey = 'reset-token-' + Date.now();
+    await transaction
+      .insertInto('password_reset_token')
+      .values({
+        user_id: volunteer.id,
+        role: 'volunteer',
+        token: resetTokenKey,
+        expires_at: new Date(Date.now() + 60 * 60 * 1000),
+        created_at: new Date(),
+      })
+      .execute();
+
+    await server
+      .post('/user/forgot-password/reset')
+      .send({ key: resetTokenKey, password: 'NewPassword123!' })
+      .expect(200);
+
+    await server
+      .get('/volunteer/me')
+      .set('Authorization', `Bearer ${oldToken}`)
+      .expect(403);
+
+    const loggedIn = await server
+      .post('/user/login')
+      .send({ email: volunteer.email, password: 'NewPassword123!' })
+      .expect(200);
+
+    const newToken = loggedIn.body.token;
+    expect(newToken).toBeTruthy();
+
+    await server
+      .get('/volunteer/me')
+      .set('Authorization', `Bearer ${newToken}`)
+      .expect(200);
+  });
 });

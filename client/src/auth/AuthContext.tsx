@@ -10,32 +10,34 @@ import type { Role, UserJWT } from '../../../server/src/types';
 
 type AccountWithoutPassword = AdminAccountWithoutPassword | OrganizationAccountWithoutPassword | VolunteerAccountWithoutPassword;
 
+const JWT_STORAGE_KEY = 'jwt';
+const AUTH_EVENT_KEY = 'auth-event';
+
 const getCurrentUserAccount = async (currentRole?: Role) => {
   if (!currentRole) {
-    const token = localStorage.getItem('jwt');
+    const token = localStorage.getItem(JWT_STORAGE_KEY);
     if (!token) return undefined;
 
     const decoded = jose.decodeJwt<UserJWT>(token);
     currentRole = decoded.role;
   }
 
-  try {
-    if (currentRole === 'admin') {
-      const response = await requestServer<AdminMeResponse>('/admin/me', { includeJwt: true });
-      return response.admin;
-    }
-    if (currentRole === 'organization') {
-      const response = await requestServer<OrganizationGetMeResponse>('/organization/me', { includeJwt: true });
-      return response.organization;
-    }
-    if (currentRole === 'volunteer') {
-      const response = await requestServer<VolunteerMeResponse>('/volunteer/me', { includeJwt: true });
-      return response.volunteer;
-    }
-  } catch (error) {
-    console.error('Failed to fetch user data:', error);
-    return undefined;
+  if (currentRole === 'admin') {
+    const response = await requestServer<AdminMeResponse>('/admin/me', { includeJwt: true });
+    return response.admin;
   }
+
+  if (currentRole === 'organization') {
+    const response = await requestServer<OrganizationGetMeResponse>('/organization/me', { includeJwt: true });
+    return response.organization;
+  }
+
+  if (currentRole === 'volunteer') {
+    const response = await requestServer<VolunteerMeResponse>('/volunteer/me', { includeJwt: true });
+    return response.volunteer;
+  }
+
+  return undefined;
 };
 
 type AuthContextType = {
@@ -48,7 +50,7 @@ type AuthContextType = {
   loginAdmin: (email: string, password: string) => Promise<void>;
   loginUser: (email: string, password: string) => Promise<void>;
   createVolunteer: (volunteer: NewVolunteerAccount) => Promise<VolunteerCreateResponse>;
-  verifyVolunteerEmail: (key: string) => Promise<void>;
+  verifyVolunteerEmail: (key: string) => Promise<VolunteerVerifyEmailResponse>;
   resendVolunteerVerification: (email: string) => Promise<void>;
   changePassword: (oldPassword: string, newPassword: string) => Promise<void>;
   logout: () => void;
@@ -62,7 +64,7 @@ const AuthContext = createContext<AuthContextType>({
   loginAdmin: async () => {},
   loginUser: async () => {},
   createVolunteer: async () => ({ requires_email_verification: true }),
-  verifyVolunteerEmail: async () => {},
+  verifyVolunteerEmail: async () => ({ volunteer: {} as VolunteerAccountWithoutPassword, token: '' }),
   resendVolunteerVerification: async () => {},
   changePassword: async () => {},
   logout: () => {},
@@ -74,75 +76,152 @@ const AuthContext = createContext<AuthContextType>({
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const navigate = useNavigate();
 
-  const [user, setUser] = useState<AuthContextType['user']>(localStorage.getItem('jwt')
-    ? {
-        role: jose.decodeJwt<UserJWT>(localStorage.getItem('jwt') as string).role,
-        account: undefined as AccountWithoutPassword | undefined,
-      }
-    : undefined);
+  const [user, setUser] = useState<AuthContextType['user']>(() => {
+    const token = localStorage.getItem(JWT_STORAGE_KEY);
+    if (!token) return undefined;
+
+    return {
+      role: jose.decodeJwt<UserJWT>(token).role,
+      account: undefined as AccountWithoutPassword | undefined,
+    };
+  });
   const [loaded, setLoaded] = useState(false);
 
   const refreshUser = useCallback(async (jwt?: string) => {
-    const token = jwt || localStorage.getItem('jwt');
+    const tokenFromLocal = localStorage.getItem(JWT_STORAGE_KEY);
+    const token = jwt || tokenFromLocal;
+
     if (!token) {
       setUser(undefined);
       return;
     }
 
-    const { role } = jose.decodeJwt<UserJWT>(token);
-    const account = await getCurrentUserAccount(role);
+    if (!tokenFromLocal) {
+      localStorage.setItem(JWT_STORAGE_KEY, token);
+    }
 
-    setUser({ role, account: account });
-  }, []);
+    try {
+      const { role } = jose.decodeJwt<UserJWT>(token);
+      const account = await getCurrentUserAccount(role);
+      if (!account) {
+        localStorage.removeItem('jwt');
+        setUser(undefined);
+        navigate('/login', { replace: true });
+        return;
+      }
 
+      setUser({ role, account: account });
+    } catch {
+      localStorage.removeItem('jwt');
+      setUser(undefined);
+      navigate('/login', { replace: true });
+    }
+  }, [navigate]);
   useEffect(() => {
     refreshUser().then(() => setLoaded(true));
   }, [refreshUser]);
 
-  const loginAdmin = useCallback(async (email: string, password: string) => {
-    console.log('Attempting admin login with email:', email);
-    const response = await requestServer<AdminLoginResponse>('/admin/login', {
-      method: 'POST',
-      body: { email, password },
-    });
+  useEffect(() => {
+    const onStorage = (event: StorageEvent) => {
+      if (event.key !== AUTH_EVENT_KEY || !event.newValue) return;
 
-    localStorage.setItem('jwt', response.token);
-    setUser({ role: 'admin', account: response.admin });
+      if (event.newValue.startsWith('signout-others')) {
+        if (localStorage.getItem(JWT_STORAGE_KEY)) {
+          localStorage.removeItem(JWT_STORAGE_KEY);
+          setUser(undefined);
+          navigate('/login', { replace: true });
+        }
+        return;
+      }
+
+      if (event.newValue.startsWith('login-')) {
+        // event format: login-<role>-<id>-<timestamp>
+        const [, eventRole, eventId] = event.newValue.split('-');
+        if (!eventRole || !eventId) return;
+
+        const localToken = localStorage.getItem(JWT_STORAGE_KEY);
+        if (!localToken) return;
+
+        const currentRole = user?.role;
+        const currentId = user?.account?.id?.toString();
+
+        if (currentRole === eventRole && currentId === eventId) return;
+
+        void refreshUser(localToken);
+      }
+    };
+
+    window.addEventListener('storage', onStorage);
+
+    return () => {
+      window.removeEventListener('storage', onStorage);
+    };
+  }, [navigate, user]);
+
+  const loginAdmin = useCallback(async (email: string, password: string) => {
+    try {
+      const response = await requestServer<AdminLoginResponse>('/admin/login', {
+        method: 'POST',
+        body: { email, password },
+      });
+
+      localStorage.setItem(JWT_STORAGE_KEY, response.token);
+      setUser({ role: 'admin', account: response.admin });
+      window.localStorage.setItem(AUTH_EVENT_KEY, `login-admin-${response.admin.id}-${Date.now()}`);
+    } catch (error) {
+      localStorage.removeItem(JWT_STORAGE_KEY);
+      throw error;
+    }
   }, []);
 
   const loginUser = useCallback(async (email: string, password: string) => {
-    const response = await requestServer<UserLoginResponse>('/user/login', {
-      method: 'POST',
-      body: { email, password },
-    });
+    try {
+      const response = await requestServer<UserLoginResponse>('/user/login', {
+        method: 'POST',
+        body: { email, password },
+      });
 
-    localStorage.setItem('jwt', response.token);
-    setUser({
-      role: response.role,
-      account: response.role === 'organization' ? response.organization : response.volunteer,
-    });
+      localStorage.setItem(JWT_STORAGE_KEY, response.token);
+      const account = response.role === 'organization' ? response.organization! : response.volunteer!;
+      setUser({
+        role: response.role,
+        account,
+      });
+      window.localStorage.setItem(AUTH_EVENT_KEY, `login-${response.role}-${account.id}-${Date.now()}`);
+    } catch (error) {
+      localStorage.removeItem(JWT_STORAGE_KEY);
+      throw error;
+    }
   }, []);
 
-  const createVolunteer = async (volunteer: NewVolunteerAccount) => {
+  const createVolunteer = useCallback(async (volunteer: NewVolunteerAccount) => {
     const response = await requestServer<VolunteerCreateResponse>('/volunteer/create', {
       method: 'POST',
       body: volunteer,
     });
 
     return response;
-  };
+  }, []);
 
   const verifyVolunteerEmail = useCallback(async (key: string) => {
-    const response = await requestServer<VolunteerVerifyEmailResponse>('/volunteer/verify-email', {
-      method: 'POST',
-      body: { key },
-    });
+    try {
+      const response = await requestServer<VolunteerVerifyEmailResponse>('/volunteer/verify-email', {
+        method: 'POST',
+        body: { key },
+      });
 
-    localStorage.setItem('jwt', response.token);
-    setUser({
-      role: 'volunteer',
-      account: response.volunteer,
-    });
+      localStorage.setItem(JWT_STORAGE_KEY, response.token);
+      setUser({
+        role: 'volunteer',
+        account: response.volunteer,
+      });
+      window.localStorage.setItem(AUTH_EVENT_KEY, `login-volunteer-${response.volunteer.id}-${Date.now()}`);
+
+      return response;
+    } catch (error) {
+      localStorage.removeItem(JWT_STORAGE_KEY);
+      throw error;
+    }
   }, []);
 
   const resendVolunteerVerification = useCallback(async (email: string) => {
@@ -168,12 +247,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       includeJwt: true,
     });
 
-    localStorage.setItem('jwt', token);
-    refreshUser(token);
-  }, [user]);
+    localStorage.setItem(JWT_STORAGE_KEY, token);
+    window.localStorage.setItem(AUTH_EVENT_KEY, 'signout-others-' + Date.now());
+    await refreshUser(token);
+  }, [user, refreshUser]);
 
   const logout = useCallback(() => {
-    localStorage.removeItem('jwt');
+    localStorage.removeItem(JWT_STORAGE_KEY);
+    window.localStorage.setItem(AUTH_EVENT_KEY, 'signout-others-' + Date.now());
     setUser(undefined);
   }, [user]);
 
