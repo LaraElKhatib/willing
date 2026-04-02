@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 
-import { Router, type Response } from 'express';
+import { Router, type Request, type Response } from 'express';
 import { sql, type Kysely } from 'kysely';
 import zod from 'zod';
 
@@ -492,7 +492,7 @@ function createOrganizationRouter(db: Kysely<Database>) {
   organizationRouter.post(
     '/logo',
     uploadSingle(orgLogoMulter, 'logo'),
-    async (req, res: Response<OrganizationUploadLogoResponse>) => {
+    async (req: Request, res: Response<OrganizationUploadLogoResponse>) => {
       if (!req.file) {
         res.status(400);
         throw new Error('No logo file provided');
@@ -529,7 +529,7 @@ function createOrganizationRouter(db: Kysely<Database>) {
     },
   );
 
-  organizationRouter.delete('/logo', async (req, res: Response<OrganizationDeleteLogoResponse>) => {
+  organizationRouter.delete('/logo', async (req: Request, res: Response<OrganizationDeleteLogoResponse>) => {
     const organizationId = req.userJWT!.id;
     const existingOrganization = await db
       .selectFrom('organization_account')
