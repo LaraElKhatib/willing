@@ -15,6 +15,8 @@ import type { AdminGetOrganizationReportResponse, AdminGetVolunteerReportRespons
 
 type ReportType = 'organization' | 'volunteer';
 
+const formatReportTitle = (title: string) => title.replaceAll('_', ' ').replace(/^./, firstLetter => firstLetter.toUpperCase());
+
 function AdminReportDetail() {
   const navigate = useNavigate();
   const { reportType, reportId } = useParams<{ reportType: ReportType; reportId: string }>();
@@ -144,7 +146,7 @@ function AdminReportDetail() {
                   <span className="label-text font-semibold">Report Type</span>
                 </label>
                 <div className="badge badge-error badge-outline badge-lg">
-                  {report.title}
+                  {formatReportTitle(report.title)}
                 </div>
               </div>
 
