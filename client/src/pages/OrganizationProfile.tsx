@@ -1,9 +1,11 @@
-import { Building2, ClipboardList, Globe, Mail, MapPin, Phone } from 'lucide-react';
-import { useMemo } from 'react';
+import { Building2, ClipboardList, Flag, Globe, Mail, MapPin, Phone, X } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 
+import Button from '../components/Button';
 import Card from '../components/Card';
 import EmptyState from '../components/EmptyState';
+import IconButton from '../components/IconButton';
 import ColumnLayout from '../components/layout/ColumnLayout';
 import PageContainer from '../components/layout/PageContainer';
 import PageHeader from '../components/layout/PageHeader';
@@ -19,6 +21,7 @@ import type { PostingWithContext } from '../../../server/src/types';
 
 function OrganizationProfile() {
   const { id } = useParams<{ id: string }>();
+  const [reportModalOpen, setReportModalOpen] = useState(false);
 
   const { data, loading, error } = useAsync(
     async () => {
@@ -34,6 +37,10 @@ function OrganizationProfile() {
     },
     { immediate: !!id },
   );
+
+  const closeReportModal = () => {
+    setReportModalOpen(false);
+  };
 
   const postingsWithContext = useMemo<PostingWithContext[]>(() => {
     if (!data) return [];
@@ -68,6 +75,17 @@ function OrganizationProfile() {
         icon={Building2}
         showBack
         defaultBackTo="/"
+        actions={(
+          <Button
+            color="error"
+            style="outline"
+            type="button"
+            Icon={Flag}
+            onClick={() => setReportModalOpen(true)}
+          >
+            Report organization
+          </Button>
+        )}
       />
 
       {error && <div className="mb-4 text-sm text-base-content/70">Unable to load organization profile.</div>}
@@ -230,6 +248,26 @@ function OrganizationProfile() {
           </div>
         </ColumnLayout>
       )}
+
+      <div className={`modal ${reportModalOpen ? 'modal-open' : ''}`}>
+        <div className="modal-box border border-base-300">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-bold text-lg">Report Organization</h3>
+            <IconButton
+              type="button"
+              Icon={X}
+              onClick={closeReportModal}
+              aria-label="Close report modal"
+              title="Close"
+            />
+          </div>
+
+          <p className="text-sm text-base-content/70 py-4">
+            Provide details about your report.
+          </p>
+        </div>
+        <div className="modal-backdrop" onClick={closeReportModal}>Close</div>
+      </div>
     </PageContainer>
   );
 }
