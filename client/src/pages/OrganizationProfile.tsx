@@ -1,6 +1,9 @@
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Building2, ClipboardList, Flag, Globe, Mail, MapPin, Phone, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { useParams } from 'react-router-dom';
+import zod from 'zod';
 
 import Button from '../components/Button';
 import Card from '../components/Card';
@@ -13,15 +16,32 @@ import LocationPicker from '../components/LocationPicker';
 import OrganizationProfilePicture from '../components/OrganizationProfilePicture';
 import PostingCollection from '../components/postings/PostingCollection';
 import PostingViewModeToggle from '../components/postings/PostingViewModeToggle';
+import { FormField, FormRootError } from '../utils/formUtils';
 import requestServer from '../utils/requestServer';
 import useAsync from '../utils/useAsync';
 
 import type { OrganizationProfileResponse } from '../../../server/src/api/types';
 import type { PostingWithContext } from '../../../server/src/types';
 
+const reportOrganizationSchema = zod.object({
+  title: zod.enum(['scam', 'impersonation', 'harassment', 'inappropriate_behavior', 'other']),
+  message: zod.string().trim().min(1, 'Message is required').max(1000, 'Message must be at most 1000 characters'),
+});
+
+type ReportOrganizationFormData = zod.infer<typeof reportOrganizationSchema>;
+
 function OrganizationProfile() {
   const { id } = useParams<{ id: string }>();
   const [reportModalOpen, setReportModalOpen] = useState(false);
+  const reportForm = useForm<ReportOrganizationFormData>({
+    resolver: zodResolver(reportOrganizationSchema),
+    mode: 'onTouched',
+    reValidateMode: 'onChange',
+    defaultValues: {
+      title: 'scam',
+      message: '',
+    },
+  });
 
   const { data, loading, error } = useAsync(
     async () => {
@@ -40,6 +60,10 @@ function OrganizationProfile() {
 
   const closeReportModal = () => {
     setReportModalOpen(false);
+    reportForm.reset({
+      title: 'scam',
+      message: '',
+    });
   };
 
   const postingsWithContext = useMemo<PostingWithContext[]>(() => {
@@ -262,9 +286,30 @@ function OrganizationProfile() {
             />
           </div>
 
-          <p className="text-sm text-base-content/70 py-4">
-            Provide details about your report.
-          </p>
+          <form className="space-y-2">
+            <FormField
+              form={reportForm}
+              name="title"
+              label="Report Type"
+              selectOptions={[
+                { label: 'Scam', value: 'scam' },
+                { label: 'Impersonation', value: 'impersonation' },
+                { label: 'Harassment', value: 'harassment' },
+                { label: 'Inappropriate behavior', value: 'inappropriate_behavior' },
+                { label: 'Other', value: 'other' },
+              ]}
+            />
+
+            <FormField
+              form={reportForm}
+              name="message"
+              label="Message"
+              type="textarea"
+              placeholder="Describe what happened and why you are reporting this organization"
+            />
+
+            <FormRootError form={reportForm} />
+          </form>
         </div>
         <div className="modal-backdrop" onClick={closeReportModal}>Close</div>
       </div>
