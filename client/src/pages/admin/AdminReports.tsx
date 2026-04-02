@@ -312,23 +312,15 @@ function AdminReports() {
                                 key={report.id}
                                 className="rounded-xl border border-base-300 bg-base-100 p-4 flex flex-col items-start"
                               >
-                                <div className="mb-2 flex flex-wrap items-center gap-2">
-                                  <span className="badge badge-error badge-outline">{formatReportTitle(report.title)}</span>
-                                  <span className="text-xs text-base-content/60">{new Date(report.created_at).toLocaleString()}</span>
+                                <div className="mb-3 flex w-full items-start justify-between gap-3">
+                                  <div className="flex items-center gap-2">
+                                    <h3 className="text-base font-semibold">{report.reported_organization.name}</h3>
+                                    <span className="badge badge-error badge-outline">{formatReportTitle(report.title)}</span>
+                                  </div>
+                                  <span className="text-xs text-base-content/60 whitespace-nowrap">{new Date(report.created_at).toLocaleString()}</span>
                                 </div>
                                 <p className="text-sm text-base-content/80 whitespace-pre-wrap mb-3">{report.message}</p>
-                                <div className="text-xs text-base-content/70 space-y-1 mb-4">
-                                  <p>
-                                    <span className="font-semibold">Reported organization:</span>
-                                    {' '}
-                                    {`${report.reported_organization.name} (${report.reported_organization.email})`}
-                                  </p>
-                                  <p>
-                                    <span className="font-semibold">Reporter volunteer:</span>
-                                    {' '}
-                                    {`${report.reporter_volunteer.first_name} ${report.reporter_volunteer.last_name} (${report.reporter_volunteer.email})`}
-                                  </p>
-                                </div>
+
                                 <Button
                                   type="button"
                                   size="sm"
@@ -371,23 +363,14 @@ function AdminReports() {
                                 key={report.id}
                                 className="rounded-xl border border-base-300 bg-base-100 p-4 flex flex-col items-start"
                               >
-                                <div className="mb-2 flex flex-wrap items-center gap-2">
-                                  <span className="badge badge-error badge-outline">{formatReportTitle(report.title)}</span>
-                                  <span className="text-xs text-base-content/60">{new Date(report.created_at).toLocaleString()}</span>
+                                <div className="mb-3 flex w-full items-start justify-between gap-3">
+                                  <div className="flex items-center gap-2">
+                                    <h3 className="text-base font-semibold">{`${report.reported_volunteer.first_name} ${report.reported_volunteer.last_name}`}</h3>
+                                    <span className="badge badge-error badge-outline">{formatReportTitle(report.title)}</span>
+                                  </div>
+                                  <span className="text-xs text-base-content/60 whitespace-nowrap">{new Date(report.created_at).toLocaleString()}</span>
                                 </div>
                                 <p className="text-sm text-base-content/80 whitespace-pre-wrap mb-3">{report.message}</p>
-                                <div className="text-xs text-base-content/70 space-y-1 mb-4">
-                                  <p>
-                                    <span className="font-semibold">Reported volunteer:</span>
-                                    {' '}
-                                    {`${report.reported_volunteer.first_name} ${report.reported_volunteer.last_name} (${report.reported_volunteer.email})`}
-                                  </p>
-                                  <p>
-                                    <span className="font-semibold">Reporter organization:</span>
-                                    {' '}
-                                    {`${report.reporter_organization.name} (${report.reporter_organization.email})`}
-                                  </p>
-                                </div>
                                 <Button
                                   type="button"
                                   size="sm"
