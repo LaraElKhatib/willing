@@ -58,7 +58,7 @@ function AdminReports() {
           description="Reports submitted by volunteers about organizations."
           Icon={Building2}
           right={(
-            <span className="badge badge-primary">
+            <span className="badge badge-accent">
               {organizationReports.length}
               {' '}
               Total
@@ -112,7 +112,7 @@ function AdminReports() {
           description="Reports submitted by organizations about volunteers."
           Icon={UserRound}
           right={(
-            <span className="badge badge-secondary">
+            <span className="badge badge-accent">
               {volunteerReports.length}
               {' '}
               Total
