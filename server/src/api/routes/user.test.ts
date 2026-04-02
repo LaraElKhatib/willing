@@ -107,6 +107,44 @@ describe('POST /user/login', () => {
     expect(response.body.message).toBe('Invalid email or password');
   });
 
+  test('rejects login for disabled organization account', async () => {
+    const { organization, plainPassword } = await createOrganizationAccount({
+      email: 'disabled-org-login@example.com',
+    });
+
+    await transaction
+      .updateTable('organization_account')
+      .set({ is_disabled: true })
+      .where('id', '=', organization.id)
+      .execute();
+
+    const response = await server
+      .post('/user/login')
+      .send({ email: organization.email, password: plainPassword })
+      .expect(403);
+
+    expect(response.body.message).toBe('Account is disabled');
+  });
+
+  test('rejects login for disabled volunteer account', async () => {
+    const { volunteer, plainPassword } = await createVolunteerAccount({
+      email: 'disabled-volunteer-login@example.com',
+    });
+
+    await transaction
+      .updateTable('volunteer_account')
+      .set({ is_disabled: true })
+      .where('id', '=', volunteer.id)
+      .execute();
+
+    const response = await server
+      .post('/user/login')
+      .send({ email: volunteer.email, password: plainPassword })
+      .expect(403);
+
+    expect(response.body.message).toBe('Account is disabled');
+  });
+
   test('rejects login for correct admin credentials', async () => {
     const { admin, plainPassword } = await createAdminAccount();
 
