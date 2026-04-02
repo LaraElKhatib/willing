@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertTriangle, Building2, Calendar, Clock3, Download, FileText, Flag, Mail, Mars, Users, Venus, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { useParams } from 'react-router';
 import zod from 'zod';
 
@@ -53,6 +53,11 @@ function OrganizationVolunteerProfile() {
       message: '',
     },
   });
+  const reportMessage = useWatch({
+    control: reportForm.control,
+    name: 'message',
+  }) ?? '';
+  const reportMessageLength = reportMessage?.length ?? 0;
 
   const {
     data,
@@ -115,6 +120,7 @@ function OrganizationVolunteerProfile() {
       body: reportData,
     });
   }, { notifyOnError: false });
+  const canSubmitReport = reportForm.formState.isValid && !submittingReport;
 
   const profile = data?.profile;
 
@@ -489,6 +495,9 @@ function OrganizationVolunteerProfile() {
               type="textarea"
               placeholder="Describe what happened and why you are reporting this volunteer"
             />
+            <p className="text-xs opacity-70 text-right px-1">
+              {`${reportMessageLength}/1000`}
+            </p>
 
             <FormRootError form={reportForm} />
 
@@ -507,7 +516,7 @@ function OrganizationVolunteerProfile() {
                 color="warning"
                 Icon={Flag}
                 loading={submittingReport}
-                disabled={submittingReport}
+                disabled={!canSubmitReport}
               >
                 Submit Report
               </Button>
