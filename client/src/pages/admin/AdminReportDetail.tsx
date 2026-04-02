@@ -20,7 +20,8 @@ const formatReportTitle = (title: string) => title.replaceAll('_', ' ').replace(
 function AdminReportDetail() {
   const navigate = useNavigate();
   const { reportType, reportId } = useParams<{ reportType: ReportType; reportId: string }>();
-  const [isDisablingAccount, setIsDisablingAccount] = useState(false);
+  const [isActionInProgress, setIsActionInProgress] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const fetchReport = useCallback(async () => {
     if (!reportType || !reportId || !['organization', 'volunteer'].includes(reportType)) {
@@ -54,10 +55,11 @@ function AdminReportDetail() {
   }
 
   const handleAcceptReport = async () => {
-    if (!report) return;
+    if (!report || !reportId) return;
 
     try {
-      setIsDisablingAccount(true);
+      setIsActionInProgress(true);
+      setActionError(null);
 
       if (reportType === 'organization' && 'reported_organization' in report) {
         await requestServer(`/admin/reports/organization/${report.reported_organization.id}/disable`, {
@@ -71,16 +73,37 @@ function AdminReportDetail() {
         });
       }
 
+      await requestServer(`/admin/reports/${reportType}/${reportId}/reject`, {
+        method: 'POST',
+        includeJwt: true,
+      });
+
       navigate('/admin/reports');
-    } catch (error) {
-      console.error('Failed to disable account:', error);
+    } catch {
+      setActionError('Failed to accept report. Please try again.');
     } finally {
-      setIsDisablingAccount(false);
+      setIsActionInProgress(false);
     }
   };
 
-  const handleRejectReport = () => {
-    navigate('/admin/reports');
+  const handleRejectReport = async () => {
+    if (!reportId) return;
+
+    try {
+      setIsActionInProgress(true);
+      setActionError(null);
+
+      await requestServer(`/admin/reports/${reportType}/${reportId}/reject`, {
+        method: 'POST',
+        includeJwt: true,
+      });
+
+      navigate('/admin/reports');
+    } catch {
+      setActionError('Failed to reject report. Please try again.');
+    } finally {
+      setIsActionInProgress(false);
+    }
   };
 
   if (loading) {
@@ -238,13 +261,19 @@ function AdminReportDetail() {
         <div className="lg:col-span-1">
           <Card title="Actions" description="Choose how to handle this report." color="primary">
             <div className="space-y-3">
+              {actionError && (
+                <Alert color="error">
+                  <p>{actionError}</p>
+                </Alert>
+              )}
+
               <button
                 type="button"
                 className="btn btn-success btn-block gap-2"
                 onClick={() => void handleAcceptReport()}
-                disabled={isDisablingAccount}
+                disabled={isActionInProgress}
               >
-                {isDisablingAccount
+                {isActionInProgress
                   ? (
                       <>
                         <div className="loading loading-spinner loading-sm" />
@@ -261,8 +290,8 @@ function AdminReportDetail() {
               <button
                 type="button"
                 className="btn btn-outline btn-block gap-2"
-                onClick={handleRejectReport}
-                disabled={isDisablingAccount}
+                onClick={() => void handleRejectReport()}
+                disabled={isActionInProgress}
               >
                 <X size={18} />
                 Reject Report

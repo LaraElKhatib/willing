@@ -12,6 +12,8 @@ import {
   type AdminLoginResponse,
   type AdminMeResponse,
   type AdminOrganizationRequestReviewResponse,
+  type AdminRejectOrganizationReportResponse,
+  type AdminRejectVolunteerReportResponse,
   type AdminOrganizationRequestsResponse,
   type AdminReportsResponse,
 } from './index.types.ts';
@@ -381,6 +383,50 @@ function createAdminRouter(db: Kysely<Database>) {
         email: report.reporter_organization_email,
       },
     });
+  });
+
+  adminRouter.post('/reports/organization/:reportId/reject', async (req, res: Response<AdminRejectOrganizationReportResponse>) => {
+    const reportId = zod.coerce.number().int().positive().parse(req.params.reportId);
+
+    const report = await db
+      .selectFrom('organization_report')
+      .select(['id'])
+      .where('id', '=', reportId)
+      .executeTakeFirst();
+
+    if (!report) {
+      res.status(404);
+      throw new Error('Organization report not found.');
+    }
+
+    await db
+      .deleteFrom('organization_report')
+      .where('id', '=', reportId)
+      .execute();
+
+    res.json({});
+  });
+
+  adminRouter.post('/reports/volunteer/:reportId/reject', async (req, res: Response<AdminRejectVolunteerReportResponse>) => {
+    const reportId = zod.coerce.number().int().positive().parse(req.params.reportId);
+
+    const report = await db
+      .selectFrom('volunteer_report')
+      .select(['id'])
+      .where('id', '=', reportId)
+      .executeTakeFirst();
+
+    if (!report) {
+      res.status(404);
+      throw new Error('Volunteer report not found.');
+    }
+
+    await db
+      .deleteFrom('volunteer_report')
+      .where('id', '=', reportId)
+      .execute();
+
+    res.json({});
   });
 
   adminRouter.post('/reports/organization/:organizationId/disable', async (req, res: Response<AdminDisableOrganizationAccountResponse>) => {

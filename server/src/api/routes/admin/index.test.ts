@@ -357,6 +357,109 @@ describe('GET /admin/reports/volunteer/:reportId', () => {
   });
 });
 
+describe('POST /admin/reports/organization/:reportId/reject', () => {
+  test('returns 403 when unauthenticated', async () => {
+    await server
+      .post('/admin/reports/organization/1/reject')
+      .expect(403);
+  });
+
+  test('returns 404 when organization report does not exist', async () => {
+    const { token: adminToken } = await createAdminAccount();
+
+    await server
+      .post('/admin/reports/organization/999999/reject')
+      .set(authHeader(adminToken))
+      .expect(404);
+  });
+
+  test('removes organization report when admin rejects it', async () => {
+    const { token: adminToken } = await createAdminAccount();
+    const { organization: reportedOrganization } = await createOrganizationAccount({
+      phone_number: '+10000000011',
+      url: 'https://reject-org.example.com',
+    });
+    const { volunteer: reporterVolunteer } = await createVolunteerAccount();
+
+    const report = await transaction
+      .insertInto('organization_report')
+      .values({
+        reported_organization_id: reportedOrganization.id,
+        reporter_volunteer_id: reporterVolunteer.id,
+        title: 'other',
+        message: 'To be rejected',
+      })
+      .returning(['id'])
+      .executeTakeFirstOrThrow();
+
+    await server
+      .post(`/admin/reports/organization/${report.id}/reject`)
+      .set(authHeader(adminToken))
+      .expect(200);
+
+    const deletedReport = await transaction
+      .selectFrom('organization_report')
+      .select(['id'])
+      .where('id', '=', report.id)
+      .executeTakeFirst();
+
+    expect(deletedReport).toBeUndefined();
+  });
+});
+
+describe('POST /admin/reports/volunteer/:reportId/reject', () => {
+  test('returns 403 when requester is not an admin', async () => {
+    const { token } = await createVolunteerAccount();
+
+    await server
+      .post('/admin/reports/volunteer/1/reject')
+      .set(authHeader(token))
+      .expect(403);
+  });
+
+  test('returns 404 when volunteer report does not exist', async () => {
+    const { token: adminToken } = await createAdminAccount();
+
+    await server
+      .post('/admin/reports/volunteer/999999/reject')
+      .set(authHeader(adminToken))
+      .expect(404);
+  });
+
+  test('removes volunteer report when admin rejects it', async () => {
+    const { token: adminToken } = await createAdminAccount();
+    const { volunteer: reportedVolunteer } = await createVolunteerAccount();
+    const { organization: reporterOrganization } = await createOrganizationAccount({
+      phone_number: '+10000000012',
+      url: 'https://reject-vol.example.com',
+    });
+
+    const report = await transaction
+      .insertInto('volunteer_report')
+      .values({
+        reported_volunteer_id: reportedVolunteer.id,
+        reporter_organization_id: reporterOrganization.id,
+        title: 'harassment',
+        message: 'Volunteer report to reject',
+      })
+      .returning(['id'])
+      .executeTakeFirstOrThrow();
+
+    await server
+      .post(`/admin/reports/volunteer/${report.id}/reject`)
+      .set(authHeader(adminToken))
+      .expect(200);
+
+    const deletedReport = await transaction
+      .selectFrom('volunteer_report')
+      .select(['id'])
+      .where('id', '=', report.id)
+      .executeTakeFirst();
+
+    expect(deletedReport).toBeUndefined();
+  });
+});
+
 describe('POST /admin/reports/organization/:organizationId/disable', () => {
   test('returns 403 when unauthenticated', async () => {
     await server
