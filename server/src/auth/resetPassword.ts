@@ -7,12 +7,14 @@ import { passwordSchema } from '../schemas/index.ts';
 import { compare, hash } from '../services/bcrypt/index.ts';
 import { generateJWT } from '../services/jwt/index.ts';
 
+import type { UserJWT } from '../types.ts';
+
 export interface ResetPasswordResponse {
   token: string;
 }
 
 export default function createResetPassword(database: Kysely<Database>) {
-  return async (req: Request, res: Response<ResetPasswordResponse>) => {
+  return async (req: Request & { userJWT: UserJWT }, res: Response<ResetPasswordResponse>) => {
     const body = zod.object({
       currentPassword: zod.string().min(1),
       newPassword: passwordSchema,
