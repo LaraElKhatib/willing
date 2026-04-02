@@ -1,22 +1,28 @@
 import { Router } from 'express';
 
-import { setUserJWT } from './authorization.ts';
-import adminRouter from './routes/admin/index.ts';
-import geocodingRouter from './routes/geocoding.ts';
-import organizationRouter from './routes/organization/index.ts';
-import publicRouter from './routes/public.ts';
-import userRouter from './routes/user.ts';
-import volunteerRouter from './routes/volunteer/index.ts';
+import setUserJWT from '../auth/setUserJWT.ts';
+import createAdminRouter from './routes/admin/index.ts';
+import createGeocodingRouter from './routes/geocoding.ts';
+import createOrganizationRouter from './routes/organization/index.ts';
+import createPublicRouter from './routes/public.ts';
+import createUserRouter from './routes/user.ts';
+import createVolunteerRouter from './routes/volunteer/index.ts';
 
-const api = Router();
-api.use(setUserJWT);
+import type { Database } from '../db/tables/index.ts';
+import type { Kysely } from 'kysely';
 
-api.use('/user', userRouter);
-api.use('/public', publicRouter);
-api.use('/admin', adminRouter);
-api.use('/volunteer', volunteerRouter);
-api.use('/organization', organizationRouter);
+function createAPIRouter(db: Kysely<Database>) {
+  const api = Router();
+  api.use(setUserJWT);
 
-api.use('/geocoding', geocodingRouter);
+  api.use('/user', createUserRouter(db));
+  api.use('/public', createPublicRouter(db));
+  api.use('/admin', createAdminRouter(db));
+  api.use('/volunteer', createVolunteerRouter(db));
+  api.use('/organization', createOrganizationRouter(db));
+  api.use('/geocoding', createGeocodingRouter(db));
 
-export default api;
+  return api;
+}
+
+export default createAPIRouter;

@@ -1,8 +1,3 @@
-export type GeocodingResponseEntry = {
-  name: string;
-  description: string;
-  latitude: number;
-  longitude: number;
-};
+import type { GeocodingResponse } from '../../services/locationiq/index.ts';
 
-export type GeocodingResponse = GeocodingResponseEntry[];
+export type GeocodingSearchResponse = GeocodingResponse;

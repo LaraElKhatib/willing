@@ -139,7 +139,7 @@ const recomputeVolunteerExperienceVectorsForPosting = async (postingId: number, 
   }
 };
 
-export const recomputeOrganizationVector = async (organizationId: number, executor: DBExecutor = database) => {
+export const recomputeOrganizationVector = async (organizationId: number, executor: DBExecutor) => {
   let computedVector: number[] | null = null;
   const run = async () => {
     const organization = await executor
@@ -178,7 +178,7 @@ const getOrganizationVectorOrCompute = async (organizationId: number, executor: 
   return recomputeOrganizationVector(organizationId, executor);
 };
 
-export const recomputePostingVectors = async (postingId: number, executor: DBExecutor = database) => {
+export const recomputePostingVectors = async (postingId: number, executor: DBExecutor) => {
   let resultVectors: { opportunityVector: number[]; postingContextVector: number[] } | null = null;
   const run = async () => {
     const posting = await executor
@@ -229,7 +229,7 @@ export const recomputePostingVectors = async (postingId: number, executor: DBExe
   return resultVectors;
 };
 
-export const recomputeVolunteerProfileVector = async (volunteerId: number, executor: DBExecutor = database) => {
+export const recomputeVolunteerProfileVector = async (volunteerId: number, executor: DBExecutor) => {
   let computedProfileVector: number[] | null = null;
   const run = async () => {
     const volunteer = await executor
@@ -261,7 +261,7 @@ export const recomputeVolunteerProfileVector = async (volunteerId: number, execu
   return computedProfileVector;
 };
 
-export const recomputeVolunteerExperienceVector = async (volunteerId: number, executor: DBExecutor = database) => {
+export const recomputeVolunteerExperienceVector = async (volunteerId: number, executor: DBExecutor) => {
   const rows = await executor
     .selectFrom('enrollment')
     .innerJoin('organization_posting', 'organization_posting.id', 'enrollment.posting_id')
@@ -301,7 +301,7 @@ export const recomputeVolunteerExperienceVector = async (volunteerId: number, ex
   return experienceVector;
 };
 
-export const recomputePostingContextVectorsForOrganization = async (organizationId: number, executor: DBExecutor = database) => {
+export const recomputePostingContextVectorsForOrganization = async (organizationId: number, executor: DBExecutor) => {
   const organization = await executor
     .selectFrom('organization_account')
     .select(['org_vector'])
@@ -336,7 +336,7 @@ export const recomputePostingContextVectorsForOrganization = async (organization
   }
 };
 
-export const recomputeVolunteerVectors = async (volunteerId: number, executor: DBExecutor = database) => {
+export const recomputeVolunteerVectors = async (volunteerId: number, executor: DBExecutor) => {
   const [profileVector, experienceVector] = await Promise.all([
     recomputeVolunteerProfileVector(volunteerId, executor),
     recomputeVolunteerExperienceVector(volunteerId, executor),

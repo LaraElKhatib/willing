@@ -7,9 +7,12 @@ import {
   Migrator,
   type MigrationProvider,
   type Migration,
+  type Kysely,
 } from 'kysely';
 
-import database from './index.ts';
+import config from '../config.ts';
+
+import type { Database } from './tables/index.ts';
 
 class ESMFileMigrationProvider implements MigrationProvider {
   private readonly migrationFolder: string;
@@ -44,11 +47,13 @@ class ESMFileMigrationProvider implements MigrationProvider {
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+const migrationsPath = path.join(__dirname, 'migrations');
 
-export async function migrateToLatest() {
+export async function migrateToLatest(database: Kysely<Database>) {
   const migrator = new Migrator({
     db: database,
-    provider: new ESMFileMigrationProvider(path.join(__dirname, 'migrations')),
+    provider: new ESMFileMigrationProvider(migrationsPath),
+    migrationTableSchema: config.POSTGRES_SCHEMA,
   });
 
   const { error, results } = await migrator.migrateToLatest();
@@ -64,24 +69,5 @@ export async function migrateToLatest() {
   if (error) {
     console.error('Migration error details:', error);
     throw new Error(`Migration failed: ${String(error)}`);
-  }
-}
-
-const runAsScript = async () => {
-  try {
-    await migrateToLatest();
-  } finally {
-    await database.destroy();
-  }
-};
-
-if (process.argv[1]) {
-  const currentFile = fileURLToPath(import.meta.url);
-  const entryFile = path.resolve(process.argv[1]);
-  if (currentFile === entryFile) {
-    runAsScript().catch((error) => {
-      console.error(error);
-      process.exit(1);
-    });
   }
 }
