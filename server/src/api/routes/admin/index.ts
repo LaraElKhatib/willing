@@ -22,6 +22,7 @@ import { generateJWT } from '../../../services/jwt/index.ts';
 import { sendOrganizationAcceptanceEmail, sendOrganizationRejectionEmail } from '../../../services/smtp/emails.ts';
 import { loginInfoSchema } from '../../../types.ts';
 import { parseListQuery } from '../utils/listQuery.ts';
+import { getSingleQueryValue } from '../utils/queryValue.ts';
 
 const organizationPrivateResponseColumns = [
   'id',
@@ -33,6 +34,22 @@ const organizationPrivateResponseColumns = [
   'longitude',
   'location_name',
 ] as const;
+
+const reportTypeValues = ['scam', 'impersonation', 'harassment', 'inappropriate_behavior', 'other'] as const;
+const reportScopeValues = ['all', 'organization', 'volunteer'] as const;
+
+const parseOptionalDateQueryParam = (value: unknown, fieldName: 'startDate' | 'endDate') => {
+  const rawValue = getSingleQueryValue(value)?.trim();
+
+  if (!rawValue) return undefined;
+
+  const parsedDate = new Date(rawValue);
+  if (Number.isNaN(parsedDate.getTime())) {
+    throw new Error(`Invalid ${fieldName}. Expected a valid date string.`);
+  }
+
+  return parsedDate;
+};
 
 function createAdminRouter(db: Kysely<Database>) {
   const adminRouter = Router();
@@ -117,46 +134,114 @@ function createAdminRouter(db: Kysely<Database>) {
     res.json({ organizationRequests });
   });
 
-  adminRouter.get('/reports', async (_req, res: Response<AdminReportsResponse>) => {
-    const organizationReportsRows = await db
-      .selectFrom('organization_report')
-      .innerJoin('organization_account as reported_organization', 'reported_organization.id', 'organization_report.reported_organization_id')
-      .innerJoin('volunteer_account as reporter_volunteer', 'reporter_volunteer.id', 'organization_report.reporter_volunteer_id')
-      .select([
-        'organization_report.id as id',
-        'organization_report.title as title',
-        'organization_report.message as message',
-        'organization_report.created_at as created_at',
-        'reported_organization.id as reported_organization_id',
-        'reported_organization.name as reported_organization_name',
-        'reported_organization.email as reported_organization_email',
-        'reporter_volunteer.id as reporter_volunteer_id',
-        'reporter_volunteer.first_name as reporter_volunteer_first_name',
-        'reporter_volunteer.last_name as reporter_volunteer_last_name',
-        'reporter_volunteer.email as reporter_volunteer_email',
-      ])
-      .orderBy('organization_report.created_at', 'desc')
-      .execute();
+  adminRouter.get('/reports', async (req, res: Response<AdminReportsResponse>) => {
+    const { search, sortBy, sortDir } = parseListQuery(req.query, {
+      allowedSortBy: ['created_at', 'title'],
+      defaultSortBy: 'created_at',
+    });
 
-    const volunteerReportsRows = await db
-      .selectFrom('volunteer_report')
-      .innerJoin('volunteer_account as reported_volunteer', 'reported_volunteer.id', 'volunteer_report.reported_volunteer_id')
-      .innerJoin('organization_account as reporter_organization', 'reporter_organization.id', 'volunteer_report.reporter_organization_id')
-      .select([
-        'volunteer_report.id as id',
-        'volunteer_report.title as title',
-        'volunteer_report.message as message',
-        'volunteer_report.created_at as created_at',
-        'reported_volunteer.id as reported_volunteer_id',
-        'reported_volunteer.first_name as reported_volunteer_first_name',
-        'reported_volunteer.last_name as reported_volunteer_last_name',
-        'reported_volunteer.email as reported_volunteer_email',
-        'reporter_organization.id as reporter_organization_id',
-        'reporter_organization.name as reporter_organization_name',
-        'reporter_organization.email as reporter_organization_email',
-      ])
-      .orderBy('volunteer_report.created_at', 'desc')
-      .execute();
+    const scopeInput = getSingleQueryValue(req.query.scope)?.trim().toLowerCase();
+    const reportTypeInput = getSingleQueryValue(req.query.reportType)?.trim().toLowerCase();
+    const scope = scopeInput && reportScopeValues.includes(scopeInput as typeof reportScopeValues[number])
+      ? scopeInput as typeof reportScopeValues[number]
+      : 'all';
+
+    if (scopeInput && !reportScopeValues.includes(scopeInput as typeof reportScopeValues[number])) {
+      res.status(400);
+      throw new Error('Invalid scope. Expected one of: all, organization, volunteer.');
+    }
+
+    if (reportTypeInput && !reportTypeValues.includes(reportTypeInput as typeof reportTypeValues[number])) {
+      res.status(400);
+      throw new Error('Invalid reportType.');
+    }
+
+    const reportType = reportTypeInput as typeof reportTypeValues[number] | undefined;
+
+    let startDate: Date | undefined;
+    let endDate: Date | undefined;
+    try {
+      startDate = parseOptionalDateQueryParam(req.query.startDate, 'startDate');
+      endDate = parseOptionalDateQueryParam(req.query.endDate, 'endDate');
+    } catch (error) {
+      res.status(400);
+      throw error;
+    }
+
+    if (startDate && endDate && startDate > endDate) {
+      res.status(400);
+      throw new Error('startDate must be less than or equal to endDate.');
+    }
+
+    const searchPattern = `%${search}%`;
+
+    const organizationReportsRows = scope === 'volunteer'
+      ? []
+      : await db
+          .selectFrom('organization_report')
+          .innerJoin('organization_account as reported_organization', 'reported_organization.id', 'organization_report.reported_organization_id')
+          .innerJoin('volunteer_account as reporter_volunteer', 'reporter_volunteer.id', 'organization_report.reporter_volunteer_id')
+          .select([
+            'organization_report.id as id',
+            'organization_report.title as title',
+            'organization_report.message as message',
+            'organization_report.created_at as created_at',
+            'reported_organization.id as reported_organization_id',
+            'reported_organization.name as reported_organization_name',
+            'reported_organization.email as reported_organization_email',
+            'reporter_volunteer.id as reporter_volunteer_id',
+            'reporter_volunteer.first_name as reporter_volunteer_first_name',
+            'reporter_volunteer.last_name as reporter_volunteer_last_name',
+            'reporter_volunteer.email as reporter_volunteer_email',
+          ])
+          .$if(Boolean(reportType), qb => qb.where('organization_report.title', '=', reportType!))
+          .$if(Boolean(startDate), qb => qb.where('organization_report.created_at', '>=', startDate!))
+          .$if(Boolean(endDate), qb => qb.where('organization_report.created_at', '<=', endDate!))
+          .$if(Boolean(search), qb => qb.where(eb => eb.or([
+            eb('organization_report.title', 'ilike', searchPattern),
+            eb('organization_report.message', 'ilike', searchPattern),
+            eb('reported_organization.name', 'ilike', searchPattern),
+            eb('reported_organization.email', 'ilike', searchPattern),
+            eb('reporter_volunteer.first_name', 'ilike', searchPattern),
+            eb('reporter_volunteer.last_name', 'ilike', searchPattern),
+            eb('reporter_volunteer.email', 'ilike', searchPattern),
+          ])))
+          .orderBy(sortBy === 'title' ? 'organization_report.title' : 'organization_report.created_at', sortDir)
+          .execute();
+
+    const volunteerReportsRows = scope === 'organization'
+      ? []
+      : await db
+          .selectFrom('volunteer_report')
+          .innerJoin('volunteer_account as reported_volunteer', 'reported_volunteer.id', 'volunteer_report.reported_volunteer_id')
+          .innerJoin('organization_account as reporter_organization', 'reporter_organization.id', 'volunteer_report.reporter_organization_id')
+          .select([
+            'volunteer_report.id as id',
+            'volunteer_report.title as title',
+            'volunteer_report.message as message',
+            'volunteer_report.created_at as created_at',
+            'reported_volunteer.id as reported_volunteer_id',
+            'reported_volunteer.first_name as reported_volunteer_first_name',
+            'reported_volunteer.last_name as reported_volunteer_last_name',
+            'reported_volunteer.email as reported_volunteer_email',
+            'reporter_organization.id as reporter_organization_id',
+            'reporter_organization.name as reporter_organization_name',
+            'reporter_organization.email as reporter_organization_email',
+          ])
+          .$if(Boolean(reportType), qb => qb.where('volunteer_report.title', '=', reportType!))
+          .$if(Boolean(startDate), qb => qb.where('volunteer_report.created_at', '>=', startDate!))
+          .$if(Boolean(endDate), qb => qb.where('volunteer_report.created_at', '<=', endDate!))
+          .$if(Boolean(search), qb => qb.where(eb => eb.or([
+            eb('volunteer_report.title', 'ilike', searchPattern),
+            eb('volunteer_report.message', 'ilike', searchPattern),
+            eb('reported_volunteer.first_name', 'ilike', searchPattern),
+            eb('reported_volunteer.last_name', 'ilike', searchPattern),
+            eb('reported_volunteer.email', 'ilike', searchPattern),
+            eb('reporter_organization.name', 'ilike', searchPattern),
+            eb('reporter_organization.email', 'ilike', searchPattern),
+          ])))
+          .orderBy(sortBy === 'title' ? 'volunteer_report.title' : 'volunteer_report.created_at', sortDir)
+          .execute();
 
     const organizationReports = organizationReportsRows.map(report => ({
       id: report.id,
