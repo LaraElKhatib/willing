@@ -118,7 +118,7 @@ function createPublicRouter(db: Kysely<Database>) {
       return;
     }
 
-    const dbVerification = await verifyCertificatePayloadAgainstDatabase(tokenResult.payload);
+    const dbVerification = await verifyCertificatePayloadAgainstDatabase(tokenResult.payload, db);
     if (!dbVerification.valid) {
       res.json({
         valid: false,

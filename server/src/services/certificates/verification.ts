@@ -1,7 +1,8 @@
-import { sql } from 'kysely';
+import { sql, type Kysely } from 'kysely';
 
 import { type CertificateVerificationPayload } from './token.ts';
 import database from '../../db/index.ts';
+import { type Database } from '../../db/tables/index.ts';
 
 const HOURS_EPSILON = 0.01;
 const HOURS_DECIMAL_PLACES = 2;
@@ -18,7 +19,7 @@ type VolunteerHoursSnapshot = {
 const roundHours = (value: number) => Number(value.toFixed(HOURS_DECIMAL_PLACES));
 const isSameHours = (left: number, right: number) => Math.abs(left - right) <= HOURS_EPSILON;
 
-const getVolunteerHoursSnapshot = async (volunteerId: number, issuedAt: Date): Promise<VolunteerHoursSnapshot> => {
+const getVolunteerHoursSnapshot = async (db: Kysely<Database>, volunteerId: number, issuedAt: Date): Promise<VolunteerHoursSnapshot> => {
   const hoursPerPostingExpression = sql<number>`GREATEST(
     0,
     EXTRACT(EPOCH FROM (
@@ -27,7 +28,7 @@ const getVolunteerHoursSnapshot = async (volunteerId: number, issuedAt: Date): P
     )) / 3600.0
   )`;
 
-  const rows = await database
+  const rows = await db
     .selectFrom('enrollment')
     .innerJoin('organization_posting', 'organization_posting.id', 'enrollment.posting_id')
     .select([
@@ -56,6 +57,7 @@ const getVolunteerHoursSnapshot = async (volunteerId: number, issuedAt: Date): P
 
 export const verifyCertificatePayloadAgainstDatabase = async (
   payload: CertificateVerificationPayload,
+  db: Kysely<Database> = database,
 ): Promise<CertificateVerificationResult> => {
   const volunteerId = Number(payload.uid);
   if (!Number.isInteger(volunteerId) || volunteerId <= 0) {
@@ -71,7 +73,7 @@ export const verifyCertificatePayloadAgainstDatabase = async (
     return { valid: false };
   }
 
-  const volunteer = await database
+  const volunteer = await db
     .selectFrom('volunteer_account')
     .select(['id'])
     .where('id', '=', volunteerId)
@@ -86,7 +88,7 @@ export const verifyCertificatePayloadAgainstDatabase = async (
     return { valid: false };
   }
 
-  const hoursSnapshot = await getVolunteerHoursSnapshot(volunteerId, issuedAt);
+  const hoursSnapshot = await getVolunteerHoursSnapshot(db, volunteerId, issuedAt);
 
   const claimedHoursByOrg = payload.org_ids.reduce((map, orgId) => {
     map.set(Number(orgId), roundHours(payload.hours_per_org[orgId] ?? 0));
