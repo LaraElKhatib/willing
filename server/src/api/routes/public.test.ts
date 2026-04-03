@@ -51,22 +51,22 @@ describe('GET /public/home-stats', () => {
   });
 
   test('returns the correct number of total organizations, volunteers, and opportunities', async () => {
-    const org1 = await createOrganizationAccount({ email: 'org1@willing.social', phone_number: '+10000000001', url: 'https://org1.com' });
-    const org2 = await createOrganizationAccount({ email: 'org2@willing.social', phone_number: '+10000000002', url: 'https://org2.com' });
-    const org3 = await createOrganizationAccount({ email: 'org3@willing.social', phone_number: '+10000000003', url: 'https://org3.com' });
-    const org4 = await createOrganizationAccount({ email: 'org4@willing.social', phone_number: '+10000000004', url: 'https://org4.com' });
+    const org1 = await createOrganizationAccount(transaction, { email: 'org1@willing.social', phone_number: '+10000000001', url: 'https://org1.com' });
+    const org2 = await createOrganizationAccount(transaction, { email: 'org2@willing.social', phone_number: '+10000000002', url: 'https://org2.com' });
+    const org3 = await createOrganizationAccount(transaction, { email: 'org3@willing.social', phone_number: '+10000000003', url: 'https://org3.com' });
+    const org4 = await createOrganizationAccount(transaction, { email: 'org4@willing.social', phone_number: '+10000000004', url: 'https://org4.com' });
 
-    await createVolunteerAccount({ email: 'vol1@willing.social' });
-    await createVolunteerAccount({ email: 'vol2@willing.social' });
-    await createVolunteerAccount({ email: 'vol3@willing.social' });
+    await createVolunteerAccount(transaction, { email: 'vol1@willing.social' });
+    await createVolunteerAccount(transaction, { email: 'vol2@willing.social' });
+    await createVolunteerAccount(transaction, { email: 'vol3@willing.social' });
 
-    await createOrganizationPosting({ organizationId: org1.organization.id });
-    await createOrganizationPosting({ organizationId: org2.organization.id });
-    await createOrganizationPosting({ organizationId: org1.organization.id });
-    await createOrganizationPosting({ organizationId: org4.organization.id });
-    await createOrganizationPosting({ organizationId: org3.organization.id });
-    await createOrganizationPosting({ organizationId: org2.organization.id });
-    await createOrganizationPosting({ organizationId: org1.organization.id });
+    await createOrganizationPosting(transaction, { organizationId: org1.organization.id });
+    await createOrganizationPosting(transaction, { organizationId: org2.organization.id });
+    await createOrganizationPosting(transaction, { organizationId: org1.organization.id });
+    await createOrganizationPosting(transaction, { organizationId: org4.organization.id });
+    await createOrganizationPosting(transaction, { organizationId: org3.organization.id });
+    await createOrganizationPosting(transaction, { organizationId: org2.organization.id });
+    await createOrganizationPosting(transaction, { organizationId: org1.organization.id });
 
     const response = await server
       .get('/public/home-stats')
@@ -80,22 +80,22 @@ describe('GET /public/home-stats', () => {
   });
 
   test('returns the correct number of new organizations, volunteers, and opportunities', async () => {
-    const org1 = await createOrganizationAccount({ email: 'org1@willing.social', phone_number: '+10000000001', url: 'https://org1.com', created_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000) });
-    const org2 = await createOrganizationAccount({ email: 'org2@willing.social', phone_number: '+10000000002', url: 'https://org2.com' });
-    const org3 = await createOrganizationAccount({ email: 'org3@willing.social', phone_number: '+10000000003', url: 'https://org3.com', created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000) });
-    const org4 = await createOrganizationAccount({ email: 'org4@willing.social', phone_number: '+10000000004', url: 'https://org4.com', created_at: new Date(Date.now() - 100 * 24 * 60 * 60 * 1000) });
+    const org1 = await createOrganizationAccount(transaction, { email: 'org1@willing.social', phone_number: '+10000000001', url: 'https://org1.com', created_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000) });
+    const org2 = await createOrganizationAccount(transaction, { email: 'org2@willing.social', phone_number: '+10000000002', url: 'https://org2.com' });
+    const org3 = await createOrganizationAccount(transaction, { email: 'org3@willing.social', phone_number: '+10000000003', url: 'https://org3.com', created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000) });
+    const org4 = await createOrganizationAccount(transaction, { email: 'org4@willing.social', phone_number: '+10000000004', url: 'https://org4.com', created_at: new Date(Date.now() - 100 * 24 * 60 * 60 * 1000) });
 
-    await createVolunteerAccount({ email: 'vol1@willing.social', created_at: new Date(Date.now() - 100 * 24 * 60 * 60 * 1000) });
-    await createVolunteerAccount({ email: 'vol2@willing.social', created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000) });
-    await createVolunteerAccount({ email: 'vol3@willing.social' });
+    await createVolunteerAccount(transaction, { email: 'vol1@willing.social', created_at: new Date(Date.now() - 100 * 24 * 60 * 60 * 1000) });
+    await createVolunteerAccount(transaction, { email: 'vol2@willing.social', created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000) });
+    await createVolunteerAccount(transaction, { email: 'vol3@willing.social' });
 
-    await createOrganizationPosting({ organizationId: org1.organization.id, created_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000) });
-    await createOrganizationPosting({ organizationId: org2.organization.id, created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000) });
-    await createOrganizationPosting({ organizationId: org1.organization.id, created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000) });
-    await createOrganizationPosting({ organizationId: org4.organization.id, created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000) });
-    await createOrganizationPosting({ organizationId: org3.organization.id, created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) });
-    await createOrganizationPosting({ organizationId: org2.organization.id, created_at: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000) });
-    await createOrganizationPosting({ organizationId: org1.organization.id });
+    await createOrganizationPosting(transaction, { organizationId: org1.organization.id, created_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000) });
+    await createOrganizationPosting(transaction, { organizationId: org2.organization.id, created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000) });
+    await createOrganizationPosting(transaction, { organizationId: org1.organization.id, created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000) });
+    await createOrganizationPosting(transaction, { organizationId: org4.organization.id, created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000) });
+    await createOrganizationPosting(transaction, { organizationId: org3.organization.id, created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) });
+    await createOrganizationPosting(transaction, { organizationId: org2.organization.id, created_at: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000) });
+    await createOrganizationPosting(transaction, { organizationId: org1.organization.id });
 
     const response = await server
       .get('/public/home-stats')
@@ -198,21 +198,21 @@ describe('GET /public/certificate-signature', () => {
 
 describe('POST /public/certificate/verify', () => {
   const createValidCertificateVerificationContext = async () => {
-    const { volunteer } = await createVolunteerAccount({ email: 'verify-volunteer@example.com' });
-    const { organization: organizationOne } = await createOrganizationAccount({
+    const { volunteer } = await createVolunteerAccount(transaction, { email: 'verify-volunteer@example.com' });
+    const { organization: organizationOne } = await createOrganizationAccount(transaction, {
       email: 'verify-org-1@example.com',
       name: 'Rescue One',
       phone_number: '+10000000011',
       url: 'https://rescue-one.example.org',
     });
-    const { organization: organizationTwo } = await createOrganizationAccount({
+    const { organization: organizationTwo } = await createOrganizationAccount(transaction, {
       email: 'verify-org-2@example.com',
       name: 'Rescue Two',
       phone_number: '+10000000012',
       url: 'https://rescue-two.example.org',
     });
 
-    const postingOne = await createOrganizationPosting({
+    const postingOne = await createOrganizationPosting(transaction, {
       organizationId: organizationOne.id,
       title: 'Medical Tent Setup',
       overrides: {
@@ -222,7 +222,7 @@ describe('POST /public/certificate/verify', () => {
         end_time: '12:00:00',
       },
     });
-    const postingTwo = await createOrganizationPosting({
+    const postingTwo = await createOrganizationPosting(transaction, {
       organizationId: organizationTwo.id,
       title: 'Food Box Coordination',
       overrides: {
