@@ -697,7 +697,9 @@ function VolunteerProfile() {
             <div className="stat place-items-center">
               <div className="stat-title text-base">Most Volunteered Crisis</div>
               <div className="stat-value text-lg text-primary/80 flex w-full min-w-0 items-center justify-center gap-2 px-2">
-                <span className="max-w-full text-center whitespace-normal break-all leading-tight">{profile.experience_stats.most_volunteered_crisis ?? 'N/A'}</span>
+                <span className="max-w-full text-center whitespace-normal break-words leading-tight overflow-hidden [display:-webkit-box] [-webkit-line-clamp:2] [-webkit-box-orient:vertical]">
+                  {profile.experience_stats.most_volunteered_crisis ?? 'N/A'}
+                </span>
               </div>
             </div>
           </div>
