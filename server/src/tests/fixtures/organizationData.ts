@@ -32,10 +32,11 @@ const resolveFixtureArgs = <T>(arg1?: DbExecutor | T, arg2?: T): [DbExecutor, T]
   return [database, (arg1 ?? {}) as T];
 };
 
-export async function createOrganizationRequest(db: DbExecutor, options?: OrganizationRequestOptions): Promise<OrganizationRequest>;
 export async function createOrganizationRequest(options?: OrganizationRequestOptions): Promise<OrganizationRequest>;
+export async function createOrganizationRequest(db: DbExecutor, options?: OrganizationRequestOptions): Promise<OrganizationRequest>;
 export async function createOrganizationRequest(arg1?: DbExecutor | OrganizationRequestOptions, arg2?: OrganizationRequestOptions): Promise<OrganizationRequest> {
   const [db, options] = resolveFixtureArgs<OrganizationRequestOptions>(arg1, arg2);
+
   const {
     email = 'pending-org@example.com',
     name = 'Pending Org',
@@ -61,8 +62,8 @@ export async function createOrganizationRequest(arg1?: DbExecutor | Organization
   return request;
 }
 
-export async function createOrganizationPosting(db: DbExecutor, options: OrganizationPostingOptions): Promise<OrganizationPosting>;
 export async function createOrganizationPosting(options: OrganizationPostingOptions): Promise<OrganizationPosting>;
+export async function createOrganizationPosting(db: DbExecutor, options: OrganizationPostingOptions): Promise<OrganizationPosting>;
 export async function createOrganizationPosting(arg1: DbExecutor | OrganizationPostingOptions, arg2?: OrganizationPostingOptions): Promise<OrganizationPosting> {
   const [db, options] = resolveFixtureArgs<OrganizationPostingOptions>(arg1, arg2);
 

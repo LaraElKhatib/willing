@@ -22,7 +22,7 @@ import type { Database } from '../../db/tables/index.ts';
 import type { ControlledTransaction } from 'kysely';
 import type TestAgent from 'supertest/lib/agent.js';
 
-let transaction: ControlledTransaction<Database, []>;
+let transaction: ControlledTransaction<Database>;
 let server: TestAgent;
 
 beforeEach(async () => {
