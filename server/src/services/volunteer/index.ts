@@ -1,3 +1,5 @@
+import { sql } from 'kysely';
+
 import database from '../../db/index.ts';
 
 import type { VolunteerAccountWithoutPassword } from '../../db/tables/index.ts';
@@ -8,12 +10,16 @@ export type VolunteerCompletedExperience = {
   posting_title: string;
   organization_id: number;
   organization_name: string;
+  organization_logo_path: string | null | undefined;
   location_name: string;
   start_date: Date;
   start_time: string;
   end_date: Date | undefined;
   end_time: string | undefined;
   crisis_name: string | null;
+  is_closed: boolean;
+  automatic_acceptance: boolean;
+  enrollment_count: number;
 };
 
 export type VolunteerExperienceStats = {
@@ -85,11 +91,15 @@ export const getVolunteerProfile = async (volunteerId: number): Promise<Voluntee
       .select('organization_posting.title as posting_title')
       .select('organization_posting.organization_id as organization_id')
       .select('organization_account.name as organization_name')
+      .select('organization_account.logo_path as organization_logo_path')
       .select('organization_posting.location_name as location_name')
       .select('organization_posting.start_date as start_date')
       .select('organization_posting.start_time as start_time')
       .select('organization_posting.end_date as end_date')
       .select('organization_posting.end_time as end_time')
+      .select('organization_posting.is_closed as is_closed')
+      .select('organization_posting.automatic_acceptance as automatic_acceptance')
+      .select(sql<number>`COALESCE((SELECT COUNT(*) FROM enrollment e2 WHERE e2.posting_id = organization_posting.id), 0)`.as('enrollment_count'))
       .select('crisis.name as crisis_name')
       .where('enrollment.volunteer_id', '=', volunteerId)
       .where('enrollment.attended', '=', true)
@@ -176,6 +186,10 @@ export const getVolunteerProfile = async (volunteerId: number): Promise<Voluntee
       end_date: experience.end_date ?? undefined,
       end_time: experience.end_time ?? undefined,
       crisis_name: experience.crisis_name,
+      is_closed: experience.is_closed,
+      automatic_acceptance: experience.automatic_acceptance,
+      enrollment_count: experience.enrollment_count,
+      organization_logo_path: experience.organization_logo_path,
     })),
   };
 };
