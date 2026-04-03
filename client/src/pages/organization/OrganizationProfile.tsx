@@ -1,12 +1,14 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Building2, Globe, ImageUp, Mail, MapPin, Phone, ShieldCheck, Trash2 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { useCallback, useContext, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import { newOrganizationCertificateInfoSchema, organizationAccountSchema } from '../../../../server/src/db/tables';
+import AuthContext from '../../auth/AuthContext';
 import { useOrganization } from '../../auth/useUsers';
 import Alert from '../../components/Alert';
+import Button from '../../components/Button';
 import Card from '../../components/Card';
 import ColumnLayout from '../../components/layout/ColumnLayout';
 import PageContainer from '../../components/layout/PageContainer';
@@ -117,6 +119,8 @@ function OrganizationProfile() {
   const [position, setPosition] = useState<[number, number]>([33.90192863620578, 35.477959277880416]);
   const [logoBusy, setLogoBusy] = useState(false);
   const [signatureBusy, setSignatureBusy] = useState(false);
+  const [accountDeletionBusy, setAccountDeletionBusy] = useState(false);
+  const { deleteAccount } = useContext(AuthContext);
   const logoInputRef = useRef<HTMLInputElement | null>(null);
 
   const form = useForm({
@@ -412,6 +416,19 @@ function OrganizationProfile() {
     form.clearErrors();
     certificateForm.clearErrors();
   }, [certificateForm, certificateInfo, form, profile, resetFormsFromData]);
+
+  const onDeleteAccount = async () => {
+    const confirmed = window.confirm('Delete your account? This will sign you out and hide your organization from the platform.');
+    if (!confirmed) return;
+
+    try {
+      setAccountDeletionBusy(true);
+      await deleteAccount();
+      notifications.push({ type: 'success', message: 'Your account was deleted.' });
+    } finally {
+      setAccountDeletionBusy(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -726,6 +743,25 @@ function OrganizationProfile() {
                   </div>
                 </div>
               )}
+        </Card>
+
+        <Card
+          title="Account"
+          description="Delete your organization account if you no longer want to use Willing."
+        >
+          <Alert color="warning">This action marks your account as deleted and immediately signs you out.</Alert>
+          <div className="mt-3">
+            <Button
+              type="button"
+              color="error"
+              style="outline"
+              onClick={onDeleteAccount}
+              loading={accountDeletionBusy}
+              Icon={Trash2}
+            >
+              Delete My Account
+            </Button>
+          </div>
         </Card>
       </ColumnLayout>
     </PageContainer>

@@ -17,11 +17,12 @@ import {
   X,
   Users,
 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { useCallback, useContext, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import { volunteerAccountSchema } from '../../../../server/src/db/tables';
+import AuthContext from '../../auth/AuthContext';
 import Alert from '../../components/Alert';
 import Button from '../../components/Button';
 import Card from '../../components/Card';
@@ -133,6 +134,8 @@ function VolunteerProfile() {
   const [showAllExperiences, setShowAllExperiences] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [cvBusy, setCvBusy] = useState(false);
+  const [accountDeletionBusy, setAccountDeletionBusy] = useState(false);
+  const { deleteAccount } = useContext(AuthContext);
   const notifications = useNotifications();
 
   const form = useForm<ProfileFormData>({
@@ -446,6 +449,19 @@ function VolunteerProfile() {
       setTimeout(() => URL.revokeObjectURL(previewUrl), 60_000);
     } finally {
       setCvBusy(false);
+    }
+  };
+
+  const onDeleteAccount = async () => {
+    const confirmed = window.confirm('Delete your account? This will sign you out and hide your account from the platform.');
+    if (!confirmed) return;
+
+    try {
+      setAccountDeletionBusy(true);
+      await deleteAccount();
+      notifications.push({ type: 'success', message: 'Your account was deleted.' });
+    } finally {
+      setAccountDeletionBusy(false);
     }
   };
 
@@ -815,6 +831,25 @@ function VolunteerProfile() {
                 PDF only, up to 3 pages, up to 5MB.
               </span>
             </div>
+          </div>
+        </Card>
+
+        <Card
+          title="Account"
+          description="Delete your account if you no longer want to use Willing."
+        >
+          <Alert color="warning">This action marks your account as deleted and immediately signs you out.</Alert>
+          <div className="mt-3">
+            <Button
+              type="button"
+              color="error"
+              style="outline"
+              onClick={onDeleteAccount}
+              loading={accountDeletionBusy}
+              Icon={Trash2}
+            >
+              Delete My Account
+            </Button>
           </div>
         </Card>
       </ColumnLayout>

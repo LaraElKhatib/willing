@@ -117,6 +117,40 @@ describe('POST /user/login', () => {
 
     expect(response.body.message).toBe('Invalid email or password');
   });
+
+  test('rejects login for deleted volunteer account', async () => {
+    const { volunteer, plainPassword } = await createVolunteerAccount(transaction, {
+      email: 'deleted-volunteer@example.com',
+    });
+
+    await transaction
+      .updateTable('volunteer_account')
+      .set({ is_deleted: true })
+      .where('id', '=', volunteer.id)
+      .execute();
+
+    await server
+      .post('/user/login')
+      .send({ email: volunteer.email, password: plainPassword })
+      .expect(403);
+  });
+
+  test('rejects login for disabled organization account', async () => {
+    const { organization, plainPassword } = await createOrganizationAccount(transaction, {
+      email: 'disabled-organization@example.com',
+    });
+
+    await transaction
+      .updateTable('organization_account')
+      .set({ is_disabled: true })
+      .where('id', '=', organization.id)
+      .execute();
+
+    await server
+      .post('/user/login')
+      .send({ email: organization.email, password: plainPassword })
+      .expect(403);
+  });
 });
 
 describe('POST /user/forgot-password', () => {
@@ -444,5 +478,61 @@ describe('POST /user/forgot-password/reset', () => {
       .get('/volunteer/me')
       .set('Authorization', `Bearer ${newToken}`)
       .expect(200);
+  });
+});
+
+describe('DELETE /user/account', () => {
+  test('returns 403 when unauthenticated', async () => {
+    await server
+      .delete('/user/account')
+      .expect(403);
+  });
+
+  test('soft deletes volunteer account and invalidates current token', async () => {
+    const { volunteer, token } = await createVolunteerAccount(transaction, {
+      email: 'delete-volunteer@example.com',
+    });
+
+    await server
+      .delete('/user/account')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    const deletedVolunteer = await transaction
+      .selectFrom('volunteer_account')
+      .select(['is_deleted', 'token_version'])
+      .where('id', '=', volunteer.id)
+      .executeTakeFirstOrThrow();
+
+    expect(deletedVolunteer.is_deleted).toBe(true);
+
+    await server
+      .get('/volunteer/me')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(403);
+  });
+
+  test('soft deletes organization account and invalidates current token', async () => {
+    const { organization, token } = await createOrganizationAccount(transaction, {
+      email: 'delete-organization@example.com',
+    });
+
+    await server
+      .delete('/user/account')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    const deletedOrganization = await transaction
+      .selectFrom('organization_account')
+      .select(['is_deleted', 'token_version'])
+      .where('id', '=', organization.id)
+      .executeTakeFirstOrThrow();
+
+    expect(deletedOrganization.is_deleted).toBe(true);
+
+    await server
+      .get('/organization/me')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(403);
   });
 });

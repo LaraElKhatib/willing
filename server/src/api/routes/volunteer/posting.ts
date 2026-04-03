@@ -72,6 +72,7 @@ function createVolunteerPostingRouter(db: Kysely<Database>) {
       .selectFrom('volunteer_account')
       .select(['profile_vector', 'experience_vector'])
       .where('id', '=', volunteerId)
+      .where('is_deleted', '=', false)
       .executeTakeFirstOrThrow();
 
     const profileVectorLiteral = volunteerVectors.profile_vector;
@@ -93,6 +94,8 @@ function createVolunteerPostingRouter(db: Kysely<Database>) {
       )
       .select(postingWithContextSelectColumns)
       .where('organization_posting.is_closed', '=', false);
+    query = query.where('organization_account.is_deleted', '=', false);
+    query = query.where('organization_account.is_disabled', '=', false);
 
     if (!includeApplied) {
       query = query.where(({ not, exists, selectFrom, or }) => not(or([
@@ -239,6 +242,8 @@ function createVolunteerPostingRouter(db: Kysely<Database>) {
         .leftJoin('crisis', 'crisis.id', 'organization_posting.crisis_id')
         .select(postingWithContextSelectColumns)
         .where('enrollment.volunteer_id', '=', volunteerId)
+        .where('organization_account.is_deleted', '=', false)
+        .where('organization_account.is_disabled', '=', false)
         .execute(),
       db
         .selectFrom('enrollment_application')
@@ -247,6 +252,8 @@ function createVolunteerPostingRouter(db: Kysely<Database>) {
         .leftJoin('crisis', 'crisis.id', 'organization_posting.crisis_id')
         .select(postingWithContextSelectColumns)
         .where('enrollment_application.volunteer_id', '=', volunteerId)
+        .where('organization_account.is_deleted', '=', false)
+        .where('organization_account.is_disabled', '=', false)
         .execute(),
     ]);
 
@@ -299,6 +306,8 @@ function createVolunteerPostingRouter(db: Kysely<Database>) {
       )
       .select(postingWithContextSelectColumns)
       .where('organization_posting.id', '=', id)
+      .where('organization_account.is_deleted', '=', false)
+      .where('organization_account.is_disabled', '=', false)
       .executeTakeFirst();
 
     if (!posting) {
@@ -329,13 +338,23 @@ function createVolunteerPostingRouter(db: Kysely<Database>) {
     const [posting, volunteer] = await Promise.all([
       db
         .selectFrom('organization_posting')
-        .select(['id', 'automatic_acceptance', 'is_closed', 'minimum_age', 'max_volunteers'])
-        .where('id', '=', id)
+        .innerJoin('organization_account', 'organization_account.id', 'organization_posting.organization_id')
+        .select([
+          'organization_posting.id',
+          'organization_posting.automatic_acceptance',
+          'organization_posting.is_closed',
+          'organization_posting.minimum_age',
+          'organization_posting.max_volunteers',
+        ])
+        .where('organization_posting.id', '=', id)
+        .where('organization_account.is_deleted', '=', false)
+        .where('organization_account.is_disabled', '=', false)
         .executeTakeFirst(),
       db
         .selectFrom('volunteer_account')
         .select('date_of_birth')
         .where('id', '=', volunteerId)
+        .where('is_deleted', '=', false)
         .executeTakeFirst(),
     ]);
 

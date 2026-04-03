@@ -533,6 +533,7 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
         'volunteer_account.cv_path',
       ])
       .where('enrollment_application.posting_id', '=', postingId)
+      .where('volunteer_account.is_deleted', '=', false)
       .execute();
 
     const volunteerIds = applications.map(a => a.volunteer_id);
@@ -619,6 +620,8 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
       .where('enrollment_application.id', '=', applicationId)
       .where('enrollment_application.posting_id', '=', postingId)
       .where('organization_posting.organization_id', '=', orgId)
+      .where('volunteer_account.is_deleted', '=', false)
+      .where('organization_account.is_deleted', '=', false)
       .executeTakeFirst();
 
     if (!emailContext) {
@@ -723,6 +726,8 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
       .where('enrollment_application.id', '=', applicationId)
       .where('enrollment_application.posting_id', '=', postingId)
       .where('organization_posting.organization_id', '=', orgId)
+      .where('volunteer_account.is_deleted', '=', false)
+      .where('organization_account.is_deleted', '=', false)
       .executeTakeFirst();
 
     await db

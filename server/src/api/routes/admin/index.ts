@@ -145,6 +145,18 @@ function createAdminRouter(db: Kysely<Database>) {
       return;
     }
 
+    const existingVolunteer = await db
+      .selectFrom('volunteer_account')
+      .select('id')
+      .where('email', '=', organizationRequest.email)
+      .where('is_deleted', '=', false)
+      .executeTakeFirst();
+
+    if (existingVolunteer) {
+      res.status(409);
+      throw new Error('A volunteer account with this email already exists');
+    }
+
     const password = Math.random().toString(36).slice(-8);
 
     const insertedOrganization = await executeTransaction(db, async (trx) => {

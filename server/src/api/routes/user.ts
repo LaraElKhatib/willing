@@ -5,11 +5,14 @@ import { sql, type Kysely } from 'kysely';
 import zod from 'zod';
 
 import {
+  type UserDeleteAccountResponse,
   type UserForgotPasswordResetResponse,
   type UserForgotPasswordResponse,
   type UserLoginResponse,
 } from './user.types.ts';
+import authorizeOnly from '../../auth/authorizeOnly.ts';
 import removePassword from '../../auth/removePassword.ts';
+import executeTransaction from '../../db/executeTransaction.ts';
 import { type Database } from '../../db/tables/index.ts';
 import { passwordSchema } from '../../schemas/index.ts';
 import { compare, hash } from '../../services/bcrypt/index.ts';
@@ -62,6 +65,8 @@ function createUserRouter(db: Kysely<Database>) {
       .selectFrom('organization_account')
       .select(organizationLoginColumns)
       .where('organization_account.email', '=', body.email)
+      .where('organization_account.is_deleted', '=', false)
+      .where('organization_account.is_disabled', '=', false)
       .executeTakeFirst();
 
     let volunteerAccount;
@@ -70,6 +75,8 @@ function createUserRouter(db: Kysely<Database>) {
         .selectFrom('volunteer_account')
         .select(volunteerLoginColumns)
         .where('volunteer_account.email', '=', body.email)
+        .where('volunteer_account.is_deleted', '=', false)
+        .where('volunteer_account.is_disabled', '=', false)
         .executeTakeFirst();
     }
 
@@ -112,6 +119,8 @@ function createUserRouter(db: Kysely<Database>) {
       .selectFrom('organization_account')
       .select(['id', 'name', 'email'])
       .where('organization_account.email', '=', body.email)
+      .where('organization_account.is_deleted', '=', false)
+      .where('organization_account.is_disabled', '=', false)
       .executeTakeFirst();
 
     let role: 'organization' | 'volunteer' | null = null;
@@ -124,6 +133,8 @@ function createUserRouter(db: Kysely<Database>) {
         .selectFrom('volunteer_account')
         .select(['id', 'first_name', 'last_name', 'email'])
         .where('volunteer_account.email', '=', body.email)
+        .where('volunteer_account.is_deleted', '=', false)
+        .where('volunteer_account.is_disabled', '=', false)
         .executeTakeFirst();
 
       if (volunteerAccount) {
@@ -182,23 +193,65 @@ function createUserRouter(db: Kysely<Database>) {
     const hashedPassword = await hash(body.password);
 
     if (resetToken.role === 'organization') {
-      await db
+      const updateResult = await db
         .updateTable('organization_account')
         .where('id', '=', resetToken.user_id)
+        .where('is_deleted', '=', false)
+        .where('is_disabled', '=', false)
         .set({ password: hashedPassword, token_version: sql`token_version + 1` })
-        .execute();
+        .executeTakeFirst();
+
+      if (Number(updateResult?.numUpdatedRows ?? 0) === 0) {
+        res.status(400);
+        throw new Error('Account is no longer active');
+      }
     } else if (resetToken.role === 'volunteer') {
-      await db
+      const updateResult = await db
         .updateTable('volunteer_account')
         .where('id', '=', resetToken.user_id)
+        .where('is_deleted', '=', false)
+        .where('is_disabled', '=', false)
         .set({ password: hashedPassword, token_version: sql`token_version + 1` })
-        .execute();
+        .executeTakeFirst();
+
+      if (Number(updateResult?.numUpdatedRows ?? 0) === 0) {
+        res.status(400);
+        throw new Error('Account is no longer active');
+      }
     }
 
     await db
       .deleteFrom('password_reset_token')
       .where('password_reset_token.id', '=', resetToken.id)
       .execute();
+
+    res.json({});
+  });
+
+  userRouter.delete('/account', authorizeOnly('organization', 'volunteer'), async (req, res: Response<UserDeleteAccountResponse>) => {
+    const userId = req.userJWT!.id;
+    const role = req.userJWT!.role as 'organization' | 'volunteer';
+
+    const table = role === 'organization' ? 'organization_account' as const : 'volunteer_account' as const;
+
+    await executeTransaction(db, async (trx) => {
+      await trx
+        .updateTable(table)
+        .set({
+          is_deleted: true,
+          email: sql`CONCAT('deleted_', id, '_', EXTRACT(EPOCH FROM NOW())::bigint, '@deleted')`,
+          token_version: sql`token_version + 1`,
+        })
+        .where('id', '=', userId)
+        .where('is_deleted', '=', false)
+        .execute();
+
+      await trx
+        .deleteFrom('password_reset_token')
+        .where('role', '=', role)
+        .where('user_id', '=', userId)
+        .execute();
+    });
 
     res.json({});
   });

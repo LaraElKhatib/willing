@@ -128,11 +128,24 @@ function createOrganizationRouter(db: Kysely<Database>) {
       .selectFrom('organization_account')
       .select('id')
       .where('email', '=', email)
+      .where('is_deleted', '=', false)
       .executeTakeFirst();
 
     if (checkAccountRequest) {
       res.status(400);
       throw new Error('An organization with this email account already exists');
+    }
+
+    const checkVolunteerAccount = await db
+      .selectFrom('volunteer_account')
+      .select('id')
+      .where('email', '=', email)
+      .where('is_deleted', '=', false)
+      .executeTakeFirst();
+
+    if (checkVolunteerAccount) {
+      res.status(400);
+      throw new Error('An account with this email already exists');
     }
 
     const checkPendingRequest = await db
@@ -174,6 +187,8 @@ function createOrganizationRouter(db: Kysely<Database>) {
       .selectFrom('organization_account')
       .select(['logo_path'])
       .where('id', '=', id)
+      .where('is_deleted', '=', false)
+      .where('is_disabled', '=', false)
       .executeTakeFirst();
 
     if (!organization?.logo_path) {
@@ -205,6 +220,8 @@ function createOrganizationRouter(db: Kysely<Database>) {
       .leftJoin('organization_certificate_info', 'organization_certificate_info.id', 'organization_account.certificate_info_id')
       .select(['organization_certificate_info.signature_path'])
       .where('organization_account.id', '=', id)
+      .where('organization_account.is_deleted', '=', false)
+      .where('organization_account.is_disabled', '=', false)
       .executeTakeFirst();
 
     if (!organization?.signature_path) {
@@ -243,6 +260,8 @@ function createOrganizationRouter(db: Kysely<Database>) {
       .selectFrom('organization_account')
       .select(organizationProfileResponseColumns)
       .where('id', '=', orgId)
+      .where('is_deleted', '=', false)
+      .where('is_disabled', '=', false)
       .executeTakeFirst();
 
     if (!organization) {
@@ -334,6 +353,7 @@ function createOrganizationRouter(db: Kysely<Database>) {
       .selectFrom('organization_account')
       .select(organizationPrivateResponseColumns)
       .where('id', '=', req.userJWT!.id)
+      .where('is_deleted', '=', false)
       .executeTakeFirstOrThrow();
 
     res.json({ organization });
@@ -372,6 +392,7 @@ function createOrganizationRouter(db: Kysely<Database>) {
       .selectFrom('volunteer_account')
       .select(['id', 'cv_path', 'first_name', 'last_name'])
       .where('id', '=', volunteerId)
+      .where('is_deleted', '=', false)
       .executeTakeFirstOrThrow();
 
     if (!volunteer.cv_path) {
@@ -403,6 +424,7 @@ function createOrganizationRouter(db: Kysely<Database>) {
         'longitude',
       ])
       .where('id', '=', organizationId)
+      .where('is_deleted', '=', false)
       .executeTakeFirstOrThrow();
 
     const shouldRecomputeOrganizationVector = (
@@ -428,6 +450,7 @@ function createOrganizationRouter(db: Kysely<Database>) {
       .selectFrom('organization_account')
       .select(organizationPrivateResponseColumns)
       .where('id', '=', organizationId)
+      .where('is_deleted', '=', false)
       .executeTakeFirstOrThrow();
 
     res.json({ organization });
@@ -447,6 +470,7 @@ function createOrganizationRouter(db: Kysely<Database>) {
         .selectFrom('organization_account')
         .select(['logo_path'])
         .where('id', '=', organizationId)
+        .where('is_deleted', '=', false)
         .executeTakeFirstOrThrow();
 
       if (existingOrganization.logo_path) {
@@ -467,6 +491,7 @@ function createOrganizationRouter(db: Kysely<Database>) {
         .selectFrom('organization_account')
         .select(organizationPrivateResponseColumns)
         .where('id', '=', organizationId)
+        .where('is_deleted', '=', false)
         .executeTakeFirstOrThrow();
 
       res.json({ organization });
@@ -478,6 +503,7 @@ function createOrganizationRouter(db: Kysely<Database>) {
       .selectFrom('organization_account')
       .select(['logo_path', 'certificate_info_id'])
       .where('id', '=', organizationId)
+      .where('is_deleted', '=', false)
       .executeTakeFirstOrThrow();
 
     if (existingOrganization.certificate_info_id) {
@@ -511,6 +537,7 @@ function createOrganizationRouter(db: Kysely<Database>) {
       .selectFrom('organization_account')
       .select(organizationPrivateResponseColumns)
       .where('id', '=', organizationId)
+      .where('is_deleted', '=', false)
       .executeTakeFirstOrThrow();
 
     res.json({ organization });
