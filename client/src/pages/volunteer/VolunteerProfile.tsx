@@ -696,8 +696,8 @@ function VolunteerProfile() {
             </div>
             <div className="stat place-items-center">
               <div className="stat-title text-base">Most Volunteered Crisis</div>
-              <div className="stat-value text-lg text-primary/80 inline-flex w-full items-center justify-center gap-2 px-2">
-                <span className="max-w-full truncate text-center">{profile.experience_stats.most_volunteered_crisis ?? 'N/A'}</span>
+              <div className="stat-value text-lg text-primary/80 flex w-full min-w-0 items-center justify-center gap-2 px-2">
+                <span className="max-w-full text-center whitespace-normal break-all leading-tight">{profile.experience_stats.most_volunteered_crisis ?? 'N/A'}</span>
               </div>
             </div>
           </div>
