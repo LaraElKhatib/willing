@@ -275,87 +275,61 @@ function AdminReports() {
               />
             )
           : (
-              <div className="grid grid-cols-1 gap-6 xl:grid-cols-2 items-start">
-                {(activeFilters.scope === 'all' || activeFilters.scope === 'organization') && organizationReports.length > 0 && (
-                  <Card
-                    title="Organization Reports"
-                    description="Reports submitted by volunteers about organizations."
-                    Icon={Building2}
-                    right={(
-                      <span className="badge badge-accent">
-                        {organizationReports.length}
-                        {' '}
-                        Total
-                      </span>
-                    )}
+              <div className="space-y-3">
+                {(activeFilters.scope === 'all' || activeFilters.scope === 'organization') && organizationReports.map(report => (
+                  <div
+                    key={`organization-${report.id}`}
+                    className="rounded-xl border border-base-300 bg-base-100 p-4 flex flex-col items-start"
                   >
-                    <div className="space-y-3">
-                      {organizationReports.map(report => (
-                        <div
-                          key={report.id}
-                          className="rounded-xl border border-base-300 bg-base-100 p-4 flex flex-col items-start"
-                        >
-                          <div className="mb-3 flex w-full items-start justify-between gap-3">
-                            <div className="flex items-center gap-2">
-                              <h3 className="text-base font-semibold">{report.reported_organization.name}</h3>
-                              <span className="badge badge-error badge-outline">{formatReportTitle(report.title)}</span>
-                            </div>
-                            <span className="text-xs text-base-content/60 whitespace-nowrap">{new Date(report.created_at).toLocaleString()}</span>
-                          </div>
-                          <p className="text-sm text-base-content/80 whitespace-pre-wrap [overflow-wrap:break-word] mb-3">{formatReportMessage(report.message)}</p>
-
-                          <Button
-                            type="button"
-                            size="sm"
-                            onClick={() => navigate(`/admin/reports/organization/${report.id}`)}
-                          >
-                            View Details
-                          </Button>
-                        </div>
-                      ))}
+                    <div className="mb-3 flex w-full items-start justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <span className="badge badge-accent badge-outline gap-1">
+                          <Building2 size={12} />
+                          Organization
+                        </span>
+                        <h3 className="text-base font-semibold">{report.reported_organization.name}</h3>
+                        <span className="badge badge-error badge-outline">{formatReportTitle(report.title)}</span>
+                      </div>
+                      <span className="text-xs text-base-content/60 whitespace-nowrap">{new Date(report.created_at).toLocaleString()}</span>
                     </div>
-                  </Card>
-                )}
+                    <p className="text-sm text-base-content/80 whitespace-pre-wrap [overflow-wrap:break-word] mb-3">{formatReportMessage(report.message)}</p>
 
-                {(activeFilters.scope === 'all' || activeFilters.scope === 'volunteer') && volunteerReports.length > 0 && (
-                  <Card
-                    title="Volunteer Reports"
-                    description="Reports submitted by organizations about volunteers."
-                    Icon={UserRound}
-                    right={(
-                      <span className="badge badge-accent">
-                        {volunteerReports.length}
-                        {' '}
-                        Total
-                      </span>
-                    )}
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => navigate(`/admin/reports/organization/${report.id}`)}
+                    >
+                      View Details
+                    </Button>
+                  </div>
+                ))}
+
+                {(activeFilters.scope === 'all' || activeFilters.scope === 'volunteer') && volunteerReports.map(report => (
+                  <div
+                    key={`volunteer-${report.id}`}
+                    className="rounded-xl border border-base-300 bg-base-100 p-4 flex flex-col items-start"
                   >
-                    <div className="space-y-3">
-                      {volunteerReports.map(report => (
-                        <div
-                          key={report.id}
-                          className="rounded-xl border border-base-300 bg-base-100 p-4 flex flex-col items-start"
-                        >
-                          <div className="mb-3 flex w-full items-start justify-between gap-3">
-                            <div className="flex items-center gap-2">
-                              <h3 className="text-base font-semibold">{`${report.reported_volunteer.first_name} ${report.reported_volunteer.last_name}`}</h3>
-                              <span className="badge badge-error badge-outline">{formatReportTitle(report.title)}</span>
-                            </div>
-                            <span className="text-xs text-base-content/60 whitespace-nowrap">{new Date(report.created_at).toLocaleString()}</span>
-                          </div>
-                          <p className="text-sm text-base-content/80 whitespace-pre-wrap [overflow-wrap:break-word] mb-3">{formatReportMessage(report.message)}</p>
-                          <Button
-                            type="button"
-                            size="sm"
-                            onClick={() => navigate(`/admin/reports/volunteer/${report.id}`)}
-                          >
-                            View Details
-                          </Button>
-                        </div>
-                      ))}
+                    <div className="mb-3 flex w-full items-start justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <span className="badge badge-accent badge-outline gap-1">
+                          <UserRound size={12} />
+                          Volunteer
+                        </span>
+                        <h3 className="text-base font-semibold">{`${report.reported_volunteer.first_name} ${report.reported_volunteer.last_name}`}</h3>
+                        <span className="badge badge-error badge-outline">{formatReportTitle(report.title)}</span>
+                      </div>
+                      <span className="text-xs text-base-content/60 whitespace-nowrap">{new Date(report.created_at).toLocaleString()}</span>
                     </div>
-                  </Card>
-                )}
+                    <p className="text-sm text-base-content/80 whitespace-pre-wrap [overflow-wrap:break-word] mb-3">{formatReportMessage(report.message)}</p>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => navigate(`/admin/reports/volunteer/${report.id}`)}
+                    >
+                      View Details
+                    </Button>
+                  </div>
+                ))}
               </div>
             )}
     </PageContainer>
