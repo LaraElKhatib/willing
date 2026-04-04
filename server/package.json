@@ -23,6 +23,7 @@
     "script:create-admin": "tsx src/scripts/create-admin.ts",
     "script:migrate": "tsx src/scripts/migrate.ts",
     "script:seed": "tsx src/scripts/seed.ts",
+    "script:seed-recommendation": "tsx src/scripts/seed-recommendation.ts",
     "script:verify-embeddings": "tsx src/scripts/verify-embeddings.ts",
     "script:test-smtp": "tsx src/scripts/test-smtp.ts"
   },

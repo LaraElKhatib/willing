@@ -1,0 +1,342 @@
+import fs from 'fs';
+import path from 'path';
+
+import { sql } from 'kysely';
+import zod from 'zod';
+
+import config from '../config.ts';
+import database from '../db/index.ts';
+import { hash } from '../services/bcrypt/index.ts';
+import { CV_UPLOAD_DIR } from '../services/uploads/paths.ts';
+
+const PASSWORD_PLAIN = 'Willing123';
+const DATASET_PATH = path.resolve('src/scripts/data/recommendation/dataset.json');
+
+const crisisSchema = zod.object({
+  id: zod.number().int().positive(),
+  code: zod.string().min(1),
+  name: zod.string().min(1),
+  description: zod.string().optional(),
+});
+
+const organizationSchema = zod.object({
+  id: zod.number().int().positive(),
+  name: zod.string().min(1),
+  location_name: zod.string().min(1),
+  description: zod.string().optional(),
+  causes: zod.array(zod.string().min(1)).optional(),
+});
+
+const volunteerSchema = zod.object({
+  id: zod.number().int().positive(),
+  first_name: zod.string().min(1),
+  last_name: zod.string().min(1),
+  email: zod.email(),
+  gender: zod.enum(['male', 'female', 'other']),
+  date_of_birth: zod.string().min(1),
+  skills: zod.array(zod.string().min(1)),
+  description: zod.string().optional(),
+  cv_summary_text: zod.string().optional(),
+  cv_pdf_path: zod.string().min(1),
+});
+
+const postingSchema = zod.object({
+  id: zod.number().int().positive(),
+  organization_id: zod.number().int().positive(),
+  title: zod.string().min(1),
+  description: zod.string().min(1),
+  location_name: zod.string().min(1),
+  start_datetime: zod.string().datetime({ offset: true }),
+  end_datetime: zod.string().datetime({ offset: true }),
+  skills_required: zod.array(zod.string().min(1)).default([]),
+  crisis_id: zod.number().int().positive().nullable().optional(),
+  is_closed: zod.boolean(),
+});
+
+const datasetSchema = zod.object({
+  crises: zod.array(crisisSchema),
+  organizations: zod.array(organizationSchema),
+  volunteers: zod.array(volunteerSchema),
+  old_postings: zod.array(postingSchema),
+  new_postings: zod.array(postingSchema),
+  attendance_links: zod.array(zod.object({
+    volunteer_id: zod.number().int().positive(),
+    old_posting_id: zod.number().int().positive(),
+  })),
+  expected_matches: zod.array(zod.object({
+    volunteer_id: zod.number().int().positive(),
+    top_5_new_posting_ids: zod.array(zod.number().int().positive()).length(5),
+  })),
+});
+
+type RecommendationDataset = zod.infer<typeof datasetSchema>;
+
+const toSlug = (value: string) =>
+  value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 48);
+
+const toDateAndTime = (isoDateTime: string) => {
+  const date = new Date(isoDateTime);
+  const yyyy = date.getUTCFullYear();
+  const mm = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(date.getUTCDate()).padStart(2, '0');
+  const hh = String(date.getUTCHours()).padStart(2, '0');
+  const mi = String(date.getUTCMinutes()).padStart(2, '0');
+  const ss = String(date.getUTCSeconds()).padStart(2, '0');
+
+  return {
+    date: new Date(`${yyyy}-${mm}-${dd}T00:00:00.000Z`),
+    time: `${hh}:${mi}:${ss}`,
+  };
+};
+
+const estimateLocationCoordinates = (locationName: string) => {
+  const normalized = locationName.toLowerCase();
+  if (normalized.includes('beirut')) return { latitude: 33.8938, longitude: 35.5018 };
+  if (normalized.includes('zahle') || normalized.includes('bekaa')) return { latitude: 33.8467, longitude: 35.9020 };
+  if (normalized.includes('jbeil') || normalized.includes('byblos')) return { latitude: 34.1230, longitude: 35.6519 };
+  if (normalized.includes('halba') || normalized.includes('akkar')) return { latitude: 34.5420, longitude: 36.0800 };
+  if (normalized.includes('saida') || normalized.includes('sidon')) return { latitude: 33.5575, longitude: 35.3715 };
+  if (normalized.includes('tripoli')) return { latitude: 34.4367, longitude: 35.8497 };
+  if (normalized.includes('tyre') || normalized.includes('sour')) return { latitude: 33.2704, longitude: 35.2038 };
+  if (normalized.includes('baalbek')) return { latitude: 34.0067, longitude: 36.2181 };
+  if (normalized.includes('nabatieh')) return { latitude: 33.3789, longitude: 35.4839 };
+
+  return { latitude: 33.8938, longitude: 35.5018 };
+};
+
+const loadDataset = (): RecommendationDataset => {
+  if (!fs.existsSync(DATASET_PATH)) {
+    throw new Error(`Dataset file not found at ${DATASET_PATH}`);
+  }
+
+  const raw = fs.readFileSync(DATASET_PATH, 'utf8');
+  return datasetSchema.parse(JSON.parse(raw));
+};
+
+async function seedRecommendationDataset() {
+  if (config.NODE_ENV === 'production') {
+    throw new Error('Refusing to seed in production.');
+  }
+
+  const data = loadDataset();
+  const passwordHash = await hash(PASSWORD_PLAIN);
+
+  await sql`
+  TRUNCATE TABLE
+    enrollment_application_date,
+    enrollment_application,
+    enrollment,
+    posting_skill,
+    volunteer_skill,
+    organization_posting,
+    volunteer_pending_account,
+    volunteer_report,
+    organization_report,
+    platform_certificate_settings,
+    organization_certificate_info,
+    organization_request,
+    volunteer_account,
+    organization_account,
+    admin_account,
+    crisis
+  RESTART IDENTITY CASCADE
+`.execute(database);
+
+  await fs.promises.mkdir(CV_UPLOAD_DIR, { recursive: true });
+
+  await database.insertInto('admin_account').values({
+    first_name: 'Admin',
+    last_name: 'User',
+    email: 'admin@willing.social',
+    password: passwordHash,
+  }).execute();
+
+  const crisisIdMap = new Map<number, number>();
+  for (const crisis of data.crises) {
+    const inserted = await database
+      .insertInto('crisis')
+      .values({
+        name: crisis.name,
+        description: crisis.description,
+        pinned: false,
+      })
+      .returning(['id'])
+      .executeTakeFirstOrThrow();
+
+    crisisIdMap.set(crisis.id, inserted.id);
+  }
+
+  const organizationIdMap = new Map<number, number>();
+  for (const organization of data.organizations) {
+    const location = estimateLocationCoordinates(organization.location_name);
+    const emailLocal = `${toSlug(organization.name)}-${organization.id}`;
+
+    const inserted = await database
+      .insertInto('organization_account')
+      .values({
+        name: organization.name,
+        email: `${emailLocal}@willing.social`,
+        phone_number: `+9617000${String(organization.id).padStart(4, '0')}`,
+        url: `https://${toSlug(organization.name)}.org`,
+        description: organization.description,
+        latitude: location.latitude,
+        longitude: location.longitude,
+        location_name: organization.location_name,
+        password: passwordHash,
+      })
+      .returning(['id'])
+      .executeTakeFirstOrThrow();
+
+    organizationIdMap.set(organization.id, inserted.id);
+  }
+
+  const volunteerIdMap = new Map<number, number>();
+  for (const volunteer of data.volunteers) {
+    const sourceCvPath = path.resolve(volunteer.cv_pdf_path);
+    if (!fs.existsSync(sourceCvPath)) {
+      throw new Error(`CV file not found for volunteer ${volunteer.email}: ${sourceCvPath}`);
+    }
+
+    const cvFileName = `${toSlug(`${volunteer.id}-${volunteer.first_name}-${volunteer.last_name}`)}.pdf`;
+    const targetCvPath = path.join(CV_UPLOAD_DIR, cvFileName);
+    await fs.promises.copyFile(sourceCvPath, targetCvPath);
+
+    const inserted = await database
+      .insertInto('volunteer_account')
+      .values({
+        first_name: volunteer.first_name,
+        last_name: volunteer.last_name,
+        email: volunteer.email,
+        password: passwordHash,
+        date_of_birth: volunteer.date_of_birth,
+        gender: volunteer.gender,
+        description: volunteer.description,
+        cv_path: cvFileName,
+      })
+      .returning(['id'])
+      .executeTakeFirstOrThrow();
+
+    volunteerIdMap.set(volunteer.id, inserted.id);
+
+    if (volunteer.skills.length > 0) {
+      await database.insertInto('volunteer_skill').values(
+        volunteer.skills.map(skill => ({
+          volunteer_id: inserted.id,
+          name: skill.trim(),
+        })),
+      ).execute();
+    }
+  }
+
+  const oldPostingIdMap = new Map<number, number>();
+  const createPosting = async (posting: RecommendationDataset['old_postings'][number], isFromOldSet: boolean) => {
+    const organizationId = organizationIdMap.get(posting.organization_id);
+    if (!organizationId) {
+      throw new Error(`Unknown organization_id in posting ${posting.id}: ${posting.organization_id}`);
+    }
+
+    const crisisId = posting.crisis_id === null || posting.crisis_id === undefined
+      ? undefined
+      : crisisIdMap.get(posting.crisis_id);
+
+    if (posting.crisis_id && !crisisId) {
+      throw new Error(`Unknown crisis_id in posting ${posting.id}: ${posting.crisis_id}`);
+    }
+
+    const start = toDateAndTime(posting.start_datetime);
+    const end = toDateAndTime(posting.end_datetime);
+    const location = estimateLocationCoordinates(posting.location_name);
+
+    const insertedPosting = await database
+      .insertInto('organization_posting')
+      .values({
+        organization_id: organizationId,
+        crisis_id: crisisId,
+        title: posting.title,
+        description: posting.description,
+        latitude: location.latitude,
+        longitude: location.longitude,
+        location_name: posting.location_name,
+        start_date: start.date,
+        start_time: start.time,
+        end_date: end.date,
+        end_time: end.time,
+        automatic_acceptance: posting.id % 3 !== 0,
+        is_closed: posting.is_closed,
+        allows_partial_attendance: false,
+        minimum_age: 18,
+        max_volunteers: 40,
+      })
+      .returning(['id'])
+      .executeTakeFirstOrThrow();
+
+    if (posting.skills_required.length > 0) {
+      await database
+        .insertInto('posting_skill')
+        .values(
+          posting.skills_required.map(skill => ({
+            posting_id: insertedPosting.id,
+            name: skill.trim(),
+          })),
+        )
+        .execute();
+    }
+
+    if (isFromOldSet) {
+      oldPostingIdMap.set(posting.id, insertedPosting.id);
+    }
+  };
+
+  for (const posting of data.old_postings) {
+    await createPosting(posting, true);
+  }
+
+  for (const posting of data.new_postings) {
+    await createPosting(posting, false);
+  }
+
+  for (const attendance of data.attendance_links) {
+    const volunteerId = volunteerIdMap.get(attendance.volunteer_id);
+    const postingId = oldPostingIdMap.get(attendance.old_posting_id);
+
+    if (!volunteerId || !postingId) {
+      throw new Error(`Invalid attendance link: volunteer_id=${attendance.volunteer_id}, old_posting_id=${attendance.old_posting_id}`);
+    }
+
+    await database
+      .insertInto('enrollment')
+      .values({
+        volunteer_id: volunteerId,
+        posting_id: postingId,
+        attended: true,
+      })
+      .execute();
+  }
+
+  console.log('─────────────────────────────────────────────');
+  console.log('Recommendation dataset seeded successfully.');
+  console.log(`Dataset: ${DATASET_PATH}`);
+  console.log(`Crises: ${data.crises.length}`);
+  console.log(`Organizations: ${data.organizations.length}`);
+  console.log(`Volunteers: ${data.volunteers.length}`);
+  console.log(`Old postings: ${data.old_postings.length}`);
+  console.log(`New postings: ${data.new_postings.length}`);
+  console.log(`Attendances: ${data.attendance_links.length}`);
+  console.log(`Password (all accounts): ${PASSWORD_PLAIN}`);
+
+  await database.destroy();
+}
+
+seedRecommendationDataset().catch(async (error) => {
+  console.error('Recommendation seed failed:', error);
+  try {
+    await database.destroy();
+  } catch {
+    // ignore cleanup errors
+  }
+  process.exit(1);
+});
