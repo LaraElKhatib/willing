@@ -145,11 +145,21 @@ function createAdminRouter(db: Kysely<Database>) {
       return;
     }
 
+    const existingOrganization = await db
+      .selectFrom('organization_account')
+      .select('id')
+      .where('email', '=', organizationRequest.email)
+      .executeTakeFirst();
+
+    if (existingOrganization) {
+      res.status(409);
+      throw new Error('An organization account with this email already exists');
+    }
+
     const existingVolunteer = await db
       .selectFrom('volunteer_account')
       .select('id')
       .where('email', '=', organizationRequest.email)
-      .where('is_deleted', '=', false)
       .executeTakeFirst();
 
     if (existingVolunteer) {

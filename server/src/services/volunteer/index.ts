@@ -105,7 +105,6 @@ export const getVolunteerProfile = async (volunteerId: number): Promise<Voluntee
       .select('crisis.name as crisis_name')
       .where('enrollment.volunteer_id', '=', volunteerId)
       .where('enrollment.attended', '=', true)
-      .where('organization_account.is_deleted', '=', false)
       .orderBy('organization_posting.start_date', 'desc')
       .orderBy('organization_posting.start_time', 'desc')
       .execute(),

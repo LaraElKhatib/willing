@@ -239,7 +239,6 @@ function createUserRouter(db: Kysely<Database>) {
         .updateTable(table)
         .set({
           is_deleted: true,
-          email: sql`CONCAT('deleted_', id, '_', EXTRACT(EPOCH FROM NOW())::bigint, '@deleted')`,
           token_version: sql`token_version + 1`,
         })
         .where('id', '=', userId)
@@ -251,6 +250,33 @@ function createUserRouter(db: Kysely<Database>) {
         .where('role', '=', role)
         .where('user_id', '=', userId)
         .execute();
+
+      if (role === 'organization') {
+        await trx
+          .updateTable('organization_posting')
+          .set({ is_closed: true })
+          .where('organization_id', '=', userId)
+          .where('is_closed', '=', false)
+          .execute();
+
+        await trx
+          .deleteFrom('enrollment_application')
+          .where('posting_id', 'in',
+            trx.selectFrom('organization_posting').select('id').where('organization_id', '=', userId),
+          )
+          .execute();
+      } else {
+        await trx
+          .deleteFrom('enrollment_application')
+          .where('volunteer_id', '=', userId)
+          .execute();
+
+        await trx
+          .deleteFrom('enrollment')
+          .where('volunteer_id', '=', userId)
+          .where('attended', '=', false)
+          .execute();
+      }
     });
 
     res.json({});

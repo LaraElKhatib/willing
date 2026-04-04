@@ -242,8 +242,6 @@ function createVolunteerPostingRouter(db: Kysely<Database>) {
         .leftJoin('crisis', 'crisis.id', 'organization_posting.crisis_id')
         .select(postingWithContextSelectColumns)
         .where('enrollment.volunteer_id', '=', volunteerId)
-        .where('organization_account.is_deleted', '=', false)
-        .where('organization_account.is_disabled', '=', false)
         .execute(),
       db
         .selectFrom('enrollment_application')
@@ -252,8 +250,6 @@ function createVolunteerPostingRouter(db: Kysely<Database>) {
         .leftJoin('crisis', 'crisis.id', 'organization_posting.crisis_id')
         .select(postingWithContextSelectColumns)
         .where('enrollment_application.volunteer_id', '=', volunteerId)
-        .where('organization_account.is_deleted', '=', false)
-        .where('organization_account.is_disabled', '=', false)
         .execute(),
     ]);
 
@@ -306,8 +302,6 @@ function createVolunteerPostingRouter(db: Kysely<Database>) {
       )
       .select(postingWithContextSelectColumns)
       .where('organization_posting.id', '=', id)
-      .where('organization_account.is_deleted', '=', false)
-      .where('organization_account.is_disabled', '=', false)
       .executeTakeFirst();
 
     if (!posting) {

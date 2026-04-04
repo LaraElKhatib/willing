@@ -128,7 +128,6 @@ function createOrganizationRouter(db: Kysely<Database>) {
       .selectFrom('organization_account')
       .select('id')
       .where('email', '=', email)
-      .where('is_deleted', '=', false)
       .executeTakeFirst();
 
     if (checkAccountRequest) {
@@ -140,7 +139,6 @@ function createOrganizationRouter(db: Kysely<Database>) {
       .selectFrom('volunteer_account')
       .select('id')
       .where('email', '=', email)
-      .where('is_deleted', '=', false)
       .executeTakeFirst();
 
     if (checkVolunteerAccount) {
@@ -187,8 +185,6 @@ function createOrganizationRouter(db: Kysely<Database>) {
       .selectFrom('organization_account')
       .select(['logo_path'])
       .where('id', '=', id)
-      .where('is_deleted', '=', false)
-      .where('is_disabled', '=', false)
       .executeTakeFirst();
 
     if (!organization?.logo_path) {
@@ -220,8 +216,6 @@ function createOrganizationRouter(db: Kysely<Database>) {
       .leftJoin('organization_certificate_info', 'organization_certificate_info.id', 'organization_account.certificate_info_id')
       .select(['organization_certificate_info.signature_path'])
       .where('organization_account.id', '=', id)
-      .where('organization_account.is_deleted', '=', false)
-      .where('organization_account.is_disabled', '=', false)
       .executeTakeFirst();
 
     if (!organization?.signature_path) {
@@ -258,16 +252,21 @@ function createOrganizationRouter(db: Kysely<Database>) {
 
     const organization = await db
       .selectFrom('organization_account')
-      .select(organizationProfileResponseColumns)
+      .select([...organizationProfileResponseColumns, 'is_deleted', 'is_disabled'])
       .where('id', '=', orgId)
-      .where('is_deleted', '=', false)
-      .where('is_disabled', '=', false)
       .executeTakeFirst();
 
     if (!organization) {
       res.status(404);
       throw new Error('Organization not found');
     }
+
+    if (organization.is_deleted || organization.is_disabled) {
+      res.status(410);
+      throw new Error('This organization is no longer available');
+    }
+
+    const { is_deleted: _d, is_disabled: _i, ...organizationProfile } = organization;
 
     // Fetch organization's postings
     const postings = await db
@@ -301,7 +300,7 @@ function createOrganizationRouter(db: Kysely<Database>) {
       skills: skillsByPostingId.get(posting.id) || [],
     }));
 
-    res.json({ organization, postings: postingsWithSkills });
+    res.json({ organization: organizationProfile, postings: postingsWithSkills });
   });
 
   // Protected organization routes

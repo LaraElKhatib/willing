@@ -181,8 +181,6 @@ function VolunteerProfile() {
 
   const { trigger: updateProfile } = useAsync(
     async (data: {
-      first_name: string;
-      last_name: string;
       gender: 'male' | 'female' | 'other';
       description: string;
       skills: string[];
@@ -348,8 +346,6 @@ function VolunteerProfile() {
       setSaving(true);
 
       const response = await updateProfile({
-        first_name: data.first_name,
-        last_name: data.last_name,
         gender: data.gender,
         description: data.description,
         skills,
@@ -574,10 +570,28 @@ function VolunteerProfile() {
               ? (
                   <div className="space-y-3">
                     <div className={saving ? 'pointer-events-none opacity-70' : ''}>
-                      <FormField form={form} name="first_name" label="First Name" />
+                      <div className="space-y-1">
+                        <label className="text-sm font-medium">First Name</label>
+                        <input
+                          type="text"
+                          className="input input-bordered w-full opacity-80"
+                          value={profile.volunteer.first_name}
+                          disabled
+                          readOnly
+                        />
+                      </div>
                     </div>
                     <div className={saving ? 'pointer-events-none opacity-70' : ''}>
-                      <FormField form={form} name="last_name" label="Last Name" />
+                      <div className="space-y-1">
+                        <label className="text-sm font-medium">Last Name</label>
+                        <input
+                          type="text"
+                          className="input input-bordered w-full opacity-80"
+                          value={profile.volunteer.last_name}
+                          disabled
+                          readOnly
+                        />
+                      </div>
                     </div>
                     <div className={saving ? 'pointer-events-none opacity-70' : ''}>
                       <FormField
@@ -603,10 +617,13 @@ function VolunteerProfile() {
                     <div className={saving ? 'pointer-events-none opacity-70' : ''}>
                       <div className="space-y-1">
                         <label className="text-sm font-medium">Date of Birth</label>
-                        <div className="input input-bordered w-full flex items-center gap-2 opacity-80">
-                          <Calendar size={16} />
-                          <span>{formattedDateOfBirth}</span>
-                        </div>
+                        <input
+                          type="text"
+                          className="input input-bordered w-full opacity-80"
+                          value={formattedDateOfBirth}
+                          disabled
+                          readOnly
+                        />
                       </div>
                     </div>
                   </div>
@@ -696,24 +713,26 @@ function VolunteerProfile() {
 
         <Card padding={false}>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-0 gap-y-3">
-            <div className="stat place-items-center">
+            <div className="stat place-items-center h-full grid-rows-[auto,1fr]">
               <div className="stat-title text-base">Crisis-Related</div>
-              <div className="stat-value text-2xl text-primary/80 inline-flex w-full items-center justify-center gap-2">
+              <div className="stat-value text-2xl text-primary/80 flex w-full items-center justify-center gap-2 self-center">
                 <AlertTriangle className="h-6 w-6 shrink-0 stroke-current" />
                 <span>{profile.experience_stats.crisis_related_experiences}</span>
               </div>
             </div>
-            <div className="stat place-items-center">
+            <div className="stat place-items-center h-full grid-rows-[auto,1fr]">
               <div className="stat-title text-base">Total Skills Used</div>
-              <div className="stat-value text-2xl text-primary/80 inline-flex w-full items-center justify-center gap-2">
+              <div className="stat-value text-2xl text-primary/80 flex w-full items-center justify-center gap-2 self-center">
                 <Brain className="h-6 w-6 shrink-0 stroke-current" />
                 <span>{profile.experience_stats.total_skills_used}</span>
               </div>
             </div>
-            <div className="stat place-items-center">
+            <div className="stat place-items-center h-full grid-rows-[auto,1fr]">
               <div className="stat-title text-base">Most Volunteered Crisis</div>
-              <div className="stat-value text-lg text-primary/80 inline-flex w-full items-center justify-center gap-2 px-2">
-                <span className="max-w-full truncate text-center">{profile.experience_stats.most_volunteered_crisis ?? 'N/A'}</span>
+              <div className="stat-value text-lg text-primary/80 flex w-full min-w-0 items-center justify-center gap-2 px-2 self-center">
+                <span className="max-w-full text-center whitespace-normal break-words leading-tight overflow-hidden [display:-webkit-box] [-webkit-line-clamp:2] [-webkit-box-orient:vertical]">
+                  {profile.experience_stats.most_volunteered_crisis ?? 'N/A'}
+                </span>
               </div>
             </div>
           </div>
