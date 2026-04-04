@@ -37,7 +37,10 @@ describe('POST /user/login', () => {
   });
 
   test('logs in organization account with valid credentials', async () => {
-    const { organization, plainPassword } = await createOrganizationAccount(transaction);
+    const { organization, plainPassword } = await createOrganizationAccount(transaction, {
+      phone_number: '+10000000001',
+      url: 'https://test1.example.org',
+    });
 
     const response = await server
       .post('/user/login')
@@ -86,7 +89,10 @@ describe('POST /user/login', () => {
   });
 
   test('rejects login for organization account', async () => {
-    const { organization } = await createOrganizationAccount(transaction);
+    const { organization } = await createOrganizationAccount(transaction, {
+      phone_number: '+10000000002',
+      url: 'https://test2.example.org',
+    });
 
     const response = await server
       .post('/user/login')
@@ -108,8 +114,10 @@ describe('POST /user/login', () => {
   });
 
   test('rejects login for disabled organization account', async () => {
-    const { organization, plainPassword } = await createOrganizationAccount({
+    const { organization, plainPassword } = await createOrganizationAccount(transaction, {
       email: 'disabled-org-login@example.com',
+      phone_number: '+10000000003',
+      url: 'https://disabled-org.example.org',
     });
 
     await transaction
@@ -184,7 +192,10 @@ describe('POST /user/forgot-password', () => {
   });
 
   test('creates a reset token and emails organization', async () => {
-    const { organization } = await createOrganizationAccount(transaction);
+    const { organization } = await createOrganizationAccount(transaction, {
+      phone_number: '+10000000004',
+      url: 'https://test4.example.org',
+    });
 
     const response = await server
       .post('/user/forgot-password')
