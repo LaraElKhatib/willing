@@ -371,6 +371,19 @@ function createOrganizationRouter(db: Kysely<Database>) {
       throw new Error('You can only view profiles of volunteers related to your postings.');
     }
 
+    const volunteerExists = await db
+      .selectFrom('volunteer_account')
+      .select('id')
+      .where('id', '=', volunteerId)
+      .where('is_deleted', '=', false)
+      .where('is_disabled', '=', false)
+      .executeTakeFirst();
+
+    if (!volunteerExists) {
+      res.status(410);
+      throw new Error('This volunteer is no longer available');
+    }
+
     const profile = await getVolunteerProfile(volunteerId);
     res.json({ profile });
   });
@@ -392,6 +405,7 @@ function createOrganizationRouter(db: Kysely<Database>) {
       .select(['id', 'cv_path', 'first_name', 'last_name'])
       .where('id', '=', volunteerId)
       .where('is_deleted', '=', false)
+      .where('is_disabled', '=', false)
       .executeTakeFirstOrThrow();
 
     if (!volunteer.cv_path) {

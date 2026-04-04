@@ -135,6 +135,9 @@ function VolunteerProfile() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [cvBusy, setCvBusy] = useState(false);
   const [accountDeletionBusy, setAccountDeletionBusy] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const { deleteAccount } = useContext(AuthContext);
   const notifications = useNotifications();
 
@@ -449,13 +452,18 @@ function VolunteerProfile() {
   };
 
   const onDeleteAccount = async () => {
-    const confirmed = window.confirm('Delete your account? This will sign you out and hide your account from the platform.');
-    if (!confirmed) return;
+    if (!deletePassword.trim()) {
+      setDeleteError('Please enter your password.');
+      return;
+    }
+    setDeleteError(null);
 
     try {
       setAccountDeletionBusy(true);
-      await deleteAccount();
+      await deleteAccount(deletePassword);
       notifications.push({ type: 'success', message: 'Your account was deleted.' });
+    } catch (err) {
+      notifications.push({ type: 'error', message: err instanceof Error ? err.message : 'Failed to delete account.' });
     } finally {
       setAccountDeletionBusy(false);
     }
@@ -854,22 +862,77 @@ function VolunteerProfile() {
         </Card>
 
         <Card
-          title="Account"
-          description="Delete your account if you no longer want to use Willing."
+          title="Delete Account"
+          description="Permanently delete your volunteer account."
+          Icon={Trash2}
         >
-          <Alert color="warning">This action marks your account as deleted and immediately signs you out.</Alert>
-          <div className="mt-3">
-            <Button
-              type="button"
-              color="error"
-              style="outline"
-              onClick={onDeleteAccount}
-              loading={accountDeletionBusy}
-              Icon={Trash2}
-            >
-              Delete My Account
-            </Button>
-          </div>
+          {!showDeleteConfirm
+            ? (
+                <>
+                  <Alert color="warning">
+                    Deleting your account is an irreversible action. Your profile will be hidden from the platform, your data will no longer be accessible, and you will be signed out immediately.
+                  </Alert>
+                  <div className="mt-3">
+                    <Button
+                      type="button"
+                      color="error"
+                      style="outline"
+                      onClick={() => {
+                        setShowDeleteConfirm(true);
+                        setDeleteError(null);
+                        setDeletePassword('');
+                      }}
+                      Icon={Trash2}
+                    >
+                      I want to delete my account
+                    </Button>
+                  </div>
+                </>
+              )
+            : (
+                <div className="space-y-3">
+                  <Alert color="error">
+                    <strong>This cannot be undone.</strong>
+                    {' '}
+                    Your applications will be withdrawn, your non-attended enrollments will be removed, and you will not be able to sign in or recover this account. Your attended volunteer records will be preserved.
+                  </Alert>
+                  <p className="text-sm font-medium">Enter your password to confirm:</p>
+                  <input
+                    type="password"
+                    className="input input-bordered w-full max-w-sm"
+                    placeholder="Your password"
+                    value={deletePassword}
+                    onChange={e => setDeletePassword(e.target.value)}
+                    disabled={accountDeletionBusy}
+                    onKeyDown={e => e.key === 'Enter' && void onDeleteAccount()}
+                  />
+                  {deleteError && <p className="text-sm text-error">{deleteError}</p>}
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      color="error"
+                      onClick={() => void onDeleteAccount()}
+                      loading={accountDeletionBusy}
+                      Icon={Trash2}
+                    >
+                      Permanently Delete My Account
+                    </Button>
+                    <Button
+                      type="button"
+                      style="outline"
+                      onClick={() => {
+                        setShowDeleteConfirm(false);
+                        setDeleteError(null);
+                        setDeletePassword('');
+                      }}
+                      disabled={accountDeletionBusy}
+                      Icon={X}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
         </Card>
       </ColumnLayout>
     </PageContainer>

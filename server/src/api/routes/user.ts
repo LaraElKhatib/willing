@@ -229,12 +229,69 @@ function createUserRouter(db: Kysely<Database>) {
   });
 
   userRouter.delete('/account', authorizeOnly('organization', 'volunteer'), async (req, res: Response<UserDeleteAccountResponse>) => {
+    const { password } = zod.object({ password: zod.string().min(1) }).parse(req.body);
     const userId = req.userJWT!.id;
     const role = req.userJWT!.role as 'organization' | 'volunteer';
 
     const table = role === 'organization' ? 'organization_account' as const : 'volunteer_account' as const;
 
+    const account = await db
+      .selectFrom(table)
+      .select('password')
+      .where('id', '=', userId)
+      .where('is_deleted', '=', false)
+      .executeTakeFirst();
+
+    if (!account) {
+      res.status(404);
+      throw new Error('Account not found');
+    }
+
+    const passwordMatch = await compare(password, account.password);
+    if (!passwordMatch) {
+      res.status(403);
+      throw new Error('Incorrect password');
+    }
+
+    const today = sql<Date>`CURRENT_DATE`;
+
+    if (role === 'volunteer') {
+      const activeEnrollment = await db
+        .selectFrom('enrollment')
+        .innerJoin('organization_posting', 'organization_posting.id', 'enrollment.posting_id')
+        .select('enrollment.id')
+        .where('enrollment.volunteer_id', '=', userId)
+        .where('enrollment.attended', '=', false)
+        .where('organization_posting.is_closed', '=', false)
+        .where('organization_posting.end_date', '>=', today)
+        .limit(1)
+        .executeTakeFirst();
+
+      if (activeEnrollment) {
+        res.status(409);
+        throw new Error('You cannot delete your account while you are enrolled in active postings. Please withdraw from all active postings first.');
+      }
+    }
+
     await executeTransaction(db, async (trx) => {
+      if (role === 'organization') {
+        const runningPosting = await trx
+          .selectFrom('organization_posting')
+          .select('id')
+          .where('organization_id', '=', userId)
+          .where('is_closed', '=', false)
+          .where('start_date', '<=', today)
+          .where('end_date', '>=', today)
+          .forUpdate()
+          .limit(1)
+          .executeTakeFirst();
+
+        if (runningPosting) {
+          res.status(409);
+          throw new Error('You cannot delete your account while you have postings that are currently running. Please wait until they end or close them first.');
+        }
+      }
+
       await trx
         .updateTable(table)
         .set({
@@ -252,18 +309,30 @@ function createUserRouter(db: Kysely<Database>) {
         .execute();
 
       if (role === 'organization') {
+        // Hard-delete postings that haven't started yet (with FK cleanup)
+        const notStartedPostingIds = await trx
+          .selectFrom('organization_posting')
+          .select('id')
+          .where('organization_id', '=', userId)
+          .where('is_closed', '=', false)
+          .where('start_date', '>', today)
+          .execute();
+
+        const notStartedIds = notStartedPostingIds.map(p => p.id);
+
+        if (notStartedIds.length > 0) {
+          await trx.deleteFrom('enrollment_application').where('posting_id', 'in', notStartedIds).execute();
+          await trx.deleteFrom('enrollment').where('posting_id', 'in', notStartedIds).execute();
+          await trx.deleteFrom('posting_skill').where('posting_id', 'in', notStartedIds).execute();
+          await trx.deleteFrom('organization_posting').where('id', 'in', notStartedIds).execute();
+        }
+
+        // Close remaining open postings (already ended, since running ones are blocked above)
         await trx
           .updateTable('organization_posting')
           .set({ is_closed: true })
           .where('organization_id', '=', userId)
           .where('is_closed', '=', false)
-          .execute();
-
-        await trx
-          .deleteFrom('enrollment_application')
-          .where('posting_id', 'in',
-            trx.selectFrom('organization_posting').select('id').where('organization_id', '=', userId),
-          )
           .execute();
       } else {
         await trx

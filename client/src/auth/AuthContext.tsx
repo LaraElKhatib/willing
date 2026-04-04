@@ -53,7 +53,7 @@ type AuthContextType = {
   verifyVolunteerEmail: (key: string) => Promise<VolunteerVerifyEmailResponse>;
   resendVolunteerVerification: (email: string) => Promise<void>;
   changePassword: (oldPassword: string, newPassword: string) => Promise<void>;
-  deleteAccount: () => Promise<void>;
+  deleteAccount: (password: string) => Promise<void>;
   logout: () => void;
   restrictRoute: (role: Role, unauthenticatedRedirectPath: string) => AccountWithoutPassword;
 };
@@ -260,10 +260,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(undefined);
   }, [user]);
 
-  const deleteAccount = useCallback(async () => {
+  const deleteAccount = useCallback(async (password: string) => {
     await requestServer<UserDeleteAccountResponse>('/user/account', {
       method: 'DELETE',
       includeJwt: true,
+      body: { password },
     });
 
     logout();
