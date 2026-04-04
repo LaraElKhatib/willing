@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 
 import Alert from '../../components/Alert';
 import Button from '../../components/Button';
-import CalendarInfo from '../../components/CalendarInfo';
 import Card from '../../components/Card';
 import EmptyState from '../../components/EmptyState';
 import PageContainer from '../../components/layout/PageContainer';
