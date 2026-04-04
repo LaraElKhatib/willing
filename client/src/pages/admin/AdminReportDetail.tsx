@@ -177,7 +177,7 @@ function AdminReportDetail() {
                 <label className="label">
                   <span className="label-text font-semibold">Message</span>
                 </label>
-                <div className="rounded-lg bg-base-100 border border-base-300 p-4 whitespace-pre-wrap text-sm">
+                <div className="rounded-lg bg-base-100 border border-base-300 p-4 whitespace-pre-wrap [overflow-wrap:anywhere] text-sm">
                   {report.message}
                 </div>
               </div>

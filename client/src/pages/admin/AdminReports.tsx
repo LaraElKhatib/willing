@@ -40,11 +40,6 @@ const defaultFilters: ReportsFilters = {
 };
 
 const formatReportTitle = (title: string) => title.replaceAll('_', ' ').replace(/^./, firstLetter => firstLetter.toUpperCase());
-const MAX_REPORT_WORD_LENGTH = 53;
-const formatReportMessage = (message: string) => message.replace(
-  new RegExp(`(\\S{${MAX_REPORT_WORD_LENGTH}})(?=\\S)`, 'g'),
-  '$1\n',
-);
 
 function AdminReports() {
   const navigate = useNavigate();
@@ -326,7 +321,7 @@ function AdminReports() {
                         </div>
                         <span className="text-xs text-base-content/60 whitespace-nowrap">{new Date(report.created_at).toLocaleString()}</span>
                       </div>
-                      <p className="text-sm text-base-content/80 whitespace-pre-wrap [overflow-wrap:break-word] mb-3">{formatReportMessage(report.message)}</p>
+                      <p className="text-sm text-base-content/80 whitespace-pre-wrap [overflow-wrap:anywhere] mb-3">{report.message}</p>
                       <Button
                         type="button"
                         size="sm"
