@@ -164,8 +164,8 @@ function AdminReportDetail() {
         <div className="lg:col-span-2 space-y-6">
           <Card title="Report Details" description="Information about this report.">
             <div className="space-y-4">
-              <div>
-                <label className="label">
+              <div className="flex items-center gap-2">
+                <label className="label m-0">
                   <span className="label-text font-semibold">Report Type</span>
                 </label>
                 <div className="badge badge-error badge-outline badge-lg">
