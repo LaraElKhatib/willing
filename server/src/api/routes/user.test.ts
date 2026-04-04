@@ -15,7 +15,7 @@ const sendPasswordResetEmailSpy = vi
   .spyOn(emailService, 'sendPasswordResetEmail')
   .mockResolvedValue(undefined);
 
-let transaction: ControlledTransaction<Database, []>;
+let transaction: ControlledTransaction<Database>;
 let server: TestAgent;
 
 beforeEach(async () => {
@@ -37,7 +37,7 @@ describe('POST /user/login', () => {
   });
 
   test('logs in organization account with valid credentials', async () => {
-    const { organization, plainPassword } = await createOrganizationAccount();
+    const { organization, plainPassword } = await createOrganizationAccount(transaction);
 
     const response = await server
       .post('/user/login')
@@ -56,7 +56,7 @@ describe('POST /user/login', () => {
   });
 
   test('logs in volunteer account with valid credentials', async () => {
-    const { volunteer, plainPassword } = await createVolunteerAccount({
+    const { volunteer, plainPassword } = await createVolunteerAccount(transaction, {
       email: 'login-vol@example.com',
     });
 
@@ -86,7 +86,7 @@ describe('POST /user/login', () => {
   });
 
   test('rejects login for organization account', async () => {
-    const { organization } = await createOrganizationAccount();
+    const { organization } = await createOrganizationAccount(transaction);
 
     const response = await server
       .post('/user/login')
@@ -97,7 +97,7 @@ describe('POST /user/login', () => {
   });
 
   test('rejects login for volunteer account', async () => {
-    const { volunteer } = await createVolunteerAccount();
+    const { volunteer } = await createVolunteerAccount(transaction);
 
     const response = await server
       .post('/user/login')
@@ -146,7 +146,7 @@ describe('POST /user/login', () => {
   });
 
   test('rejects login for correct admin credentials', async () => {
-    const { admin, plainPassword } = await createAdminAccount();
+    const { admin, plainPassword } = await createAdminAccount(transaction);
 
     const response = await server
       .post('/user/login')
@@ -184,7 +184,7 @@ describe('POST /user/forgot-password', () => {
   });
 
   test('creates a reset token and emails organization', async () => {
-    const { organization } = await createOrganizationAccount();
+    const { organization } = await createOrganizationAccount(transaction);
 
     const response = await server
       .post('/user/forgot-password')
@@ -211,7 +211,7 @@ describe('POST /user/forgot-password', () => {
   });
 
   test('creates a reset token and emails volunteer', async () => {
-    const { volunteer } = await createVolunteerAccount();
+    const { volunteer } = await createVolunteerAccount(transaction);
 
     const response = await server
       .post('/user/forgot-password')
@@ -238,7 +238,7 @@ describe('POST /user/forgot-password', () => {
   });
 
   test('doesn\'t create a reset token for admin', async () => {
-    const { admin } = await createAdminAccount({
+    const { admin } = await createAdminAccount(transaction, {
       email: 'reset-admin@example.com',
     });
 
@@ -269,7 +269,7 @@ describe('POST /user/forgot-password/reset', () => {
   });
 
   test('updates the password of a volunteer and deletes the token', async () => {
-    const { volunteer } = await createVolunteerAccount({
+    const { volunteer } = await createVolunteerAccount(transaction, {
       email: 'needs-reset@example.com',
       password: 'OldPassword123!',
     });
@@ -310,7 +310,7 @@ describe('POST /user/forgot-password/reset', () => {
   });
 
   test('updates the password of an organization and deletes the token', async () => {
-    const { organization } = await createOrganizationAccount({
+    const { organization } = await createOrganizationAccount(transaction, {
       email: 'needs-reset@example.com',
       password: 'OldPassword123!',
     });
@@ -358,7 +358,7 @@ describe('POST /user/forgot-password/reset', () => {
   });
 
   test('returns 400 for expired token', async () => {
-    const { organization } = await createOrganizationAccount({
+    const { organization } = await createOrganizationAccount(transaction, {
       email: 'needs-reset@example.com',
       password: 'OldPassword123!',
     });
@@ -391,7 +391,7 @@ describe('POST /user/forgot-password/reset', () => {
   });
 
   test('doesn\'t allow setting a weak password', async () => {
-    const { volunteer } = await createVolunteerAccount({
+    const { volunteer } = await createVolunteerAccount(transaction, {
       email: 'needs-reset@example.com',
       password: 'OldPassword123!',
     });
@@ -431,7 +431,7 @@ describe('POST /user/forgot-password/reset', () => {
   });
 
   test('invalidates previous token after password reset', async () => {
-    const { volunteer, plainPassword } = await createVolunteerAccount({
+    const { volunteer, plainPassword } = await createVolunteerAccount(transaction, {
       email: 'invalidates-token@example.com',
       password: 'OldPassword123!',
     });
