@@ -1,11 +1,11 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Building2, ClipboardList, Flag, Globe, Mail, MapPin, Phone, X } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useContext, useMemo, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { useParams } from 'react-router-dom';
 import zod from 'zod';
 
-import { useOrganization } from '../auth/useUsers';
+import AuthContext from '../auth/AuthContext';
 import Button from '../components/Button';
 import Card from '../components/Card';
 import EmptyState from '../components/EmptyState';
@@ -36,7 +36,8 @@ function OrganizationProfile() {
   const { id } = useParams<{ id: string }>();
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const notifications = useNotifications();
-  const currentOrganization = useOrganization();
+  const { user } = useContext(AuthContext);
+  const isOrganization = user?.role === 'organization';
   const reportForm = useForm<ReportOrganizationFormData>({
     resolver: zodResolver(reportOrganizationSchema),
     mode: 'onTouched',
@@ -144,7 +145,7 @@ function OrganizationProfile() {
         showBack
         defaultBackTo="/"
         actions={
-          !currentOrganization && (
+          !isOrganization && (
             <Button
               color="error"
               style="outline"
