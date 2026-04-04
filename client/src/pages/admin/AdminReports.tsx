@@ -272,19 +272,10 @@ function AdminReports() {
 
       {(loading && !data)
         ? (
-            <div className="grid grid-cols-1 gap-6 xl:grid-cols-2 items-start">
-              <Card title="Organization Reports">
-                <div className="space-y-3">
-                  <div className="h-20 w-full rounded-xl skeleton" />
-                  <div className="h-20 w-full rounded-xl skeleton" />
-                </div>
-              </Card>
-              <Card title="Volunteer Reports">
-                <div className="space-y-3">
-                  <div className="h-20 w-full rounded-xl skeleton" />
-                  <div className="h-20 w-full rounded-xl skeleton" />
-                </div>
-              </Card>
+            <div className="space-y-3">
+              <div className="h-28 w-full rounded-xl skeleton" />
+              <div className="h-28 w-full rounded-xl skeleton" />
+              <div className="h-28 w-full rounded-xl skeleton" />
             </div>
           )
         : mergedReports.length === 0
