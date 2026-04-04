@@ -23,8 +23,6 @@ type ReportsFilters = {
   scope: ReportsScope;
   reportType: ReportType;
   search: string;
-  startDate: string;
-  endDate: string;
   sortBy: ReportsSortBy;
   sortDir: ReportsSortDir;
 };
@@ -33,8 +31,6 @@ const defaultFilters: ReportsFilters = {
   scope: 'all',
   reportType: 'all',
   search: '',
-  startDate: '',
-  endDate: '',
   sortBy: 'created_at',
   sortDir: 'desc',
 };
@@ -59,14 +55,6 @@ function AdminReports() {
 
     if (nextFilters.search.trim()) {
       query.search = nextFilters.search.trim();
-    }
-
-    if (nextFilters.startDate) {
-      query.startDate = nextFilters.startDate;
-    }
-
-    if (nextFilters.endDate) {
-      query.endDate = nextFilters.endDate;
     }
 
     return await requestServer<AdminReportsResponse>('/admin/reports', {
@@ -213,18 +201,6 @@ function AdminReports() {
                 placeholder="Search title, message, names, emails"
                 value={filters.search}
                 onChange={event => setFilters(prev => ({ ...prev, search: event.target.value }))}
-              />
-            </div>
-
-            <div className="md:col-span-2 xl:col-span-2">
-              <CalendarInfo
-                startLabel="Start Date"
-                endLabel="End Date"
-                startValue={filters.startDate}
-                endValue={filters.endDate}
-                onStartChange={value => setFilters(prev => ({ ...prev, startDate: value }))}
-                onEndChange={value => setFilters(prev => ({ ...prev, endDate: value }))}
-                className="grid grid-cols-1 gap-4 md:grid-cols-2"
               />
             </div>
 
