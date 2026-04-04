@@ -30,7 +30,7 @@ describe('GET /admin/reports', () => {
   });
 
   test('returns 403 when requester is not an admin', async () => {
-    const { token } = await createVolunteerAccount();
+    const { token } = await createVolunteerAccount(transaction);
 
     await server
       .get('/admin/reports')
@@ -39,25 +39,25 @@ describe('GET /admin/reports', () => {
   });
 
   test('returns organization and volunteer reports in separate lists for admin', async () => {
-    const { token: adminToken } = await createAdminAccount();
-    const { organization: reportedOrganization } = await createOrganizationAccount({
+    const { token: adminToken } = await createAdminAccount(transaction);
+    const { organization: reportedOrganization } = await createOrganizationAccount(transaction, {
       email: 'reported-org@example.com',
       name: 'Reported Organization',
       phone_number: '+10000000001',
       url: 'https://reported-org.example.com',
     });
-    const { volunteer: reporterVolunteer } = await createVolunteerAccount({
+    const { volunteer: reporterVolunteer } = await createVolunteerAccount(transaction, {
       email: 'reporter-vol@example.com',
       first_name: 'Reporter',
       last_name: 'Volunteer',
     });
 
-    const { volunteer: reportedVolunteer } = await createVolunteerAccount({
+    const { volunteer: reportedVolunteer } = await createVolunteerAccount(transaction, {
       email: 'reported-vol@example.com',
       first_name: 'Reported',
       last_name: 'Volunteer',
     });
-    const { organization: reporterOrganization } = await createOrganizationAccount({
+    const { organization: reporterOrganization } = await createOrganizationAccount(transaction, {
       email: 'reporter-org@example.com',
       name: 'Reporter Organization',
       phone_number: '+10000000002',
@@ -126,12 +126,12 @@ describe('GET /admin/reports', () => {
   });
 
   test('returns only organization reports when scope=organization', async () => {
-    const { token: adminToken } = await createAdminAccount();
-    const { organization: reportedOrganization } = await createOrganizationAccount({
+    const { token: adminToken } = await createAdminAccount(transaction);
+    const { organization: reportedOrganization } = await createOrganizationAccount(transaction, {
       phone_number: '+10000000003',
       url: 'https://scope-org.example.com',
     });
-    const { volunteer: reporterVolunteer } = await createVolunteerAccount();
+    const { volunteer: reporterVolunteer } = await createVolunteerAccount(transaction);
 
     await transaction
       .insertInto('organization_report')
@@ -153,15 +153,15 @@ describe('GET /admin/reports', () => {
   });
 
   test('filters reports by reportType across both lists', async () => {
-    const { token: adminToken } = await createAdminAccount();
-    const { organization: reportedOrganization } = await createOrganizationAccount({
+    const { token: adminToken } = await createAdminAccount(transaction);
+    const { organization: reportedOrganization } = await createOrganizationAccount(transaction, {
       email: 'org1@example.com',
       phone_number: '+10000000004',
       url: 'https://org1.example.com',
     });
-    const { volunteer: reporterVolunteer } = await createVolunteerAccount({ email: 'vol1@example.com' });
-    const { volunteer: reportedVolunteer } = await createVolunteerAccount({ email: 'vol2@example.com' });
-    const { organization: reporterOrganization } = await createOrganizationAccount({
+    const { volunteer: reporterVolunteer } = await createVolunteerAccount(transaction, { email: 'vol1@example.com' });
+    const { volunteer: reportedVolunteer } = await createVolunteerAccount(transaction, { email: 'vol2@example.com' });
+    const { organization: reporterOrganization } = await createOrganizationAccount(transaction, {
       email: 'org2@example.com',
       phone_number: '+10000000005',
       url: 'https://org2.example.com',
@@ -197,7 +197,7 @@ describe('GET /admin/reports', () => {
   });
 
   test('returns 400 when scope query is invalid', async () => {
-    const { token: adminToken } = await createAdminAccount();
+    const { token: adminToken } = await createAdminAccount(transaction);
 
     await server
       .get('/admin/reports?scope=invalid-scope')
@@ -214,7 +214,7 @@ describe('GET /admin/reports/organization/:reportId', () => {
   });
 
   test('returns 403 when requester is not an admin', async () => {
-    const { token } = await createVolunteerAccount();
+    const { token } = await createVolunteerAccount(transaction);
 
     await server
       .get('/admin/reports/organization/1')
@@ -223,14 +223,14 @@ describe('GET /admin/reports/organization/:reportId', () => {
   });
 
   test('returns the organization report details for admin', async () => {
-    const { token: adminToken } = await createAdminAccount();
-    const { organization: reportedOrganization } = await createOrganizationAccount({
+    const { token: adminToken } = await createAdminAccount(transaction);
+    const { organization: reportedOrganization } = await createOrganizationAccount(transaction, {
       email: 'reported-org-details@example.com',
       name: 'Reported Org Details',
       phone_number: '+10000000008',
       url: 'https://reported-org-details.example.com',
     });
-    const { volunteer: reporterVolunteer } = await createVolunteerAccount({
+    const { volunteer: reporterVolunteer } = await createVolunteerAccount(transaction, {
       email: 'reporter-vol-details@example.com',
       first_name: 'Reporter',
       last_name: 'Volunteer',
@@ -271,7 +271,7 @@ describe('GET /admin/reports/organization/:reportId', () => {
   });
 
   test('returns 404 when organization report does not exist', async () => {
-    const { token: adminToken } = await createAdminAccount();
+    const { token: adminToken } = await createAdminAccount(transaction);
 
     await server
       .get('/admin/reports/organization/999999')
@@ -288,7 +288,7 @@ describe('GET /admin/reports/volunteer/:reportId', () => {
   });
 
   test('returns 403 when requester is not an admin', async () => {
-    const { token } = await createOrganizationAccount({
+    const { token } = await createOrganizationAccount(transaction, {
       phone_number: '+10000000009',
       url: 'https://non-admin-org-details.example.com',
     });
@@ -300,13 +300,13 @@ describe('GET /admin/reports/volunteer/:reportId', () => {
   });
 
   test('returns the volunteer report details for admin', async () => {
-    const { token: adminToken } = await createAdminAccount();
-    const { volunteer: reportedVolunteer } = await createVolunteerAccount({
+    const { token: adminToken } = await createAdminAccount(transaction);
+    const { volunteer: reportedVolunteer } = await createVolunteerAccount(transaction, {
       email: 'reported-vol-details@example.com',
       first_name: 'Reported',
       last_name: 'Volunteer',
     });
-    const { organization: reporterOrganization } = await createOrganizationAccount({
+    const { organization: reporterOrganization } = await createOrganizationAccount(transaction, {
       email: 'reporter-org-details@example.com',
       name: 'Reporter Org Details',
       phone_number: '+10000000010',
@@ -348,7 +348,7 @@ describe('GET /admin/reports/volunteer/:reportId', () => {
   });
 
   test('returns 404 when volunteer report does not exist', async () => {
-    const { token: adminToken } = await createAdminAccount();
+    const { token: adminToken } = await createAdminAccount(transaction);
 
     await server
       .get('/admin/reports/volunteer/999999')
@@ -365,7 +365,7 @@ describe('POST /admin/reports/organization/:reportId/reject', () => {
   });
 
   test('returns 404 when organization report does not exist', async () => {
-    const { token: adminToken } = await createAdminAccount();
+    const { token: adminToken } = await createAdminAccount(transaction);
 
     await server
       .post('/admin/reports/organization/999999/reject')
@@ -374,12 +374,12 @@ describe('POST /admin/reports/organization/:reportId/reject', () => {
   });
 
   test('removes organization report when admin rejects it', async () => {
-    const { token: adminToken } = await createAdminAccount();
-    const { organization: reportedOrganization } = await createOrganizationAccount({
+    const { token: adminToken } = await createAdminAccount(transaction);
+    const { organization: reportedOrganization } = await createOrganizationAccount(transaction, {
       phone_number: '+10000000011',
       url: 'https://reject-org.example.com',
     });
-    const { volunteer: reporterVolunteer } = await createVolunteerAccount();
+    const { volunteer: reporterVolunteer } = await createVolunteerAccount(transaction);
 
     const report = await transaction
       .insertInto('organization_report')
@@ -409,7 +409,7 @@ describe('POST /admin/reports/organization/:reportId/reject', () => {
 
 describe('POST /admin/reports/volunteer/:reportId/reject', () => {
   test('returns 403 when requester is not an admin', async () => {
-    const { token } = await createVolunteerAccount();
+    const { token } = await createVolunteerAccount(transaction);
 
     await server
       .post('/admin/reports/volunteer/1/reject')
@@ -418,7 +418,7 @@ describe('POST /admin/reports/volunteer/:reportId/reject', () => {
   });
 
   test('returns 404 when volunteer report does not exist', async () => {
-    const { token: adminToken } = await createAdminAccount();
+    const { token: adminToken } = await createAdminAccount(transaction);
 
     await server
       .post('/admin/reports/volunteer/999999/reject')
@@ -427,9 +427,9 @@ describe('POST /admin/reports/volunteer/:reportId/reject', () => {
   });
 
   test('removes volunteer report when admin rejects it', async () => {
-    const { token: adminToken } = await createAdminAccount();
-    const { volunteer: reportedVolunteer } = await createVolunteerAccount();
-    const { organization: reporterOrganization } = await createOrganizationAccount({
+    const { token: adminToken } = await createAdminAccount(transaction);
+    const { volunteer: reportedVolunteer } = await createVolunteerAccount(transaction);
+    const { organization: reporterOrganization } = await createOrganizationAccount(transaction, {
       phone_number: '+10000000012',
       url: 'https://reject-vol.example.com',
     });
@@ -468,7 +468,7 @@ describe('POST /admin/reports/organization/:organizationId/disable', () => {
   });
 
   test('returns 404 when organization account does not exist', async () => {
-    const { token: adminToken } = await createAdminAccount();
+    const { token: adminToken } = await createAdminAccount(transaction);
 
     await server
       .post('/admin/reports/organization/999999/disable')
@@ -477,8 +477,8 @@ describe('POST /admin/reports/organization/:organizationId/disable', () => {
   });
 
   test('sets organization account as disabled and increments token version', async () => {
-    const { token: adminToken } = await createAdminAccount();
-    const { organization } = await createOrganizationAccount({
+    const { token: adminToken } = await createAdminAccount(transaction);
+    const { organization } = await createOrganizationAccount(transaction, {
       phone_number: '+10000000006',
       url: 'https://disable-org.example.com',
     });
@@ -509,7 +509,7 @@ describe('POST /admin/reports/organization/:organizationId/disable', () => {
 
 describe('POST /admin/reports/volunteer/:volunteerId/disable', () => {
   test('returns 403 when requester is not an admin', async () => {
-    const { token } = await createOrganizationAccount({
+    const { token } = await createOrganizationAccount(transaction, {
       phone_number: '+10000000007',
       url: 'https://non-admin-org.example.com',
     });
@@ -521,7 +521,7 @@ describe('POST /admin/reports/volunteer/:volunteerId/disable', () => {
   });
 
   test('returns 404 when volunteer account does not exist', async () => {
-    const { token: adminToken } = await createAdminAccount();
+    const { token: adminToken } = await createAdminAccount(transaction);
 
     await server
       .post('/admin/reports/volunteer/999999/disable')
@@ -530,8 +530,8 @@ describe('POST /admin/reports/volunteer/:volunteerId/disable', () => {
   });
 
   test('sets volunteer account as disabled and increments token version', async () => {
-    const { token: adminToken } = await createAdminAccount();
-    const { volunteer } = await createVolunteerAccount();
+    const { token: adminToken } = await createAdminAccount(transaction);
+    const { volunteer } = await createVolunteerAccount(transaction);
 
     const before = await transaction
       .selectFrom('volunteer_account')
