@@ -489,13 +489,14 @@ describe('DELETE /user/account', () => {
   });
 
   test('soft deletes volunteer account and invalidates current token', async () => {
-    const { volunteer, token } = await createVolunteerAccount(transaction, {
+    const { volunteer, token, plainPassword } = await createVolunteerAccount(transaction, {
       email: 'delete-volunteer@example.com',
     });
 
     await server
       .delete('/user/account')
       .set('Authorization', `Bearer ${token}`)
+      .send({ password: plainPassword })
       .expect(200);
 
     const deletedVolunteer = await transaction
@@ -513,13 +514,14 @@ describe('DELETE /user/account', () => {
   });
 
   test('soft deletes organization account and invalidates current token', async () => {
-    const { organization, token } = await createOrganizationAccount(transaction, {
+    const { organization, token, plainPassword } = await createOrganizationAccount(transaction, {
       email: 'delete-organization@example.com',
     });
 
     await server
       .delete('/user/account')
       .set('Authorization', `Bearer ${token}`)
+      .send({ password: plainPassword })
       .expect(200);
 
     const deletedOrganization = await transaction
