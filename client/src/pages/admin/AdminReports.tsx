@@ -1,4 +1,4 @@
-import { Building2, Flag, RotateCcw, UserRound } from 'lucide-react';
+import { Flag, RotateCcw } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -117,6 +117,32 @@ function AdminReports() {
 
   const organizationReports = data?.organizationReports ?? [];
   const volunteerReports = data?.volunteerReports ?? [];
+  const mergedReports = useMemo(() => {
+    const rows = [
+      ...(activeFilters.scope !== 'volunteer'
+        ? organizationReports.map(report => ({ type: 'organization' as const, report }))
+        : []),
+      ...(activeFilters.scope !== 'organization'
+        ? volunteerReports.map(report => ({ type: 'volunteer' as const, report }))
+        : []),
+    ];
+
+    rows.sort((left, right) => {
+      if (activeFilters.sortBy === 'title') {
+        const leftTitle = left.report.title.toLowerCase();
+        const rightTitle = right.report.title.toLowerCase();
+        const order = leftTitle.localeCompare(rightTitle);
+        return activeFilters.sortDir === 'asc' ? order : -order;
+      }
+
+      const leftTime = new Date(left.report.created_at).getTime();
+      const rightTime = new Date(right.report.created_at).getTime();
+      const order = leftTime - rightTime;
+      return activeFilters.sortDir === 'asc' ? order : -order;
+    });
+
+    return rows;
+  }, [activeFilters.scope, activeFilters.sortBy, activeFilters.sortDir, organizationReports, volunteerReports]);
 
   return (
     <PageContainer>
@@ -266,7 +292,7 @@ function AdminReports() {
               </Card>
             </div>
           )
-        : organizationReports.length === 0 && volunteerReports.length === 0
+        : mergedReports.length === 0
           ? (
               <EmptyState
                 Icon={Flag}
@@ -276,60 +302,41 @@ function AdminReports() {
             )
           : (
               <div className="space-y-3">
-                {(activeFilters.scope === 'all' || activeFilters.scope === 'organization') && organizationReports.map(report => (
-                  <div
-                    key={`organization-${report.id}`}
-                    className="rounded-xl border border-base-300 bg-base-100 p-4 flex flex-col items-start"
-                  >
-                    <div className="mb-3 flex w-full items-start justify-between gap-3">
-                      <div className="flex items-center gap-2">
-                        <span className="badge badge-accent badge-outline gap-1">
-                          <Building2 size={12} />
-                          Organization
-                        </span>
-                        <h3 className="text-base font-semibold">{report.reported_organization.name}</h3>
-                        <span className="badge badge-error badge-outline">{formatReportTitle(report.title)}</span>
-                      </div>
-                      <span className="text-xs text-base-content/60 whitespace-nowrap">{new Date(report.created_at).toLocaleString()}</span>
-                    </div>
-                    <p className="text-sm text-base-content/80 whitespace-pre-wrap [overflow-wrap:break-word] mb-3">{formatReportMessage(report.message)}</p>
+                {mergedReports.map(({ type, report }) => {
+                  const subjectName = type === 'organization'
+                    ? report.reported_organization.name
+                    : `${report.reported_volunteer.first_name} ${report.reported_volunteer.last_name}`;
 
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={() => navigate(`/admin/reports/organization/${report.id}`)}
-                    >
-                      View Details
-                    </Button>
-                  </div>
-                ))}
+                  const detailsPath = type === 'organization'
+                    ? `/admin/reports/organization/${report.id}`
+                    : `/admin/reports/volunteer/${report.id}`;
 
-                {(activeFilters.scope === 'all' || activeFilters.scope === 'volunteer') && volunteerReports.map(report => (
-                  <div
-                    key={`volunteer-${report.id}`}
-                    className="rounded-xl border border-base-300 bg-base-100 p-4 flex flex-col items-start"
-                  >
-                    <div className="mb-3 flex w-full items-start justify-between gap-3">
-                      <div className="flex items-center gap-2">
-                        <span className="badge badge-accent badge-outline gap-1">
-                          <UserRound size={12} />
-                          Volunteer
-                        </span>
-                        <h3 className="text-base font-semibold">{`${report.reported_volunteer.first_name} ${report.reported_volunteer.last_name}`}</h3>
-                        <span className="badge badge-error badge-outline">{formatReportTitle(report.title)}</span>
-                      </div>
-                      <span className="text-xs text-base-content/60 whitespace-nowrap">{new Date(report.created_at).toLocaleString()}</span>
-                    </div>
-                    <p className="text-sm text-base-content/80 whitespace-pre-wrap [overflow-wrap:break-word] mb-3">{formatReportMessage(report.message)}</p>
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={() => navigate(`/admin/reports/volunteer/${report.id}`)}
+                  return (
+                    <div
+                      key={`${type}-${report.id}`}
+                      className="rounded-xl border border-base-300 bg-base-100 p-4 flex flex-col items-start"
                     >
-                      View Details
-                    </Button>
-                  </div>
-                ))}
+                      <div className="mb-3 flex w-full items-start justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-base font-semibold">{subjectName}</h3>
+                          <span className="badge badge-error badge-outline">{formatReportTitle(report.title)}</span>
+                          <span className="badge badge-accent badge-outline">
+                            {type === 'organization' ? 'Organization' : 'Volunteer'}
+                          </span>
+                        </div>
+                        <span className="text-xs text-base-content/60 whitespace-nowrap">{new Date(report.created_at).toLocaleString()}</span>
+                      </div>
+                      <p className="text-sm text-base-content/80 whitespace-pre-wrap [overflow-wrap:break-word] mb-3">{formatReportMessage(report.message)}</p>
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => navigate(detailsPath)}
+                      >
+                        View Details
+                      </Button>
+                    </div>
+                  );
+                })}
               </div>
             )}
     </PageContainer>
