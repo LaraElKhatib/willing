@@ -221,10 +221,14 @@ function OrganizationVolunteerProfile() {
   const closeReportModal = () => {
     if (submittingReport) return;
     setReportModalOpen(false);
+  };
+
+  const openReportModal = () => {
     reportForm.reset({
       title: 'scam',
       message: '',
     });
+    setReportModalOpen(true);
   };
 
   const submitReportForm = reportForm.handleSubmit(async (reportData) => {
@@ -289,7 +293,7 @@ function OrganizationVolunteerProfile() {
               style="outline"
               type="button"
               Icon={Flag}
-              onClick={() => setReportModalOpen(true)}
+              onClick={openReportModal}
             >
               Report volunteer
             </Button>

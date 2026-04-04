@@ -71,10 +71,14 @@ function OrganizationProfile() {
 
   const closeReportModal = () => {
     setReportModalOpen(false);
+  };
+
+  const openReportModal = () => {
     reportForm.reset({
       title: 'scam',
       message: '',
     });
+    setReportModalOpen(true);
   };
 
   const {
@@ -151,7 +155,7 @@ function OrganizationProfile() {
               style="outline"
               type="button"
               Icon={Flag}
-              onClick={() => setReportModalOpen(true)}
+              onClick={openReportModal}
             >
               Report organization
             </Button>

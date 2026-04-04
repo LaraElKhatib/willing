@@ -99,6 +99,7 @@ function AdminReports() {
 
   const organizationReports = data?.organizationReports ?? [];
   const volunteerReports = data?.volunteerReports ?? [];
+  const hasFetchedReports = data !== undefined || error !== undefined;
   const mergedReports = useMemo(() => {
     const rows = [
       ...(activeFilters.scope !== 'volunteer'
@@ -245,7 +246,7 @@ function AdminReports() {
         </form>
       </Card>
 
-      {(loading && !data)
+      {((!hasFetchedReports || loading) && !data)
         ? (
             <div className="space-y-3">
               <div className="h-28 w-full rounded-xl skeleton" />
@@ -253,7 +254,7 @@ function AdminReports() {
               <div className="h-28 w-full rounded-xl skeleton" />
             </div>
           )
-        : mergedReports.length === 0
+        : data && mergedReports.length === 0
           ? (
               <EmptyState
                 Icon={Flag}
