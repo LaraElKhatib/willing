@@ -5,6 +5,7 @@ import { useForm, useWatch } from 'react-hook-form';
 import { useParams } from 'react-router-dom';
 import zod from 'zod';
 
+import { useOrganization } from '../auth/useUsers';
 import Button from '../components/Button';
 import Card from '../components/Card';
 import EmptyState from '../components/EmptyState';
@@ -35,6 +36,7 @@ function OrganizationProfile() {
   const { id } = useParams<{ id: string }>();
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const notifications = useNotifications();
+  const currentOrganization = useOrganization();
   const reportForm = useForm<ReportOrganizationFormData>({
     resolver: zodResolver(reportOrganizationSchema),
     mode: 'onTouched',
@@ -141,17 +143,19 @@ function OrganizationProfile() {
         icon={Building2}
         showBack
         defaultBackTo="/"
-        actions={(
-          <Button
-            color="error"
-            style="outline"
-            type="button"
-            Icon={Flag}
-            onClick={() => setReportModalOpen(true)}
-          >
-            Report organization
-          </Button>
-        )}
+        actions={
+          !currentOrganization && (
+            <Button
+              color="error"
+              style="outline"
+              type="button"
+              Icon={Flag}
+              onClick={() => setReportModalOpen(true)}
+            >
+              Report organization
+            </Button>
+          )
+        }
       />
 
       {error && <div className="mb-4 text-sm text-base-content/70">Unable to load organization profile.</div>}
