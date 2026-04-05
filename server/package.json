@@ -26,6 +26,7 @@
     "script:seed-recommendation": "tsx src/scripts/seed-recommendation.ts",
     "script:audit-recommendation": "tsx src/scripts/audit-recommendation.ts",
     "script:recompute-all-embeddings": "tsx src/scripts/recompute-all-embeddings.ts",
+    "script:recompute-composite-vectors": "tsx src/scripts/recompute-composite-vectors.ts",
     "script:verify-embeddings": "tsx src/scripts/verify-embeddings.ts",
     "script:test-smtp": "tsx src/scripts/test-smtp.ts"
   },

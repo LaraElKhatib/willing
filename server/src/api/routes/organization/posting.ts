@@ -659,6 +659,8 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
         .where('id', '=', applicationId)
         .execute();
     });
+    await recomputePostingVectors(postingId, db);
+    await recomputeVolunteerExperienceVector(application.volunteer_id, db);
     if (emailContext) {
       try {
         await sendVolunteerApplicationAcceptedEmail({

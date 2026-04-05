@@ -7,7 +7,7 @@ import { buildPostingsWithContext, postingWithContextSelectColumns } from './pos
 import authorizeOnly from '../../../auth/authorizeOnly.ts';
 import executeTransaction from '../../../db/executeTransaction.ts';
 import { type Database, type Enrollment, type EnrollmentApplication } from '../../../db/tables/index.ts';
-import { recomputeVolunteerExperienceVector } from '../../../services/embeddings/updates.ts';
+import { recomputePostingVectors, recomputeVolunteerExperienceVector } from '../../../services/embeddings/updates.ts';
 import { type PostingWithContext } from '../../../types.ts';
 import {
   parseListQuery,
@@ -510,6 +510,10 @@ function createVolunteerPostingRouter(db: Kysely<Database>) {
       throw new Error('Failed to create enrollment');
     }
 
+    if (posting.automatic_acceptance) {
+      await recomputePostingVectors(id, db);
+    }
+
     res.json({ enrollment, isOpen: posting.automatic_acceptance });
   });
 
@@ -557,6 +561,7 @@ function createVolunteerPostingRouter(db: Kysely<Database>) {
     if (existingEnrollment?.attended) {
       await recomputeVolunteerExperienceVector(volunteerId, db);
     }
+    await recomputePostingVectors(id, db);
 
     res.json({});
   });
