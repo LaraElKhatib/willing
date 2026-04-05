@@ -131,7 +131,7 @@ describe('POST /user/login', () => {
       .send({ email: organization.email, password: plainPassword })
       .expect(403);
 
-    expect(response.body.message).toBe('Account is disabled');
+    expect(response.body.message).toBe('Account is disabled. If you think this is a mistake contact the Willing admin.');
   });
 
   test('rejects login for disabled volunteer account', async () => {
@@ -150,7 +150,7 @@ describe('POST /user/login', () => {
       .send({ email: volunteer.email, password: plainPassword })
       .expect(403);
 
-    expect(response.body.message).toBe('Account is disabled');
+    expect(response.body.message).toBe('Account is disabled. If you think this is a mistake contact the Willing admin.');
   });
 
   test('rejects login for correct admin credentials', async () => {
