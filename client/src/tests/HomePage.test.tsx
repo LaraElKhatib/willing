@@ -1,8 +1,8 @@
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { test, expect, beforeEach, afterEach, vi } from 'vitest';
-import '@testing-library/jest-dom/vitest';
 
+import '@testing-library/jest-dom/vitest';
 import AuthContext from '../auth/AuthContext';
 import HomePage from '../pages/HomePage';
 
@@ -11,6 +11,7 @@ import type { VolunteerAccountWithoutPassword } from '../../../server/src/db/tab
 
 const requestServerMock = vi.fn();
 vi.mock('../utils/requestServer', () => ({
+  __esModule: true,
   default: requestServerMock,
 }));
 
@@ -298,18 +299,10 @@ test('(admin) "Go to Admin Dashboard" renders and links to /admin', () => {
   expect(btn).toHaveAttribute('href', '/admin');
 });
 
-test('(admin) "Manage Volunteers" renders and links to /admin', () => {
-  const { getByText } = renderHomePage('admin');
-  const btn = getByText('Manage Volunteers').closest('a');
-  expect(btn).toBeInTheDocument();
-  expect(btn).toHaveAttribute('href', '/admin');
-});
-
-test('(admin) "Manage Organizations" renders and links to /admin', () => {
-  const { getByText } = renderHomePage('admin');
-  const btn = getByText('Manage Organizations').closest('a');
-  expect(btn).toBeInTheDocument();
-  expect(btn).toHaveAttribute('href', '/admin');
+test('(admin) does NOT show "Manage Volunteers" or "Manage Organizations" links', () => {
+  const { queryByText } = renderHomePage('admin');
+  expect(queryByText('Manage Volunteers')).toBeNull();
+  expect(queryByText('Manage Organizations')).toBeNull();
 });
 
 test('(admin) does NOT show any Log In buttons', () => {
@@ -352,17 +345,14 @@ test('carousel shows "..." placeholders while stats are loading', () => {
 test('shows error state when stats request fails', async () => {
   requestServerMock.mockRejectedValue(new Error('Network error'));
   const { getByText } = renderHomePage();
-  await waitFor(() => {
-    expect(getByText('Failed to load stats')).toBeInTheDocument();
-  });
+  await screen.findByText(/Failed to load stats/i);
+  expect(getByText(/Failed to load stats/i)).toBeInTheDocument();
 });
 
 test('carousel is not rendered when stats fail to load', async () => {
   requestServerMock.mockRejectedValue(new Error('Network error'));
-  const { container, getByText } = renderHomePage();
-  await waitFor(() => {
-    expect(getByText('Failed to load stats')).toBeInTheDocument();
-  });
+  const { container } = renderHomePage();
+  await screen.findByText(/Failed to load stats/i);
   expect(container.querySelector('[data-testid="stats-explore-link"]')).toBeNull();
 });
 
