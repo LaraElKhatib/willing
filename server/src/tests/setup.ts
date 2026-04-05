@@ -15,4 +15,4 @@ beforeAll(async () => {
 
   await migrateToLatest(database);
   await truncateAllTables();
-});
+}, 60_000);
