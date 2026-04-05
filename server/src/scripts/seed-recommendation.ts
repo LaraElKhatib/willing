@@ -99,6 +99,19 @@ const toDateAndTime = (isoDateTime: string) => {
   };
 };
 
+const resolveDatasetFilePath = (filePath: string) => {
+  const direct = path.resolve(filePath);
+  if (fs.existsSync(direct)) return direct;
+
+  const fromRepoRoot = path.resolve('..', filePath);
+  if (fs.existsSync(fromRepoRoot)) return fromRepoRoot;
+
+  const fromDatasetDir = path.resolve(path.dirname(DATASET_PATH), filePath);
+  if (fs.existsSync(fromDatasetDir)) return fromDatasetDir;
+
+  return direct;
+};
+
 const estimateLocationCoordinates = (locationName: string) => {
   const normalized = locationName.toLowerCase();
   if (normalized.includes('beirut')) return { latitude: 33.8938, longitude: 35.5018 };
@@ -225,7 +238,7 @@ async function seedRecommendationDataset() {
 
   const volunteerIdMap = new Map<number, number>();
   for (const volunteer of data.volunteers) {
-    const sourceCvPath = path.resolve(volunteer.cv_pdf_path);
+    const sourceCvPath = resolveDatasetFilePath(volunteer.cv_pdf_path);
     if (!fs.existsSync(sourceCvPath)) {
       throw new Error(`CV file not found for volunteer ${volunteer.email}: ${sourceCvPath}`);
     }
