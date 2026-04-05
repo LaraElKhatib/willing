@@ -184,7 +184,7 @@ async function verifyEmbeddings() {
   assertDim('organization_posting.posting_context_vector', postingDims?.posting_context_vector_dims);
   console.log('organization_posting.opportunity_vector dims:', postingDims?.opportunity_vector_dims);
   console.log('organization_posting.posting_context_vector dims:', postingDims?.posting_context_vector_dims);
-  console.log('posting context combine rule: 0.7 * opportunity + 0.3 * organization');
+  console.log('posting context combine rule: weighted mix of opportunity, organization, and enrolled volunteer vectors when available');
 
   await recomputeVolunteerProfileVector(volunteerId, database);
   const volunteerProfileDims = await getVectorDims(sql`

@@ -104,10 +104,10 @@ const getVolunteerRecommendations = async (volunteerId: number) => {
     ])));
 
   if (hasProfile && vectors.profile_vector) {
-    const profileSimilarity = sql<number>`1 - (organization_posting.opportunity_vector <=> ${vectors.profile_vector}::vector)`;
+    const profileSimilarity = sql<number>`1 - (organization_posting.posting_context_vector <=> ${vectors.profile_vector}::vector)`;
 
     if (hasExperience && vectors.experience_vector) {
-      const experienceSimilarity = sql<number>`1 - (organization_posting.opportunity_vector <=> ${vectors.experience_vector}::vector)`;
+      const experienceSimilarity = sql<number>`1 - (organization_posting.posting_context_vector <=> ${vectors.experience_vector}::vector)`;
       const finalScore = sql<number>`(0.6 * ${profileSimilarity}) + (0.4 * ${experienceSimilarity})`;
       query = query.orderBy(sql`${finalScore} desc nulls last`);
     } else {

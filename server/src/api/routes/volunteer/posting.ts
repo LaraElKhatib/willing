@@ -178,12 +178,12 @@ function createVolunteerPostingRouter(db: Kysely<Database>) {
 
     if (sortBy === 'recommended' && hasProfileVector && profileVectorLiteral) {
       const profileSimilarity = sql<number>`
-      1 - (organization_posting.opportunity_vector <=> ${profileVectorLiteral}::vector)
+      1 - (organization_posting.posting_context_vector <=> ${profileVectorLiteral}::vector)
     `;
 
       if (hasExperienceVector && experienceVectorLiteral) {
         const experienceSimilarity = sql<number>`
-        1 - (organization_posting.opportunity_vector <=> ${experienceVectorLiteral}::vector)
+        1 - (organization_posting.posting_context_vector <=> ${experienceVectorLiteral}::vector)
       `;
         const finalScore = sql<number>`(0.6 * ${profileSimilarity}) + (0.4 * ${experienceSimilarity})`;
 
