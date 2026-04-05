@@ -446,7 +446,12 @@ function createAdminRouter(db: Kysely<Database>) {
 
         await trx
           .deleteFrom('organization_report')
-          .where('id', '=', reportId)
+          .where('reported_organization_id', '=', organization.id)
+          .execute();
+
+        await trx
+          .deleteFrom('volunteer_report')
+          .where('reporter_organization_id', '=', organization.id)
           .execute();
       });
     } catch (error) {
@@ -519,7 +524,12 @@ function createAdminRouter(db: Kysely<Database>) {
 
         await trx
           .deleteFrom('volunteer_report')
-          .where('id', '=', reportId)
+          .where('reported_volunteer_id', '=', volunteer.id)
+          .execute();
+
+        await trx
+          .deleteFrom('organization_report')
+          .where('reporter_volunteer_id', '=', volunteer.id)
           .execute();
       });
     } catch (error) {
@@ -535,26 +545,44 @@ function createAdminRouter(db: Kysely<Database>) {
   adminRouter.post('/reports/organization/:organizationId/disable', async (req, res: Response<AdminDisableOrganizationAccountResponse>) => {
     const organizationId = zod.coerce.number().int().positive().parse(req.params.organizationId);
 
-    const organization = await db
-      .selectFrom('organization_account')
-      .select(['id', 'is_disabled'])
-      .where('id', '=', organizationId)
-      .executeTakeFirst();
+    try {
+      await executeTransaction(db, async (trx) => {
+        const organization = await trx
+          .selectFrom('organization_account')
+          .select(['id', 'is_disabled'])
+          .where('id', '=', organizationId)
+          .executeTakeFirst();
 
-    if (!organization) {
-      res.status(404);
-      throw new Error('Organization account not found.');
-    }
+        if (!organization) {
+          throw new Error('Organization account not found.');
+        }
 
-    if (!organization.is_disabled) {
-      await db
-        .updateTable('organization_account')
-        .set({
-          is_disabled: true,
-          token_version: sql`token_version + 1`,
-        })
-        .where('id', '=', organizationId)
-        .execute();
+        if (!organization.is_disabled) {
+          await trx
+            .updateTable('organization_account')
+            .set({
+              is_disabled: true,
+              token_version: sql`token_version + 1`,
+            })
+            .where('id', '=', organizationId)
+            .execute();
+        }
+
+        await trx
+          .deleteFrom('organization_report')
+          .where('reported_organization_id', '=', organizationId)
+          .execute();
+
+        await trx
+          .deleteFrom('volunteer_report')
+          .where('reporter_organization_id', '=', organizationId)
+          .execute();
+      });
+    } catch (error) {
+      if (error instanceof Error && error.message === 'Organization account not found.') {
+        res.status(404);
+      }
+      throw error;
     }
 
     res.json({});
@@ -563,26 +591,44 @@ function createAdminRouter(db: Kysely<Database>) {
   adminRouter.post('/reports/volunteer/:volunteerId/disable', async (req, res: Response<AdminDisableVolunteerAccountResponse>) => {
     const volunteerId = zod.coerce.number().int().positive().parse(req.params.volunteerId);
 
-    const volunteer = await db
-      .selectFrom('volunteer_account')
-      .select(['id', 'is_disabled'])
-      .where('id', '=', volunteerId)
-      .executeTakeFirst();
+    try {
+      await executeTransaction(db, async (trx) => {
+        const volunteer = await trx
+          .selectFrom('volunteer_account')
+          .select(['id', 'is_disabled'])
+          .where('id', '=', volunteerId)
+          .executeTakeFirst();
 
-    if (!volunteer) {
-      res.status(404);
-      throw new Error('Volunteer account not found.');
-    }
+        if (!volunteer) {
+          throw new Error('Volunteer account not found.');
+        }
 
-    if (!volunteer.is_disabled) {
-      await db
-        .updateTable('volunteer_account')
-        .set({
-          is_disabled: true,
-          token_version: sql`token_version + 1`,
-        })
-        .where('id', '=', volunteerId)
-        .execute();
+        if (!volunteer.is_disabled) {
+          await trx
+            .updateTable('volunteer_account')
+            .set({
+              is_disabled: true,
+              token_version: sql`token_version + 1`,
+            })
+            .where('id', '=', volunteerId)
+            .execute();
+        }
+
+        await trx
+          .deleteFrom('volunteer_report')
+          .where('reported_volunteer_id', '=', volunteerId)
+          .execute();
+
+        await trx
+          .deleteFrom('organization_report')
+          .where('reporter_volunteer_id', '=', volunteerId)
+          .execute();
+      });
+    } catch (error) {
+      if (error instanceof Error && error.message === 'Volunteer account not found.') {
+        res.status(404);
+      }
+      throw error;
     }
 
     res.json({});
