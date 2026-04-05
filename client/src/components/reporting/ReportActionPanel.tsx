@@ -12,6 +12,8 @@ type ReportActionPanelProps = {
   rejectLabel?: string;
   warningMessage?: string;
   confirmDisableMessage?: string;
+  confirmTitle?: string;
+  confirmButtonLabel?: string;
 };
 
 function ReportActionPanel({
@@ -23,6 +25,8 @@ function ReportActionPanel({
   rejectLabel = 'Delete Report',
   warningMessage = 'Disabling an account also resolves the report.',
   confirmDisableMessage = 'Are you sure? This will disable the reported account and resolve this report.',
+  confirmTitle = 'Confirm Disable Account',
+  confirmButtonLabel = 'Yes, disable account',
 }: ReportActionPanelProps) {
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
 
@@ -94,7 +98,7 @@ function ReportActionPanel({
 
       <div className={`modal ${isConfirmModalOpen ? 'modal-open' : ''}`}>
         <div className="modal-box border border-base-300">
-          <h3 className="font-bold text-lg">Confirm Disable Account</h3>
+          <h3 className="font-bold text-lg">{confirmTitle}</h3>
           <p className="py-3 text-sm">{confirmDisableMessage}</p>
           <div className="modal-action">
             <button
@@ -111,11 +115,17 @@ function ReportActionPanel({
               onClick={handleConfirmDisable}
               disabled={isActionInProgress}
             >
-              Yes, disable account
+              {confirmButtonLabel}
+              ```
             </button>
           </div>
         </div>
-        <div className="modal-backdrop" onClick={() => setIsConfirmModalOpen(false)}>Close</div>
+        <button
+          type="button"
+          className="modal-backdrop"
+          aria-label="Close modal"
+          onClick={() => setIsConfirmModalOpen(false)}
+        />
       </div>
     </div>
   );
