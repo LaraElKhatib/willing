@@ -152,7 +152,7 @@ function OrganizationHome() {
     const orgName = organizationMe?.organization.name ?? organization?.name ?? '';
     const orgLogoPath = organizationMe?.organization.logo_path ?? organization?.logo_path ?? undefined;
 
-    return postings.mapno (posting => ({
+    return postings.map(posting => ({
       ...posting,
       organization_name: orgName,
       organization_logo_path: orgLogoPath,
