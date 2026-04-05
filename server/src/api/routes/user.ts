@@ -82,7 +82,7 @@ function createUserRouter(db: Kysely<Database>) {
 
     if ((organizationAccount && organizationAccount.is_disabled) || (volunteerAccount && volunteerAccount.is_disabled)) {
       res.status(403);
-      throw new Error('Account is disabled');
+      throw new Error('Account is disabled. If you think this is a mistake contact the Willing admin.');
     }
 
     const valid = organizationAccount
