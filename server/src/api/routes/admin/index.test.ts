@@ -645,12 +645,38 @@ describe('POST /admin/reports/organization/:organizationId/disable', () => {
       .expect(404);
   });
 
-  test('sets organization account as disabled and increments token version', async () => {
+  test('sets organization account as disabled, increments token version, and removes related reports', async () => {
     const { token: adminToken } = await createAdminAccount(transaction);
     const { organization } = await createOrganizationAccount(transaction, {
       phone_number: '+10000000006',
       url: 'https://disable-org.example.com',
     });
+    const { volunteer: reporterVolunteer } = await createVolunteerAccount(transaction, {
+      email: 'disable-org-volunteer@example.com',
+    });
+    const { volunteer: reportedVolunteer } = await createVolunteerAccount(transaction, {
+      email: 'disable-org-reported-volunteer@example.com',
+    });
+
+    await transaction
+      .insertInto('organization_report')
+      .values({
+        reported_organization_id: organization.id,
+        reporter_volunteer_id: reporterVolunteer.id,
+        title: 'scam',
+        message: 'report against organization',
+      })
+      .executeTakeFirstOrThrow();
+
+    await transaction
+      .insertInto('volunteer_report')
+      .values({
+        reported_volunteer_id: reportedVolunteer.id,
+        reporter_organization_id: organization.id,
+        title: 'other',
+        message: 'report by organization',
+      })
+      .executeTakeFirstOrThrow();
 
     const before = await transaction
       .selectFrom('organization_account')
@@ -671,8 +697,22 @@ describe('POST /admin/reports/organization/:organizationId/disable', () => {
       .where('id', '=', organization.id)
       .executeTakeFirstOrThrow();
 
+    const remainingOrganizationReports = await transaction
+      .selectFrom('organization_report')
+      .select(['id'])
+      .where('reported_organization_id', '=', organization.id)
+      .execute();
+
+    const remainingVolunteerReports = await transaction
+      .selectFrom('volunteer_report')
+      .select(['id'])
+      .where('reporter_organization_id', '=', organization.id)
+      .execute();
+
     expect(after.is_disabled).toBe(true);
     expect(after.token_version).toBe(before.token_version + 1);
+    expect(remainingOrganizationReports).toHaveLength(0);
+    expect(remainingVolunteerReports).toHaveLength(0);
   });
 });
 
@@ -698,9 +738,39 @@ describe('POST /admin/reports/volunteer/:volunteerId/disable', () => {
       .expect(404);
   });
 
-  test('sets volunteer account as disabled and increments token version', async () => {
+  test('sets volunteer account as disabled, increments token version, and removes related reports', async () => {
     const { token: adminToken } = await createAdminAccount(transaction);
     const { volunteer } = await createVolunteerAccount(transaction);
+    const { organization: reporterOrganization } = await createOrganizationAccount(transaction, {
+      email: 'disable-vol-org@example.com',
+      phone_number: '+10000000020',
+      url: 'https://disable-vol-org.example.com',
+    });
+    const { organization: reportedOrganization } = await createOrganizationAccount(transaction, {
+      email: 'disable-vol-reported-org@example.com',
+      phone_number: '+10000000021',
+      url: 'https://disable-vol-reported-org.example.com',
+    });
+
+    await transaction
+      .insertInto('volunteer_report')
+      .values({
+        reported_volunteer_id: volunteer.id,
+        reporter_organization_id: reporterOrganization.id,
+        title: 'harassment',
+        message: 'report against volunteer',
+      })
+      .executeTakeFirstOrThrow();
+
+    await transaction
+      .insertInto('organization_report')
+      .values({
+        reported_organization_id: reportedOrganization.id,
+        reporter_volunteer_id: volunteer.id,
+        title: 'other',
+        message: 'report by volunteer',
+      })
+      .executeTakeFirstOrThrow();
 
     const before = await transaction
       .selectFrom('volunteer_account')
@@ -721,8 +791,22 @@ describe('POST /admin/reports/volunteer/:volunteerId/disable', () => {
       .where('id', '=', volunteer.id)
       .executeTakeFirstOrThrow();
 
+    const remainingVolunteerReports = await transaction
+      .selectFrom('volunteer_report')
+      .select(['id'])
+      .where('reported_volunteer_id', '=', volunteer.id)
+      .execute();
+
+    const remainingOrganizationReports = await transaction
+      .selectFrom('organization_report')
+      .select(['id'])
+      .where('reporter_volunteer_id', '=', volunteer.id)
+      .execute();
+
     expect(after.is_disabled).toBe(true);
     expect(after.token_version).toBe(before.token_version + 1);
+    expect(remainingVolunteerReports).toHaveLength(0);
+    expect(remainingOrganizationReports).toHaveLength(0);
   });
 });
 
@@ -742,7 +826,7 @@ describe('POST /admin/reports/organization/:reportId/accept', () => {
       .expect(404);
   });
 
-  test('disables organization and removes report atomically', async () => {
+  test('disables organization and removes all related reports atomically', async () => {
     const { token: adminToken } = await createAdminAccount(transaction);
     const { organization: reportedOrganization } = await createOrganizationAccount(transaction, {
       phone_number: '+10000000013',
@@ -769,6 +853,20 @@ describe('POST /admin/reports/organization/:reportId/accept', () => {
       .returning(['id'])
       .executeTakeFirstOrThrow();
 
+    const { volunteer: anotherReportedVolunteer } = await createVolunteerAccount(transaction, {
+      email: 'accept-org-another-volunteer@example.com',
+    });
+
+    await transaction
+      .insertInto('volunteer_report')
+      .values({
+        reported_volunteer_id: anotherReportedVolunteer.id,
+        reporter_organization_id: reportedOrganization.id,
+        title: 'other',
+        message: 'Another report created by organization',
+      })
+      .executeTakeFirstOrThrow();
+
     await server
       .post(`/admin/reports/organization/${report.id}/accept`)
       .set(authHeader(adminToken))
@@ -780,15 +878,22 @@ describe('POST /admin/reports/organization/:reportId/accept', () => {
       .where('id', '=', reportedOrganization.id)
       .executeTakeFirstOrThrow();
 
-    const deletedReport = await transaction
+    const remainingOrganizationReports = await transaction
       .selectFrom('organization_report')
       .select(['id'])
-      .where('id', '=', report.id)
-      .executeTakeFirst();
+      .where('reported_organization_id', '=', reportedOrganization.id)
+      .execute();
+
+    const remainingVolunteerReports = await transaction
+      .selectFrom('volunteer_report')
+      .select(['id'])
+      .where('reporter_organization_id', '=', reportedOrganization.id)
+      .execute();
 
     expect(after.is_disabled).toBe(true);
     expect(after.token_version).toBe(before.token_version + 1);
-    expect(deletedReport).toBeUndefined();
+    expect(remainingOrganizationReports).toHaveLength(0);
+    expect(remainingVolunteerReports).toHaveLength(0);
   });
 });
 
@@ -808,7 +913,7 @@ describe('POST /admin/reports/volunteer/:reportId/accept', () => {
       .expect(404);
   });
 
-  test('disables volunteer and removes report atomically', async () => {
+  test('disables volunteer and removes all related reports atomically', async () => {
     const { token: adminToken } = await createAdminAccount(transaction);
     const { volunteer: reportedVolunteer } = await createVolunteerAccount(transaction, {
       email: 'accept-vol-reported@example.com',
@@ -836,6 +941,22 @@ describe('POST /admin/reports/volunteer/:reportId/accept', () => {
       .returning(['id'])
       .executeTakeFirstOrThrow();
 
+    const { organization: anotherReportedOrganization } = await createOrganizationAccount(transaction, {
+      email: 'accept-vol-another-org@example.com',
+      phone_number: '+10000000022',
+      url: 'https://accept-vol-another-org.example.com',
+    });
+
+    await transaction
+      .insertInto('organization_report')
+      .values({
+        reported_organization_id: anotherReportedOrganization.id,
+        reporter_volunteer_id: reportedVolunteer.id,
+        title: 'other',
+        message: 'Another report created by volunteer',
+      })
+      .executeTakeFirstOrThrow();
+
     await server
       .post(`/admin/reports/volunteer/${report.id}/accept`)
       .set(authHeader(adminToken))
@@ -847,14 +968,21 @@ describe('POST /admin/reports/volunteer/:reportId/accept', () => {
       .where('id', '=', reportedVolunteer.id)
       .executeTakeFirstOrThrow();
 
-    const deletedReport = await transaction
+    const remainingVolunteerReports = await transaction
       .selectFrom('volunteer_report')
       .select(['id'])
-      .where('id', '=', report.id)
-      .executeTakeFirst();
+      .where('reported_volunteer_id', '=', reportedVolunteer.id)
+      .execute();
+
+    const remainingOrganizationReports = await transaction
+      .selectFrom('organization_report')
+      .select(['id'])
+      .where('reporter_volunteer_id', '=', reportedVolunteer.id)
+      .execute();
 
     expect(after.is_disabled).toBe(true);
     expect(after.token_version).toBe(before.token_version + 1);
-    expect(deletedReport).toBeUndefined();
+    expect(remainingVolunteerReports).toHaveLength(0);
+    expect(remainingOrganizationReports).toHaveLength(0);
   });
 });
