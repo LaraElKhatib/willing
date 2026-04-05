@@ -8,6 +8,7 @@ import Card from '../../components/Card';
 import PageContainer from '../../components/layout/PageContainer';
 import PageHeader from '../../components/layout/PageHeader';
 import Loading from '../../components/Loading';
+import ReportMessage from '../../components/reporting/ReportMessage';
 import ReportType from '../../components/reporting/ReportType';
 import requestServer from '../../utils/requestServer';
 import useAsync from '../../utils/useAsync';
@@ -162,9 +163,7 @@ function AdminReportDetail() {
                 <label className="label">
                   <span className="label-text font-semibold">Message</span>
                 </label>
-                <div className="rounded-lg bg-base-100 border border-base-300 p-4 whitespace-pre-wrap [overflow-wrap:anywhere] text-sm">
-                  {report.message}
-                </div>
+                <ReportMessage message={report.message} />
               </div>
 
               {isOrganizationReport && (

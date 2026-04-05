@@ -8,6 +8,7 @@ import Card from '../../components/Card';
 import EmptyState from '../../components/EmptyState';
 import PageContainer from '../../components/layout/PageContainer';
 import PageHeader from '../../components/layout/PageHeader';
+import ReportMessage from '../../components/reporting/ReportMessage';
 import ReportType from '../../components/reporting/ReportType';
 import requestServer from '../../utils/requestServer';
 import useAsync from '../../utils/useAsync';
@@ -287,7 +288,7 @@ function AdminReports() {
                         </div>
                         <span className="text-xs text-base-content/60 whitespace-nowrap">{new Date(report.created_at).toLocaleString()}</span>
                       </div>
-                      <p className="text-sm text-base-content/80 whitespace-pre-wrap [overflow-wrap:anywhere] mb-3">{report.message}</p>
+                      <ReportMessage message={report.message} className="mb-3" />
                       <Button
                         type="button"
                         size="sm"
