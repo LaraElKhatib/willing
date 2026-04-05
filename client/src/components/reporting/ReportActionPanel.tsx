@@ -1,4 +1,5 @@
 import { AlertCircle, Check, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 import Alert from '../Alert';
 
@@ -10,6 +11,7 @@ type ReportActionPanelProps = {
   acceptLabel?: string;
   rejectLabel?: string;
   warningMessage?: string;
+  confirmDisableMessage?: string;
 };
 
 function ReportActionPanel({
@@ -17,10 +19,36 @@ function ReportActionPanel({
   isActionInProgress,
   onAccept,
   onReject,
-  acceptLabel = 'Accept Report',
-  rejectLabel = 'Reject Report',
-  warningMessage = 'Accepting this report will disable the reported account.',
+  acceptLabel = 'Disable Account',
+  rejectLabel = 'Delete Report',
+  warningMessage = 'Disabling an account also resolves the report.',
+  confirmDisableMessage = 'Are you sure? This will disable the reported account and resolve this report.',
 }: ReportActionPanelProps) {
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (isActionInProgress) {
+      setIsConfirmModalOpen(false);
+    }
+  }, [isActionInProgress]);
+
+  const handleAcceptClick = () => {
+    if (isActionInProgress) return;
+    setIsConfirmModalOpen(true);
+  };
+
+  const handleConfirmDisable = () => {
+    if (isActionInProgress) return;
+    setIsConfirmModalOpen(false);
+    onAccept();
+  };
+
+  const handleRejectClick = () => {
+    if (isActionInProgress) return;
+    setIsConfirmModalOpen(false);
+    onReject();
+  };
+
   return (
     <div className="space-y-3">
       {actionError && (
@@ -32,7 +60,7 @@ function ReportActionPanel({
       <button
         type="button"
         className="btn btn-success btn-block gap-2"
-        onClick={onAccept}
+        onClick={handleAcceptClick}
         disabled={isActionInProgress}
       >
         {isActionInProgress
@@ -52,7 +80,7 @@ function ReportActionPanel({
       <button
         type="button"
         className="btn btn-outline btn-block gap-2"
-        onClick={onReject}
+        onClick={handleRejectClick}
         disabled={isActionInProgress}
       >
         <X size={18} />
@@ -62,6 +90,32 @@ function ReportActionPanel({
       <div className="alert alert-warning gap-2">
         <AlertCircle size={18} />
         <span className="text-xs">{warningMessage}</span>
+      </div>
+
+      <div className={`modal ${isConfirmModalOpen ? 'modal-open' : ''}`}>
+        <div className="modal-box border border-base-300">
+          <h3 className="font-bold text-lg">Confirm Disable Account</h3>
+          <p className="py-3 text-sm">{confirmDisableMessage}</p>
+          <div className="modal-action">
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => setIsConfirmModalOpen(false)}
+              disabled={isActionInProgress}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="btn btn-error"
+              onClick={handleConfirmDisable}
+              disabled={isActionInProgress}
+            >
+              Yes, disable account
+            </button>
+          </div>
+        </div>
+        <div className="modal-backdrop" onClick={() => setIsConfirmModalOpen(false)}>Close</div>
       </div>
     </div>
   );

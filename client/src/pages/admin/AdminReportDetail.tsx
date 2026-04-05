@@ -69,7 +69,7 @@ function AdminReportDetail() {
 
       navigate('/admin/reports');
     } catch {
-      setActionError('Failed to accept report. Please try again.');
+      setActionError('Failed to disable account and resolve report. Please try again.');
     } finally {
       setIsActionInProgress(false);
     }
@@ -89,7 +89,7 @@ function AdminReportDetail() {
 
       navigate('/admin/reports');
     } catch {
-      setActionError('Failed to reject report. Please try again.');
+      setActionError('Failed to delete report. Please try again.');
     } finally {
       setIsActionInProgress(false);
     }
@@ -243,12 +243,16 @@ function AdminReportDetail() {
         </div>
 
         <div className="lg:col-span-1">
-          <Card title="Actions" description="Choose how to handle this report." color="primary">
+          <Card title="Actions" description="Disable account or delete report without disabling." color="primary">
             <ReportActionPanel
               actionError={actionError}
               isActionInProgress={isActionInProgress}
               onAccept={() => { void handleAcceptReport(); }}
               onReject={() => { void handleRejectReport(); }}
+              acceptLabel="Disable Account"
+              rejectLabel="Delete Report"
+              warningMessage="Disabling an account also resolves the report."
+              confirmDisableMessage="Are you sure? This will disable the reported account and resolve this report."
             />
           </Card>
         </div>
