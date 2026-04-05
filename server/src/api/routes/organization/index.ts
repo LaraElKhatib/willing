@@ -394,12 +394,6 @@ function createOrganizationRouter(db: Kysely<Database>) {
     const body = newVolunteerReportSchema.parse(req.body);
     const organizationId = req.userJWT!.id;
 
-    const hasRelationship = await hasVolunteerRelationshipWithOrganization(organizationId, volunteerId);
-    if (!hasRelationship) {
-      res.status(403);
-      throw new Error('You can only report volunteers related to your postings.');
-    }
-
     await db
       .insertInto('volunteer_report')
       .values({
