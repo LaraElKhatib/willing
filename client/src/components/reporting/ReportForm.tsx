@@ -6,7 +6,7 @@ import Button from '../Button';
 import IconButton from '../IconButton';
 import { REPORT_TYPE_OPTIONS } from './reportType.constants';
 
-type ReportFormProps<TForm extends FieldValues> = {
+type ReportFormProps<TForm extends FieldValues & { title: string; message: string }> = {
   open: boolean;
   heading: string;
   form: UseFormReturn<TForm>;
@@ -19,7 +19,7 @@ type ReportFormProps<TForm extends FieldValues> = {
   maxMessageLength?: number;
 };
 
-function ReportForm<TForm extends FieldValues>({
+function ReportForm<TForm extends FieldValues & { title: string; message: string }>({
   open,
   heading,
   form,
@@ -96,7 +96,12 @@ function ReportForm<TForm extends FieldValues>({
           </div>
         </form>
       </div>
-      <div className="modal-backdrop" onClick={onClose}>Close</div>
+      <button
+        type="button"
+        className="modal-backdrop"
+        aria-label="Close modal"
+        onClick={onClose}
+      />
     </div>
   );
 }
