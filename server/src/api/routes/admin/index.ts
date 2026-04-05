@@ -150,9 +150,6 @@ function createAdminRouter(db: Kysely<Database>) {
 
     const scopeInput = getSingleQueryValue(req.query.scope)?.trim().toLowerCase();
     const reportTypeInput = getSingleQueryValue(req.query.reportType)?.trim().toLowerCase();
-    const scope = scopeInput && reportScopeValues.includes(scopeInput as typeof reportScopeValues[number])
-      ? scopeInput as typeof reportScopeValues[number]
-      : 'all';
 
     if (scopeInput && !reportScopeValues.includes(scopeInput as typeof reportScopeValues[number])) {
       res.status(400);
@@ -163,6 +160,8 @@ function createAdminRouter(db: Kysely<Database>) {
       res.status(400);
       throw new Error('Invalid reportType.');
     }
+
+    const scope = scopeInput as typeof reportScopeValues[number] | undefined;
 
     const reportType = reportTypeInput as typeof reportTypeValues[number] | undefined;
 
