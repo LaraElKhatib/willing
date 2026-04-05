@@ -556,3 +556,136 @@ describe('POST /admin/reports/volunteer/:volunteerId/disable', () => {
     expect(after.token_version).toBe(before.token_version + 1);
   });
 });
+
+describe('POST /admin/reports/organization/:reportId/accept', () => {
+  test('returns 403 when unauthenticated', async () => {
+    await server
+      .post('/admin/reports/organization/1/accept')
+      .expect(403);
+  });
+
+  test('returns 404 when organization report does not exist', async () => {
+    const { token: adminToken } = await createAdminAccount(transaction);
+
+    await server
+      .post('/admin/reports/organization/999999/accept')
+      .set(authHeader(adminToken))
+      .expect(404);
+  });
+
+  test('disables organization and removes report atomically', async () => {
+    const { token: adminToken } = await createAdminAccount(transaction);
+    const { organization: reportedOrganization } = await createOrganizationAccount(transaction, {
+      phone_number: '+10000000013',
+      url: 'https://accept-org.example.com',
+    });
+    const { volunteer: reporterVolunteer } = await createVolunteerAccount(transaction, {
+      email: 'accept-org-reporter@example.com',
+    });
+
+    const before = await transaction
+      .selectFrom('organization_account')
+      .select(['is_disabled', 'token_version'])
+      .where('id', '=', reportedOrganization.id)
+      .executeTakeFirstOrThrow();
+
+    const report = await transaction
+      .insertInto('organization_report')
+      .values({
+        reported_organization_id: reportedOrganization.id,
+        reporter_volunteer_id: reporterVolunteer.id,
+        title: 'scam',
+        message: 'Accept and disable organization',
+      })
+      .returning(['id'])
+      .executeTakeFirstOrThrow();
+
+    await server
+      .post(`/admin/reports/organization/${report.id}/accept`)
+      .set(authHeader(adminToken))
+      .expect(200);
+
+    const after = await transaction
+      .selectFrom('organization_account')
+      .select(['is_disabled', 'token_version'])
+      .where('id', '=', reportedOrganization.id)
+      .executeTakeFirstOrThrow();
+
+    const deletedReport = await transaction
+      .selectFrom('organization_report')
+      .select(['id'])
+      .where('id', '=', report.id)
+      .executeTakeFirst();
+
+    expect(after.is_disabled).toBe(true);
+    expect(after.token_version).toBe(before.token_version + 1);
+    expect(deletedReport).toBeUndefined();
+  });
+});
+
+describe('POST /admin/reports/volunteer/:reportId/accept', () => {
+  test('returns 403 when unauthenticated', async () => {
+    await server
+      .post('/admin/reports/volunteer/1/accept')
+      .expect(403);
+  });
+
+  test('returns 404 when volunteer report does not exist', async () => {
+    const { token: adminToken } = await createAdminAccount(transaction);
+
+    await server
+      .post('/admin/reports/volunteer/999999/accept')
+      .set(authHeader(adminToken))
+      .expect(404);
+  });
+
+  test('disables volunteer and removes report atomically', async () => {
+    const { token: adminToken } = await createAdminAccount(transaction);
+    const { volunteer: reportedVolunteer } = await createVolunteerAccount(transaction, {
+      email: 'accept-vol-reported@example.com',
+    });
+    const { organization: reporterOrganization } = await createOrganizationAccount(transaction, {
+      email: 'accept-vol-org@example.com',
+      phone_number: '+10000000014',
+      url: 'https://accept-vol-org.example.com',
+    });
+
+    const before = await transaction
+      .selectFrom('volunteer_account')
+      .select(['is_disabled', 'token_version'])
+      .where('id', '=', reportedVolunteer.id)
+      .executeTakeFirstOrThrow();
+
+    const report = await transaction
+      .insertInto('volunteer_report')
+      .values({
+        reported_volunteer_id: reportedVolunteer.id,
+        reporter_organization_id: reporterOrganization.id,
+        title: 'harassment',
+        message: 'Accept and disable volunteer',
+      })
+      .returning(['id'])
+      .executeTakeFirstOrThrow();
+
+    await server
+      .post(`/admin/reports/volunteer/${report.id}/accept`)
+      .set(authHeader(adminToken))
+      .expect(200);
+
+    const after = await transaction
+      .selectFrom('volunteer_account')
+      .select(['is_disabled', 'token_version'])
+      .where('id', '=', reportedVolunteer.id)
+      .executeTakeFirstOrThrow();
+
+    const deletedReport = await transaction
+      .selectFrom('volunteer_report')
+      .select(['id'])
+      .where('id', '=', report.id)
+      .executeTakeFirst();
+
+    expect(after.is_disabled).toBe(true);
+    expect(after.token_version).toBe(before.token_version + 1);
+    expect(deletedReport).toBeUndefined();
+  });
+});
