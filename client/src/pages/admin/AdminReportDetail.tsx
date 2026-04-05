@@ -25,10 +25,6 @@ function AdminReportDetail() {
   const [actionError, setActionError] = useState<string | null>(null);
 
   const fetchReport = useCallback(async () => {
-    if (!reportType || !reportId || !['organization', 'volunteer'].includes(reportType)) {
-      throw new Error('Invalid report type or ID.');
-    }
-
     const endpoint = reportType === 'organization'
       ? `/admin/reports/organization/${reportId}`
       : `/admin/reports/volunteer/${reportId}`;

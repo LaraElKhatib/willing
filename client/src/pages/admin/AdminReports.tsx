@@ -10,6 +10,7 @@ import PageContainer from '../../components/layout/PageContainer';
 import PageHeader from '../../components/layout/PageHeader';
 import ReportHeader from '../../components/reporting/ReportHeader';
 import ReportMessage from '../../components/reporting/ReportMessage';
+import { REPORT_TYPE_OPTIONS } from '../../components/reporting/reportType.constants';
 import requestServer from '../../utils/requestServer';
 import useAsync from '../../utils/useAsync';
 
@@ -175,11 +176,9 @@ function AdminReports() {
                 onChange={event => setFilters(prev => ({ ...prev, reportType: event.target.value as ReportType }))}
               >
                 <option value="all">All types</option>
-                <option value="scam">Scam</option>
-                <option value="impersonation">Impersonation</option>
-                <option value="harassment">Harassment</option>
-                <option value="inappropriate_behavior">Inappropriate behavior</option>
-                <option value="other">Other</option>
+                {REPORT_TYPE_OPTIONS.map(({ value, label }) => (
+                  <option key={value} value={value}>{label}</option>
+                ))}
               </select>
             </div>
 

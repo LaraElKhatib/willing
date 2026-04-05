@@ -116,7 +116,6 @@ function ReportActionPanel({
               disabled={isActionInProgress}
             >
               {confirmButtonLabel}
-              ```
             </button>
           </div>
         </div>
