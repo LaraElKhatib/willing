@@ -68,7 +68,6 @@ function createUserRouter(db: Kysely<Database>) {
       .select(organizationLoginColumns)
       .where('organization_account.email', '=', body.email)
       .where('organization_account.is_deleted', '=', false)
-      .where('organization_account.is_disabled', '=', false)
       .executeTakeFirst();
 
     let volunteerAccount;
@@ -78,7 +77,6 @@ function createUserRouter(db: Kysely<Database>) {
         .select(volunteerLoginColumns)
         .where('volunteer_account.email', '=', body.email)
         .where('volunteer_account.is_deleted', '=', false)
-        .where('volunteer_account.is_disabled', '=', false)
         .executeTakeFirst();
     }
 
