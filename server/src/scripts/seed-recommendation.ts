@@ -78,6 +78,12 @@ const toSlug = (value: string) =>
     .replace(/^-+|-+$/g, '')
     .slice(0, 48);
 
+const toWillingEmail = (emailOrHandle: string, fallbackHandle: string) => {
+  const source = emailOrHandle.includes('@') ? emailOrHandle.split('@')[0] : emailOrHandle;
+  const normalizedHandle = toSlug(source) || toSlug(fallbackHandle) || 'user';
+  return `${normalizedHandle}@willing.social`;
+};
+
 const toDateAndTime = (isoDateTime: string) => {
   const date = new Date(isoDateTime);
   const yyyy = date.getUTCFullYear();
@@ -171,15 +177,38 @@ async function seedRecommendationDataset() {
   }
 
   const organizationIdMap = new Map<number, number>();
+  const usedEmails = new Set<string>();
+
+  const ensureUniqueEmail = (baseEmail: string, suffixSeed: string) => {
+    if (!usedEmails.has(baseEmail)) {
+      usedEmails.add(baseEmail);
+      return baseEmail;
+    }
+
+    let attempt = 2;
+    while (true) {
+      const local = baseEmail.split('@')[0]!;
+      const candidate = `${local}-${toSlug(suffixSeed)}-${attempt}@willing.social`;
+      if (!usedEmails.has(candidate)) {
+        usedEmails.add(candidate);
+        return candidate;
+      }
+      attempt += 1;
+    }
+  };
+
   for (const organization of data.organizations) {
     const location = estimateLocationCoordinates(organization.location_name);
-    const emailLocal = `${toSlug(organization.name)}-${organization.id}`;
+    const baseEmail = organization.id === 1
+      ? 'org1@willing.social'
+      : `${toSlug(organization.name)}-${organization.id}@willing.social`;
+    const email = ensureUniqueEmail(baseEmail, `org-${organization.id}`);
 
     const inserted = await database
       .insertInto('organization_account')
       .values({
         name: organization.name,
-        email: `${emailLocal}@willing.social`,
+        email,
         phone_number: `+9617000${String(organization.id).padStart(4, '0')}`,
         url: `https://${toSlug(organization.name)}.org`,
         description: organization.description,
@@ -205,12 +234,17 @@ async function seedRecommendationDataset() {
     const targetCvPath = path.join(CV_UPLOAD_DIR, cvFileName);
     await fs.promises.copyFile(sourceCvPath, targetCvPath);
 
+    const baseVolunteerEmail = volunteer.id === 1
+      ? 'vol1@willing.social'
+      : toWillingEmail(volunteer.email, `${volunteer.first_name}-${volunteer.last_name}-${volunteer.id}`);
+    const volunteerEmail = ensureUniqueEmail(baseVolunteerEmail, `vol-${volunteer.id}`);
+
     const inserted = await database
       .insertInto('volunteer_account')
       .values({
         first_name: volunteer.first_name,
         last_name: volunteer.last_name,
-        email: volunteer.email,
+        email: volunteerEmail,
         password: passwordHash,
         date_of_birth: volunteer.date_of_birth,
         gender: volunteer.gender,
