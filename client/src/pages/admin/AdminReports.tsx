@@ -17,7 +17,7 @@ import type { AdminReportsResponse } from '../../../../server/src/api/types';
 
 type ReportsScope = 'all' | 'organization' | 'volunteer';
 type ReportType = 'all' | 'scam' | 'impersonation' | 'harassment' | 'inappropriate_behavior' | 'other';
-type ReportsSortBy = 'created_at' | 'title';
+type ReportsSortBy = 'created_at';
 type ReportsSortDir = 'asc' | 'desc';
 
 type ReportsFilters = {
@@ -111,13 +111,6 @@ function AdminReports() {
     ];
 
     rows.sort((left, right) => {
-      if (activeFilters.sortBy === 'title') {
-        const leftTitle = left.report.title.toLowerCase();
-        const rightTitle = right.report.title.toLowerCase();
-        const order = leftTitle.localeCompare(rightTitle);
-        return activeFilters.sortDir === 'asc' ? order : -order;
-      }
-
       const leftTime = new Date(left.report.created_at).getTime();
       const rightTime = new Date(right.report.created_at).getTime();
       const order = leftTime - rightTime;
@@ -125,7 +118,7 @@ function AdminReports() {
     });
 
     return rows;
-  }, [activeFilters.scope, activeFilters.sortBy, activeFilters.sortDir, organizationReports, volunteerReports]);
+  }, [activeFilters.scope, activeFilters.sortDir, organizationReports, volunteerReports]);
 
   return (
     <PageContainer>
@@ -154,7 +147,7 @@ function AdminReports() {
 
       <Card title="Filters" description="Filter and sort reports before review." className="mb-6">
         <form className="space-y-4" onSubmit={applyFilters}>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
             <div>
               <label className="label" htmlFor="reports-scope">
                 <span className="label-text">Scope</span>
@@ -219,8 +212,6 @@ function AdminReports() {
               >
                 <option value="created_at|desc">Newest first</option>
                 <option value="created_at|asc">Oldest first</option>
-                <option value="title|asc">Title (A-Z)</option>
-                <option value="title|desc">Title (Z-A)</option>
               </select>
             </div>
           </div>
