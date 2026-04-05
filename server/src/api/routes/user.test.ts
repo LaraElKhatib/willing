@@ -135,7 +135,7 @@ describe('POST /user/login', () => {
   });
 
   test('rejects login for disabled volunteer account', async () => {
-    const { volunteer, plainPassword } = await createVolunteerAccount({
+    const { volunteer, plainPassword } = await createVolunteerAccount(transaction, {
       email: 'disabled-volunteer-login@example.com',
     });
 
