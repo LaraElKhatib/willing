@@ -61,19 +61,7 @@ function AdminReportDetail() {
       setIsActionInProgress(true);
       setActionError(null);
 
-      if (reportType === 'organization' && 'reported_organization' in report) {
-        await requestServer(`/admin/reports/organization/${report.reported_organization.id}/disable`, {
-          method: 'POST',
-          includeJwt: true,
-        });
-      } else if (reportType === 'volunteer' && 'reported_volunteer' in report) {
-        await requestServer(`/admin/reports/volunteer/${report.reported_volunteer.id}/disable`, {
-          method: 'POST',
-          includeJwt: true,
-        });
-      }
-
-      await requestServer(`/admin/reports/${reportType}/${reportId}/reject`, {
+      await requestServer(`/admin/reports/${reportType}/${reportId}/accept`, {
         method: 'POST',
         includeJwt: true,
       });
