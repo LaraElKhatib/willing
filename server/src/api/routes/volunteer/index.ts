@@ -16,6 +16,7 @@ import {
   type VolunteerOrganizationSearchResponse,
   type VolunteerPinnedCrisesResponse,
   type VolunteerProfileResponse,
+  type VolunteerReportOrganizationResponse,
   type VolunteerResendVerificationResponse,
   type VolunteerVerifyEmailResponse,
 } from './index.types.ts';
@@ -24,7 +25,7 @@ import authorizeOnly from '../../../auth/authorizeOnly.ts';
 import createResetPassword from '../../../auth/resetPassword.ts';
 import config from '../../../config.ts';
 import executeTransaction from '../../../db/executeTransaction.ts';
-import { type Database, type VolunteerAccountWithoutPassword, newVolunteerAccountSchema, volunteerAccountSchema } from '../../../db/tables/index.ts';
+import { type Database, type VolunteerAccountWithoutPassword, newVolunteerAccountSchema, newOrganizationReportSchema, volunteerAccountSchema } from '../../../db/tables/index.ts';
 import { CERTIFICATE_PAYLOAD_VERSION, CERTIFICATE_TYPE, signCertificateVerificationPayload } from '../../../services/certificates/token.ts';
 import {
   recomputeVolunteerExperienceVector,
@@ -306,10 +307,12 @@ function createVolunteerRouter(db: Kysely<Database>) {
 
   volunteerRouter.get('/organizations', async (req, res: Response<VolunteerOrganizationSearchResponse>) => {
     const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
+    const certificateEnabled = typeof req.query.certificate_enabled === 'string' ? req.query.certificate_enabled : 'all';
 
     let query = db
       .selectFrom('organization_account')
       .leftJoin('organization_posting', 'organization_posting.organization_id', 'organization_account.id')
+      .leftJoin('organization_certificate_info', 'organization_certificate_info.id', 'organization_account.certificate_info_id')
       .select([
         'organization_account.id',
         'organization_account.name',
@@ -321,6 +324,15 @@ function createVolunteerRouter(db: Kysely<Database>) {
       .where('organization_account.is_deleted', '=', false)
       .where('organization_account.is_disabled', '=', false)
       .groupBy('organization_account.id');
+
+    if (certificateEnabled === 'enabled') {
+      query = query.where('organization_certificate_info.certificate_feature_enabled', '=', true);
+    } else if (certificateEnabled === 'disabled') {
+      query = query.where(({ or }) => or([
+        sql<boolean>`organization_certificate_info.certificate_feature_enabled = false`,
+        sql<boolean>`organization_certificate_info.certificate_feature_enabled IS NULL`,
+      ]));
+    }
 
     if (search) {
       const terms = normalizeSearchTerms(search);
@@ -696,6 +708,38 @@ function createVolunteerRouter(db: Kysely<Database>) {
 
     const profile = await getVolunteerProfile(volunteerId);
     res.json(profile);
+  });
+
+  volunteerRouter.post('/organization/:id/report', async (req, res: Response<VolunteerReportOrganizationResponse>) => {
+    const { id: organizationId } = zod.object({
+      id: zod.coerce.number().int().positive('Organization ID must be a positive number'),
+    }).parse(req.params);
+
+    const body = newOrganizationReportSchema.parse(req.body);
+    const volunteerId = req.userJWT!.id;
+
+    const organization = await db
+      .selectFrom('organization_account')
+      .select('id')
+      .where('id', '=', organizationId)
+      .executeTakeFirst();
+
+    if (!organization) {
+      res.status(404);
+      throw new Error('Organization not found.');
+    }
+
+    await db
+      .insertInto('organization_report')
+      .values({
+        reported_organization_id: organizationId,
+        reporter_volunteer_id: volunteerId,
+        title: body.title,
+        message: body.message,
+      })
+      .execute();
+
+    res.json({});
   });
 
   volunteerRouter.use('/profile/cv', createVolunteerCvRouter(db));

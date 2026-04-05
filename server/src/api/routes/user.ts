@@ -30,6 +30,7 @@ const organizationLoginColumns = [
   'longitude',
   'location_name',
   'password',
+  'is_disabled',
   'token_version',
 ] as const;
 
@@ -43,6 +44,7 @@ const volunteerLoginColumns = [
   'gender',
   'cv_path',
   'description',
+  'is_disabled',
   'token_version',
 ] as const;
 
@@ -83,6 +85,11 @@ function createUserRouter(db: Kysely<Database>) {
     if (!organizationAccount && !volunteerAccount) {
       res.status(403);
       throw new Error('Invalid email or password');
+    }
+
+    if ((organizationAccount && organizationAccount.is_disabled) || (volunteerAccount && volunteerAccount.is_disabled)) {
+      res.status(403);
+      throw new Error('Account is disabled. If you think this is a mistake contact the Willing admin.');
     }
 
     const valid = organizationAccount
