@@ -691,6 +691,17 @@ function createVolunteerRouter(db: Kysely<Database>) {
     const body = newOrganizationReportSchema.parse(req.body);
     const volunteerId = req.userJWT!.id;
 
+    const organization = await db
+      .selectFrom('organization_account')
+      .select('id')
+      .where('id', '=', organizationId)
+      .executeTakeFirst();
+
+    if (!organization) {
+      res.status(404);
+      throw new Error('Organization not found.');
+    }
+
     await db
       .insertInto('organization_report')
       .values({
