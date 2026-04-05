@@ -14,6 +14,7 @@ import Loading from '../../components/Loading';
 import PostingCollection from '../../components/postings/PostingCollection';
 import PostingViewModeToggle from '../../components/postings/PostingViewModeToggle';
 import ReportForm from '../../components/reporting/ReportForm';
+import { DEFAULT_REPORT_TYPE, REPORT_TYPE_VALUES } from '../../components/reporting/reportType.constants';
 import SkillsList from '../../components/skills/SkillsList';
 import useNotifications from '../../notifications/useNotifications';
 import requestServer, { SERVER_BASE_URL } from '../../utils/requestServer';
@@ -34,7 +35,7 @@ const toDateFromParts = (dateValue: Date | string, timeValue?: string) => {
 };
 
 const reportVolunteerSchema = zod.object({
-  title: zod.enum(['scam', 'impersonation', 'harassment', 'inappropriate_behavior', 'other']),
+  title: zod.enum(REPORT_TYPE_VALUES),
   message: zod.string().trim().min(1, 'Message is required').max(1000, 'Message must be at most 1000 characters'),
 });
 
@@ -49,7 +50,7 @@ function OrganizationVolunteerProfile() {
     mode: 'onTouched',
     reValidateMode: 'onChange',
     defaultValues: {
-      title: 'scam',
+      title: DEFAULT_REPORT_TYPE,
       message: '',
     },
   });
@@ -219,7 +220,7 @@ function OrganizationVolunteerProfile() {
 
   const openReportModal = () => {
     reportForm.reset({
-      title: 'scam',
+      title: DEFAULT_REPORT_TYPE,
       message: '',
     });
     setReportModalOpen(true);

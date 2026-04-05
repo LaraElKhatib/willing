@@ -4,6 +4,7 @@ import { useWatch, type FieldValues, type Path, type UseFormReturn } from 'react
 import { FormField, FormRootError } from '../../utils/formUtils';
 import Button from '../Button';
 import IconButton from '../IconButton';
+import { REPORT_TYPE_OPTIONS } from './reportType.constants';
 
 type ReportFormProps<TForm extends FieldValues> = {
   open: boolean;
@@ -17,14 +18,6 @@ type ReportFormProps<TForm extends FieldValues> = {
   submitDisabled?: boolean;
   maxMessageLength?: number;
 };
-
-const reportTypeOptions = [
-  { label: 'Scam', value: 'scam' },
-  { label: 'Impersonation', value: 'impersonation' },
-  { label: 'Harassment', value: 'harassment' },
-  { label: 'Inappropriate behavior', value: 'inappropriate_behavior' },
-  { label: 'Other', value: 'other' },
-];
 
 function ReportForm<TForm extends FieldValues>({
   open,
@@ -64,7 +57,7 @@ function ReportForm<TForm extends FieldValues>({
             form={form}
             name={'title' as Path<TForm>}
             label="Report Type"
-            selectOptions={reportTypeOptions}
+            selectOptions={REPORT_TYPE_OPTIONS}
           />
 
           <FormField
