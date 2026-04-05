@@ -327,6 +327,52 @@ describe('GET /admin/reports', () => {
     expect(response.body.volunteerReports).toHaveLength(1);
     expect(response.body.volunteerReports[0].reported_volunteer.id).toBe(matchingVolunteer.id);
   });
+
+  test('filters organization reports by reporter volunteer email', async () => {
+    const { token: adminToken } = await createAdminAccount(transaction);
+    const { organization: reportedOrganization } = await createOrganizationAccount(transaction, {
+      email: 'search-email-org@example.com',
+      phone_number: '+10000000019',
+      url: 'https://search-email-org.example.com',
+    });
+    const { volunteer: matchingReporter } = await createVolunteerAccount(transaction, {
+      email: 'needle-reporter@example.com',
+      first_name: 'Email',
+      last_name: 'Match',
+    });
+    const { volunteer: otherReporter } = await createVolunteerAccount(transaction, {
+      email: 'other-reporter@example.com',
+      first_name: 'Other',
+      last_name: 'Reporter',
+    });
+
+    await transaction
+      .insertInto('organization_report')
+      .values([
+        {
+          reported_organization_id: reportedOrganization.id,
+          reporter_volunteer_id: matchingReporter.id,
+          title: 'scam',
+          message: 'match by reporter email',
+        },
+        {
+          reported_organization_id: reportedOrganization.id,
+          reporter_volunteer_id: otherReporter.id,
+          title: 'other',
+          message: 'non matching reporter email',
+        },
+      ])
+      .execute();
+
+    const response = await server
+      .get('/admin/reports?scope=organization&search=needle-reporter@example.com')
+      .set(authHeader(adminToken))
+      .expect(200);
+
+    expect(response.body.organizationReports).toHaveLength(1);
+    expect(response.body.organizationReports[0].reporter_volunteer.email).toBe('needle-reporter@example.com');
+    expect(response.body.volunteerReports).toEqual([]);
+  });
 });
 
 describe('GET /admin/reports/organization/:reportId', () => {
