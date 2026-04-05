@@ -79,7 +79,7 @@ const toSlug = (value: string) =>
     .slice(0, 48);
 
 const toWillingEmail = (emailOrHandle: string, fallbackHandle: string) => {
-  const source = emailOrHandle.includes('@') ? emailOrHandle.split('@')[0] : emailOrHandle;
+  const source = emailOrHandle.includes('@') ? (emailOrHandle.split('@')[0] ?? '') : emailOrHandle;
   const normalizedHandle = toSlug(source) || toSlug(fallbackHandle) || 'user';
   return `${normalizedHandle}@willing.social`;
 };
