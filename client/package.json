@@ -10,7 +10,8 @@
     "lint:check": "eslint .",
     "type:check": "tsc -b ./tsconfig.json",
     "preview": "vite preview",
-    "test:browser": "npm.cmd exec -- vitest watch --config vitest.browser.config.ts"
+    "test:browser": "npm.cmd exec -- vitest watch --config vitest.browser.config.ts",
+    "test:ui": "npm.cmd exec -- vitest run --coverage --config vitest.browser.config.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -43,6 +44,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
     "@vitest/browser-playwright": "^4.1.2",
+    "@vitest/coverage-v8": "^4.1.2",
     "autoprefixer": "^10.4.24",
     "eslint": "^9.39.1",
     "eslint-import-resolver-typescript": "^4.4.4",
