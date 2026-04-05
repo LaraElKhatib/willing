@@ -9,8 +9,8 @@ import PageContainer from '../../components/layout/PageContainer';
 import PageHeader from '../../components/layout/PageHeader';
 import Loading from '../../components/Loading';
 import ReportActionPanel from '../../components/reporting/ReportActionPanel';
+import ReportHeader from '../../components/reporting/ReportHeader';
 import ReportMessage from '../../components/reporting/ReportMessage';
-import ReportType from '../../components/reporting/ReportType';
 import requestServer from '../../utils/requestServer';
 import useAsync from '../../utils/useAsync';
 
@@ -153,12 +153,11 @@ function AdminReportDetail() {
         <div className="lg:col-span-2 space-y-6">
           <Card title="Report Details" description="Information about this report.">
             <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <label className="label m-0">
-                  <span className="label-text font-semibold">Report Type</span>
-                </label>
-                <ReportType title={report.title} size="lg" />
-              </div>
+              <ReportHeader
+                createdAt={report.created_at}
+                reportTitle={report.title}
+                scopeLabel={reportType === 'organization' ? 'Organization' : 'Volunteer'}
+              />
 
               <div>
                 <label className="label">

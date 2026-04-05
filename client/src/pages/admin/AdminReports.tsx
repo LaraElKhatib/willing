@@ -8,8 +8,8 @@ import Card from '../../components/Card';
 import EmptyState from '../../components/EmptyState';
 import PageContainer from '../../components/layout/PageContainer';
 import PageHeader from '../../components/layout/PageHeader';
+import ReportHeader from '../../components/reporting/ReportHeader';
 import ReportMessage from '../../components/reporting/ReportMessage';
-import ReportType from '../../components/reporting/ReportType';
 import requestServer from '../../utils/requestServer';
 import useAsync from '../../utils/useAsync';
 
@@ -278,16 +278,13 @@ function AdminReports() {
                       key={`${type}-${report.id}`}
                       className="rounded-xl border border-base-300 bg-base-100 p-4 flex flex-col items-start"
                     >
-                      <div className="mb-3 flex w-full items-start justify-between gap-3">
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-base font-semibold">{subjectName}</h3>
-                          <ReportType title={report.title} />
-                          <span className="badge badge-accent badge-outline">
-                            {type === 'organization' ? 'Organization' : 'Volunteer'}
-                          </span>
-                        </div>
-                        <span className="text-xs text-base-content/60 whitespace-nowrap">{new Date(report.created_at).toLocaleString()}</span>
-                      </div>
+                      <ReportHeader
+                        compact
+                        createdAt={report.created_at}
+                        reportTitle={report.title}
+                        subjectName={subjectName}
+                        scopeLabel={type === 'organization' ? 'Organization' : 'Volunteer'}
+                      />
                       <ReportMessage message={report.message} className="mb-3" />
                       <Button
                         type="button"
