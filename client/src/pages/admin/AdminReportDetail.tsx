@@ -1,4 +1,4 @@
-import { AlertCircle, ArrowLeft, Check, Flag, RotateCcw, X } from 'lucide-react';
+import { ArrowLeft, Flag, RotateCcw } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
@@ -8,6 +8,7 @@ import Card from '../../components/Card';
 import PageContainer from '../../components/layout/PageContainer';
 import PageHeader from '../../components/layout/PageHeader';
 import Loading from '../../components/Loading';
+import ReportActionPanel from '../../components/reporting/ReportActionPanel';
 import ReportMessage from '../../components/reporting/ReportMessage';
 import ReportType from '../../components/reporting/ReportType';
 import requestServer from '../../utils/requestServer';
@@ -244,50 +245,12 @@ function AdminReportDetail() {
 
         <div className="lg:col-span-1">
           <Card title="Actions" description="Choose how to handle this report." color="primary">
-            <div className="space-y-3">
-              {actionError && (
-                <Alert color="error">
-                  <p>{actionError}</p>
-                </Alert>
-              )}
-
-              <button
-                type="button"
-                className="btn btn-success btn-block gap-2"
-                onClick={() => void handleAcceptReport()}
-                disabled={isActionInProgress}
-              >
-                {isActionInProgress
-                  ? (
-                      <>
-                        <div className="loading loading-spinner loading-sm" />
-                      </>
-                    )
-                  : (
-                      <>
-                        <Check size={18} />
-                        Accept Report
-                      </>
-                    )}
-              </button>
-
-              <button
-                type="button"
-                className="btn btn-outline btn-block gap-2"
-                onClick={() => void handleRejectReport()}
-                disabled={isActionInProgress}
-              >
-                <X size={18} />
-                Reject Report
-              </button>
-
-              <div className="alert alert-warning gap-2">
-                <AlertCircle size={18} />
-                <span className="text-xs">
-                  Accepting this report will disable the reported account.
-                </span>
-              </div>
-            </div>
+            <ReportActionPanel
+              actionError={actionError}
+              isActionInProgress={isActionInProgress}
+              onAccept={() => { void handleAcceptReport(); }}
+              onReject={() => { void handleRejectReport(); }}
+            />
           </Card>
         </div>
       </div>
