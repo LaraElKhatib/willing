@@ -5,6 +5,8 @@ import zod from 'zod';
 import createAdminCertificateSettingsRouter from './certificateSettings.ts';
 import createAdminCrisesRouter from './crises.ts';
 import {
+  type AdminAcceptOrganizationReportResponse,
+  type AdminAcceptVolunteerReportResponse,
   type AdminDisableOrganizationAccountResponse,
   type AdminDisableVolunteerAccountResponse,
   type AdminGetOrganizationReportResponse,
@@ -407,6 +409,57 @@ function createAdminRouter(db: Kysely<Database>) {
     res.json({});
   });
 
+  adminRouter.post('/reports/organization/:reportId/accept', async (req, res: Response<AdminAcceptOrganizationReportResponse>) => {
+    const reportId = zod.coerce.number().int().positive().parse(req.params.reportId);
+
+    try {
+      await executeTransaction(db, async (trx) => {
+        const report = await trx
+          .selectFrom('organization_report')
+          .select(['id', 'reported_organization_id'])
+          .where('id', '=', reportId)
+          .executeTakeFirst();
+
+        if (!report) {
+          throw new Error('Organization report not found.');
+        }
+
+        const organization = await trx
+          .selectFrom('organization_account')
+          .select(['id', 'is_disabled'])
+          .where('id', '=', report.reported_organization_id)
+          .executeTakeFirst();
+
+        if (!organization) {
+          throw new Error('Organization account not found.');
+        }
+
+        if (!organization.is_disabled) {
+          await trx
+            .updateTable('organization_account')
+            .set({
+              is_disabled: true,
+              token_version: sql`token_version + 1`,
+            })
+            .where('id', '=', organization.id)
+            .execute();
+        }
+
+        await trx
+          .deleteFrom('organization_report')
+          .where('id', '=', reportId)
+          .execute();
+      });
+    } catch (error) {
+      if (error instanceof Error && (error.message === 'Organization report not found.' || error.message === 'Organization account not found.')) {
+        res.status(404);
+      }
+      throw error;
+    }
+
+    res.json({});
+  });
+
   adminRouter.post('/reports/volunteer/:reportId/reject', async (req, res: Response<AdminRejectVolunteerReportResponse>) => {
     const reportId = zod.coerce.number().int().positive().parse(req.params.reportId);
 
@@ -425,6 +478,57 @@ function createAdminRouter(db: Kysely<Database>) {
       .deleteFrom('volunteer_report')
       .where('id', '=', reportId)
       .execute();
+
+    res.json({});
+  });
+
+  adminRouter.post('/reports/volunteer/:reportId/accept', async (req, res: Response<AdminAcceptVolunteerReportResponse>) => {
+    const reportId = zod.coerce.number().int().positive().parse(req.params.reportId);
+
+    try {
+      await executeTransaction(db, async (trx) => {
+        const report = await trx
+          .selectFrom('volunteer_report')
+          .select(['id', 'reported_volunteer_id'])
+          .where('id', '=', reportId)
+          .executeTakeFirst();
+
+        if (!report) {
+          throw new Error('Volunteer report not found.');
+        }
+
+        const volunteer = await trx
+          .selectFrom('volunteer_account')
+          .select(['id', 'is_disabled'])
+          .where('id', '=', report.reported_volunteer_id)
+          .executeTakeFirst();
+
+        if (!volunteer) {
+          throw new Error('Volunteer account not found.');
+        }
+
+        if (!volunteer.is_disabled) {
+          await trx
+            .updateTable('volunteer_account')
+            .set({
+              is_disabled: true,
+              token_version: sql`token_version + 1`,
+            })
+            .where('id', '=', volunteer.id)
+            .execute();
+        }
+
+        await trx
+          .deleteFrom('volunteer_report')
+          .where('id', '=', reportId)
+          .execute();
+      });
+    } catch (error) {
+      if (error instanceof Error && (error.message === 'Volunteer report not found.' || error.message === 'Volunteer account not found.')) {
+        res.status(404);
+      }
+      throw error;
+    }
 
     res.json({});
   });

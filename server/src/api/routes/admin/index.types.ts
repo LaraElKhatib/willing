@@ -107,4 +107,8 @@ export type AdminRejectOrganizationReportResponse = object;
 
 export type AdminRejectVolunteerReportResponse = object;
 
+export type AdminAcceptOrganizationReportResponse = object;
+
+export type AdminAcceptVolunteerReportResponse = object;
+
 export type AdminResetPasswordResponse = ResetPasswordResponse;
