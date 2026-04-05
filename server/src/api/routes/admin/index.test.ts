@@ -152,6 +152,36 @@ describe('GET /admin/reports', () => {
     expect(response.body.volunteerReports).toEqual([]);
   });
 
+  test('returns only volunteer reports when scope=volunteer', async () => {
+    const { token: adminToken } = await createAdminAccount(transaction);
+    const { volunteer: reportedVolunteer } = await createVolunteerAccount(transaction, {
+      email: 'scope-volunteer@example.com',
+    });
+    const { organization: reporterOrganization } = await createOrganizationAccount(transaction, {
+      email: 'scope-volunteer-org@example.com',
+      phone_number: '+10000000015',
+      url: 'https://scope-volunteer-org.example.com',
+    });
+
+    await transaction
+      .insertInto('volunteer_report')
+      .values({
+        reported_volunteer_id: reportedVolunteer.id,
+        reporter_organization_id: reporterOrganization.id,
+        title: 'other',
+        message: 'Volunteer-only report',
+      })
+      .executeTakeFirstOrThrow();
+
+    const response = await server
+      .get('/admin/reports?scope=volunteer')
+      .set(authHeader(adminToken))
+      .expect(200);
+
+    expect(response.body.organizationReports).toEqual([]);
+    expect(response.body.volunteerReports).toHaveLength(1);
+  });
+
   test('filters reports by reportType across both lists', async () => {
     const { token: adminToken } = await createAdminAccount(transaction);
     const { organization: reportedOrganization } = await createOrganizationAccount(transaction, {
@@ -203,6 +233,99 @@ describe('GET /admin/reports', () => {
       .get('/admin/reports?scope=invalid-scope')
       .set(authHeader(adminToken))
       .expect(400);
+  });
+
+  test('filters reports by search query for organization reports', async () => {
+    const { token: adminToken } = await createAdminAccount(transaction);
+    const { organization: matchingOrganization } = await createOrganizationAccount(transaction, {
+      email: 'search-org-match@example.com',
+      name: 'Search Match Org',
+      phone_number: '+10000000016',
+      url: 'https://search-org-match.example.com',
+    });
+    const { organization: nonMatchingOrganization } = await createOrganizationAccount(transaction, {
+      email: 'search-org-non-match@example.com',
+      name: 'Other Org',
+      phone_number: '+10000000017',
+      url: 'https://search-org-non-match.example.com',
+    });
+    const { volunteer: reporterVolunteer } = await createVolunteerAccount(transaction, {
+      email: 'search-org-reporter@example.com',
+    });
+
+    await transaction
+      .insertInto('organization_report')
+      .values([
+        {
+          reported_organization_id: matchingOrganization.id,
+          reporter_volunteer_id: reporterVolunteer.id,
+          title: 'scam',
+          message: 'contains-neon-keyword',
+        },
+        {
+          reported_organization_id: nonMatchingOrganization.id,
+          reporter_volunteer_id: reporterVolunteer.id,
+          title: 'other',
+          message: 'plain message',
+        },
+      ])
+      .execute();
+
+    const response = await server
+      .get('/admin/reports?scope=organization&search=neon-keyword')
+      .set(authHeader(adminToken))
+      .expect(200);
+
+    expect(response.body.organizationReports).toHaveLength(1);
+    expect(response.body.organizationReports[0].reported_organization.id).toBe(matchingOrganization.id);
+    expect(response.body.volunteerReports).toEqual([]);
+  });
+
+  test('filters reports by search query for volunteer reports', async () => {
+    const { token: adminToken } = await createAdminAccount(transaction);
+    const { volunteer: matchingVolunteer } = await createVolunteerAccount(transaction, {
+      email: 'search-vol-match@example.com',
+      first_name: 'Needle',
+      last_name: 'Volunteer',
+    });
+    const { volunteer: nonMatchingVolunteer } = await createVolunteerAccount(transaction, {
+      email: 'search-vol-non-match@example.com',
+      first_name: 'Other',
+      last_name: 'Volunteer',
+    });
+    const { organization: reporterOrganization } = await createOrganizationAccount(transaction, {
+      email: 'search-vol-org@example.com',
+      name: 'Reporter Org',
+      phone_number: '+10000000018',
+      url: 'https://search-vol-org.example.com',
+    });
+
+    await transaction
+      .insertInto('volunteer_report')
+      .values([
+        {
+          reported_volunteer_id: matchingVolunteer.id,
+          reporter_organization_id: reporterOrganization.id,
+          title: 'harassment',
+          message: 'matched via volunteer first name',
+        },
+        {
+          reported_volunteer_id: nonMatchingVolunteer.id,
+          reporter_organization_id: reporterOrganization.id,
+          title: 'other',
+          message: 'different person',
+        },
+      ])
+      .execute();
+
+    const response = await server
+      .get('/admin/reports?scope=volunteer&search=needle')
+      .set(authHeader(adminToken))
+      .expect(200);
+
+    expect(response.body.organizationReports).toEqual([]);
+    expect(response.body.volunteerReports).toHaveLength(1);
+    expect(response.body.volunteerReports[0].reported_volunteer.id).toBe(matchingVolunteer.id);
   });
 });
 
