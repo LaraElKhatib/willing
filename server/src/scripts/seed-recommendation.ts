@@ -71,6 +71,11 @@ const datasetSchema = zod.object({
 
 type RecommendationDataset = zod.infer<typeof datasetSchema>;
 
+type PostingSignalMeta = {
+  dbId: number;
+  skills: string[];
+};
+
 const toSlug = (value: string) =>
   value
     .toLowerCase()
@@ -237,6 +242,7 @@ async function seedRecommendationDataset() {
   }
 
   const volunteerIdMap = new Map<number, number>();
+  const volunteerSkillsByDbId = new Map<number, string[]>();
   for (const volunteer of data.volunteers) {
     const sourceCvPath = resolveDatasetFilePath(volunteer.cv_pdf_path);
     if (!fs.existsSync(sourceCvPath)) {
@@ -268,18 +274,106 @@ async function seedRecommendationDataset() {
       .executeTakeFirstOrThrow();
 
     volunteerIdMap.set(volunteer.id, inserted.id);
+    const normalizedSkills = volunteer.skills.map(skill => skill.trim().toLowerCase()).filter(Boolean);
+    volunteerSkillsByDbId.set(inserted.id, normalizedSkills);
 
-    if (volunteer.skills.length > 0) {
+    if (normalizedSkills.length > 0) {
       await database.insertInto('volunteer_skill').values(
-        volunteer.skills.map(skill => ({
+        normalizedSkills.map(skill => ({
           volunteer_id: inserted.id,
-          name: skill.trim(),
+          name: skill,
         })),
       ).execute();
     }
   }
 
+  const backgroundVolunteerProfiles = [
+    {
+      first_name: 'Rami',
+      last_name: 'Ops',
+      gender: 'male' as const,
+      date_of_birth: '1993-04-11',
+      description: 'Background logistics volunteer for realistic enrollment distribution.',
+      skills: ['warehouse operations', 'inventory counting', 'dispatch', 'packing', 'route coordination'],
+    },
+    {
+      first_name: 'Maya',
+      last_name: 'Health',
+      gender: 'female' as const,
+      date_of_birth: '1996-09-02',
+      description: 'Background health volunteer for intake and registration tasks.',
+      skills: ['patient intake', 'registration support', 'health education', 'medication prep', 'documentation'],
+    },
+    {
+      first_name: 'Lina',
+      last_name: 'Edu',
+      gender: 'female' as const,
+      date_of_birth: '2001-01-17',
+      description: 'Background education volunteer for tutoring and child support.',
+      skills: ['tutoring', 'group facilitation', 'reading support', 'child engagement', 'communication'],
+    },
+    {
+      first_name: 'Nader',
+      last_name: 'Env',
+      gender: 'male' as const,
+      date_of_birth: '1995-07-25',
+      description: 'Background environment volunteer for outdoor activities.',
+      skills: ['waste sorting', 'cleanup', 'tree planting', 'field coordination', 'public engagement'],
+    },
+    {
+      first_name: 'Hana',
+      last_name: 'Support',
+      gender: 'female' as const,
+      date_of_birth: '1997-03-30',
+      description: 'Background community support volunteer.',
+      skills: ['beneficiary intake', 'community outreach', 'active listening', 'coordination', 'documentation'],
+    },
+    {
+      first_name: 'Fares',
+      last_name: 'Driver',
+      gender: 'male' as const,
+      date_of_birth: '1992-10-09',
+      description: 'Background route and delivery support volunteer.',
+      skills: ['driving', 'route planning', 'dispatch support', 'loading', 'time management'],
+    },
+  ];
+
+  for (let index = 0; index < backgroundVolunteerProfiles.length; index += 1) {
+    const profile = backgroundVolunteerProfiles[index]!;
+    const email = ensureUniqueEmail(
+      `${toSlug(`${profile.first_name}-${profile.last_name}`)}-bg-${index + 1}@willing.social`,
+      `bg-vol-${index + 1}`,
+    );
+
+    const inserted = await database
+      .insertInto('volunteer_account')
+      .values({
+        first_name: profile.first_name,
+        last_name: profile.last_name,
+        email,
+        password: passwordHash,
+        date_of_birth: profile.date_of_birth,
+        gender: profile.gender,
+        description: profile.description,
+      })
+      .returning(['id'])
+      .executeTakeFirstOrThrow();
+
+    const normalizedSkills = profile.skills.map(skill => skill.trim().toLowerCase()).filter(Boolean);
+    volunteerSkillsByDbId.set(inserted.id, normalizedSkills);
+
+    await database.insertInto('volunteer_skill').values(
+      normalizedSkills.map(skill => ({
+        volunteer_id: inserted.id,
+        name: skill,
+      })),
+    ).execute();
+  }
+
   const oldPostingIdMap = new Map<number, number>();
+  const newPostingIdMap = new Map<number, number>();
+  const oldPostingSignalMetaByDatasetId = new Map<number, PostingSignalMeta>();
+  const newPostingSignalMetaByDatasetId = new Map<number, PostingSignalMeta>();
   const createPosting = async (posting: RecommendationDataset['old_postings'][number], isFromOldSet: boolean) => {
     const organizationId = organizationIdMap.get(posting.organization_id);
     if (!organizationId) {
@@ -322,19 +416,32 @@ async function seedRecommendationDataset() {
       .executeTakeFirstOrThrow();
 
     if (posting.skills_required.length > 0) {
+      const normalizedPostingSkills = posting.skills_required.map(skill => skill.trim().toLowerCase()).filter(Boolean);
       await database
         .insertInto('posting_skill')
         .values(
-          posting.skills_required.map(skill => ({
+          normalizedPostingSkills.map(skill => ({
             posting_id: insertedPosting.id,
-            name: skill.trim(),
+            name: skill,
           })),
         )
         .execute();
+
+      if (isFromOldSet) {
+        oldPostingSignalMetaByDatasetId.set(posting.id, { dbId: insertedPosting.id, skills: normalizedPostingSkills });
+      } else {
+        newPostingSignalMetaByDatasetId.set(posting.id, { dbId: insertedPosting.id, skills: normalizedPostingSkills });
+      }
+    } else if (isFromOldSet) {
+      oldPostingSignalMetaByDatasetId.set(posting.id, { dbId: insertedPosting.id, skills: [] });
+    } else {
+      newPostingSignalMetaByDatasetId.set(posting.id, { dbId: insertedPosting.id, skills: [] });
     }
 
     if (isFromOldSet) {
       oldPostingIdMap.set(posting.id, insertedPosting.id);
+    } else {
+      newPostingIdMap.set(posting.id, insertedPosting.id);
     }
   };
 
@@ -346,6 +453,34 @@ async function seedRecommendationDataset() {
     await createPosting(posting, false);
   }
 
+  const enrollmentPairs = new Set<string>();
+  const enrollmentCountByPostingId = new Map<number, number>();
+  const volunteerSignalUsageCount = new Map<number, number>();
+
+  const addEnrollment = async (
+    volunteerId: number,
+    postingId: number,
+    attended: boolean,
+    message: string,
+  ) => {
+    const pairKey = `${volunteerId}:${postingId}`;
+    if (enrollmentPairs.has(pairKey)) return;
+
+    await database
+      .insertInto('enrollment')
+      .values({
+        volunteer_id: volunteerId,
+        posting_id: postingId,
+        attended,
+        message,
+      })
+      .execute();
+
+    enrollmentPairs.add(pairKey);
+    enrollmentCountByPostingId.set(postingId, (enrollmentCountByPostingId.get(postingId) ?? 0) + 1);
+    volunteerSignalUsageCount.set(volunteerId, (volunteerSignalUsageCount.get(volunteerId) ?? 0) + 1);
+  };
+
   for (const attendance of data.attendance_links) {
     const volunteerId = volunteerIdMap.get(attendance.volunteer_id);
     const postingId = oldPostingIdMap.get(attendance.old_posting_id);
@@ -354,14 +489,64 @@ async function seedRecommendationDataset() {
       throw new Error(`Invalid attendance link: volunteer_id=${attendance.volunteer_id}, old_posting_id=${attendance.old_posting_id}`);
     }
 
-    await database
-      .insertInto('enrollment')
-      .values({
-        volunteer_id: volunteerId,
-        posting_id: postingId,
-        attended: true,
+    await addEnrollment(
+      volunteerId,
+      postingId,
+      true,
+      'Completed seeded attendance record',
+    );
+  }
+
+  const getSignalVolunteersByFit = (postingSkills: string[], limit: number) => {
+    const postingSkillSet = new Set(postingSkills.map(skill => skill.toLowerCase()));
+    const ranked = Array.from(volunteerSkillsByDbId.entries())
+      .map(([volunteerId, skills]) => {
+        const overlap = skills.reduce((count, skill) => count + (postingSkillSet.has(skill) ? 1 : 0), 0);
+        const usagePenalty = (volunteerSignalUsageCount.get(volunteerId) ?? 0) * 0.15;
+        const score = overlap - usagePenalty;
+        return { volunteerId, overlap, score };
       })
-      .execute();
+      .sort((left, right) => {
+        if (right.score !== left.score) return right.score - left.score;
+        if (right.overlap !== left.overlap) return right.overlap - left.overlap;
+        return left.volunteerId - right.volunteerId;
+      })
+      .slice(0, Math.max(1, limit));
+
+    return ranked;
+  };
+
+  for (const postingMeta of oldPostingSignalMetaByDatasetId.values()) {
+    if ((enrollmentCountByPostingId.get(postingMeta.dbId) ?? 0) > 0) continue;
+
+    const ranked = getSignalVolunteersByFit(postingMeta.skills, 1);
+    const volunteerId = ranked[0]?.volunteerId;
+    if (!volunteerId) continue;
+    await addEnrollment(
+      volunteerId,
+      postingMeta.dbId,
+      true,
+      'Seeded historical participation signal',
+    );
+  }
+
+  for (const [datasetPostingId, postingMeta] of newPostingSignalMetaByDatasetId.entries()) {
+    // Keep present-day enrollment signals realistic without saturating all opportunities.
+    if (datasetPostingId % 2 !== 0) continue;
+    if ((enrollmentCountByPostingId.get(postingMeta.dbId) ?? 0) > 0) continue;
+
+    const ranked = getSignalVolunteersByFit(postingMeta.skills, 4);
+    const cohort = ranked.filter(candidate => candidate.overlap > 0).slice(0, 3);
+    const selected = cohort.length > 0 ? cohort : ranked.slice(0, 1);
+
+    for (const candidate of selected) {
+      await addEnrollment(
+        candidate.volunteerId,
+        postingMeta.dbId,
+        false,
+        'Seeded active enrollment signal',
+      );
+    }
   }
 
   console.log('─────────────────────────────────────────────');
@@ -372,7 +557,8 @@ async function seedRecommendationDataset() {
   console.log(`Volunteers: ${data.volunteers.length}`);
   console.log(`Old postings: ${data.old_postings.length}`);
   console.log(`New postings: ${data.new_postings.length}`);
-  console.log(`Attendances: ${data.attendance_links.length}`);
+  console.log(`Attendances (dataset links): ${data.attendance_links.length}`);
+  console.log(`Total seeded enrollments: ${enrollmentPairs.size}`);
   console.log(`Password (all accounts): ${PASSWORD_PLAIN}`);
 
   await database.destroy();

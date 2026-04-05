@@ -1,4 +1,5 @@
 import config from '../config.ts';
+import executeTransaction from '../db/executeTransaction.ts';
 import database from '../db/index.ts';
 import {
   recomputeOrganizationVector,
@@ -61,19 +62,27 @@ async function recomputeAllEmbeddings() {
     console.log(`\nPass ${pass}/${MAX_PASSES}`);
 
     for (const organizationId of organizationIds) {
-      await recomputeOrganizationVector(organizationId, database);
+      await executeTransaction(database, async (trx) => {
+        await recomputeOrganizationVector(organizationId, trx);
+      });
     }
 
     for (const postingId of postingIds) {
-      await recomputePostingVectors(postingId, database);
+      await executeTransaction(database, async (trx) => {
+        await recomputePostingVectors(postingId, trx);
+      });
     }
 
     for (const volunteerId of volunteerIds) {
-      await recomputeVolunteerProfileVector(volunteerId, database);
+      await executeTransaction(database, async (trx) => {
+        await recomputeVolunteerProfileVector(volunteerId, trx);
+      });
     }
 
     for (const volunteerId of volunteerIds) {
-      await recomputeVolunteerExperienceVector(volunteerId, database);
+      await executeTransaction(database, async (trx) => {
+        await recomputeVolunteerExperienceVector(volunteerId, trx);
+      });
     }
 
     const missing = await getMissingCounts();

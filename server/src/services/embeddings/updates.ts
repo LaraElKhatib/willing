@@ -272,11 +272,11 @@ const buildPostingContextVector = async (
   if (registeredVolunteerVector) {
     return weightedAverage(
       [opportunityVector, organizationVector, registeredVolunteerVector],
-      [0.50, 0.30, 0.20],
+      [0.75, 0.24, 0.01],
     );
   }
 
-  return weightedAverage([opportunityVector, organizationVector], [0.625, 0.375]);
+  return weightedAverage([opportunityVector, organizationVector], [0.7576, 0.2424]);
 };
 
 const recomputeVolunteerExperienceVectorsForPosting = async (postingId: number, executor: DBExecutor) => {
@@ -306,7 +306,7 @@ export const recomputeVolunteerContextVectorOnly = async (volunteerId: number, e
   const experienceVector = parseVectorLiteral(volunteer.volunteer_history_vector);
 
   if (profileVector && experienceVector) {
-    const contextVector = weightedAverage([profileVector, experienceVector], [0.6, 0.4]);
+    const contextVector = weightedAverage([profileVector, experienceVector], [0.75, 0.25]);
     await updateVolunteerContextVector(volunteerId, contextVector, executor);
     return contextVector;
   }
@@ -345,7 +345,7 @@ export const recomputeOrganizationVector = async (organizationId: number, execut
     const historicalPostingVector = parseVectorLiteral(organizationWithHistory.org_history_vector);
 
     const finalOrganizationVector = historicalPostingVector
-      ? weightedAverage([orgProfileVector, historicalPostingVector], [0.5, 0.5])
+      ? weightedAverage([orgProfileVector, historicalPostingVector], [0.6, 0.4])
       : orgProfileVector;
 
     await updateOrganizationVector(organization.id, finalOrganizationVector, executor);
@@ -470,7 +470,7 @@ export const recomputeOrganizationCompositeVectorOnly = async (organizationId: n
 
   const historicalPostingVector = parseVectorLiteral(organization.org_history_vector);
   const organizationCompositeVector = historicalPostingVector
-    ? weightedAverage([orgProfileVector, historicalPostingVector], [0.5, 0.5])
+    ? weightedAverage([orgProfileVector, historicalPostingVector], [0.6, 0.4])
     : orgProfileVector;
 
   await updateOrganizationVector(organization.id, organizationCompositeVector, executor);
