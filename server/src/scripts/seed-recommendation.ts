@@ -6,6 +6,9 @@ import zod from 'zod';
 
 import config from '../config.ts';
 import database from '../db/index.ts';
+import {
+  writeRecommendationCvPdf,
+} from './data/recommendation/cvPdf.ts';
 import { hash } from '../services/bcrypt/index.ts';
 import { CV_UPLOAD_DIR } from '../services/uploads/paths.ts';
 
@@ -244,14 +247,19 @@ async function seedRecommendationDataset() {
   const volunteerIdMap = new Map<number, number>();
   const volunteerSkillsByDbId = new Map<number, string[]>();
   for (const volunteer of data.volunteers) {
-    const sourceCvPath = resolveDatasetFilePath(volunteer.cv_pdf_path);
-    if (!fs.existsSync(sourceCvPath)) {
-      throw new Error(`CV file not found for volunteer ${volunteer.email}: ${sourceCvPath}`);
-    }
-
     const cvFileName = `${toSlug(`${volunteer.id}-${volunteer.first_name}-${volunteer.last_name}`)}.pdf`;
     const targetCvPath = path.join(CV_UPLOAD_DIR, cvFileName);
-    await fs.promises.copyFile(sourceCvPath, targetCvPath);
+    const sourceCvPath = resolveDatasetFilePath(volunteer.cv_pdf_path);
+    if (fs.existsSync(sourceCvPath)) {
+      await fs.promises.copyFile(sourceCvPath, targetCvPath);
+    } else {
+      await writeRecommendationCvPdf(targetCvPath, {
+        ...volunteer,
+        id: volunteer.id,
+        first_name: volunteer.first_name,
+        last_name: volunteer.last_name,
+      });
+    }
 
     const baseVolunteerEmail = volunteer.id === 1
       ? 'vol1@willing.social'
@@ -456,6 +464,9 @@ async function seedRecommendationDataset() {
   const enrollmentPairs = new Set<string>();
   const enrollmentCountByPostingId = new Map<number, number>();
   const volunteerSignalUsageCount = new Map<number, number>();
+  const attendedCountByVolunteerId = new Map<number, number>();
+  const TARGET_HISTORY_COVERAGE = 0.9;
+  const TARGET_ATTENDED_PER_VOLUNTEER = 2;
 
   const addEnrollment = async (
     volunteerId: number,
@@ -479,6 +490,9 @@ async function seedRecommendationDataset() {
     enrollmentPairs.add(pairKey);
     enrollmentCountByPostingId.set(postingId, (enrollmentCountByPostingId.get(postingId) ?? 0) + 1);
     volunteerSignalUsageCount.set(volunteerId, (volunteerSignalUsageCount.get(volunteerId) ?? 0) + 1);
+    if (attended) {
+      attendedCountByVolunteerId.set(volunteerId, (attendedCountByVolunteerId.get(volunteerId) ?? 0) + 1);
+    }
   };
 
   for (const attendance of data.attendance_links) {
@@ -516,6 +530,51 @@ async function seedRecommendationDataset() {
     return ranked;
   };
 
+  const oldPostingSignalMetas = Array.from(oldPostingSignalMetaByDatasetId.values());
+
+  const getRankedOldPostingsByFit = (volunteerId: number, limit: number) => {
+    const volunteerSkills = volunteerSkillsByDbId.get(volunteerId) ?? [];
+    const volunteerSkillSet = new Set(volunteerSkills.map(skill => skill.toLowerCase()));
+    return oldPostingSignalMetas
+      .map((postingMeta) => {
+        const overlap = postingMeta.skills.reduce(
+          (count, skill) => count + (volunteerSkillSet.has(skill.toLowerCase()) ? 1 : 0),
+          0,
+        );
+        const loadPenalty = (enrollmentCountByPostingId.get(postingMeta.dbId) ?? 0) * 0.05;
+        const score = overlap - loadPenalty;
+        return { postingId: postingMeta.dbId, overlap, score };
+      })
+      .sort((left, right) => {
+        if (right.score !== left.score) return right.score - left.score;
+        if (right.overlap !== left.overlap) return right.overlap - left.overlap;
+        return left.postingId - right.postingId;
+      })
+      .slice(0, Math.max(1, limit));
+  };
+
+  const ensureVolunteerHistoricalAttendances = async (
+    volunteerId: number,
+    minAttendedCount: number,
+    allowZeroOverlapFallback: boolean,
+  ) => {
+    let currentCount = attendedCountByVolunteerId.get(volunteerId) ?? 0;
+    if (currentCount >= minAttendedCount) return;
+
+    const ranked = getRankedOldPostingsByFit(volunteerId, 30);
+    for (const candidate of ranked) {
+      if (candidate.overlap <= 0 && !allowZeroOverlapFallback) continue;
+      await addEnrollment(
+        volunteerId,
+        candidate.postingId,
+        true,
+        'Seeded historical participation enrichment',
+      );
+      currentCount = attendedCountByVolunteerId.get(volunteerId) ?? 0;
+      if (currentCount >= minAttendedCount) break;
+    }
+  };
+
   for (const postingMeta of oldPostingSignalMetaByDatasetId.values()) {
     if ((enrollmentCountByPostingId.get(postingMeta.dbId) ?? 0) > 0) continue;
 
@@ -528,6 +587,30 @@ async function seedRecommendationDataset() {
       true,
       'Seeded historical participation signal',
     );
+  }
+
+  const allVolunteerIds = Array.from(volunteerSkillsByDbId.keys()).sort((left, right) => left - right);
+  for (const volunteerId of allVolunteerIds) {
+    await ensureVolunteerHistoricalAttendances(volunteerId, TARGET_ATTENDED_PER_VOLUNTEER, false);
+  }
+
+  const requiredWithHistory = Math.ceil(allVolunteerIds.length * TARGET_HISTORY_COVERAGE);
+  let volunteerIdsWithHistory = allVolunteerIds.filter(
+    volunteerId => (attendedCountByVolunteerId.get(volunteerId) ?? 0) > 0,
+  );
+
+  if (volunteerIdsWithHistory.length < requiredWithHistory) {
+    const withoutHistory = allVolunteerIds.filter(
+      volunteerId => (attendedCountByVolunteerId.get(volunteerId) ?? 0) === 0,
+    );
+
+    for (const volunteerId of withoutHistory) {
+      await ensureVolunteerHistoricalAttendances(volunteerId, 1, true);
+      volunteerIdsWithHistory = allVolunteerIds.filter(
+        id => (attendedCountByVolunteerId.get(id) ?? 0) > 0,
+      );
+      if (volunteerIdsWithHistory.length >= requiredWithHistory) break;
+    }
   }
 
   let processedNewPostingSignals = 0;
@@ -573,6 +656,9 @@ async function seedRecommendationDataset() {
   }
 
   console.log('─────────────────────────────────────────────');
+  const finalVolunteerIdsWithHistory = allVolunteerIds.filter(
+    volunteerId => (attendedCountByVolunteerId.get(volunteerId) ?? 0) > 0,
+  );
   console.log('Recommendation dataset seeded successfully.');
   console.log(`Dataset: ${DATASET_PATH}`);
   console.log(`Crises: ${data.crises.length}`);
@@ -582,6 +668,7 @@ async function seedRecommendationDataset() {
   console.log(`New postings: ${data.new_postings.length}`);
   console.log(`Attendances (dataset links): ${data.attendance_links.length}`);
   console.log(`Total seeded enrollments: ${enrollmentPairs.size}`);
+  console.log(`Volunteers with attended history: ${finalVolunteerIdsWithHistory.length}/${allVolunteerIds.length}`);
   console.log(`Password (all accounts): ${PASSWORD_PLAIN}`);
 
   await database.destroy();
