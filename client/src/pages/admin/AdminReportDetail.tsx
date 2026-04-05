@@ -8,14 +8,13 @@ import Card from '../../components/Card';
 import PageContainer from '../../components/layout/PageContainer';
 import PageHeader from '../../components/layout/PageHeader';
 import Loading from '../../components/Loading';
+import ReportType from '../../components/reporting/ReportType';
 import requestServer from '../../utils/requestServer';
 import useAsync from '../../utils/useAsync';
 
 import type { AdminGetOrganizationReportResponse, AdminGetVolunteerReportResponse } from '../../../../server/src/api/types';
 
 type ReportType = 'organization' | 'volunteer';
-
-const formatReportTitle = (title: string) => title.replaceAll('_', ' ').replace(/^./, firstLetter => firstLetter.toUpperCase());
 
 function AdminReportDetail() {
   const navigate = useNavigate();
@@ -156,9 +155,7 @@ function AdminReportDetail() {
                 <label className="label m-0">
                   <span className="label-text font-semibold">Report Type</span>
                 </label>
-                <div className="badge badge-error badge-outline badge-lg">
-                  {formatReportTitle(report.title)}
-                </div>
+                <ReportType title={report.title} size="lg" />
               </div>
 
               <div>
