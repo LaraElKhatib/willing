@@ -5,7 +5,6 @@ import { truncateAllTables } from './helpers/database.ts';
 
 declare global {
   // Persist migration work across test files in the same process.
-  // eslint-disable-next-line no-var
   var __willingTestMigrationPromise: Promise<void> | undefined;
 }
 
