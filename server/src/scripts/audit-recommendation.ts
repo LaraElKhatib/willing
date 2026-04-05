@@ -37,15 +37,25 @@ const loadDataset = (): AuditDataset => {
 };
 
 const getVectorCoverage = async () => {
-  const [org, postingOpp, postingCtx, volunteerProfile, volunteerExperience] = await Promise.all([
+  const [orgProfile, orgHistory, orgContext, postingOpp, postingCtx, volunteerProfile, volunteerExperience, volunteerContext] = await Promise.all([
     database
       .selectFrom('organization_account')
-      .select(sql<number>`count(*) filter (where org_vector is null)`.as('missing'))
+      .select(sql<number>`count(*) filter (where org_profile_vector is null)`.as('missing'))
+      .select(sql<number>`count(*)`.as('total'))
+      .executeTakeFirstOrThrow(),
+    database
+      .selectFrom('organization_account')
+      .select(sql<number>`count(*) filter (where org_history_vector is null)`.as('missing'))
+      .select(sql<number>`count(*)`.as('total'))
+      .executeTakeFirstOrThrow(),
+    database
+      .selectFrom('organization_account')
+      .select(sql<number>`count(*) filter (where org_context_vector is null)`.as('missing'))
       .select(sql<number>`count(*)`.as('total'))
       .executeTakeFirstOrThrow(),
     database
       .selectFrom('organization_posting')
-      .select(sql<number>`count(*) filter (where opportunity_vector is null)`.as('missing'))
+      .select(sql<number>`count(*) filter (where posting_profile_vector is null)`.as('missing'))
       .select(sql<number>`count(*)`.as('total'))
       .executeTakeFirstOrThrow(),
     database
@@ -55,34 +65,41 @@ const getVectorCoverage = async () => {
       .executeTakeFirstOrThrow(),
     database
       .selectFrom('volunteer_account')
-      .select(sql<number>`count(*) filter (where profile_vector is null)`.as('missing'))
+      .select(sql<number>`count(*) filter (where volunteer_profile_vector is null)`.as('missing'))
       .select(sql<number>`count(*)`.as('total'))
       .executeTakeFirstOrThrow(),
     database
       .selectFrom('volunteer_account')
-      .select(sql<number>`count(*) filter (where experience_vector is null)`.as('missing'))
+      .select(sql<number>`count(*) filter (where volunteer_history_vector is null)`.as('missing'))
+      .select(sql<number>`count(*)`.as('total'))
+      .executeTakeFirstOrThrow(),
+    database
+      .selectFrom('volunteer_account')
+      .select(sql<number>`count(*) filter (where volunteer_context_vector is null)`.as('missing'))
       .select(sql<number>`count(*)`.as('total'))
       .executeTakeFirstOrThrow(),
   ]);
 
   return {
-    organization: { missing: Number(org.missing), total: Number(org.total) },
+    organizationProfile: { missing: Number(orgProfile.missing), total: Number(orgProfile.total) },
+    organizationHistory: { missing: Number(orgHistory.missing), total: Number(orgHistory.total) },
+    organizationContext: { missing: Number(orgContext.missing), total: Number(orgContext.total) },
     postingOpportunity: { missing: Number(postingOpp.missing), total: Number(postingOpp.total) },
     postingContext: { missing: Number(postingCtx.missing), total: Number(postingCtx.total) },
     volunteerProfile: { missing: Number(volunteerProfile.missing), total: Number(volunteerProfile.total) },
     volunteerExperience: { missing: Number(volunteerExperience.missing), total: Number(volunteerExperience.total) },
+    volunteerContext: { missing: Number(volunteerContext.missing), total: Number(volunteerContext.total) },
   };
 };
 
 const getVolunteerRecommendations = async (volunteerId: number) => {
   const vectors = await database
     .selectFrom('volunteer_account')
-    .select(['profile_vector', 'experience_vector'])
+    .select(['volunteer_context_vector'])
     .where('id', '=', volunteerId)
     .executeTakeFirstOrThrow();
 
-  const hasProfile = Boolean(vectors.profile_vector);
-  const hasExperience = Boolean(vectors.experience_vector);
+  const hasContext = Boolean(vectors.volunteer_context_vector);
 
   let query = database
     .selectFrom('organization_posting')
@@ -103,17 +120,9 @@ const getVolunteerRecommendations = async (volunteerId: number) => {
       ),
     ])));
 
-  if (hasProfile && vectors.profile_vector) {
-    const profileSimilarity = sql<number>`1 - (organization_posting.posting_context_vector <=> ${vectors.profile_vector}::vector)`;
-
-    if (hasExperience && vectors.experience_vector) {
-      const experienceSimilarity = sql<number>`1 - (organization_posting.posting_context_vector <=> ${vectors.experience_vector}::vector)`;
-      const finalScore = sql<number>`(0.6 * ${profileSimilarity}) + (0.4 * ${experienceSimilarity})`;
-      query = query.orderBy(sql`${finalScore} desc nulls last`);
-    } else {
-      const profileOnlyScore = sql<number>`0.6 * ${profileSimilarity}`;
-      query = query.orderBy(sql`${profileOnlyScore} desc nulls last`);
-    }
+  if (hasContext && vectors.volunteer_context_vector) {
+    const contextSimilarity = sql<number>`1 - (organization_posting.posting_context_vector <=> ${vectors.volunteer_context_vector}::vector)`;
+    query = query.orderBy(sql`${contextSimilarity} desc nulls last`);
 
     query = query.orderBy('organization_posting.start_date', 'desc').orderBy('organization_posting.start_time', 'desc');
   } else {
@@ -192,11 +201,14 @@ async function main() {
   const coverage = await getVectorCoverage();
 
   console.log('Vector Coverage:');
-  console.log(`- organization_account.org_vector missing: ${coverage.organization.missing}/${coverage.organization.total}`);
-  console.log(`- organization_posting.opportunity_vector missing: ${coverage.postingOpportunity.missing}/${coverage.postingOpportunity.total}`);
+  console.log(`- organization_account.org_profile_vector missing: ${coverage.organizationProfile.missing}/${coverage.organizationProfile.total}`);
+  console.log(`- organization_account.org_history_vector missing: ${coverage.organizationHistory.missing}/${coverage.organizationHistory.total}`);
+  console.log(`- organization_account.org_context_vector missing: ${coverage.organizationContext.missing}/${coverage.organizationContext.total}`);
+  console.log(`- organization_posting.posting_profile_vector missing: ${coverage.postingOpportunity.missing}/${coverage.postingOpportunity.total}`);
   console.log(`- organization_posting.posting_context_vector missing: ${coverage.postingContext.missing}/${coverage.postingContext.total}`);
-  console.log(`- volunteer_account.profile_vector missing: ${coverage.volunteerProfile.missing}/${coverage.volunteerProfile.total}`);
-  console.log(`- volunteer_account.experience_vector missing: ${coverage.volunteerExperience.missing}/${coverage.volunteerExperience.total}`);
+  console.log(`- volunteer_account.volunteer_profile_vector missing: ${coverage.volunteerProfile.missing}/${coverage.volunteerProfile.total}`);
+  console.log(`- volunteer_account.volunteer_history_vector missing: ${coverage.volunteerExperience.missing}/${coverage.volunteerExperience.total}`);
+  console.log(`- volunteer_account.volunteer_context_vector missing: ${coverage.volunteerContext.missing}/${coverage.volunteerContext.total}`);
 
   await auditRecommendations(dataset);
 }

@@ -43,7 +43,38 @@ const updateOrganizationVector = async (organizationId: number, vector: number[]
   await executor
     .updateTable('organization_account')
     .set({
-      org_vector: sql<string>`${vectorToSqlLiteral(vector)}::vector`,
+      org_context_vector: sql<string>`${vectorToSqlLiteral(vector)}::vector`,
+    })
+    .where('id', '=', organizationId)
+    .execute();
+};
+
+const updateOrganizationProfileVector = async (organizationId: number, vector: number[], executor: DBExecutor) => {
+  await executor
+    .updateTable('organization_account')
+    .set({
+      org_profile_vector: sql<string>`${vectorToSqlLiteral(vector)}::vector`,
+    })
+    .where('id', '=', organizationId)
+    .execute();
+};
+
+const updateOrganizationHistoryVector = async (organizationId: number, vector: number[] | null, executor: DBExecutor) => {
+  if (!vector) {
+    await executor
+      .updateTable('organization_account')
+      .set({
+        org_history_vector: sql<string>`NULL`,
+      })
+      .where('id', '=', organizationId)
+      .execute();
+    return;
+  }
+
+  await executor
+    .updateTable('organization_account')
+    .set({
+      org_history_vector: sql<string>`${vectorToSqlLiteral(vector)}::vector`,
     })
     .where('id', '=', organizationId)
     .execute();
@@ -58,7 +89,7 @@ const updatePostingVectors = async (
   await executor
     .updateTable('organization_posting')
     .set({
-      opportunity_vector: sql<string>`${vectorToSqlLiteral(opportunityVector)}::vector`,
+      posting_profile_vector: sql<string>`${vectorToSqlLiteral(opportunityVector)}::vector`,
       posting_context_vector: sql<string>`${vectorToSqlLiteral(postingContextVector)}::vector`,
     })
     .where('id', '=', postingId)
@@ -69,7 +100,7 @@ const updateVolunteerProfileVector = async (volunteerId: number, profileVector: 
   await executor
     .updateTable('volunteer_account')
     .set({
-      profile_vector: sql<string>`${vectorToSqlLiteral(profileVector)}::vector`,
+      volunteer_profile_vector: sql<string>`${vectorToSqlLiteral(profileVector)}::vector`,
     })
     .where('id', '=', volunteerId)
     .execute();
@@ -80,7 +111,7 @@ const updateVolunteerExperienceVector = async (volunteerId: number, experienceVe
     await executor
       .updateTable('volunteer_account')
       .set({
-        experience_vector: sql<string>`NULL`,
+        volunteer_history_vector: sql<string>`NULL`,
       })
       .where('id', '=', volunteerId)
       .execute();
@@ -90,7 +121,7 @@ const updateVolunteerExperienceVector = async (volunteerId: number, experienceVe
   await executor
     .updateTable('volunteer_account')
     .set({
-      experience_vector: sql<string>`${vectorToSqlLiteral(experienceVector)}::vector`,
+      volunteer_history_vector: sql<string>`${vectorToSqlLiteral(experienceVector)}::vector`,
     })
     .where('id', '=', volunteerId)
     .execute();
@@ -102,6 +133,27 @@ const buildOrganizationText = (organization: OrganizationEmbeddingSource) => {
     `Description: ${organization.description ?? ''}`,
     `Location: ${organization.location_name}`,
   ].join('\n');
+};
+
+const updateVolunteerContextVector = async (volunteerId: number, contextVector: number[] | null, executor: DBExecutor) => {
+  if (!contextVector) {
+    await executor
+      .updateTable('volunteer_account')
+      .set({
+        volunteer_context_vector: sql<string>`NULL`,
+      })
+      .where('id', '=', volunteerId)
+      .execute();
+    return;
+  }
+
+  await executor
+    .updateTable('volunteer_account')
+    .set({
+      volunteer_context_vector: sql<string>`${vectorToSqlLiteral(contextVector)}::vector`,
+    })
+    .where('id', '=', volunteerId)
+    .execute();
 };
 
 const updatePostingContextVectorOnly = async (
@@ -121,7 +173,7 @@ const updatePostingContextVectorOnly = async (
 const getOrganizationHistoricalPostingVector = async (organizationId: number, executor: DBExecutor) => {
   const rows = await executor
     .selectFrom('organization_posting')
-    .select(['posting_context_vector', 'opportunity_vector'])
+    .select(['posting_context_vector', 'posting_profile_vector'])
     .where('organization_id', '=', organizationId)
     .where('is_closed', '=', true)
     .orderBy('end_date', 'desc')
@@ -135,7 +187,7 @@ const getOrganizationHistoricalPostingVector = async (organizationId: number, ex
   let validRank = 0;
 
   rows.forEach((row) => {
-    const parsed = parseVectorLiteral(row.posting_context_vector) ?? parseVectorLiteral(row.opportunity_vector);
+    const parsed = parseVectorLiteral(row.posting_context_vector) ?? parseVectorLiteral(row.posting_profile_vector);
     if (!parsed) return;
     vectors.push(parsed);
     weights.push(getOrgHistoryRankWeight(validRank));
@@ -173,15 +225,21 @@ const getPostingRegisteredVolunteerVector = async (postingId: number, executor: 
   const rows = await executor
     .selectFrom('enrollment')
     .innerJoin('volunteer_account', 'volunteer_account.id', 'enrollment.volunteer_id')
-    .select(['volunteer_account.profile_vector', 'volunteer_account.experience_vector'])
+    .select(['volunteer_account.volunteer_profile_vector', 'volunteer_account.volunteer_history_vector', 'volunteer_account.volunteer_context_vector'])
     .where('enrollment.posting_id', '=', postingId)
     .execute();
 
   const vectors: number[][] = [];
 
   rows.forEach((row) => {
-    const profileVector = parseVectorLiteral(row.profile_vector);
-    const experienceVector = parseVectorLiteral(row.experience_vector);
+    const contextVector = parseVectorLiteral(row.volunteer_context_vector);
+    if (contextVector) {
+      vectors.push(contextVector);
+      return;
+    }
+
+    const profileVector = parseVectorLiteral(row.volunteer_profile_vector);
+    const experienceVector = parseVectorLiteral(row.volunteer_history_vector);
 
     if (profileVector && experienceVector) {
       vectors.push(weightedAverage([profileVector, experienceVector], [0.7, 0.3]));
@@ -235,6 +293,38 @@ const recomputeVolunteerExperienceVectorsForPosting = async (postingId: number, 
   }
 };
 
+export const recomputeVolunteerContextVectorOnly = async (volunteerId: number, executor: DBExecutor) => {
+  const volunteer = await executor
+    .selectFrom('volunteer_account')
+    .select(['volunteer_profile_vector', 'volunteer_history_vector'])
+    .where('id', '=', volunteerId)
+    .executeTakeFirst();
+
+  if (!volunteer) return null;
+
+  const profileVector = parseVectorLiteral(volunteer.volunteer_profile_vector);
+  const experienceVector = parseVectorLiteral(volunteer.volunteer_history_vector);
+
+  if (profileVector && experienceVector) {
+    const contextVector = weightedAverage([profileVector, experienceVector], [0.6, 0.4]);
+    await updateVolunteerContextVector(volunteerId, contextVector, executor);
+    return contextVector;
+  }
+
+  if (profileVector) {
+    await updateVolunteerContextVector(volunteerId, profileVector, executor);
+    return profileVector;
+  }
+
+  if (experienceVector) {
+    await updateVolunteerContextVector(volunteerId, experienceVector, executor);
+    return experienceVector;
+  }
+
+  await updateVolunteerContextVector(volunteerId, null, executor);
+  return null;
+};
+
 export const recomputeOrganizationVector = async (organizationId: number, executor: DBExecutor) => {
   let computedVector: number[] | null = null;
   const run = async () => {
@@ -245,7 +335,14 @@ export const recomputeOrganizationVector = async (organizationId: number, execut
       .executeTakeFirstOrThrow();
 
     const orgProfileVector = await embedText(buildOrganizationText(organization));
-    const historicalPostingVector = await getOrganizationHistoricalPostingVector(organization.id, executor);
+    await updateOrganizationProfileVector(organization.id, orgProfileVector, executor);
+    await recomputeOrganizationHistoryVectorOnly(organization.id, executor);
+    const organizationWithHistory = await executor
+      .selectFrom('organization_account')
+      .select(['org_history_vector'])
+      .where('id', '=', organization.id)
+      .executeTakeFirstOrThrow();
+    const historicalPostingVector = parseVectorLiteral(organizationWithHistory.org_history_vector);
 
     const finalOrganizationVector = historicalPostingVector
       ? weightedAverage([orgProfileVector, historicalPostingVector], [0.5, 0.5])
@@ -258,7 +355,7 @@ export const recomputeOrganizationVector = async (organizationId: number, execut
   };
 
   if (executor === database) {
-    const result = await runOrDeferEmbeddingJob(`organization:${organizationId}:org_vector`, run);
+    const result = await runOrDeferEmbeddingJob(`organization:${organizationId}:org_context_vector`, run);
     if (!result.executed) return null;
   } else {
     await run();
@@ -267,15 +364,43 @@ export const recomputeOrganizationVector = async (organizationId: number, execut
   return computedVector;
 };
 
+export const recomputeOrganizationHistoryVectorOnly = async (organizationId: number, executor: DBExecutor) => {
+  const organization = await executor
+    .selectFrom('organization_account')
+    .select(['id'])
+    .where('id', '=', organizationId)
+    .executeTakeFirst();
+
+  if (!organization) return null;
+
+  const historicalPostingVector = await getOrganizationHistoricalPostingVector(organization.id, executor);
+  await updateOrganizationHistoryVector(organization.id, historicalPostingVector, executor);
+  return historicalPostingVector;
+};
+
 const getOrganizationVectorOrCompute = async (organizationId: number, executor: DBExecutor) => {
   const organization = await executor
     .selectFrom('organization_account')
-    .select(['org_vector'])
+    .select(['org_profile_vector', 'org_history_vector', 'org_context_vector'])
     .where('id', '=', organizationId)
     .executeTakeFirstOrThrow();
 
-  const parsed = parseVectorLiteral(organization.org_vector);
-  if (parsed) return parsed;
+  const contextVector = parseVectorLiteral(organization.org_context_vector);
+  if (contextVector) return contextVector;
+
+  const profileVector = parseVectorLiteral(organization.org_profile_vector);
+  if (profileVector) {
+    if (!parseVectorLiteral(organization.org_history_vector)) {
+      await recomputeOrganizationHistoryVectorOnly(organizationId, executor);
+    }
+    await recomputeOrganizationCompositeVectorOnly(organizationId, executor);
+    const refreshed = await executor
+      .selectFrom('organization_account')
+      .select(['org_context_vector'])
+      .where('id', '=', organizationId)
+      .executeTakeFirstOrThrow();
+    return parseVectorLiteral(refreshed.org_context_vector);
+  }
 
   return recomputeOrganizationVector(organizationId, executor);
 };
@@ -322,7 +447,7 @@ export const recomputePostingVectors = async (postingId: number, executor: DBExe
   };
 
   if (executor === database) {
-    const result = await runOrDeferEmbeddingJob(`posting:${postingId}:opportunity_vector`, run);
+    const result = await runOrDeferEmbeddingJob(`posting:${postingId}:posting_profile_vector`, run);
     if (!result.executed) return null;
   } else {
     await run();
@@ -334,16 +459,16 @@ export const recomputePostingVectors = async (postingId: number, executor: DBExe
 export const recomputeOrganizationCompositeVectorOnly = async (organizationId: number, executor: DBExecutor) => {
   const organization = await executor
     .selectFrom('organization_account')
-    .select(['id', 'org_vector'])
+    .select(['id', 'org_profile_vector', 'org_history_vector'])
     .where('id', '=', organizationId)
     .executeTakeFirst();
 
   if (!organization) return;
 
-  const orgProfileVector = parseVectorLiteral(organization.org_vector);
+  const orgProfileVector = parseVectorLiteral(organization.org_profile_vector);
   if (!orgProfileVector) return;
 
-  const historicalPostingVector = await getOrganizationHistoricalPostingVector(organization.id, executor);
+  const historicalPostingVector = parseVectorLiteral(organization.org_history_vector);
   const organizationCompositeVector = historicalPostingVector
     ? weightedAverage([orgProfileVector, historicalPostingVector], [0.5, 0.5])
     : orgProfileVector;
@@ -358,13 +483,13 @@ export const recomputePostingContextVectorOnly = async (
 ) => {
   const posting = await executor
     .selectFrom('organization_posting')
-    .select(['id', 'organization_id', 'opportunity_vector'])
+    .select(['id', 'organization_id', 'posting_profile_vector'])
     .where('id', '=', postingId)
     .executeTakeFirst();
 
   if (!posting) return;
 
-  const opportunityVector = parseVectorLiteral(posting.opportunity_vector);
+  const opportunityVector = parseVectorLiteral(posting.posting_profile_vector);
   if (!opportunityVector) {
     if (options?.skipIfMissingOpportunityVector) {
       return;
@@ -400,12 +525,13 @@ export const recomputeVolunteerProfileVector = async (volunteerId: number, execu
     const profileVector = await embedText(buildVolunteerProfileText(volunteer, skills.map(skill => skill.name), cvText));
 
     await updateVolunteerProfileVector(volunteer.id, profileVector, executor);
+    await recomputeVolunteerContextVectorOnly(volunteer.id, executor);
     computedProfileVector = profileVector;
     await recomputePostingVectorsForVolunteerEnrollments(volunteer.id, executor);
   };
 
   if (executor === database) {
-    const result = await runOrDeferEmbeddingJob(`volunteer:${volunteerId}:profile_vector`, run);
+    const result = await runOrDeferEmbeddingJob(`volunteer:${volunteerId}:volunteer_profile_vector`, run);
     if (!result.executed) return null;
   } else {
     await run();
@@ -453,38 +579,40 @@ export const recomputeVolunteerExperienceVector = async (volunteerId: number, ex
 
   if (vectors.length === 0) {
     if (rows.length === 0) {
-      console.info(`[embeddings] No attended experiences found for volunteer ${volunteerId}. Leaving experience_vector as NULL.`);
+      console.info(`[embeddings] No attended experiences found for volunteer ${volunteerId}. Leaving volunteer_history_vector as NULL.`);
     } else {
       console.warn(`[embeddings] Attended enrollments exist for volunteer ${volunteerId}, but no valid posting_context_vector values were found.`);
     }
     await updateVolunteerExperienceVector(volunteerId, null, executor);
+    await recomputeVolunteerContextVectorOnly(volunteerId, executor);
     return null;
   }
 
   // More recent experiences receive higher rank-based weights.
   const experienceVector = weightedAverage(vectors, weights);
   await updateVolunteerExperienceVector(volunteerId, experienceVector, executor);
+  await recomputeVolunteerContextVectorOnly(volunteerId, executor);
   return experienceVector;
 };
 
 export const recomputePostingContextVectorsForOrganization = async (organizationId: number, executor: DBExecutor) => {
   const organization = await executor
     .selectFrom('organization_account')
-    .select(['org_vector'])
+    .select(['org_context_vector'])
     .where('id', '=', organizationId)
     .executeTakeFirstOrThrow();
 
-  const orgVector = parseVectorLiteral(organization.org_vector);
+  const orgVector = parseVectorLiteral(organization.org_context_vector);
   if (!orgVector) return;
 
   const postings = await executor
     .selectFrom('organization_posting')
-    .select(['id', 'opportunity_vector'])
+    .select(['id', 'posting_profile_vector'])
     .where('organization_id', '=', organizationId)
     .execute();
 
   for (const posting of postings) {
-    const opportunityVector = parseVectorLiteral(posting.opportunity_vector);
+    const opportunityVector = parseVectorLiteral(posting.posting_profile_vector);
     if (!opportunityVector) {
       await recomputePostingVectors(posting.id, executor);
       continue;

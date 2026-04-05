@@ -95,7 +95,7 @@ const organizationProfileUpdateSchema = organizationAccountSchema
     email: true,
     name: true,
     url: true,
-    org_vector: true,
+    org_context_vector: true,
     created_at: true,
     updated_at: true,
   })

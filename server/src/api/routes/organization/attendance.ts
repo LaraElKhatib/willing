@@ -9,7 +9,7 @@ import {
 } from './attendance.types.ts';
 import { getPostingEnrollments } from './postingEnrollments.ts';
 import { type Database } from '../../../db/tables/index.ts';
-import { recomputeVolunteerExperienceVector } from '../../../services/embeddings/updates.ts';
+import { recomputePostingVectorsForVolunteerEnrollments, recomputeVolunteerExperienceVector } from '../../../services/embeddings/updates.ts';
 
 const postingIdParamsSchema = zod.object({
   id: zod.coerce.number().int().positive('ID must be a positive number'),
@@ -91,7 +91,10 @@ function createOrganizationAttendanceRouter(db: Kysely<Database>) {
       .execute();
 
     const volunteerIds = Array.from(new Set(changed.map(row => row.volunteer_id)));
-    await Promise.all(volunteerIds.map(volunteerId => recomputeVolunteerExperienceVector(volunteerId, db)));
+    await Promise.all(volunteerIds.map(async (volunteerId) => {
+      await recomputeVolunteerExperienceVector(volunteerId, db);
+      await recomputePostingVectorsForVolunteerEnrollments(volunteerId, db);
+    }));
 
     res.json({ updated_count: changed.length });
   });
@@ -190,6 +193,7 @@ function createOrganizationAttendanceRouter(db: Kysely<Database>) {
       .execute();
 
     await recomputeVolunteerExperienceVector(enrollment.volunteer_id, db);
+    await recomputePostingVectorsForVolunteerEnrollments(enrollment.volunteer_id, db);
 
     res.json({});
   });

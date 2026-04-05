@@ -1,6 +1,7 @@
 import config from '../config.ts';
 import database from '../db/index.ts';
 import {
+  recomputeOrganizationHistoryVectorOnly,
   recomputeOrganizationCompositeVectorOnly,
   recomputePostingContextVectorOnly,
   recomputeVolunteerExperienceVector,
@@ -21,20 +22,26 @@ const getIds = async () => {
 };
 
 const getMissingCounts = async () => {
-  const [org, opp, ctx, profile, experience] = await Promise.all([
-    database.selectFrom('organization_account').select(eb => eb.fn.countAll().as('count')).where('org_vector', 'is', null).executeTakeFirstOrThrow(),
-    database.selectFrom('organization_posting').select(eb => eb.fn.countAll().as('count')).where('opportunity_vector', 'is', null).executeTakeFirstOrThrow(),
+  const [orgProfile, orgHistory, orgContext, opp, ctx, profile, experience, volunteerContext] = await Promise.all([
+    database.selectFrom('organization_account').select(eb => eb.fn.countAll().as('count')).where('org_profile_vector', 'is', null).executeTakeFirstOrThrow(),
+    database.selectFrom('organization_account').select(eb => eb.fn.countAll().as('count')).where('org_history_vector', 'is', null).executeTakeFirstOrThrow(),
+    database.selectFrom('organization_account').select(eb => eb.fn.countAll().as('count')).where('org_context_vector', 'is', null).executeTakeFirstOrThrow(),
+    database.selectFrom('organization_posting').select(eb => eb.fn.countAll().as('count')).where('posting_profile_vector', 'is', null).executeTakeFirstOrThrow(),
     database.selectFrom('organization_posting').select(eb => eb.fn.countAll().as('count')).where('posting_context_vector', 'is', null).executeTakeFirstOrThrow(),
-    database.selectFrom('volunteer_account').select(eb => eb.fn.countAll().as('count')).where('profile_vector', 'is', null).executeTakeFirstOrThrow(),
-    database.selectFrom('volunteer_account').select(eb => eb.fn.countAll().as('count')).where('experience_vector', 'is', null).executeTakeFirstOrThrow(),
+    database.selectFrom('volunteer_account').select(eb => eb.fn.countAll().as('count')).where('volunteer_profile_vector', 'is', null).executeTakeFirstOrThrow(),
+    database.selectFrom('volunteer_account').select(eb => eb.fn.countAll().as('count')).where('volunteer_history_vector', 'is', null).executeTakeFirstOrThrow(),
+    database.selectFrom('volunteer_account').select(eb => eb.fn.countAll().as('count')).where('volunteer_context_vector', 'is', null).executeTakeFirstOrThrow(),
   ]);
 
   return {
-    orgMissing: Number(org.count),
+    orgProfileMissing: Number(orgProfile.count),
+    orgHistoryMissing: Number(orgHistory.count),
+    orgContextMissing: Number(orgContext.count),
     opportunityMissing: Number(opp.count),
-    contextMissing: Number(ctx.count),
+    postingContextMissing: Number(ctx.count),
     profileMissing: Number(profile.count),
     experienceMissing: Number(experience.count),
+    volunteerContextMissing: Number(volunteerContext.count),
   };
 };
 
@@ -49,6 +56,7 @@ async function recomputeCompositeVectors() {
   console.log(`Organizations: ${organizationIds.length}, Postings: ${postingIds.length}, Volunteers: ${volunteerIds.length}`);
 
   for (const organizationId of organizationIds) {
+    await recomputeOrganizationHistoryVectorOnly(organizationId, database);
     await recomputeOrganizationCompositeVectorOnly(organizationId, database);
   }
 
@@ -62,7 +70,7 @@ async function recomputeCompositeVectors() {
 
   const missing = await getMissingCounts();
   console.log(
-    `Missing vectors: org=${missing.orgMissing}, opportunity=${missing.opportunityMissing}, context=${missing.contextMissing}, profile=${missing.profileMissing}, experience=${missing.experienceMissing}`,
+    `Missing vectors: org_profile=${missing.orgProfileMissing}, org_history=${missing.orgHistoryMissing}, org_context=${missing.orgContextMissing}, opportunity=${missing.opportunityMissing}, posting_context=${missing.postingContextMissing}, profile=${missing.profileMissing}, experience=${missing.experienceMissing}, volunteer_context=${missing.volunteerContextMissing}`,
   );
 }
 

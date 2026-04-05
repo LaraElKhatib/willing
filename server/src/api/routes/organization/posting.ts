@@ -21,6 +21,10 @@ import { type Database,
   type NewOrganizationPosting,
   type PostingSkill } from '../../../db/tables/index.ts';
 import {
+  recomputeOrganizationHistoryVectorOnly,
+  recomputeOrganizationCompositeVectorOnly,
+  recomputePostingContextVectorsForOrganization,
+  recomputePostingContextVectorOnly,
   recomputePostingVectors,
   recomputeVolunteerExperienceVector,
 } from '../../../services/embeddings/updates.ts';
@@ -346,6 +350,7 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
         'end_time',
         'minimum_age',
         'max_volunteers',
+        'is_closed',
       ])
       .where('id', '=', postingId)
       .where('organization_id', '=', orgId)
@@ -384,6 +389,7 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
       || (body.max_volunteers !== undefined && (body.max_volunteers ?? null) !== (posting.max_volunteers ?? null))
       || didSkillsChange
     );
+    const didClosedStateChange = body.is_closed !== undefined && body.is_closed !== posting.is_closed;
 
     await executeTransaction(db, async (trx) => {
       const postingFields: Record<string, unknown> = {};
@@ -433,6 +439,11 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
 
     if (shouldRecomputePostingVectors) {
       await recomputePostingVectors(postingId, db);
+    }
+    if (didClosedStateChange) {
+      await recomputeOrganizationHistoryVectorOnly(orgId, db);
+      await recomputeOrganizationCompositeVectorOnly(orgId, db);
+      await recomputePostingContextVectorsForOrganization(orgId, db);
     }
 
     const updatedPosting = await db
@@ -492,6 +503,9 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
     for (const volunteerId of impactedVolunteerIds) {
       await recomputeVolunteerExperienceVector(volunteerId, db);
     }
+    await recomputeOrganizationHistoryVectorOnly(orgId, db);
+    await recomputeOrganizationCompositeVectorOnly(orgId, db);
+    await recomputePostingContextVectorsForOrganization(orgId, db);
 
     res.json({});
   });
@@ -645,7 +659,7 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
           volunteer_id: application.volunteer_id,
           posting_id: application.posting_id,
           message: application.message ?? undefined,
-          attended: true,
+          attended: false,
         })
         .returningAll()
         .executeTakeFirst();
@@ -659,8 +673,7 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
         .where('id', '=', applicationId)
         .execute();
     });
-    await recomputePostingVectors(postingId, db);
-    await recomputeVolunteerExperienceVector(application.volunteer_id, db);
+    await recomputePostingContextVectorOnly(postingId, db);
     if (emailContext) {
       try {
         await sendVolunteerApplicationAcceptedEmail({
