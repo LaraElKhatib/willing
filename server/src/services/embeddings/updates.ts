@@ -20,6 +20,9 @@ const ORG_HISTORY_DECAY_LAMBDA = 0.25;
 
 const getRecencyRankWeight = (rank: number) => Math.exp(-EXPERIENCE_VECTOR_DECAY_LAMBDA * rank);
 const getOrgHistoryRankWeight = (rank: number) => Math.exp(-ORG_HISTORY_DECAY_LAMBDA * rank);
+const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
+const cosineSimilarity = (left: number[], right: number[]) =>
+  left.reduce((sum, value, index) => sum + (value * (right[index] ?? 0)), 0);
 
 type OrganizationEmbeddingSource = Pick<OrganizationAccount, 'name' | 'description' | 'location_name'>;
 type PostingEmbeddingSource = Pick<OrganizationPosting, 'title' | 'description' | 'location_name' | 'start_date' | 'start_time' | 'end_date' | 'end_time' | 'minimum_age' | 'max_volunteers'>;
@@ -221,7 +224,17 @@ const buildVolunteerProfileText = (volunteer: VolunteerProfileEmbeddingSource, s
   ].join('\n');
 };
 
-const getPostingRegisteredVolunteerVector = async (postingId: number, executor: DBExecutor) => {
+type PostingRegisteredVolunteerSignal = {
+  vector: number[];
+  alignedVolunteerCount: number;
+  coherence: number;
+};
+
+const getPostingRegisteredVolunteerVector = async (
+  postingId: number,
+  intentVector: number[],
+  executor: DBExecutor,
+): Promise<PostingRegisteredVolunteerSignal | null> => {
   const rows = await executor
     .selectFrom('enrollment')
     .innerJoin('volunteer_account', 'volunteer_account.id', 'enrollment.volunteer_id')
@@ -229,36 +242,38 @@ const getPostingRegisteredVolunteerVector = async (postingId: number, executor: 
     .where('enrollment.posting_id', '=', postingId)
     .execute();
 
-  const vectors: number[][] = [];
+  const alignedVectors: number[][] = [];
+  const alignedWeights: number[] = [];
+  const alignmentScores: number[] = [];
 
   rows.forEach((row) => {
     const contextVector = parseVectorLiteral(row.volunteer_context_vector);
-    if (contextVector) {
-      vectors.push(contextVector);
-      return;
-    }
-
     const profileVector = parseVectorLiteral(row.volunteer_profile_vector);
     const experienceVector = parseVectorLiteral(row.volunteer_history_vector);
 
-    if (profileVector && experienceVector) {
-      vectors.push(weightedAverage([profileVector, experienceVector], [0.7, 0.3]));
-      return;
-    }
+    const volunteerVector = contextVector ?? (profileVector && experienceVector
+      ? weightedAverage([profileVector, experienceVector], [0.7, 0.3])
+      : profileVector ?? experienceVector ?? null);
 
-    if (profileVector) {
-      vectors.push(profileVector);
-      return;
-    }
+    if (!volunteerVector) return;
 
-    if (experienceVector) {
-      vectors.push(experienceVector);
-    }
+    const alignment = cosineSimilarity(volunteerVector, intentVector);
+    const alignmentWeight = clamp01((alignment + 1) / 2);
+
+    if (alignmentWeight < 0.45) return;
+
+    alignedVectors.push(volunteerVector);
+    alignedWeights.push(alignmentWeight);
+    alignmentScores.push(alignmentWeight);
   });
 
-  if (vectors.length === 0) return null;
+  if (alignedVectors.length < 2) return null;
 
-  return weightedAverage(vectors, vectors.map(() => 1));
+  return {
+    vector: weightedAverage(alignedVectors, alignedWeights),
+    alignedVolunteerCount: alignedVectors.length,
+    coherence: alignmentScores.reduce((sum, value) => sum + value, 0) / alignmentScores.length,
+  };
 };
 
 const buildPostingContextVector = async (
@@ -267,16 +282,21 @@ const buildPostingContextVector = async (
   organizationVector: number[],
   executor: DBExecutor,
 ) => {
-  const registeredVolunteerVector = await getPostingRegisteredVolunteerVector(postingId, executor);
+  const postingIntentVector = weightedAverage([opportunityVector, organizationVector], [0.75, 0.25]);
+  const registeredVolunteerSignal = await getPostingRegisteredVolunteerVector(postingId, postingIntentVector, executor);
 
-  if (registeredVolunteerVector) {
+  if (registeredVolunteerSignal) {
+    const reliability = clamp01(((registeredVolunteerSignal.alignedVolunteerCount - 1) / 4) * registeredVolunteerSignal.coherence);
+    const enrolledWeight = 0.05 + (0.15 * reliability);
+    const organizationWeight = 0.25;
+    const opportunityWeight = 1 - organizationWeight - enrolledWeight;
     return weightedAverage(
-      [opportunityVector, organizationVector, registeredVolunteerVector],
-      [0.75, 0.24, 0.01],
+      [opportunityVector, organizationVector, registeredVolunteerSignal.vector],
+      [opportunityWeight, organizationWeight, enrolledWeight],
     );
   }
 
-  return weightedAverage([opportunityVector, organizationVector], [0.7576, 0.2424]);
+  return weightedAverage([opportunityVector, organizationVector], [0.75, 0.25]);
 };
 
 const recomputeVolunteerExperienceVectorsForPosting = async (postingId: number, executor: DBExecutor) => {

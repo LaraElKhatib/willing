@@ -521,7 +521,7 @@ async function seedRecommendationDataset() {
 
     const ranked = getSignalVolunteersByFit(postingMeta.skills, 1);
     const volunteerId = ranked[0]?.volunteerId;
-    if (!volunteerId) continue;
+    if (!volunteerId || (ranked[0]?.overlap ?? 0) <= 0) continue;
     await addEnrollment(
       volunteerId,
       postingMeta.dbId,
@@ -530,14 +530,18 @@ async function seedRecommendationDataset() {
     );
   }
 
+  let processedNewPostingSignals = 0;
   for (const [datasetPostingId, postingMeta] of newPostingSignalMetaByDatasetId.entries()) {
     // Keep present-day enrollment signals realistic without saturating all opportunities.
-    if (datasetPostingId % 2 !== 0) continue;
+    if (datasetPostingId % 3 === 0) continue;
     if ((enrollmentCountByPostingId.get(postingMeta.dbId) ?? 0) > 0) continue;
 
-    const ranked = getSignalVolunteersByFit(postingMeta.skills, 4);
-    const cohort = ranked.filter(candidate => candidate.overlap > 0).slice(0, 3);
-    const selected = cohort.length > 0 ? cohort : ranked.slice(0, 1);
+    const ranked = getSignalVolunteersByFit(postingMeta.skills, 8);
+    const primaryCohort = ranked.filter(candidate => candidate.overlap >= 2).slice(0, 3);
+    const secondaryCohort = ranked.filter(candidate => candidate.overlap >= 1).slice(0, 2);
+    const selected = primaryCohort.length > 0
+      ? primaryCohort
+      : secondaryCohort;
 
     for (const candidate of selected) {
       await addEnrollment(
@@ -547,6 +551,25 @@ async function seedRecommendationDataset() {
         'Seeded active enrollment signal',
       );
     }
+
+    // Keep a low anomaly rate so recommendations stay realistic but not synthetic-perfect.
+    const shouldAddAnomaly = processedNewPostingSignals % 12 === 0;
+    if (shouldAddAnomaly) {
+      const anomaly = ranked
+        .filter(candidate => candidate.overlap === 0)
+        .sort((left, right) => (volunteerSignalUsageCount.get(left.volunteerId) ?? 0) - (volunteerSignalUsageCount.get(right.volunteerId) ?? 0))[0];
+
+      if (anomaly) {
+        await addEnrollment(
+          anomaly.volunteerId,
+          postingMeta.dbId,
+          false,
+          'Seeded anomaly enrollment signal',
+        );
+      }
+    }
+
+    processedNewPostingSignals += 1;
   }
 
   console.log('─────────────────────────────────────────────');
