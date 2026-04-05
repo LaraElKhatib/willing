@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AlertTriangle, Building2, Calendar, Clock3, Download, FileText, Flag, Mail, Mars, Users, Venus, X } from 'lucide-react';
+import { AlertTriangle, Building2, Calendar, Clock3, Download, FileText, Flag, Mail, Mars, Users, Venus } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { useForm, useWatch } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { useParams } from 'react-router';
 import zod from 'zod';
 
@@ -13,9 +13,9 @@ import PageHeader from '../../components/layout/PageHeader';
 import Loading from '../../components/Loading';
 import PostingCollection from '../../components/postings/PostingCollection';
 import PostingViewModeToggle from '../../components/postings/PostingViewModeToggle';
+import ReportForm from '../../components/reporting/ReportForm';
 import SkillsList from '../../components/skills/SkillsList';
 import useNotifications from '../../notifications/useNotifications';
-import { FormField, FormRootError } from '../../utils/formUtils';
 import requestServer, { SERVER_BASE_URL } from '../../utils/requestServer';
 import useAsync from '../../utils/useAsync';
 
@@ -53,12 +53,6 @@ function OrganizationVolunteerProfile() {
       message: '',
     },
   });
-  const reportMessage = useWatch({
-    control: reportForm.control,
-    name: 'message',
-  }) ?? '';
-  const reportMessageLength = reportMessage?.length ?? 0;
-
   const {
     data,
     loading,
@@ -464,71 +458,18 @@ function OrganizationVolunteerProfile() {
         </div>
       </div>
 
-      <div className={`modal ${reportModalOpen ? 'modal-open' : ''}`}>
-        <div className="modal-box border border-base-300">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="font-bold text-lg">Report Volunteer</h3>
-            <IconButton
-              type="button"
-              Icon={X}
-              onClick={closeReportModal}
-              loading={submittingReport}
-              aria-label="Close report modal"
-              title="Close"
-            />
-          </div>
-
-          <form onSubmit={submitReportForm} className="space-y-2">
-            <FormField
-              form={reportForm}
-              name="title"
-              label="Report Type"
-              selectOptions={[
-                { label: 'Scam', value: 'scam' },
-                { label: 'Impersonation', value: 'impersonation' },
-                { label: 'Harassment', value: 'harassment' },
-                { label: 'Inappropriate behavior', value: 'inappropriate_behavior' },
-                { label: 'Other', value: 'other' },
-              ]}
-            />
-
-            <FormField
-              form={reportForm}
-              name="message"
-              label="Message"
-              type="textarea"
-              placeholder="Describe what happened and why you are reporting this volunteer."
-            />
-            <p className="text-xs opacity-70 text-right px-1">
-              {`${reportMessageLength}/1000`}
-            </p>
-
-            <FormRootError form={reportForm} />
-
-            <div className="modal-action">
-              <Button
-                type="button"
-                color="ghost"
-                Icon={X}
-                onClick={closeReportModal}
-                disabled={submittingReport}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                color="error"
-                Icon={Flag}
-                loading={submittingReport}
-                disabled={!canSubmitReport}
-              >
-                Report volunteer
-              </Button>
-            </div>
-          </form>
-        </div>
-        <div className="modal-backdrop" onClick={closeReportModal}>Close</div>
-      </div>
+      <ReportForm
+        open={reportModalOpen}
+        heading="Report Volunteer"
+        form={reportForm}
+        onClose={closeReportModal}
+        onSubmit={submitReportForm}
+        messagePlaceholder="Describe what happened and why you are reporting this volunteer."
+        submitLabel="Report volunteer"
+        submitting={submittingReport}
+        submitDisabled={!canSubmitReport}
+        maxMessageLength={1000}
+      />
     </div>
   );
 }

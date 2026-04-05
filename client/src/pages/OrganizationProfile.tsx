@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Building2, ClipboardList, Flag, Globe, Mail, MapPin, Phone, X } from 'lucide-react';
+import { Building2, ClipboardList, Flag, Globe, Mail, MapPin, Phone } from 'lucide-react';
 import { useContext, useMemo, useState } from 'react';
-import { useForm, useWatch } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { useParams } from 'react-router-dom';
 import zod from 'zod';
 
@@ -9,7 +9,6 @@ import AuthContext from '../auth/AuthContext';
 import Button from '../components/Button';
 import Card from '../components/Card';
 import EmptyState from '../components/EmptyState';
-import IconButton from '../components/IconButton';
 import ColumnLayout from '../components/layout/ColumnLayout';
 import PageContainer from '../components/layout/PageContainer';
 import PageHeader from '../components/layout/PageHeader';
@@ -17,8 +16,8 @@ import LocationPicker from '../components/LocationPicker';
 import OrganizationProfilePicture from '../components/OrganizationProfilePicture';
 import PostingCollection from '../components/postings/PostingCollection';
 import PostingViewModeToggle from '../components/postings/PostingViewModeToggle';
+import ReportForm from '../components/reporting/ReportForm';
 import useNotifications from '../notifications/useNotifications';
-import { FormField, FormRootError } from '../utils/formUtils';
 import requestServer from '../utils/requestServer';
 import useAsync from '../utils/useAsync';
 
@@ -47,12 +46,6 @@ function OrganizationProfile() {
       message: '',
     },
   });
-  const reportMessage = useWatch({
-    control: reportForm.control,
-    name: 'message',
-    defaultValue: '',
-  });
-  const reportMessageLength = reportMessage.length;
 
   const { data, loading, error } = useAsync(
     async () => {
@@ -93,6 +86,7 @@ function OrganizationProfile() {
       body: reportData,
     });
   }, { notifyOnError: false });
+  const canSubmitReport = reportForm.formState.isValid && !submittingReport;
 
   const submitReportForm = async (formData: ReportOrganizationFormData) => {
     reportForm.clearErrors('root');
@@ -324,71 +318,18 @@ function OrganizationProfile() {
         </ColumnLayout>
       )}
 
-      <div className={`modal ${reportModalOpen ? 'modal-open' : ''}`}>
-        <div className="modal-box border border-base-300">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="font-bold text-lg">Report Organization</h3>
-            <IconButton
-              type="button"
-              Icon={X}
-              onClick={closeReportModal}
-              aria-label="Close report modal"
-              title="Close"
-            />
-          </div>
-
-          <form className="space-y-2">
-            <FormField
-              form={reportForm}
-              name="title"
-              label="Report Type"
-              selectOptions={[
-                { label: 'Scam', value: 'scam' },
-                { label: 'Impersonation', value: 'impersonation' },
-                { label: 'Harassment', value: 'harassment' },
-                { label: 'Inappropriate behavior', value: 'inappropriate_behavior' },
-                { label: 'Other', value: 'other' },
-              ]}
-            />
-
-            <FormField
-              form={reportForm}
-              name="message"
-              label="Message"
-              type="textarea"
-              placeholder="Describe what happened and why you are reporting this organization."
-            />
-
-            <div className="text-xs text-base-content/50 text-right">
-              {reportMessageLength}
-              /1000 characters
-            </div>
-
-            <FormRootError form={reportForm} />
-          </form>
-
-          <div className="modal-action mt-6">
-            <Button
-              type="button"
-              color="ghost"
-              Icon={X}
-              onClick={closeReportModal}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              color="error"
-              loading={submittingReport}
-              disabled={!reportForm.formState.isValid || submittingReport}
-              onClick={handleSubmitReportForm}
-            >
-              Report Organization
-            </Button>
-          </div>
-        </div>
-        <div className="modal-backdrop" onClick={closeReportModal}>Close</div>
-      </div>
+      <ReportForm
+        open={reportModalOpen}
+        heading="Report Organization"
+        form={reportForm}
+        onClose={closeReportModal}
+        onSubmit={handleSubmitReportForm}
+        messagePlaceholder="Describe what happened and why you are reporting this organization."
+        submitLabel="Report organization"
+        submitting={submittingReport}
+        submitDisabled={!canSubmitReport}
+        maxMessageLength={1000}
+      />
     </PageContainer>
   );
 }
