@@ -1,15 +1,15 @@
 import { sql } from 'kysely';
 
-import config from '../config.ts';
-import database from '../db/index.ts';
-import { hash } from '../services/bcrypt/index.ts';
-import { EMBEDDING_DIMENSIONS } from '../services/embeddings/index.ts';
+import config from '../../config.ts';
+import database from '../../db/index.ts';
+import { hash } from '../../services/bcrypt/index.ts';
+import { EMBEDDING_DIMENSIONS } from '../../services/embeddings/index.ts';
 import {
   recomputeOrganizationVector,
   recomputePostingVectors,
   recomputeVolunteerExperienceVector,
   recomputeVolunteerProfileVector,
-} from '../services/embeddings/updates.ts';
+} from '../../services/embeddings/updates.ts';
 
 const TEST_PASSWORD_HASH = await hash('Willing123');
 

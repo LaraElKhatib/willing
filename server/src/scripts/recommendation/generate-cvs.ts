@@ -6,7 +6,7 @@ import zod from 'zod';
 import {
   buildRecommendationCvFileName,
   writeRecommendationCvPdf,
-} from './data/recommendation/cvPdf.ts';
+} from '../data/recommendation/cvPdf.ts';
 
 const DATASET_PATH = path.resolve('src/scripts/data/recommendation/dataset.json');
 const CV_DIR = path.resolve('src/scripts/data/recommendation/cv');

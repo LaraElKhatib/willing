@@ -4,8 +4,8 @@ import path from 'path';
 import { sql } from 'kysely';
 import zod from 'zod';
 
-import config from '../config.ts';
-import database from '../db/index.ts';
+import config from '../../config.ts';
+import database from '../../db/index.ts';
 
 const DATASET_PATH = path.resolve('src/scripts/data/recommendation/dataset.json');
 const TOP_K = 5;

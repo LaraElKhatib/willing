@@ -1,14 +1,11 @@
-import config from '../config.ts';
-import executeTransaction from '../db/executeTransaction.ts';
-import database from '../db/index.ts';
+import config from '../../config.ts';
+import database from '../../db/index.ts';
 import {
-  recomputeOrganizationVector,
-  recomputePostingVectors,
+  recomputeOrganizationHistoryVectorOnly,
+  recomputeOrganizationCompositeVectorOnly,
+  recomputePostingContextVectorOnly,
   recomputeVolunteerExperienceVector,
-  recomputeVolunteerProfileVector,
-} from '../services/embeddings/updates.ts';
-
-const MAX_PASSES = 3;
+} from '../../services/embeddings/updates.ts';
 
 const getIds = async () => {
   const [organizationRows, postingRows, volunteerRows] = await Promise.all([
@@ -41,72 +38,45 @@ const getMissingCounts = async () => {
     orgHistoryMissing: Number(orgHistory.count),
     orgContextMissing: Number(orgContext.count),
     opportunityMissing: Number(opp.count),
-    contextMissing: Number(ctx.count),
+    postingContextMissing: Number(ctx.count),
     profileMissing: Number(profile.count),
     experienceMissing: Number(experience.count),
     volunteerContextMissing: Number(volunteerContext.count),
   };
 };
 
-async function recomputeAllEmbeddings() {
+async function recomputeCompositeVectors() {
   if (config.NODE_ENV === 'production') {
-    throw new Error('Refusing to recompute all embeddings in production.');
+    throw new Error('Refusing to recompute composite vectors in production.');
   }
 
   const { organizationIds, postingIds, volunteerIds } = await getIds();
 
-  console.log('Starting full embedding recomputation...');
+  console.log('Starting composite-only vector recomputation (no OpenAI embedding calls)...');
   console.log(`Organizations: ${organizationIds.length}, Postings: ${postingIds.length}, Volunteers: ${volunteerIds.length}`);
 
-  for (let pass = 1; pass <= MAX_PASSES; pass += 1) {
-    console.log(`\nPass ${pass}/${MAX_PASSES}`);
-
-    for (const organizationId of organizationIds) {
-      await executeTransaction(database, async (trx) => {
-        await recomputeOrganizationVector(organizationId, trx);
-      });
-    }
-
-    for (const postingId of postingIds) {
-      await executeTransaction(database, async (trx) => {
-        await recomputePostingVectors(postingId, trx);
-      });
-    }
-
-    for (const volunteerId of volunteerIds) {
-      await executeTransaction(database, async (trx) => {
-        await recomputeVolunteerProfileVector(volunteerId, trx);
-      });
-    }
-
-    for (const volunteerId of volunteerIds) {
-      await executeTransaction(database, async (trx) => {
-        await recomputeVolunteerExperienceVector(volunteerId, trx);
-      });
-    }
-
-    const missing = await getMissingCounts();
-    console.log(
-      `Missing vectors after pass ${pass}: org_profile=${missing.orgProfileMissing}, org_history=${missing.orgHistoryMissing}, org_context=${missing.orgContextMissing}, opportunity=${missing.opportunityMissing}, posting_context=${missing.contextMissing}, profile=${missing.profileMissing}, experience=${missing.experienceMissing}, volunteer_context=${missing.volunteerContextMissing}`,
-    );
-
-    if (missing.orgProfileMissing === 0
-      && missing.orgHistoryMissing === 0
-      && missing.orgContextMissing === 0
-      && missing.opportunityMissing === 0
-      && missing.contextMissing === 0
-      && missing.profileMissing === 0
-      && missing.volunteerContextMissing === 0
-    ) {
-      console.log('Core vector fields are fully populated.');
-      break;
-    }
+  for (const organizationId of organizationIds) {
+    await recomputeOrganizationHistoryVectorOnly(organizationId, database);
+    await recomputeOrganizationCompositeVectorOnly(organizationId, database);
   }
+
+  for (const postingId of postingIds) {
+    await recomputePostingContextVectorOnly(postingId, database, { skipIfMissingOpportunityVector: true });
+  }
+
+  for (const volunteerId of volunteerIds) {
+    await recomputeVolunteerExperienceVector(volunteerId, database);
+  }
+
+  const missing = await getMissingCounts();
+  console.log(
+    `Missing vectors: org_profile=${missing.orgProfileMissing}, org_history=${missing.orgHistoryMissing}, org_context=${missing.orgContextMissing}, opportunity=${missing.opportunityMissing}, posting_context=${missing.postingContextMissing}, profile=${missing.profileMissing}, experience=${missing.experienceMissing}, volunteer_context=${missing.volunteerContextMissing}`,
+  );
 }
 
-recomputeAllEmbeddings()
+recomputeCompositeVectors()
   .catch((error) => {
-    console.error('Recompute-all embeddings failed:', error);
+    console.error('Recompute composite vectors failed:', error);
     process.exitCode = 1;
   })
   .finally(async () => {

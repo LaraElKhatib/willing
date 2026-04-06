@@ -4,13 +4,13 @@ import path from 'path';
 import { sql } from 'kysely';
 import zod from 'zod';
 
-import config from '../config.ts';
-import database from '../db/index.ts';
+import config from '../../config.ts';
+import database from '../../db/index.ts';
+import { hash } from '../../services/bcrypt/index.ts';
+import { CV_UPLOAD_DIR } from '../../services/uploads/paths.ts';
 import {
   writeRecommendationCvPdf,
-} from './data/recommendation/cvPdf.ts';
-import { hash } from '../services/bcrypt/index.ts';
-import { CV_UPLOAD_DIR } from '../services/uploads/paths.ts';
+} from '../data/recommendation/cvPdf.ts';
 
 const PASSWORD_PLAIN = 'Willing123';
 const DATASET_PATH = path.resolve('src/scripts/data/recommendation/dataset.json');
