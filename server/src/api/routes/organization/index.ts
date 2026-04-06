@@ -472,6 +472,8 @@ function createOrganizationRouter(db: Kysely<Database>) {
         .selectFrom('volunteer_account')
         .select(['id', 'cv_path', 'first_name', 'last_name'])
         .where('id', '=', volunteerId)
+        .where('is_deleted', '=', false)
+        .where('is_disabled', '=', false)
         .executeTakeFirstOrThrow();
 
       if (!volunteer.cv_path) {

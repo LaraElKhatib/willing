@@ -774,33 +774,28 @@ function OrganizationProfile() {
         >
           {!showDeleteConfirm
             ? (
-                <>
-                  <Alert color="warning">
-                    Deleting your account is an irreversible action. Your organization will be hidden from the platform, your profile will no longer be accessible, and you will be signed out immediately.
-                  </Alert>
-                  <div className="mt-3">
-                    <Button
-                      type="button"
-                      color="error"
-                      style="outline"
-                      onClick={() => {
-                        setShowDeleteConfirm(true);
-                        setDeleteError(null);
-                        setDeletePassword('');
-                      }}
-                      Icon={Trash2}
-                    >
-                      I want to delete my account
-                    </Button>
-                  </div>
-                </>
+                <div>
+                  <Button
+                    type="button"
+                    color="error"
+                    style="outline"
+                    onClick={() => {
+                      setShowDeleteConfirm(true);
+                      setDeleteError(null);
+                      setDeletePassword('');
+                    }}
+                    Icon={Trash2}
+                  >
+                    I want to delete my account
+                  </Button>
+                </div>
               )
             : (
                 <div className="space-y-3">
                   <Alert color="error">
                     <strong>This cannot be undone.</strong>
                     {' '}
-                    All postings that have not yet started will be permanently deleted. Postings that have already ended will be closed. You will not be able to sign in or recover this account.
+                    All postings that have not yet started will be permanently deleted. You will not be able to sign in or recover this account. Your organization will be hidden from the platform, and you will be signed out immediately.
                   </Alert>
                   <p className="text-sm font-medium">Enter your password to confirm:</p>
                   <input

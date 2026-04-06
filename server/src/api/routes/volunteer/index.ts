@@ -722,6 +722,8 @@ function createVolunteerRouter(db: Kysely<Database>) {
       .selectFrom('organization_account')
       .select('id')
       .where('id', '=', organizationId)
+      .where('is_deleted', '=', false)
+      .where('is_disabled', '=', false)
       .executeTakeFirst();
 
     if (!organization) {

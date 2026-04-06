@@ -326,6 +326,10 @@ function createUserRouter(db: Kysely<Database>) {
         const notStartedIds = notStartedPostingIds.map(p => p.id);
 
         if (notStartedIds.length > 0) {
+          await trx.deleteFrom('enrollment_application_date').where('application_id', 'in',
+            trx.selectFrom('enrollment_application').select('id').where('posting_id', 'in', notStartedIds),
+          ).execute();
+          await trx.deleteFrom('enrollment_date').where('posting_id', 'in', notStartedIds).execute();
           await trx.deleteFrom('enrollment_application').where('posting_id', 'in', notStartedIds).execute();
           await trx.deleteFrom('enrollment').where('posting_id', 'in', notStartedIds).execute();
           await trx.deleteFrom('posting_skill').where('posting_id', 'in', notStartedIds).execute();
@@ -341,15 +345,37 @@ function createUserRouter(db: Kysely<Database>) {
           .execute();
       } else {
         await trx
+          .deleteFrom('enrollment_application_date')
+          .where('application_id', 'in',
+            trx.selectFrom('enrollment_application').select('id').where('volunteer_id', '=', userId),
+          )
+          .execute();
+
+        await trx
           .deleteFrom('enrollment_application')
           .where('volunteer_id', '=', userId)
           .execute();
 
-        await trx
-          .deleteFrom('enrollment')
+        const nonAttendedEnrollmentIds = await trx
+          .selectFrom('enrollment')
+          .select('id')
           .where('volunteer_id', '=', userId)
           .where('attended', '=', false)
           .execute();
+
+        const enrollmentIds = nonAttendedEnrollmentIds.map(e => e.id);
+
+        if (enrollmentIds.length > 0) {
+          await trx
+            .deleteFrom('enrollment_date')
+            .where('enrollment_id', 'in', enrollmentIds)
+            .execute();
+
+          await trx
+            .deleteFrom('enrollment')
+            .where('id', 'in', enrollmentIds)
+            .execute();
+        }
       }
     });
 

@@ -62,6 +62,85 @@ const parseOptionalDateQueryParam = (value: unknown, fieldName: 'startDate' | 'e
 function createAdminRouter(db: Kysely<Database>) {
   const adminRouter = Router();
 
+  const today = sql<Date>`CURRENT_DATE`;
+
+  async function cleanupDisabledOrganization(trx: Kysely<Database>, organizationId: number) {
+    // Delete postings that haven't started yet (with FK cleanup)
+    const notStartedPostingIds = await trx
+      .selectFrom('organization_posting')
+      .select('id')
+      .where('organization_id', '=', organizationId)
+      .where('is_closed', '=', false)
+      .where('start_date', '>', today)
+      .execute();
+
+    const notStartedIds = notStartedPostingIds.map(p => p.id);
+
+    if (notStartedIds.length > 0) {
+      await trx.deleteFrom('enrollment_application_date').where('application_id', 'in',
+        trx.selectFrom('enrollment_application').select('id').where('posting_id', 'in', notStartedIds),
+      ).execute();
+      await trx.deleteFrom('enrollment_date').where('posting_id', 'in', notStartedIds).execute();
+      await trx.deleteFrom('enrollment_application').where('posting_id', 'in', notStartedIds).execute();
+      await trx.deleteFrom('enrollment').where('posting_id', 'in', notStartedIds).execute();
+      await trx.deleteFrom('posting_skill').where('posting_id', 'in', notStartedIds).execute();
+      await trx.deleteFrom('organization_posting').where('id', 'in', notStartedIds).execute();
+    }
+
+    // Drop enrolled (non-attended) volunteers from active postings belonging to this org
+    const activePostingIds = await trx
+      .selectFrom('organization_posting')
+      .select('id')
+      .where('organization_id', '=', organizationId)
+      .where('is_closed', '=', false)
+      .where('start_date', '<=', today)
+      .where('end_date', '>=', today)
+      .execute();
+
+    const activeIds = activePostingIds.map(p => p.id);
+
+    if (activeIds.length > 0) {
+      await trx.deleteFrom('enrollment_date').where('posting_id', 'in', activeIds)
+        .where('enrollment_id', 'in',
+          trx.selectFrom('enrollment').select('id').where('posting_id', 'in', activeIds).where('attended', '=', false),
+        ).execute();
+      await trx.deleteFrom('enrollment').where('posting_id', 'in', activeIds).where('attended', '=', false).execute();
+    }
+  }
+
+  async function cleanupDisabledVolunteer(trx: Kysely<Database>, volunteerId: number) {
+    // Drop volunteer from all active/upcoming postings they're enrolled in (non-attended only)
+    const activeEnrollmentIds = await trx
+      .selectFrom('enrollment')
+      .innerJoin('organization_posting', 'organization_posting.id', 'enrollment.posting_id')
+      .select('enrollment.id')
+      .where('enrollment.volunteer_id', '=', volunteerId)
+      .where('enrollment.attended', '=', false)
+      .where('organization_posting.end_date', '>=', today)
+      .execute();
+
+    const enrollmentIds = activeEnrollmentIds.map(e => e.id);
+
+    if (enrollmentIds.length > 0) {
+      await trx.deleteFrom('enrollment_date').where('enrollment_id', 'in', enrollmentIds).execute();
+      await trx.deleteFrom('enrollment').where('id', 'in', enrollmentIds).execute();
+    }
+
+    // Withdraw pending applications
+    const pendingAppIds = await trx
+      .selectFrom('enrollment_application')
+      .select('id')
+      .where('volunteer_id', '=', volunteerId)
+      .execute();
+
+    const appIds = pendingAppIds.map(a => a.id);
+
+    if (appIds.length > 0) {
+      await trx.deleteFrom('enrollment_application_date').where('application_id', 'in', appIds).execute();
+      await trx.deleteFrom('enrollment_application').where('id', 'in', appIds).execute();
+    }
+  }
+
   adminRouter.post('/login', async (req, res: Response<AdminLoginResponse>) => {
     const body = loginInfoSchema.parse(req.body);
 
@@ -442,6 +521,8 @@ function createAdminRouter(db: Kysely<Database>) {
             })
             .where('id', '=', organization.id)
             .execute();
+
+          await cleanupDisabledOrganization(trx, organization.id);
         }
 
         await trx
@@ -520,6 +601,8 @@ function createAdminRouter(db: Kysely<Database>) {
             })
             .where('id', '=', volunteer.id)
             .execute();
+
+          await cleanupDisabledVolunteer(trx, volunteer.id);
         }
 
         await trx
@@ -566,6 +649,8 @@ function createAdminRouter(db: Kysely<Database>) {
             })
             .where('id', '=', organizationId)
             .execute();
+
+          await cleanupDisabledOrganization(trx, organizationId);
         }
 
         await trx
@@ -612,6 +697,8 @@ function createAdminRouter(db: Kysely<Database>) {
             })
             .where('id', '=', volunteerId)
             .execute();
+
+          await cleanupDisabledVolunteer(trx, volunteerId);
         }
 
         await trx

@@ -463,7 +463,7 @@ function VolunteerProfile() {
       await deleteAccount(deletePassword);
       notifications.push({ type: 'success', message: 'Your account was deleted.' });
     } catch (err) {
-      notifications.push({ type: 'error', message: err instanceof Error ? err.message : 'Failed to delete account.' });
+      setDeleteError(err instanceof Error ? err.message : 'Failed to delete account.');
     } finally {
       setAccountDeletionBusy(false);
     }
@@ -868,33 +868,28 @@ function VolunteerProfile() {
         >
           {!showDeleteConfirm
             ? (
-                <>
-                  <Alert color="warning">
-                    Deleting your account is an irreversible action. Your profile will be hidden from the platform, your data will no longer be accessible, and you will be signed out immediately.
-                  </Alert>
-                  <div className="mt-3">
-                    <Button
-                      type="button"
-                      color="error"
-                      style="outline"
-                      onClick={() => {
-                        setShowDeleteConfirm(true);
-                        setDeleteError(null);
-                        setDeletePassword('');
-                      }}
-                      Icon={Trash2}
-                    >
-                      I want to delete my account
-                    </Button>
-                  </div>
-                </>
+                <div>
+                  <Button
+                    type="button"
+                    color="error"
+                    style="outline"
+                    onClick={() => {
+                      setShowDeleteConfirm(true);
+                      setDeleteError(null);
+                      setDeletePassword('');
+                    }}
+                    Icon={Trash2}
+                  >
+                    I want to delete my account
+                  </Button>
+                </div>
               )
             : (
                 <div className="space-y-3">
                   <Alert color="error">
                     <strong>This cannot be undone.</strong>
                     {' '}
-                    Your applications will be withdrawn, your non-attended enrollments will be removed, and you will not be able to sign in or recover this account. Your attended volunteer records will be preserved.
+                    Your applications will be withdrawn. You will not be able to sign in or recover this account. Your profile will be hidden from the platform, and you will be signed out immediately.
                   </Alert>
                   <p className="text-sm font-medium">Enter your password to confirm:</p>
                   <input

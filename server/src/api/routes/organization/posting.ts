@@ -786,6 +786,7 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
       .where('enrollment_application.posting_id', '=', postingId)
       .where('organization_posting.organization_id', '=', orgId)
       .where('volunteer_account.is_deleted', '=', false)
+      .where('volunteer_account.is_disabled', '=', false)
       .where('organization_account.is_deleted', '=', false)
       .executeTakeFirst();
 
