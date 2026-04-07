@@ -17,7 +17,7 @@ import { type Database } from '../../db/tables/index.ts';
 import { passwordSchema } from '../../schemas/index.ts';
 import { compare, hash } from '../../services/bcrypt/index.ts';
 import { generateJWT } from '../../services/jwt/index.ts';
-import { sendPasswordResetEmail } from '../../services/smtp/emails.ts';
+import { sendPasswordResetEmail, sendPostingDeletedEmail } from '../../services/smtp/emails.ts';
 import { loginInfoSchema } from '../../types.ts';
 
 const organizationLoginColumns = [
@@ -267,7 +267,6 @@ function createUserRouter(db: Kysely<Database>) {
         .select('enrollment.id')
         .where('enrollment.volunteer_id', '=', userId)
         .where('enrollment.attended', '=', false)
-        .where('organization_posting.is_closed', '=', false)
         .where('organization_posting.end_date', '>=', today)
         .limit(1)
         .executeTakeFirst();
@@ -278,13 +277,14 @@ function createUserRouter(db: Kysely<Database>) {
       }
     }
 
+    let postingDeletedNotifications: { volunteerEmail: string; volunteerName: string; postingTitle: string; organizationName: string }[] = [];
+
     await executeTransaction(db, async (trx) => {
       if (role === 'organization') {
         const runningPosting = await trx
           .selectFrom('organization_posting')
           .select('id')
           .where('organization_id', '=', userId)
-          .where('is_closed', '=', false)
           .where('start_date', '<=', today)
           .where('end_date', '>=', today)
           .forUpdate()
@@ -317,15 +317,41 @@ function createUserRouter(db: Kysely<Database>) {
         // Hard-delete postings that haven't started yet (with FK cleanup)
         const notStartedPostingIds = await trx
           .selectFrom('organization_posting')
-          .select('id')
+          .select(['id', 'title'])
           .where('organization_id', '=', userId)
-          .where('is_closed', '=', false)
           .where('start_date', '>', today)
           .execute();
 
         const notStartedIds = notStartedPostingIds.map(p => p.id);
 
         if (notStartedIds.length > 0) {
+          // Collect enrolled volunteers for email notification before deletion
+          const org = await trx
+            .selectFrom('organization_account')
+            .select('name')
+            .where('id', '=', userId)
+            .executeTakeFirstOrThrow();
+
+          const enrolledVolunteers = await trx
+            .selectFrom('enrollment')
+            .innerJoin('volunteer_account', 'volunteer_account.id', 'enrollment.volunteer_id')
+            .innerJoin('organization_posting', 'organization_posting.id', 'enrollment.posting_id')
+            .select([
+              'volunteer_account.email as volunteer_email',
+              'volunteer_account.first_name',
+              'volunteer_account.last_name',
+              'organization_posting.title as posting_title',
+            ])
+            .where('enrollment.posting_id', 'in', notStartedIds)
+            .execute();
+
+          postingDeletedNotifications = enrolledVolunteers.map(v => ({
+            volunteerEmail: v.volunteer_email,
+            volunteerName: `${v.first_name} ${v.last_name}`,
+            postingTitle: v.posting_title,
+            organizationName: org.name,
+          }));
+
           await trx.deleteFrom('enrollment_application_date').where('application_id', 'in',
             trx.selectFrom('enrollment_application').select('id').where('posting_id', 'in', notStartedIds),
           ).execute();
@@ -344,23 +370,36 @@ function createUserRouter(db: Kysely<Database>) {
           .where('is_closed', '=', false)
           .execute();
       } else {
-        await trx
-          .deleteFrom('enrollment_application_date')
-          .where('application_id', 'in',
-            trx.selectFrom('enrollment_application').select('id').where('volunteer_id', '=', userId),
-          )
+        // Only delete upcoming applications (preserve past ones)
+        const upcomingAppIds = await trx
+          .selectFrom('enrollment_application')
+          .innerJoin('organization_posting', 'organization_posting.id', 'enrollment_application.posting_id')
+          .select('enrollment_application.id')
+          .where('enrollment_application.volunteer_id', '=', userId)
+          .where('organization_posting.end_date', '>=', today)
           .execute();
 
-        await trx
-          .deleteFrom('enrollment_application')
-          .where('volunteer_id', '=', userId)
-          .execute();
+        const appIds = upcomingAppIds.map(a => a.id);
+
+        if (appIds.length > 0) {
+          await trx
+            .deleteFrom('enrollment_application_date')
+            .where('application_id', 'in', appIds)
+            .execute();
+
+          await trx
+            .deleteFrom('enrollment_application')
+            .where('id', 'in', appIds)
+            .execute();
+        }
 
         const nonAttendedEnrollmentIds = await trx
           .selectFrom('enrollment')
-          .select('id')
-          .where('volunteer_id', '=', userId)
-          .where('attended', '=', false)
+          .innerJoin('organization_posting', 'organization_posting.id', 'enrollment.posting_id')
+          .select('enrollment.id')
+          .where('enrollment.volunteer_id', '=', userId)
+          .where('enrollment.attended', '=', false)
+          .where('organization_posting.end_date', '>=', today)
           .execute();
 
         const enrollmentIds = nonAttendedEnrollmentIds.map(e => e.id);
@@ -378,6 +417,8 @@ function createUserRouter(db: Kysely<Database>) {
         }
       }
     });
+
+    await Promise.allSettled(postingDeletedNotifications.map(n => sendPostingDeletedEmail(n)));
 
     res.json({});
   });

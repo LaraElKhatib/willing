@@ -890,7 +890,7 @@ function VolunteerProfile() {
                   <Alert color="error">
                     <strong>This cannot be undone.</strong>
                     {' '}
-                    Your applications will be withdrawn. You will not be able to sign in or recover this account. Your profile will be hidden from the platform, and you will be signed out immediately.
+                    Your upcoming applications will be withdrawn. You will not be able to sign in or recover this account. Your profile will be hidden from the platform, and you will be signed out immediately.
                   </Alert>
                   <p className="text-sm font-medium">Enter your password to confirm:</p>
                   <input
