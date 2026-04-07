@@ -168,6 +168,7 @@ function PostingPage() {
 
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [togglingClosed, setTogglingClosed] = useState(false);
   const [applying, setApplying] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
@@ -572,9 +573,14 @@ function PostingPage() {
     setIsEditMode(false);
   }, [form, posting]);
 
-  const onDelete = async () => {
+  const onDelete = useCallback(() => {
     if (!id) return;
-    if (!confirm('Are you sure you want to delete this posting? This action cannot be undone.')) return;
+    setShowDeleteConfirm(true);
+  }, [id]);
+
+  const onConfirmDelete = useCallback(async () => {
+    if (!id) return;
+    setShowDeleteConfirm(false);
 
     try {
       setDeleting(true);
@@ -587,7 +593,7 @@ function PostingPage() {
     } finally {
       setDeleting(false);
     }
-  };
+  }, [deletePosting, id, navigate, notifications]);
 
   const onToggleClosed = async () => {
     if (!id || !posting) return;
@@ -947,6 +953,37 @@ function PostingPage() {
             )
         )}
       />
+
+      <div className={`modal ${showDeleteConfirm ? 'modal-open' : ''}`}>
+        <div className="modal-box border border-base-300">
+          <h3 className="font-bold text-lg">Delete Posting</h3>
+          <p className="py-3 text-sm">Are you sure you want to delete this posting? This action cannot be undone.</p>
+          <div className="modal-action">
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => setShowDeleteConfirm(false)}
+              disabled={deleting}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="btn btn-error"
+              onClick={onConfirmDelete}
+              disabled={deleting}
+            >
+              {deleting ? 'Deleting...' : 'Delete posting'}
+            </button>
+          </div>
+        </div>
+        <button
+          type="button"
+          className="modal-backdrop"
+          aria-label="Close delete confirmation"
+          onClick={() => setShowDeleteConfirm(false)}
+        />
+      </div>
 
       <ColumnLayout
         sidebar={(
