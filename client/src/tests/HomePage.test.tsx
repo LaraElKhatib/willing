@@ -1,6 +1,6 @@
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { test, expect, beforeEach, afterEach, vi } from 'vitest';
+import { test, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 
 import '@testing-library/jest-dom/vitest';
 import AuthContext from '../auth/AuthContext';
@@ -9,11 +9,17 @@ import HomePage from '../pages/HomePage';
 import type { VolunteerCreateResponse, VolunteerVerifyEmailResponse } from '../../../server/src/api/routes/volunteer/index.types';
 import type { VolunteerAccountWithoutPassword } from '../../../server/src/db/tables/index.ts';
 
-const requestServerMock = vi.fn();
 vi.mock('../utils/requestServer', () => ({
   __esModule: true,
-  default: requestServerMock,
+  default: vi.fn(),
 }));
+
+let requestServerMock: ReturnType<typeof vi.fn>;
+
+beforeAll(async () => {
+  const mockedModule = await vi.importMock('../utils/requestServer');
+  requestServerMock = mockedModule.default as unknown as ReturnType<typeof vi.fn>;
+});
 
 // Helpers
 
