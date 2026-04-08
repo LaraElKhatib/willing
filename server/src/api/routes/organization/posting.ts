@@ -16,12 +16,37 @@ import {
 } from './posting.types.ts';
 import { getPostingEnrollments } from './postingEnrollments.ts';
 import executeTransaction from '../../../db/executeTransaction.ts';
-import { type Database, type OrganizationPostingWithoutVectors, type PostingSkill, type VolunteerSkill } from '../../../db/tables/index.ts';
-import { newOrganizationPostingSchema } from '../../../db/tables/index.ts';
-import { recomputePostingVectors, recomputeVolunteerExperienceVector } from '../../../services/embeddings/updates.ts';
-import { sendVolunteerApplicationAcceptedEmail, sendVolunteerApplicationRejectedEmail } from '../../../services/smtp/emails.ts';
-import { parseListQuery, parseOptionalBooleanQueryParam, parseOptionalNumberQueryParam } from '../utils/listQuery.ts';
-import { applyPostingDateTimeFilters, applySharedPostingSort, buildSearchRegexPattern, normalizeSearchTerms, parsePostingDateTimeFilters } from '../utils/postingList.ts';
+import {
+  type Database,
+  type OrganizationPostingWithoutVectors,
+  type PostingSkill,
+  type VolunteerSkill,
+  newOrganizationPostingSchema,
+} from '../../../db/tables/index.ts';
+import {
+  recomputeOrganizationCompositeVectorOnly,
+  recomputeOrganizationHistoryVectorOnly,
+  recomputePostingContextVectorOnly,
+  recomputePostingContextVectorsForOrganization,
+  recomputePostingVectors,
+  recomputeVolunteerExperienceVector,
+} from '../../../services/embeddings/updates.ts';
+import {
+  sendVolunteerApplicationAcceptedEmail,
+  sendVolunteerApplicationRejectedEmail,
+} from '../../../services/smtp/emails.ts';
+import {
+  parseListQuery,
+  parseOptionalBooleanQueryParam,
+  parseOptionalNumberQueryParam,
+} from '../utils/listQuery.ts';
+import {
+  applyPostingDateTimeFilters,
+  applySharedPostingSort,
+  buildSearchRegexPattern,
+  normalizeSearchTerms,
+  parsePostingDateTimeFilters,
+} from '../utils/postingList.ts';
 
 const organizationPostingUpdateSchema = newOrganizationPostingSchema.partial().extend({
   crisis_id: zod.number().int().positive().nullable().optional(),
@@ -341,7 +366,20 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
 
     const posting = await db
       .selectFrom('organization_posting')
-      .select(['id', 'crisis_id', 'title', 'description', 'location_name', 'start_date', 'start_time', 'end_date', 'end_time', 'minimum_age', 'max_volunteers'])
+      .select([
+        'id',
+        'crisis_id',
+        'title',
+        'description',
+        'location_name',
+        'start_date',
+        'start_time',
+        'end_date',
+        'end_time',
+        'minimum_age',
+        'max_volunteers',
+        'is_closed',
+      ])
       .where('id', '=', postingId)
       .where('organization_id', '=', orgId)
       .executeTakeFirst();
@@ -379,6 +417,7 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
       || (body.max_volunteers !== undefined && (body.max_volunteers ?? null) !== (posting.max_volunteers ?? null))
       || didSkillsChange
     );
+    const didClosedStateChange = body.is_closed !== undefined && body.is_closed !== posting.is_closed;
 
     await executeTransaction(db, async (trx) => {
       const postingFields: Record<string, unknown> = {};
@@ -424,6 +463,11 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
 
     if (shouldRecomputePostingVectors) {
       await recomputePostingVectors(postingId, db);
+    }
+    if (didClosedStateChange) {
+      await recomputeOrganizationHistoryVectorOnly(orgId, db);
+      await recomputeOrganizationCompositeVectorOnly(orgId, db);
+      await recomputePostingContextVectorsForOrganization(orgId, db);
     }
 
     const updatedPosting = await db
@@ -482,6 +526,9 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
 
     const impactedVolunteerIds = Array.from(new Set(impactedVolunteerRows.map(row => row.volunteer_id)));
     await Promise.all(impactedVolunteerIds.map(volunteerId => recomputeVolunteerExperienceVector(volunteerId, db)));
+    await recomputeOrganizationHistoryVectorOnly(orgId, db);
+    await recomputeOrganizationCompositeVectorOnly(orgId, db);
+    await recomputePostingContextVectorsForOrganization(orgId, db);
 
     res.json({});
   });
@@ -523,6 +570,8 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
         'volunteer_account.cv_path',
       ])
       .where('enrollment_application.posting_id', '=', postingId)
+      .where('volunteer_account.is_deleted', '=', false)
+      .where('volunteer_account.is_disabled', '=', false)
       .execute();
 
     const volunteerIds = applications.map(a => a.volunteer_id);
@@ -618,17 +667,25 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
         'volunteer_account.email as volunteer_email',
         'volunteer_account.first_name',
         'volunteer_account.last_name',
+        'volunteer_account.is_deleted as volunteer_is_deleted',
+        'volunteer_account.is_disabled as volunteer_is_disabled',
         'organization_account.name as organization_name',
         'organization_posting.title as posting_title',
       ])
       .where('enrollment_application.id', '=', applicationId)
       .where('enrollment_application.posting_id', '=', postingId)
       .where('organization_posting.organization_id', '=', orgId)
+      .where('organization_account.is_deleted', '=', false)
       .executeTakeFirst();
 
     if (!emailContext) {
       res.status(404);
       throw new Error('Application not found');
+    }
+
+    if (emailContext.volunteer_is_deleted || emailContext.volunteer_is_disabled) {
+      res.status(400);
+      throw new Error('Cannot accept application from an inactive volunteer');
     }
 
     const appDates = await db
@@ -655,6 +712,19 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
       if (!lockedPosting) {
         res.status(404);
         throw new Error('Posting not found');
+      }
+
+      if (lockedPosting.max_volunteers !== undefined && lockedPosting.max_volunteers !== null) {
+        const enrollmentCountRow = await trx
+          .selectFrom('enrollment')
+          .select(sql<number>`count(enrollment.id)`.as('count'))
+          .where('posting_id', '=', postingId)
+          .executeTakeFirst();
+
+        if (Number(enrollmentCountRow?.count ?? 0) >= lockedPosting.max_volunteers) {
+          res.status(403);
+          throw new Error('This posting has reached the maximum number of volunteers');
+        }
       }
 
       const enrollment = await trx
@@ -695,18 +765,20 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
         .execute();
     });
 
+    await recomputePostingContextVectorOnly(postingId, db);
     const acceptedDates = enrollmentDateStrings;
-
-    try {
-      await sendVolunteerApplicationAcceptedEmail({
-        volunteerEmail: emailContext.volunteer_email,
-        volunteerName: `${emailContext.first_name} ${emailContext.last_name}`,
-        organizationName: emailContext.organization_name,
-        postingTitle: emailContext.posting_title,
-        acceptedDates,
-      });
-    } catch (err) {
-      console.error('Failed to send acceptance email:', err);
+    if (emailContext) {
+      try {
+        await sendVolunteerApplicationAcceptedEmail({
+          volunteerEmail: emailContext.volunteer_email,
+          volunteerName: `${emailContext.first_name} ${emailContext.last_name}`,
+          organizationName: emailContext.organization_name,
+          postingTitle: emailContext.posting_title,
+          acceptedDates,
+        });
+      } catch (err) {
+        console.error('Failed to send acceptance email:', err);
+      }
     }
 
     res.json({});
@@ -762,6 +834,9 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
       .where('enrollment_application.id', '=', applicationId)
       .where('enrollment_application.posting_id', '=', postingId)
       .where('organization_posting.organization_id', '=', orgId)
+      .where('volunteer_account.is_deleted', '=', false)
+      .where('volunteer_account.is_disabled', '=', false)
+      .where('organization_account.is_deleted', '=', false)
       .executeTakeFirst();
 
     await executeTransaction(db, async (trx) => {

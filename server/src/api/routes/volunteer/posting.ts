@@ -7,7 +7,7 @@ import { buildPostingsWithContext, isVolunteerPostingFull, postingWithContextSel
 import authorizeOnly from '../../../auth/authorizeOnly.ts';
 import executeTransaction from '../../../db/executeTransaction.ts';
 import { type Database, type Enrollment, type EnrollmentApplication } from '../../../db/tables/index.ts';
-import { recomputeVolunteerExperienceVector } from '../../../services/embeddings/updates.ts';
+import { recomputePostingContextVectorOnly, recomputeVolunteerExperienceVector } from '../../../services/embeddings/updates.ts';
 import { type PostingWithContext } from '../../../types.ts';
 import {
   parseListQuery,
@@ -179,14 +179,13 @@ function createVolunteerPostingRouter(db: Kysely<Database>) {
 
     const volunteerVectors = await db
       .selectFrom('volunteer_account')
-      .select(['profile_vector', 'experience_vector'])
+      .select(['volunteer_context_vector'])
       .where('id', '=', volunteerId)
+      .where('is_deleted', '=', false)
       .executeTakeFirstOrThrow();
 
-    const profileVectorLiteral = volunteerVectors.profile_vector;
-    const experienceVectorLiteral = volunteerVectors.experience_vector;
-    const hasProfileVector = Boolean(profileVectorLiteral);
-    const hasExperienceVector = Boolean(experienceVectorLiteral);
+    const volunteerContextVectorLiteral = volunteerVectors.volunteer_context_vector;
+    const hasVolunteerContextVector = Boolean(volunteerContextVectorLiteral);
 
     let query = db
       .selectFrom('organization_posting')
@@ -194,6 +193,8 @@ function createVolunteerPostingRouter(db: Kysely<Database>) {
       .leftJoin('crisis', 'crisis.id', 'organization_posting.crisis_id')
       .select(postingWithContextSelectColumns)
       .where('organization_posting.is_closed', '=', false);
+    query = query.where('organization_account.is_deleted', '=', false);
+    query = query.where('organization_account.is_disabled', '=', false);
 
     if (!includeApplied) {
       query = query.where(({ not, exists, selectFrom, or }) => not(or([
@@ -282,28 +283,15 @@ function createVolunteerPostingRouter(db: Kysely<Database>) {
 
     query = applyPostingDateTimeFilters(query, dateTimeFilters);
 
-    if (sortBy === 'recommended' && hasProfileVector && profileVectorLiteral) {
+    if (sortBy === 'recommended' && hasVolunteerContextVector && volunteerContextVectorLiteral) {
       const profileSimilarity = sql<number>`
-      1 - (organization_posting.opportunity_vector <=> ${profileVectorLiteral}::vector)
+      1 - (organization_posting.posting_context_vector <=> ${volunteerContextVectorLiteral}::vector)
     `;
-
-      if (hasExperienceVector && experienceVectorLiteral) {
-        const experienceSimilarity = sql<number>`
-        1 - (organization_posting.opportunity_vector <=> ${experienceVectorLiteral}::vector)
-      `;
-        const finalScore = sql<number>`(0.6 * ${profileSimilarity}) + (0.4 * ${experienceSimilarity})`;
-
-        query = query.orderBy(sql`${finalScore} desc nulls last`);
-      } else {
-        const profileOnlyScore = sql<number>`0.6 * ${profileSimilarity}`;
-        query = query.orderBy(sql`${profileOnlyScore} desc nulls last`);
-      }
+      query = query.orderBy(sql`${profileSimilarity} desc nulls last`);
 
       query = query.orderBy('organization_posting.start_date', sortDir).orderBy('organization_posting.start_time', sortDir);
     } else {
-      if (sortBy === 'recommended' && !hasProfileVector && hasExperienceVector) {
-        console.info('[recommendation] Volunteer has experience_vector but no valid profile_vector. Using default opportunity ordering.');
-      } else if (sortBy === 'recommended' && !hasProfileVector && !hasExperienceVector) {
+      if (sortBy === 'recommended' && !hasVolunteerContextVector) {
         console.info('[recommendation] Volunteer vectors unavailable. Using default opportunity ordering.');
       }
 
@@ -508,13 +496,26 @@ function createVolunteerPostingRouter(db: Kysely<Database>) {
     const [posting, volunteer] = await Promise.all([
       db
         .selectFrom('organization_posting')
-        .select(['id', 'automatic_acceptance', 'is_closed', 'minimum_age', 'max_volunteers', 'allows_partial_attendance', 'start_date', 'end_date'])
-        .where('id', '=', id)
+        .innerJoin('organization_account', 'organization_account.id', 'organization_posting.organization_id')
+        .select([
+          'organization_posting.id',
+          'organization_posting.automatic_acceptance',
+          'organization_posting.is_closed',
+          'organization_posting.minimum_age',
+          'organization_posting.max_volunteers',
+          'organization_posting.allows_partial_attendance',
+          'organization_posting.start_date',
+          'organization_posting.end_date',
+        ])
+        .where('organization_posting.id', '=', id)
+        .where('organization_account.is_deleted', '=', false)
+        .where('organization_account.is_disabled', '=', false)
         .executeTakeFirst(),
       db
         .selectFrom('volunteer_account')
         .select('date_of_birth')
         .where('id', '=', volunteerId)
+        .where('is_deleted', '=', false)
         .executeTakeFirst(),
     ]);
 
@@ -767,6 +768,10 @@ function createVolunteerPostingRouter(db: Kysely<Database>) {
       throw new Error('Failed to create enrollment');
     }
 
+    if (posting.automatic_acceptance) {
+      await recomputePostingContextVectorOnly(id, db);
+    }
+
     res.json({ enrollment, isOpen: posting.automatic_acceptance });
   });
 
@@ -831,6 +836,7 @@ function createVolunteerPostingRouter(db: Kysely<Database>) {
     if (enrollment?.attended) {
       await recomputeVolunteerExperienceVector(volunteerId, db);
     }
+    await recomputePostingContextVectorOnly(id, db);
 
     res.json({});
   });
