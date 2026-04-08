@@ -5,17 +5,15 @@ import { test, expect, beforeEach, afterEach, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import AuthContext from '../auth/AuthContext';
 import HomePage from '../pages/HomePage';
-import requestServer from '../utils/requestServer';
 
 import type { VolunteerCreateResponse, VolunteerVerifyEmailResponse } from '../../../server/src/api/routes/volunteer/index.types';
 import type { VolunteerAccountWithoutPassword } from '../../../server/src/db/tables/index.ts';
 
+const requestServerMock = vi.fn();
 vi.mock('../utils/requestServer', () => ({
   __esModule: true,
-  default: vi.fn(),
+  default: requestServerMock,
 }));
-
-const requestServerMock = vi.mocked(requestServer, true);
 
 // Helpers
 
