@@ -11,6 +11,7 @@ import { cvMulter, validateCvMiddleware } from '../../../services/uploads/cv.ts'
 import { CV_UPLOAD_DIR } from '../../../services/uploads/paths.ts';
 import uploadSingle from '../../../services/uploads/uploadSingle.ts';
 import { getVolunteerProfile } from '../../../services/volunteer/index.ts';
+import { createProfileEmbeddingRateLimit } from '../utils/rateLimit.ts';
 
 export const deleteCvFileIfExists = async (cvPath?: string | null) => {
   if (!cvPath) return;
@@ -24,9 +25,11 @@ export const deleteCvFileIfExists = async (cvPath?: string | null) => {
 
 function createVolunteerCvRouter(db: Kysely<Database>) {
   const volunteerCvRouter = Router();
+  const profileEmbeddingRateLimit = createProfileEmbeddingRateLimit();
 
   volunteerCvRouter.post(
     '/',
+    profileEmbeddingRateLimit,
     uploadSingle(cvMulter, 'cv'),
     validateCvMiddleware,
     async (req: Request, res: Response<UploadVolunteerCvResponse>) => {
@@ -103,7 +106,7 @@ function createVolunteerCvRouter(db: Kysely<Database>) {
     });
   });
 
-  volunteerCvRouter.delete('/', async (req, res: Response<DeleteVolunteerCvResponse>) => {
+  volunteerCvRouter.delete('/', profileEmbeddingRateLimit, async (req, res: Response<DeleteVolunteerCvResponse>) => {
     const row = await db
       .selectFrom('volunteer_account')
       .select(['cv_path'])

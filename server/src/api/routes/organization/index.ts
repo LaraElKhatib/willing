@@ -38,6 +38,7 @@ import { orgLogoMulter } from '../../../services/uploads/orgLogo.ts';
 import { CV_UPLOAD_DIR, ORG_LOGO_UPLOAD_DIR, ORG_SIGNATURE_UPLOAD_DIR } from '../../../services/uploads/paths.ts';
 import uploadSingle from '../../../services/uploads/uploadSingle.ts';
 import { getVolunteerProfile } from '../../../services/volunteer/index.ts';
+import { createProfileEmbeddingRateLimit } from '../utils/rateLimit.ts';
 
 const organizationProfileResponseColumns = [
   'id',
@@ -138,6 +139,7 @@ function createOrganizationRouter(db: Kysely<Database>) {
   };
 
   const organizationRouter = Router();
+  const profileEmbeddingRateLimit = createProfileEmbeddingRateLimit();
 
   organizationRouter.post('/request', async (req, res: Response<OrganizationRequestResponse>) => {
     const body = newOrganizationRequestSchema.parse(req.body);
@@ -495,7 +497,7 @@ function createOrganizationRouter(db: Kysely<Database>) {
     },
   );
 
-  organizationRouter.put('/profile', async (req, res: Response<OrganizationUpdateProfileResponse>) => {
+  organizationRouter.put('/profile', profileEmbeddingRateLimit, async (req, res: Response<OrganizationUpdateProfileResponse>) => {
     const body = organizationProfileUpdateSchema.parse(req.body);
     const organizationId = req.userJWT!.id;
     const existingOrganization = await db

@@ -35,6 +35,7 @@ import { generateJWT } from '../../../services/jwt/index.ts';
 import { sendVolunteerVerificationEmail } from '../../../services/smtp/emails.ts';
 import { getVolunteerProfile } from '../../../services/volunteer/index.ts';
 import { normalizeSearchTerms } from '../utils/postingList.js';
+import { createProfileEmbeddingRateLimit } from '../utils/rateLimit.ts';
 
 const volunteerResponseColumns = [
   'id',
@@ -96,6 +97,7 @@ const resendVolunteerVerificationSchema = zod.object({
 
 function createVolunteerRouter(db: Kysely<Database>) {
   const volunteerRouter = Router();
+  const profileEmbeddingRateLimit = createProfileEmbeddingRateLimit();
 
   volunteerRouter.post('/create', async (req, res: Response<VolunteerCreateResponse>) => {
     const body = newVolunteerAccountSchema.parse(req.body);
@@ -628,7 +630,7 @@ function createVolunteerRouter(db: Kysely<Database>) {
     res.json({ crisis });
   });
 
-  volunteerRouter.put('/profile', async (req, res: Response<VolunteerProfileResponse>) => {
+  volunteerRouter.put('/profile', profileEmbeddingRateLimit, async (req, res: Response<VolunteerProfileResponse>) => {
     const body = volunteerProfileUpdateSchema.parse(req.body);
     const volunteerId = req.userJWT!.id;
 

@@ -2,10 +2,11 @@ import fs from 'fs';
 import path from 'path';
 
 import supertest from 'supertest';
-import { afterEach, beforeEach, describe, expect, test } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import createApp from '../../../app.ts';
 import database from '../../../db/index.ts';
+import * as embeddingService from '../../../services/embeddings/updates.ts';
 import { CV_UPLOAD_DIR, ORG_LOGO_UPLOAD_DIR, ORG_SIGNATURE_UPLOAD_DIR } from '../../../services/uploads/paths.ts';
 import { createOrganizationAccount, createVolunteerAccount } from '../../../tests/fixtures/accounts.ts';
 
@@ -58,6 +59,37 @@ describe('Organization index routes', () => {
       description: 'Updated organization description',
       location_name: 'Updated Location',
     });
+  });
+
+  test('PUT /organization/profile returns 429 when profile vector recompute rate limit is exceeded', async () => {
+    const { token } = await createOrganizationAccount(transaction, { email: 'org-profile-rate-limit@example.com' });
+    const recomputeOrganizationVectorSpy = vi
+      .spyOn(embeddingService, 'recomputeOrganizationVector')
+      .mockResolvedValue(null);
+
+    for (let index = 0; index < 3; index += 1) {
+      await server
+        .put('/organization/profile')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          description: `Updated organization description ${index}`,
+        })
+        .expect(200);
+    }
+
+    const response = await server
+      .put('/organization/profile')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        description: 'Updated organization description 4',
+      })
+      .expect(429);
+
+    expect(response.body).toEqual({
+      message: 'Too many profile vector recompute requests. Please try again in a few minutes.',
+    });
+
+    recomputeOrganizationVectorSpy.mockRestore();
   });
 
   test('GET /organization/:id returns public organization profile with postings and skills', async () => {
@@ -137,6 +169,8 @@ describe('Organization index routes', () => {
         phone_number: '+96100000000',
         url: 'https://example.org',
         location_name: 'Beirut',
+        latitude: 33.8938,
+        longitude: 35.5018,
       })
       .expect(400);
 
@@ -153,6 +187,8 @@ describe('Organization index routes', () => {
         phone_number: '+96100000001',
         url: 'https://example.org',
         location_name: 'Beirut',
+        latitude: 33.8938,
+        longitude: 35.5018,
       })
       .execute();
 
@@ -164,6 +200,8 @@ describe('Organization index routes', () => {
         phone_number: '+96100000002',
         url: 'https://example.org',
         location_name: 'Beirut',
+        latitude: 33.9012,
+        longitude: 35.5123,
       })
       .expect(400);
 
