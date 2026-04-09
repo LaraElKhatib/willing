@@ -95,7 +95,7 @@ function App() {
                 <Route path="certificate/verify" element={<CertificateVerification />} />
                 <Route path="calendar-demo" element={<CalendarInfoDemoPage />} />
 
-                <Route path="/" element={<SharedPage roles={['volunteer', 'organization']} />}>
+                <Route element={<SharedPage roles={['volunteer', 'organization']} />}>
                   <Route path="posting/:id" element={<Posting />} />
                   <Route path="organization/:id" element={<OrganizationProfile />} />
                 </Route>
