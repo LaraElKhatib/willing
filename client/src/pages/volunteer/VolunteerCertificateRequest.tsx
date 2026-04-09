@@ -27,6 +27,37 @@ const CERTIFICATE_PREVIEW_WIDTH = 1123;
 const CERTIFICATE_PREVIEW_HEIGHT = 794;
 const formatHours = (value: number) => Math.floor(value);
 
+const getOrganizationEligibilityStatus = (organization: VolunteerCertificateResponse['organizations'][number]) => {
+  if (organization.eligible) {
+    return {
+      label: 'Eligible',
+      className: 'badge badge-success',
+    };
+  }
+
+  if (!organization.certificate_feature_enabled) {
+    return {
+      label: 'Certificates not enabled',
+      className: 'badge badge-warning',
+    };
+  }
+
+  if (
+    organization.hours_threshold !== null
+    && organization.hours < organization.hours_threshold
+  ) {
+    return {
+      label: 'Threshold not reached',
+      className: 'badge badge-info',
+    };
+  }
+
+  return {
+    label: 'Setup incomplete',
+    className: 'badge badge-ghost',
+  };
+};
+
 function VolunteerCertificateRequest() {
   const volunteer = useVolunteer();
   const [selectedOrganizationIds, setSelectedOrganizationIds] = useState<number[]>([]);
@@ -399,6 +430,7 @@ function VolunteerCertificateRequest() {
             <div className="space-y-2 mt-3">
               {organizationsWithEligibility.map((organization, index) => {
                 const selected = selectedOrganizationIds.includes(organization.id);
+                const eligibilityStatus = getOrganizationEligibilityStatus(organization);
 
                 return (
                   <label
@@ -425,9 +457,7 @@ function VolunteerCertificateRequest() {
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      {organization.eligible
-                        ? <span className="badge badge-success">Eligible</span>
-                        : <span className="badge badge-ghost">Not eligible</span>}
+                      <span className={eligibilityStatus.className}>{eligibilityStatus.label}</span>
                       <input
                         type="checkbox"
                         className="checkbox checkbox-primary"
