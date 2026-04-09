@@ -38,6 +38,7 @@ import LinkButton from '../components/LinkButton.tsx';
 import Loading from '../components/Loading.tsx';
 import LocationPicker from '../components/LocationPicker.tsx';
 import OrganizationProfilePicture from '../components/OrganizationProfilePicture.tsx';
+import CrisisCard from '../components/postings/CrisisCard.tsx';
 import SkillsInput from '../components/skills/SkillsInput.tsx';
 import SkillsList from '../components/skills/SkillsList.tsx';
 import { ToggleButton } from '../components/ToggleButton.tsx';
@@ -1195,45 +1196,56 @@ function PostingPage() {
               </Card>
             )}
 
-            <Card
-              title={isEditMode ? 'Crisis Tag' : selectedCrisisName || 'No Crisis'}
-              description={isEditMode
-                ? 'Add a crisis tag to this posting.'
-                : selectedCrisis
-                  ? (selectedCrisis.description || 'No crisis description provided.')
-                  : undefined}
-              link={isVolunteerView && selectedCrisisId != null ? `/volunteer/crises/${selectedCrisisId}/postings` : undefined}
-              color="accent"
-              coloredText={true}
-              Icon={AlertTriangle}
-            >
-              {isEditMode && (
-                <fieldset className="fieldset">
-                  <label className="label">
-                    <span className="label-text font-medium">Selected Crisis</span>
-                  </label>
-                  <select
-                    className="select select-bordered w-full"
-                    value={selectedCrisisId?.toString() ?? ''}
-                    onChange={(event) => {
-                      const value = event.target.value;
-                      setSelectedCrisisId(value ? Number(value) : undefined);
-                    }}
-                    disabled={saving || loadingCrises}
+            {isEditMode
+              ? (
+                  <Card
+                    title="Crisis Tag"
+                    description="Add a crisis tag to this posting."
+                    color="accent"
+                    coloredText={true}
+                    Icon={AlertTriangle}
                   >
-                    <option value="">No crisis tag</option>
-                    {availableCrises.map(crisis => (
-                      <option key={crisis.id} value={crisis.id.toString()}>
-                        {crisis.name}
-                        {!crisis.pinned ? ' (Unpinned)' : ''}
-                      </option>
-                    ))}
-                  </select>
-                  {loadingCrises && <span className="label-text-alt opacity-70">Loading crisis tags...</span>}
-                  {crisesError && <span className="label-text-alt text-error">{crisesError.message}</span>}
-                </fieldset>
-              )}
-            </Card>
+                    <fieldset className="fieldset">
+                      <label className="label">
+                        <span className="label-text font-medium">Selected Crisis</span>
+                      </label>
+                      <select
+                        className="select select-bordered w-full"
+                        value={selectedCrisisId?.toString() ?? ''}
+                        onChange={(event) => {
+                          const value = event.target.value;
+                          setSelectedCrisisId(value ? Number(value) : undefined);
+                        }}
+                        disabled={saving || loadingCrises}
+                      >
+                        <option value="">No crisis tag</option>
+                        {availableCrises.map(crisis => (
+                          <option key={crisis.id} value={crisis.id.toString()}>
+                            {crisis.name}
+                            {!crisis.pinned ? ' (Unpinned)' : ''}
+                          </option>
+                        ))}
+                      </select>
+                      {loadingCrises && <span className="label-text-alt opacity-70">Loading crisis tags...</span>}
+                      {crisesError && <span className="label-text-alt text-error">{crisesError.message}</span>}
+                    </fieldset>
+                  </Card>
+                )
+              : selectedCrisis
+                ? (
+                    <CrisisCard
+                      crisis={selectedCrisis}
+                      link={isVolunteerView ? `/volunteer/crises/${selectedCrisis.id}/postings` : undefined}
+                    />
+                  )
+                : (
+                    <Card
+                      title={selectedCrisisName || 'No Crisis'}
+                      color="accent"
+                      coloredText={true}
+                      Icon={AlertTriangle}
+                    />
+                  )}
 
             <Card
               title="Status"

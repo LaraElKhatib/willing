@@ -11,6 +11,7 @@ import EmptyState from '../../components/EmptyState';
 import ColumnLayout from '../../components/layout/ColumnLayout';
 import PageContainer from '../../components/layout/PageContainer';
 import PageHeader from '../../components/layout/PageHeader';
+import CrisisCard from '../../components/postings/CrisisCard';
 import useNotifications from '../../notifications/useNotifications';
 import { executeAndShowError, FormField, FormRootError } from '../../utils/formUtils';
 import requestServer from '../../utils/requestServer';
@@ -460,15 +461,15 @@ function AdminCrises() {
               : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {crises.map(crisis => (
-                      <Card
+                      <CrisisCard
                         key={crisis.id}
-                        title={crisis.name}
-                        description={editingCrisisId === crisis.id ? undefined : crisis.description || 'No description set'}
+                        crisis={crisis}
+                        link={undefined}
+                        descriptionFallback={editingCrisisId === crisis.id ? '' : 'No description set'}
                         right={
                           crisis.pinned
                           && <span className="badge badge-secondary">Pinned</span>
                         }
-                        Icon={AlertCircle}
                       >
 
                         {editingCrisisId === crisis.id
@@ -544,7 +545,7 @@ function AdminCrises() {
                                 </Button>
                               </div>
                             )}
-                      </Card>
+                      </CrisisCard>
                     ))}
                   </div>
                 )}
