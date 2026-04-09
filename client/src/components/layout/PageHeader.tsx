@@ -26,8 +26,16 @@ export default function PageHeader({
 }: PageHeaderProps) {
   const navigate = useNavigate();
   const location = useLocation();
+  const backTo = typeof location.state === 'object' && location.state !== null && 'backTo' in location.state
+    ? (location.state as { backTo?: string }).backTo
+    : undefined;
 
   const onBack = () => {
+    if (backTo) {
+      navigate(backTo);
+      return;
+    }
+
     if (location.key !== 'default') {
       navigate(-1);
       return;

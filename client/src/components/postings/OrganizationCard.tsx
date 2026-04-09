@@ -23,7 +23,11 @@ function OrganizationCard({ organization }: OrganizationCardProps) {
 
         <div className="flex-1 min-w-0">
           <h3 className="text-lg font-semibold">
-            <Link to={`/organization/${organization.id}`} className="link link-primary link-hover no-underline hover:underline">
+            <Link
+              to={`/organization/${organization.id}`}
+              state={{ backTo: '/volunteer/search?entity=organizations' }}
+              className="link link-primary link-hover no-underline hover:underline"
+            >
               {organization.name}
             </Link>
           </h3>
