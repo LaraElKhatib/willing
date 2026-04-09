@@ -785,7 +785,7 @@ function VolunteerProfile() {
                     <div className="flex justify-center pt-1">
                       <button
                         type="button"
-                        className="badge badge-outline badge-primary px-4 py-3"
+                        className="badge badge-outline badge-primary px-4 py-3 cursor-pointer transition-colors hover:bg-primary hover:text-primary-content"
                         onClick={() => setShowAllExperiences(current => !current)}
                       >
                         {showAllExperiences
