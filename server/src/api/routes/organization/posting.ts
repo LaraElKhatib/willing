@@ -157,7 +157,7 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
     const orgId = req.userJWT!.id;
     const { skills, ...postingBody } = body;
 
-    if (body.crisis_id !== undefined) {
+    if (body.crisis_id != null) {
       await assertCrisisExists(body.crisis_id, db, res);
     }
 
@@ -611,6 +611,7 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
 
     const applicationsWithSkills = applications.map(app => ({
       ...app,
+      message: app.message,
       skills: skillsByVolunteerId.get(app.volunteer_id) ?? [],
       requested_dates: requestedDatesByApplicationId.get(app.application_id)?.sort() ?? [],
     }));

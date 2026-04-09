@@ -176,7 +176,7 @@ function AdminCrises() {
     setIsCreatingCrisis(false);
   });
 
-  const onStartEdit = (crisisId: number, name: string, description?: string) => {
+  const onStartEdit = (crisisId: number, name: string, description?: string | null) => {
     setEditingCrisisId(crisisId);
     setEditingName(name);
     setEditingDescription(description ?? '');

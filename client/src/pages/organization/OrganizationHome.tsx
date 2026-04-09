@@ -156,7 +156,7 @@ function OrganizationHome() {
   const postingsWithContext = useMemo<PostingWithContext[]>(() => {
     if (!postings) return [];
     const orgName = organizationMe?.organization.name ?? organization?.name ?? '';
-    const orgLogoPath = organizationMe?.organization.logo_path ?? organization?.logo_path ?? undefined;
+    const orgLogoPath = organizationMe?.organization.logo_path ?? organization?.logo_path ?? null;
 
     return postings.map(posting => ({
       ...posting,

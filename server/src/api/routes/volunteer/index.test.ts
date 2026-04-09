@@ -607,7 +607,7 @@ describe('GET /volunteer/certificate', () => {
         is_closed: false,
         allows_partial_attendance: false,
         location_name: 'Beirut',
-        crisis_id: undefined,
+        crisis_id: null,
         created_at: new Date('2026-01-01T00:00:00.000Z'),
         updated_at: new Date('2026-01-01T00:00:00.000Z'),
       })
@@ -727,7 +727,7 @@ describe('DELETE /volunteer/posting/:id/enroll withdrawal behavior', () => {
         is_closed: false,
         allows_partial_attendance: true,
         location_name: 'Test Location',
-        crisis_id: undefined,
+        crisis_id: null,
         created_at: new Date('2026-03-01T00:00:00.000Z'),
         updated_at: new Date('2026-03-01T00:00:00.000Z'),
       })
@@ -837,7 +837,7 @@ describe('GET /volunteer/posting/:id selected partial dates', () => {
         is_closed: false,
         allows_partial_attendance: true,
         location_name: 'Test Location',
-        crisis_id: undefined,
+        crisis_id: null,
       })
       .returningAll()
       .executeTakeFirstOrThrow();
@@ -1486,7 +1486,7 @@ describe('PUT /volunteer/profile', () => {
         email: volunteer.email,
         date_of_birth: volunteer.date_of_birth,
         gender: volunteer.gender,
-        cv_path: undefined,
+        cv_path: null,
         description: 'Available evenings',
       },
       skills: ['First Aid', 'Logistics'],
