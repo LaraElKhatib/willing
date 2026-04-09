@@ -87,7 +87,6 @@ function App() {
                   <Route path="for-you" element={<VolunteerForYou />} />
                   <Route path="crises/:crisisId/postings" element={<VolunteerCrisisPostings />} />
                   <Route path="profile" element={<VolunteerProfile />} />
-                  <Route path="certificate" element={<VolunteerCertificateRequest />} />
                   <Route path="search" element={<VolunteerSearch />} />
                   <Route path="settings" element={<VolunteerSettings />} />
                 </Route>
