@@ -188,7 +188,7 @@ function PostingSearchView({
   const storageKey = useMemo(() => `posting-search-filters:${location.pathname}`, [location.pathname]);
 
   const storedFilters = useMemo<Partial<PostingSearchFilters> | undefined>(() => {
-    if (!showEntityTabs || typeof window === 'undefined') return undefined;
+    if (typeof window === 'undefined') return undefined;
 
     const raw = window.sessionStorage.getItem(storageKey);
     if (!raw) return undefined;
@@ -199,7 +199,7 @@ function PostingSearchView({
     } catch {
       return undefined;
     }
-  }, [showEntityTabs, storageKey]);
+  }, [storageKey]);
 
   const defaultFilters = useMemo<PostingSearchFilters>(() => ({
     search: '',
@@ -342,13 +342,13 @@ function PostingSearchView({
     const withEntity = { ...formValues, entity: activeEntity };
     const filters = fromPostingSearchFormValues(withEntity);
 
-    if (showEntityTabs && typeof window !== 'undefined') {
+    if (typeof window !== 'undefined') {
       window.sessionStorage.setItem(storageKey, JSON.stringify(filters));
     }
 
     setActiveEntity(filters.entity);
     await fetchPostings(filters);
-  }, [fetchPostings, activeEntity, showEntityTabs, storageKey]);
+  }, [fetchPostings, activeEntity, storageKey]);
 
   const setEntityInUrl = useCallback((entity: PostingSearchFilters['entity']) => {
     const nextParams = new URLSearchParams(searchParams);

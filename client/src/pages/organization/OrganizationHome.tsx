@@ -1,5 +1,5 @@
 import { ClipboardList, Plus } from 'lucide-react';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 import CalendarInfo from '../../components/CalendarInfo';
 import EmptyState from '../../components/EmptyState';
@@ -72,6 +72,23 @@ const defaultFormValues: OrganizationPostingFilterFormValues = {
   postingFilter: defaultFilters.postingFilter,
   organizationCertificateFilter: defaultFilters.organizationCertificateFilter,
 };
+const organizationHomeFiltersStorageKey = 'organization-home-posting-filters';
+
+const toOrganizationPostingFilterFormValues = (
+  filters: OrganizationPostingFilters,
+): OrganizationPostingFilterFormValues => ({
+  search: filters.search,
+  sortOption: toOrganizationPostingSortOptionValue(filters.sortBy, filters.sortDir),
+  isClosed: filters.isClosed,
+  postingType: filters.postingType,
+  crisisId: filters.crisisId,
+  startDateFrom: filters.startDateFrom,
+  endDateTo: filters.endDateTo,
+  startTimeFrom: filters.startTimeFrom,
+  endTimeTo: filters.endTimeTo,
+  postingFilter: filters.postingFilter,
+  organizationCertificateFilter: filters.organizationCertificateFilter,
+});
 
 const fromOrganizationPostingFilterFormValues = (
   values: OrganizationPostingFilterFormValues,
@@ -96,6 +113,19 @@ const fromOrganizationPostingFilterFormValues = (
 
 function OrganizationHome() {
   const organization = useOrganization();
+  const [initialFilters] = useState<OrganizationPostingFilters>(() => {
+    if (typeof window === 'undefined') return defaultFilters;
+    const raw = window.sessionStorage.getItem(organizationHomeFiltersStorageKey);
+    if (!raw) return defaultFilters;
+
+    try {
+      const parsed = JSON.parse(raw) as Partial<OrganizationPostingFilters>;
+      return { ...defaultFilters, ...parsed };
+    } catch {
+      return defaultFilters;
+    }
+  });
+  const initialFormValues = toOrganizationPostingFilterFormValues(initialFilters);
 
   const fetchOrganizationPostings = useCallback(
     async (nextFilters: OrganizationPostingFilters) => {
@@ -148,7 +178,11 @@ function OrganizationHome() {
   );
 
   const applyFilters = useCallback(async (formValues: OrganizationPostingFilterFormValues) => {
-    await fetchPostings(fromOrganizationPostingFilterFormValues(formValues));
+    const normalizedFilters = fromOrganizationPostingFilterFormValues(formValues);
+    if (typeof window !== 'undefined') {
+      window.sessionStorage.setItem(organizationHomeFiltersStorageKey, JSON.stringify(normalizedFilters));
+    }
+    await fetchPostings(normalizedFilters);
   }, [fetchPostings]);
 
   const crisisNameById = useMemo(() => new Map((crises ?? []).map(crisis => [crisis.id, crisis.name])), [crises]);
@@ -198,7 +232,8 @@ function OrganizationHome() {
       />
 
       <PostingFiltersCard
-        defaultValues={defaultFormValues}
+        defaultValues={initialFormValues}
+        resetValues={defaultFormValues}
         onApply={applyFilters}
         searchFieldName="search"
         searchPlaceholder="Search title, description, or location"

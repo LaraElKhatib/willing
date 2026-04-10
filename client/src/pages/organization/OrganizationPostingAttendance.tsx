@@ -1,5 +1,5 @@
 import { CheckCheck, Download, RotateCcw, Save, Undo2, Users } from 'lucide-react';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router';
 
 import Alert from '../../components/Alert';
@@ -19,6 +19,10 @@ import type { PostingEnrollment } from '../../../../server/src/types';
 
 function OrganizationPostingAttendance() {
   const { id } = useParams<{ id: string }>();
+  const attendanceFiltersStorageKey = useMemo(
+    () => `organization-posting-attendance-filters:${id ?? 'unknown'}`,
+    [id],
+  );
 
   const [saving, setSaving] = useState(false);
   const [exportingCsv, setExportingCsv] = useState(false);
@@ -28,6 +32,36 @@ function OrganizationPostingAttendance() {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'name_asc' | 'name_desc' | 'attended_first' | 'absent_first'>('name_asc');
   const notifications = useNotifications();
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const raw = window.sessionStorage.getItem(attendanceFiltersStorageKey);
+    if (!raw) {
+      setSearchTerm('');
+      setSortBy('name_asc');
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(raw) as {
+        searchTerm?: string;
+        sortBy?: 'name_asc' | 'name_desc' | 'attended_first' | 'absent_first';
+      };
+      setSearchTerm(parsed.searchTerm ?? '');
+      setSortBy(parsed.sortBy ?? 'name_asc');
+    } catch {
+      setSearchTerm('');
+      setSortBy('name_asc');
+    }
+  }, [attendanceFiltersStorageKey]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.sessionStorage.setItem(attendanceFiltersStorageKey, JSON.stringify({
+      searchTerm,
+      sortBy,
+    }));
+  }, [attendanceFiltersStorageKey, searchTerm, sortBy]);
 
   const {
     data,
