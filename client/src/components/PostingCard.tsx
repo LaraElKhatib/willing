@@ -253,7 +253,6 @@ function PostingCard({ posting, showCrisis = true, crisisTagClickable = true, fi
             className="w-full"
             startDate={startDateStr}
             endDate={endDateStr}
-            showEndDate={hasEndDate && startDateStr !== endDateStr}
             startTime={startTimeStr}
             endTime={endTimeStr}
           />
