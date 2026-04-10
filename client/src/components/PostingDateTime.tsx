@@ -5,8 +5,6 @@ type PostingDateTimeProps = {
   endDate?: string;
   startTime?: string;
   endTime?: string;
-  startDateLabel?: string;
-  endDateLabel?: string;
   startTimeLabel?: string;
   endTimeLabel?: string;
   showEndDate?: boolean;
@@ -18,19 +16,15 @@ function PostingDateTime({
   endDate,
   startTime,
   endTime,
-  startDateLabel,
-  endDateLabel,
   startTimeLabel,
   endTimeLabel,
   showEndDate,
   className,
 }: PostingDateTimeProps) {
   const hasEndDate = Boolean(endDate);
-  const isSameDate = hasEndDate && endDate === startDate;
   const hasEndTime = Boolean(endTime) && hasEndDate;
-  const effectiveShowEndDate = showEndDate ?? (hasEndDate && !isSameDate);
-  const effectiveStartDateLabel = startDateLabel ?? (effectiveShowEndDate ? 'START' : 'DATE');
-  const effectiveEndDateLabel = endDateLabel ?? 'END';
+  const effectiveShowEndDate = showEndDate ?? hasEndDate;
+  const effectiveDateLabel = 'DATE';
   const effectiveStartTimeLabel = startTimeLabel ?? (hasEndTime ? 'START' : 'TIME');
   const effectiveEndTimeLabel = endTimeLabel ?? 'END';
 
@@ -45,12 +39,11 @@ function PostingDateTime({
           </div>
           <div>
             <div className="text-sm">
-              <p className="text-xs opacity-70">{effectiveStartDateLabel}</p>
+              <p className="text-xs opacity-70">{effectiveDateLabel}</p>
               <p className="font-medium">{startDate || 'TBA'}</p>
             </div>
             {effectiveShowEndDate && (
               <div className="mt-3 text-sm">
-                <p className="text-xs opacity-70">{effectiveEndDateLabel}</p>
                 <p className="font-medium">{endDate || 'TBA'}</p>
               </div>
             )}

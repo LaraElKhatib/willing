@@ -1135,8 +1135,6 @@ function PostingPage() {
                         endDate={formValues.end_date ? formattedEndDate : undefined}
                         startTime={formattedStartTime}
                         endTime={formValues.end_time ? formattedEndTime : undefined}
-                        startDateLabel="START DATE"
-                        endDateLabel="END DATE"
                         startTimeLabel="START TIME"
                         endTimeLabel="END TIME"
                       />

@@ -257,8 +257,6 @@ function PostingCard({ posting, showCrisis = true, crisisTagClickable = true, fi
             showEndDate={hasEndDate && startDateStr !== endDateStr}
             startTime={startTimeStr}
             endTime={endTimeStr}
-            startDateLabel={hasEndDate && startDateStr !== endDateStr ? 'START' : 'DATE'}
-            endDateLabel="END"
             startTimeLabel={hasEndTime ? 'START' : 'TIME'}
             endTimeLabel="END"
           />
