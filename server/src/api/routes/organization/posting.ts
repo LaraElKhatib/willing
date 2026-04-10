@@ -415,14 +415,15 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
   });
 
   postingRouter.get('/:id', async (req, res: Response<OrganizationPostingResponse>) => {
-    const orgId = req.userJWT!.id;
     const { id: postingId } = postingIdParamsSchema.parse(req.params);
 
     const posting = await db
       .selectFrom('organization_posting')
+      .innerJoin('organization_account', 'organization_account.id', 'organization_posting.organization_id')
       .select(organizationPostingResponseColumns)
       .where('organization_posting.id', '=', postingId)
-      .where('organization_posting.organization_id', '=', orgId)
+      .where('organization_account.is_deleted', '=', false)
+      .where('organization_account.is_disabled', '=', false)
       .executeTakeFirst();
 
     if (!posting) {

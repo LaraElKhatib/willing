@@ -782,6 +782,41 @@ describe('Organization posting management', () => {
     ]));
   });
 
+  test('GET /organization/posting/:id allows organizations to view other organizations postings', async () => {
+    const { token } = await createOrganizationAccount(transaction, { email: 'org-get-foreign-posting-viewer@example.com' });
+    const { organization: ownerOrganization } = await createOrganizationAccount(transaction, { email: 'org-get-foreign-posting-owner@example.com' });
+
+    const posting = await transaction
+      .insertInto('organization_posting')
+      .values({
+        organization_id: ownerOrganization.id,
+        title: 'Foreign Posting',
+        description: 'Visible for other organizations in read-only mode.',
+        latitude: 33.9,
+        longitude: 35.5,
+        max_volunteers: 5,
+        start_date: new Date('2026-09-06T00:00:00.000Z'),
+        start_time: '09:00:00',
+        end_date: new Date('2026-09-06T00:00:00.000Z'),
+        end_time: '17:00:00',
+        minimum_age: 18,
+        automatic_acceptance: true,
+        is_closed: false,
+        allows_partial_attendance: false,
+        location_name: 'Foreign Location',
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    const response = await server
+      .get(`/organization/posting/${posting.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(response.body.posting.id).toBe(posting.id);
+    expect(response.body.posting.organization_id).toBe(ownerOrganization.id);
+  });
+
   test('GET /organization/posting/:id returns 404 when posting is missing', async () => {
     const { token } = await createOrganizationAccount(transaction, { email: 'org-posting-missing-get@example.com' });
 
