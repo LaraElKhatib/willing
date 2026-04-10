@@ -22,10 +22,6 @@ jobs:
         working-directory: ./client
         run: npm ci
 
-      - name: Install Playwright browsers
-        working-directory: ./client
-        run: npx playwright install --with-deps
-
       - name: Run client tests
         working-directory: ./client
-        run: npx vitest run --config vitest.browser.config.ts
+        run: npx vitest run --config vitest.config.ts

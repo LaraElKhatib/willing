@@ -180,7 +180,12 @@ Create tests as `<name>.test.ts` alongside your route file.
 
 ## Frontend Testing Conventions
 
-Frontend tests are component-level integration tests. They render components with mocked dependencies and verify UI behavior — they do **not** test the full client-to-DB flow, and that is intentional. This keeps tests simple to set up and fast to run.
+Frontend tests use a single jsdom-based Vitest setup. We split them by **location and purpose**:
+
+- **Unit tests** live next to the component, hook, schema, or utility they cover.
+- **Integration tests** live under `client/src/tests/`, and may use subfolders there when grouping by feature or page improves organization.
+
+Frontend integration tests render components with mocked dependencies and verify UI behavior — they do **not** test the full client-to-DB flow, and that is intentional. This keeps tests simple to set up and fast to run.
 
 ### Core Rules
 
@@ -202,10 +207,36 @@ Ask: *"Could this break silently if a developer changes the conditional logic?"*
 
 ### File Conventions
 
-- Place frontend test files alongside the page or component they cover: `client/src/pages/HomePage.test.tsx`.
 - Use `@testing-library/react`, `@testing-library/jest-dom/vitest`, and `vitest`.
 - Use `screen` for queries after render; use destructured helpers (`getByText`, `queryByText`, etc.) only when it keeps the test more readable.
+- Unit test filenames should be `*.test.tsx` colocated with the file they cover.
+- Integration test filenames should be `*.test.tsx`, stored under `client/src/tests/`.
+- When integration coverage grows, create subfolders under `client/src/tests/` by feature, page, or domain instead of flattening everything into one directory.
 
+### Test Mode
+
+The current client test setup uses a single jsdom-based Vitest config:
+
+- Config: `vitest.config.ts`
+- Environment: `jsdom`
+- Use for rendered component tests, hooks, schema validation, DOM assertions, and pure logic tests
+- Discovery rules:
+  - `src/**/*.unit.test.{ts,tsx}` for colocated unit tests
+  - `src/tests/**/*.test.{ts,tsx}` for integration tests
+- Run with: `npm run test` or `npm run test:unit`
+
+### Mocking `requestServer`
+
+Every test file that renders a component calling `requestServer` must mock it:
+
+```typescript
+vi.mock('../utils/requestServer', () => ({
+  __esModule: true,
+  default: vi.fn(),
+}));
+```
+
+Set the mock's resolved value in `beforeEach`, reset in `afterEach`.
 
 ## Core Engineering Rules
 
