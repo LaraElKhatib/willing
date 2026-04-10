@@ -1,6 +1,6 @@
 import { TextSearch, ClipboardList, Building2, AlertTriangle, type LucideIcon } from 'lucide-react';
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
 
 import {
   buildSharedPostingQuery,
@@ -147,6 +147,22 @@ const fromPostingSearchFormValues = (values: PostingSearchFormValues): PostingSe
     crisisFilter, organizationCertificateFilter: values.organizationCertificateFilter ?? 'all' } as PostingSearchFilters;
 };
 
+const getCleanDefaultsForEntity = (entity: PostingSearchFilters['entity']): PostingSearchFilters => ({
+  search: '',
+  sortBy: entity === 'postings' ? 'recommended' : 'title',
+  sortDir: entity === 'postings' ? 'desc' : 'asc',
+  startDateFrom: '',
+  endDateTo: '',
+  startTimeFrom: '',
+  endTimeTo: '',
+  hideFull: false,
+  crisisId: 'all',
+  entity,
+  crisisFilter: 'all',
+  postingFilter: 'all',
+  organizationCertificateFilter: 'all',
+});
+
 function PostingSearchView({
   title,
   subtitle,
@@ -167,7 +183,24 @@ function PostingSearchView({
   enableOrganizationSearch = false,
   showEntityTabs = true,
 }: PostingSearchViewProps) {
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
+  const storageKey = useMemo(() => `posting-search-filters:${location.pathname}`, [location.pathname]);
+
+  const storedFilters = useMemo<Partial<PostingSearchFilters> | undefined>(() => {
+    if (!showEntityTabs || typeof window === 'undefined') return undefined;
+
+    const raw = window.sessionStorage.getItem(storageKey);
+    if (!raw) return undefined;
+
+    try {
+      const parsed = JSON.parse(raw) as Partial<PostingSearchFilters>;
+      return parsed && typeof parsed === 'object' ? parsed : undefined;
+    } catch {
+      return undefined;
+    }
+  }, [showEntityTabs, storageKey]);
+
   const defaultFilters = useMemo<PostingSearchFilters>(() => ({
     search: '',
     sortBy: 'recommended',
@@ -182,10 +215,12 @@ function PostingSearchView({
     crisisFilter: 'all',
     postingFilter: 'all',
     organizationCertificateFilter: 'all',
+    ...storedFilters,
     ...initialFilters,
-  }), [initialFilters]);
+  }), [initialFilters, storedFilters]);
 
   const [activeEntity, setActiveEntity] = useState<PostingSearchFilters['entity']>(defaultFilters.entity);
+  const cleanEntityDefaults = useMemo(() => getCleanDefaultsForEntity(activeEntity), [activeEntity]);
 
   useEffect(() => {
     setActiveEntity(defaultFilters.entity);
@@ -195,7 +230,7 @@ function PostingSearchView({
     ...defaultFilters,
     entity: activeEntity,
     sortBy: activeEntity === 'organizations' || activeEntity === 'crises' ? 'title' : defaultFilters.sortBy,
-    sortDir: activeEntity === 'organizations' || activeEntity === 'crises' ? 'asc' : defaultFilters.sortDir,
+    sortDir: defaultFilters.sortDir,
     crisisFilter: activeEntity === 'crises' ? defaultFilters.crisisFilter ?? 'all' : 'all',
   }), [defaultFilters, activeEntity]);
 
@@ -306,15 +341,36 @@ function PostingSearchView({
   const applyFilters = useCallback(async (formValues: PostingSearchFormValues) => {
     const withEntity = { ...formValues, entity: activeEntity };
     const filters = fromPostingSearchFormValues(withEntity);
+
+    if (showEntityTabs && typeof window !== 'undefined') {
+      window.sessionStorage.setItem(storageKey, JSON.stringify(filters));
+    }
+
     setActiveEntity(filters.entity);
     await fetchPostings(filters);
-  }, [fetchPostings, activeEntity]);
+  }, [fetchPostings, activeEntity, showEntityTabs, storageKey]);
 
   const setEntityInUrl = useCallback((entity: PostingSearchFilters['entity']) => {
     const nextParams = new URLSearchParams(searchParams);
     nextParams.set('entity', entity);
     setSearchParams(nextParams);
-  }, [searchParams, setSearchParams]);
+
+    if (showEntityTabs && typeof window !== 'undefined') {
+      const existing = window.sessionStorage.getItem(storageKey);
+      let parsed: Partial<PostingSearchFilters> = {};
+      if (existing) {
+        try {
+          parsed = JSON.parse(existing) as Partial<PostingSearchFilters>;
+        } catch {
+          parsed = {};
+        }
+      }
+      window.sessionStorage.setItem(storageKey, JSON.stringify({
+        ...parsed,
+        entity,
+      }));
+    }
+  }, [searchParams, setSearchParams, showEntityTabs, storageKey]);
 
   return (
     <PageContainer>
@@ -385,6 +441,7 @@ function PostingSearchView({
       )}
       <PostingFiltersCard
         defaultValues={defaultFormValues}
+        resetValues={toPostingSearchFormValues(cleanEntityDefaults)}
         onApply={applyFilters}
         searchFieldName="search"
         searchPlaceholder={activeEntity === 'organizations'

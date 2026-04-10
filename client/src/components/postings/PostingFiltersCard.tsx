@@ -13,6 +13,7 @@ type FilterSelectOption = {
 
 type PostingFiltersCardProps<T extends FieldValues> = {
   defaultValues: T;
+  resetValues?: T;
   onApply: (values: T) => Promise<void> | void;
   getHasAdvancedFiltersApplied: (values: T) => boolean;
   renderAdvancedFields: (form: UseFormReturn<T>) => ReactNode;
@@ -31,6 +32,7 @@ type PostingFiltersCardProps<T extends FieldValues> = {
 
 function PostingFiltersCard<T extends FieldValues>({
   defaultValues,
+  resetValues,
   onApply,
   getHasAdvancedFiltersApplied,
   renderAdvancedFields,
@@ -63,7 +65,8 @@ function PostingFiltersCard<T extends FieldValues>({
     ...(watchedValues ?? {}),
   }) as T, [defaultValues, watchedValues]);
 
-  const defaultSnapshot = JSON.stringify(defaultValues);
+  const baselineValues = resetValues ?? defaultValues;
+  const defaultSnapshot = JSON.stringify(baselineValues);
   const draftSnapshot = JSON.stringify(draftValues);
   const appliedSnapshot = JSON.stringify(appliedValues);
   const hasPendingChanges = draftSnapshot !== appliedSnapshot;
@@ -89,10 +92,10 @@ function PostingFiltersCard<T extends FieldValues>({
   });
 
   const resetFilters = async () => {
-    form.reset(defaultValues);
-    setAppliedValues(defaultValues);
+    form.reset(baselineValues);
+    setAppliedValues(baselineValues);
     setShowAdvancedSearch(false);
-    await onApply(defaultValues);
+    await onApply(baselineValues);
   };
 
   const extraFieldsContent = extraFields ? extraFields(form) : null;
