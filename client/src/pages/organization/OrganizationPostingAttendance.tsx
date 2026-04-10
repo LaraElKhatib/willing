@@ -157,6 +157,18 @@ function OrganizationPostingAttendance() {
     });
   }, [currentDate, getEnrollmentAttendance, isBatchAttendance, saving]);
 
+  const markVolunteerAllDates = useCallback((enrollment: PostingEnrollment) => {
+    const dates = enrollment.dates ?? [];
+    if (dates.length === 0) return;
+
+    setDraftDateAttendance(current => ({
+      ...current,
+      [enrollment.enrollment_id]: Object.fromEntries(
+        dates.map(dateItem => [dateItem.date, true]),
+      ),
+    }));
+  }, []);
+
   const setAllAttendanceDraft = useCallback((attended: boolean) => {
     if (!data) return;
     if (saving) return;
@@ -527,6 +539,17 @@ function OrganizationPostingAttendance() {
                         onChange={() => void toggleAttendance(volunteer)}
                       />
                     </label>
+                    {!isBatchAttendance && (
+                      <Button
+                        size="sm"
+                        color="secondary"
+                        style="outline"
+                        onClick={() => markVolunteerAllDates(volunteer)}
+                        disabled={saving || !volunteer.dates || volunteer.dates.length === 0}
+                      >
+                        All Days Present
+                      </Button>
+                    )}
                   </div>
                 )}
               />
