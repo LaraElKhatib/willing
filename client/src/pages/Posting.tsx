@@ -1235,7 +1235,7 @@ function PostingPage() {
                 ? (
                     <CrisisCard
                       crisis={selectedCrisis}
-                      link={isVolunteerView ? `/volunteer/crises/${selectedCrisis.id}/postings` : undefined}
+                      link={isVolunteerView ? `/volunteer/crises/${selectedCrisis.id}/postings` : `/organization/crises/${selectedCrisis.id}/postings`}
                     />
                   )
                 : (

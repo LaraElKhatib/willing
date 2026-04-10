@@ -83,6 +83,8 @@ type PostingSearchViewProps = {
   emptyMessage?: string;
   filterPostings?: (postings: PostingWithContext[]) => PostingWithContext[];
   fetchUrl?: string;
+  crisisBasePath?: string;
+  crisesFetchBasePath?: string;
   enableCrisisFilter?: boolean;
   crisisOptions?: PostingCrisisOption[];
   enableOrganizationSearch?: boolean;
@@ -155,6 +157,8 @@ function PostingSearchView({
   emptyMessage = 'No postings found yet',
   filterPostings,
   fetchUrl,
+  crisisBasePath = '/volunteer/crises',
+  crisesFetchBasePath = '/volunteer/crises',
   enableCrisisFilter = false,
   crisisOptions = [],
   enableOrganizationSearch = false,
@@ -254,7 +258,7 @@ function PostingSearchView({
               crisisQuery.append('sort_by', 'title_asc');
             }
 
-            const crisisUrl = crisisQuery.toString() ? `/volunteer/crises?${crisisQuery.toString()}` : '/volunteer/crises';
+            const crisisUrl = crisisQuery.toString() ? `${crisesFetchBasePath}?${crisisQuery.toString()}` : crisesFetchBasePath;
             return requestServer<VolunteerCrisesResponse>(crisisUrl, { includeJwt: true });
           })()
         : Promise.resolve({ crises: [] } as VolunteerCrisesResponse);
@@ -534,7 +538,7 @@ function PostingSearchView({
                 : (
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                       {crises.map(crisis => (
-                        <CrisisCard key={crisis.id} crisis={crisis} />
+                        <CrisisCard key={crisis.id} crisis={crisis} link={`${crisisBasePath}/${crisis.id}/postings`} />
                       ))}
                     </div>
                   )
@@ -554,6 +558,7 @@ function PostingSearchView({
                         <PostingCollection
                           postings={postings}
                           showCrisis
+                          crisisBasePath={crisisBasePath}
                           cardsContainerClassName="grid grid-cols-1 gap-6 lg:grid-cols-2 2xl:grid-cols-3"
                           listContainerClassName="space-y-4"
                         />

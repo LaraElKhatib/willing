@@ -9,6 +9,7 @@ type PostingCollectionProps = {
   postings: PostingWithContext[];
   showCrisis?: boolean;
   crisisTagClickable?: boolean;
+  crisisBasePath?: string;
   variant?: 'volunteer' | 'organization';
   cardsContainerClassName?: string;
   listContainerClassName?: string;
@@ -21,6 +22,7 @@ function PostingCollection({
   postings,
   showCrisis = true,
   crisisTagClickable = true,
+  crisisBasePath = '/volunteer/crises',
   variant = 'volunteer',
   cardsContainerClassName,
   listContainerClassName,
@@ -48,6 +50,7 @@ function PostingCollection({
               posting={posting}
               showCrisis={showCrisis}
               crisisTagClickable={crisisTagClickable}
+              crisisBasePath={crisisBasePath}
               fillHeight={isCards}
             />
           )
@@ -56,6 +59,7 @@ function PostingCollection({
               posting={posting}
               showCrisis={showCrisis}
               crisisTagClickable={crisisTagClickable}
+              crisisBasePath={crisisBasePath}
               variant={variant}
             />
           )}

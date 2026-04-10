@@ -227,6 +227,119 @@ describe('Organization posting applications', () => {
   });
 });
 
+describe('Organization posting discover', () => {
+  test('GET /organization/posting/discover returns active postings across organizations', async () => {
+    const { token } = await createOrganizationAccount(transaction, { email: 'org-discover-viewer@example.com' });
+    const { organization: ownerOne } = await createOrganizationAccount(transaction, { email: 'org-discover-owner-1@example.com' });
+    const { organization: ownerTwo } = await createOrganizationAccount(transaction, { email: 'org-discover-owner-2@example.com' });
+
+    await transaction
+      .insertInto('organization_posting')
+      .values([
+        {
+          organization_id: ownerOne.id,
+          title: 'Discover Open Posting A',
+          description: 'A posting visible to all organizations.',
+          latitude: 33.9,
+          longitude: 35.5,
+          start_date: new Date('2026-09-01T00:00:00.000Z'),
+          start_time: '09:00:00',
+          end_date: new Date('2026-09-01T00:00:00.000Z'),
+          end_time: '12:00:00',
+          automatic_acceptance: true,
+          is_closed: false,
+          allows_partial_attendance: false,
+          location_name: 'Beirut',
+        },
+        {
+          organization_id: ownerTwo.id,
+          title: 'Discover Open Posting B',
+          description: 'Another posting visible to all organizations.',
+          latitude: 33.91,
+          longitude: 35.51,
+          start_date: new Date('2026-09-02T00:00:00.000Z'),
+          start_time: '10:00:00',
+          end_date: new Date('2026-09-02T00:00:00.000Z'),
+          end_time: '13:00:00',
+          automatic_acceptance: false,
+          is_closed: false,
+          allows_partial_attendance: false,
+          location_name: 'Tripoli',
+        },
+        {
+          organization_id: ownerTwo.id,
+          title: 'Closed Posting',
+          description: 'Should be hidden from discover.',
+          latitude: 33.91,
+          longitude: 35.51,
+          start_date: new Date('2026-09-03T00:00:00.000Z'),
+          start_time: '10:00:00',
+          end_date: new Date('2026-09-03T00:00:00.000Z'),
+          end_time: '13:00:00',
+          automatic_acceptance: false,
+          is_closed: true,
+          allows_partial_attendance: false,
+          location_name: 'Tripoli',
+        },
+      ])
+      .execute();
+
+    const response = await server
+      .get('/organization/posting/discover')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(response.body.postings.map((posting: { title: string }) => posting.title)).toEqual(
+      expect.arrayContaining(['Discover Open Posting A', 'Discover Open Posting B']),
+    );
+    expect(response.body.postings.map((posting: { title: string }) => posting.title)).not.toContain('Closed Posting');
+    expect(response.body.postings.every((posting: { application_status: string }) => posting.application_status === 'none')).toBe(true);
+  });
+
+  test('GET /organization/posting/discover supports hide_full filter', async () => {
+    const { token } = await createOrganizationAccount(transaction, { email: 'org-discover-hide-full@example.com' });
+    const { organization } = await createOrganizationAccount(transaction, { email: 'org-discover-capacity-owner@example.com' });
+    const { volunteer } = await createVolunteerAccount(transaction, { email: 'vol-discover-capacity@example.com' });
+
+    const fullPosting = await transaction
+      .insertInto('organization_posting')
+      .values({
+        organization_id: organization.id,
+        title: 'Full Discover Posting',
+        description: 'Should be hidden when hide_full=true.',
+        latitude: 33.9,
+        longitude: 35.5,
+        max_volunteers: 1,
+        start_date: new Date('2026-09-10T00:00:00.000Z'),
+        start_time: '09:00:00',
+        end_date: new Date('2026-09-10T00:00:00.000Z'),
+        end_time: '12:00:00',
+        automatic_acceptance: true,
+        is_closed: false,
+        allows_partial_attendance: false,
+        location_name: 'Beirut',
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    await transaction
+      .insertInto('enrollment')
+      .values({
+        posting_id: fullPosting.id,
+        volunteer_id: volunteer.id,
+        attended: false,
+      })
+      .execute();
+
+    const response = await server
+      .get('/organization/posting/discover?hide_full=true')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(response.body.postings.map((posting: { id: number }) => posting.id)).not.toContain(fullPosting.id);
+  });
+});
+
 describe('Organization posting management', () => {
   test('creates a posting with crisis and skills', async () => {
     const { token } = await createOrganizationAccount(transaction, { email: 'org-create-posting@example.com' });

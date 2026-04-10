@@ -23,10 +23,12 @@ import ForgotPassword from './pages/ForgotPassword';
 import GuidePage from './pages/GuidePage';
 import HomePage from './pages/HomePage';
 import NotFoundPage from './pages/NotFoundPage';
+import OrganizationCrisisPostings from './pages/organization/OrganizationCrisisPostings';
 import OrganizationHome from './pages/organization/OrganizationHome';
 import OrganizationPostingAttendance from './pages/organization/OrganizationPostingAttendance';
 import OrganizationPostingCreate from './pages/organization/OrganizationPostingCreate';
 import OrganizationOwnProfile from './pages/organization/OrganizationProfile';
+import OrganizationSearch from './pages/organization/OrganizationSearch';
 import OrganizationSettings from './pages/organization/OrganizationSettings';
 import OrganizationVolunteerProfile from './pages/organization/OrganizationVolunteerProfile';
 import OrganizationProfile from './pages/OrganizationProfile';
@@ -76,8 +78,10 @@ createRoot(document.getElementById('root')!).render(
 
               <Route path="organization" element={<OrganizationPage />}>
                 <Route index element={<OrganizationHome />} />
+                <Route path="search" element={<OrganizationSearch />} />
                 <Route path="posting" element={<OrganizationPostingCreate />} />
                 <Route path="posting/:id/attendance" element={<OrganizationPostingAttendance />} />
+                <Route path="crises/:crisisId/postings" element={<OrganizationCrisisPostings />} />
                 <Route path="profile" element={<OrganizationOwnProfile />} />
                 <Route path="settings" element={<OrganizationSettings />} />
                 <Route path="volunteer/:volunteerId" element={<OrganizationVolunteerProfile />} />

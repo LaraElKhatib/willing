@@ -10,6 +10,7 @@ interface PostingListProps {
   posting: PostingWithContext;
   showCrisis?: boolean;
   crisisTagClickable?: boolean;
+  crisisBasePath?: string;
   variant?: 'volunteer' | 'organization';
   compactOrganizationLayout?: boolean;
   volunteerOutsideMetaAt1700?: boolean;
@@ -108,6 +109,7 @@ function PostingList({
   posting,
   showCrisis = true,
   crisisTagClickable = true,
+  crisisBasePath = '/volunteer/crises',
   variant = 'volunteer',
   compactOrganizationLayout = false,
   volunteerOutsideMetaAt1700 = false,
@@ -224,7 +226,7 @@ function PostingList({
         crisisTagClickable
           ? (
               <Link
-                to={`/volunteer/crises/${posting.crisis_id}/postings`}
+                to={`${crisisBasePath}/${posting.crisis_id}/postings`}
                 onClick={event => event.stopPropagation()}
                 className="absolute -top-2 right-1 z-20 pointer-events-auto inline-flex items-center gap-1 rounded-md bg-accent px-2 py-1 text-sm text-accent-content shadow-sm rotate-3 transition-transform duration-200 hover:rotate-0"
               >

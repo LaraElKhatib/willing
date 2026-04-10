@@ -312,7 +312,8 @@ function OrganizationHome() {
       {!loading && postingsWithContext.length > 0 && (
         <PostingCollection
           postings={postingsWithContext}
-          crisisTagClickable={false}
+          crisisTagClickable
+          crisisBasePath="/organization/crises"
           cardsContainerClassName="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
         />
       )}
