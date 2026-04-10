@@ -1,5 +1,6 @@
 import { TextSearch, ClipboardList, Building2, AlertTriangle, type LucideIcon } from 'lucide-react';
-import { type ReactNode, useCallback, useMemo, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 
 import {
   buildSharedPostingQuery,
@@ -166,6 +167,7 @@ function PostingSearchView({
   enableOrganizationSearch = false,
   showEntityTabs = true,
 }: PostingSearchViewProps) {
+  const [searchParams, setSearchParams] = useSearchParams();
   const defaultFilters = useMemo<PostingSearchFilters>(() => ({
     search: '',
     sortBy: 'recommended',
@@ -184,6 +186,10 @@ function PostingSearchView({
   }), [initialFilters]);
 
   const [activeEntity, setActiveEntity] = useState<PostingSearchFilters['entity']>(defaultFilters.entity);
+
+  useEffect(() => {
+    setActiveEntity(defaultFilters.entity);
+  }, [defaultFilters.entity]);
 
   const activeFilters = useMemo(() => ({
     ...defaultFilters,
@@ -304,6 +310,12 @@ function PostingSearchView({
     await fetchPostings(filters);
   }, [fetchPostings, activeEntity]);
 
+  const setEntityInUrl = useCallback((entity: PostingSearchFilters['entity']) => {
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.set('entity', entity);
+    setSearchParams(nextParams);
+  }, [searchParams, setSearchParams]);
+
   return (
     <PageContainer>
       <PageHeader
@@ -324,7 +336,12 @@ function PostingSearchView({
               className="join-item flex-1"
               color={activeEntity === 'postings' ? 'primary' : undefined}
               style={activeEntity === 'postings' ? undefined : 'outline'}
-              onClick={() => setActiveEntity('postings')}
+              onClick={() => {
+                setActiveEntity('postings');
+                if (showEntityTabs) {
+                  setEntityInUrl('postings');
+                }
+              }}
               Icon={ClipboardList}
             >
               Postings
@@ -335,7 +352,12 @@ function PostingSearchView({
                 className="join-item flex-1"
                 color={activeEntity === 'organizations' ? 'primary' : undefined}
                 style={activeEntity === 'organizations' ? undefined : 'outline'}
-                onClick={() => setActiveEntity('organizations')}
+                onClick={() => {
+                  setActiveEntity('organizations');
+                  if (showEntityTabs) {
+                    setEntityInUrl('organizations');
+                  }
+                }}
                 Icon={Building2}
               >
                 Organizations
@@ -347,7 +369,12 @@ function PostingSearchView({
                 className="join-item flex-1"
                 color={activeEntity === 'crises' ? 'primary' : undefined}
                 style={activeEntity === 'crises' ? undefined : 'outline'}
-                onClick={() => setActiveEntity('crises')}
+                onClick={() => {
+                  setActiveEntity('crises');
+                  if (showEntityTabs) {
+                    setEntityInUrl('crises');
+                  }
+                }}
                 Icon={AlertTriangle}
               >
                 Crises
