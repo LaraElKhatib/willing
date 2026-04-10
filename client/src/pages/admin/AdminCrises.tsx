@@ -12,6 +12,7 @@ import ColumnLayout from '../../components/layout/ColumnLayout';
 import PageContainer from '../../components/layout/PageContainer';
 import PageHeader from '../../components/layout/PageHeader';
 import CrisisCard from '../../components/postings/CrisisCard';
+import { useModal } from '../../contexts/useModal.ts';
 import useNotifications from '../../notifications/useNotifications';
 import { executeAndShowError, FormField, FormRootError } from '../../utils/formUtils';
 import requestServer from '../../utils/requestServer';
@@ -70,6 +71,7 @@ function AdminCrises() {
   const [editingDescription, setEditingDescription] = useState('');
   const [actionBusyId, setActionBusyId] = useState<number | null>(null);
   const notifications = useNotifications();
+  const modal = useModal();
 
   const crisisForm = useForm<CreateCrisisFormData>({
     resolver: zodResolver(createCrisisFormSchema),
@@ -219,8 +221,17 @@ function AdminCrises() {
   };
 
   const onDelete = async (crisisId: number, name: string) => {
-    const confirmed = window.confirm(`Delete crisis "${name}"?`);
-    if (!confirmed) return;
+    const choice = await modal.promptModal({
+      title: 'Delete Crisis',
+      content: `Delete crisis "${name}"?`,
+      actions: [
+        { value: 'cancel', label: 'Cancel', color: 'ghost' },
+        { value: 'delete', label: 'Delete crisis', color: 'error' },
+      ],
+      cancelable: true,
+    });
+
+    if (choice !== 'delete') return;
 
     setActionBusyId(crisisId);
 
