@@ -13,6 +13,7 @@ import {
   type OrganizationCrisisResponse,
   type OrganizationCrisesResponse,
   type OrganizationGetMeResponse,
+  type OrganizationOrganizationSearchResponse,
   type OrganizationPinnedCrisesResponse,
   type OrganizationProfileResponse,
   type OrganizationReportVolunteerResponse,
@@ -38,6 +39,7 @@ import { orgLogoMulter } from '../../../services/uploads/orgLogo.ts';
 import { CV_UPLOAD_DIR, ORG_LOGO_UPLOAD_DIR, ORG_SIGNATURE_UPLOAD_DIR } from '../../../services/uploads/paths.ts';
 import uploadSingle from '../../../services/uploads/uploadSingle.ts';
 import { getVolunteerProfile } from '../../../services/volunteer/index.ts';
+import { normalizeSearchTerms } from '../utils/postingList.js';
 import { createProfileEmbeddingRateLimit } from '../utils/rateLimit.ts';
 
 const organizationProfileResponseColumns = [
@@ -385,6 +387,74 @@ function createOrganizationRouter(db: Kysely<Database>) {
       .executeTakeFirstOrThrow();
 
     res.json({ organization });
+  });
+
+  organizationRouter.get('/organizations', async (req, res: Response<OrganizationOrganizationSearchResponse>) => {
+    const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
+    const certificateEnabled = typeof req.query.certificate_enabled === 'string' ? req.query.certificate_enabled : 'all';
+
+    let query = db
+      .selectFrom('organization_account')
+      .leftJoin('organization_posting', 'organization_posting.organization_id', 'organization_account.id')
+      .leftJoin('organization_certificate_info', 'organization_certificate_info.id', 'organization_account.certificate_info_id')
+      .select([
+        'organization_account.id',
+        'organization_account.name',
+        'organization_account.description',
+        'organization_account.location_name',
+        'organization_account.logo_path',
+        sql<number>`COALESCE(COUNT(organization_posting.id), 0)`.as('posting_count'),
+      ])
+      .where('organization_account.is_deleted', '=', false)
+      .where('organization_account.is_disabled', '=', false)
+      .groupBy('organization_account.id');
+
+    if (certificateEnabled === 'enabled') {
+      query = query.where('organization_certificate_info.certificate_feature_enabled', '=', true);
+    } else if (certificateEnabled === 'disabled') {
+      query = query.where(({ or }) => or([
+        sql<boolean>`organization_certificate_info.certificate_feature_enabled = false`,
+        sql<boolean>`organization_certificate_info.certificate_feature_enabled IS NULL`,
+      ]));
+    }
+
+    if (search) {
+      const terms = normalizeSearchTerms(search);
+      query = query.where(({ and, or }) => and(
+        terms.map((term) => {
+          const likePattern = `%${term}%`;
+          return or([
+            sql<boolean>`lower(organization_account.name) LIKE ${likePattern}`,
+            sql<boolean>`regexp_replace(lower(organization_account.name), '[^a-z0-9]+', '', 'g') LIKE ${likePattern}`,
+            sql<boolean>`lower(organization_account.description) LIKE ${likePattern}`,
+            sql<boolean>`regexp_replace(lower(organization_account.description), '[^a-z0-9]+', '', 'g') LIKE ${likePattern}`,
+            sql<boolean>`lower(organization_account.location_name) LIKE ${likePattern}`,
+            sql<boolean>`regexp_replace(lower(organization_account.location_name), '[^a-z0-9]+', '', 'g') LIKE ${likePattern}`,
+          ]);
+        }),
+      ));
+    }
+
+    const sortBy = typeof req.query.sort_by === 'string' ? req.query.sort_by : 'name';
+    const sortDir = req.query.sort_dir === 'desc' ? 'desc' : 'asc';
+
+    const orderByColumn = sortBy === 'title' ? 'organization_account.name' : 'organization_account.name';
+
+    const organizationsRaw = await query
+      .orderBy(orderByColumn, sortDir)
+      .limit(30)
+      .execute();
+
+    const organizations = organizationsRaw.map(organization => ({
+      id: organization.id,
+      name: organization.name,
+      description: organization.description ?? null,
+      location_name: organization.location_name ?? null,
+      logo_path: organization.logo_path ?? null,
+      posting_count: Number(organization.posting_count ?? 0),
+    }));
+
+    res.json({ organizations });
   });
 
   organizationRouter.get('/volunteer/:id', async (req, res: Response<OrganizationVolunteerProfileResponse>) => {

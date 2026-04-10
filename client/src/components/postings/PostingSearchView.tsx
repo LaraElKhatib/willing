@@ -83,6 +83,7 @@ type PostingSearchViewProps = {
   emptyMessage?: string;
   filterPostings?: (postings: PostingWithContext[]) => PostingWithContext[];
   fetchUrl?: string;
+  organizationsFetchUrl?: string;
   crisisBasePath?: string;
   crisesFetchBasePath?: string;
   enableCrisisFilter?: boolean;
@@ -157,6 +158,7 @@ function PostingSearchView({
   emptyMessage = 'No postings found yet',
   filterPostings,
   fetchUrl,
+  organizationsFetchUrl = '/volunteer/organizations',
   crisisBasePath = '/volunteer/crises',
   crisesFetchBasePath = '/volunteer/crises',
   enableCrisisFilter = false,
@@ -236,7 +238,7 @@ function PostingSearchView({
             if (activeFilters.organizationCertificateFilter && activeFilters.organizationCertificateFilter !== 'all') {
               orgQuery.append('certificate_enabled', activeFilters.organizationCertificateFilter);
             }
-            const orgUrl = orgQuery.toString() ? `/volunteer/organizations?${orgQuery.toString()}` : '/volunteer/organizations';
+            const orgUrl = orgQuery.toString() ? `${organizationsFetchUrl}?${orgQuery.toString()}` : organizationsFetchUrl;
             return requestServer<VolunteerOrganizationSearchResponse>(orgUrl, { includeJwt: true });
           })()
         : Promise.resolve({ organizations: [] } as VolunteerOrganizationSearchResponse);
@@ -293,7 +295,7 @@ function PostingSearchView({
     } finally {
       setLoading(false);
     }
-  }, [fetchPostingsRequest, fetchUrl, filterPostings, enableOrganizationSearch]);
+  }, [fetchPostingsRequest, fetchUrl, filterPostings, enableOrganizationSearch, organizationsFetchUrl]);
 
   const applyFilters = useCallback(async (formValues: PostingSearchFormValues) => {
     const withEntity = { ...formValues, entity: activeEntity };

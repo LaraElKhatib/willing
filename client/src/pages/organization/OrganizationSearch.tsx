@@ -10,7 +10,7 @@ import type { OrganizationPinnedCrisesResponse } from '../../../../server/src/ap
 function OrganizationSearch() {
   const [searchParams] = useSearchParams();
   const entityParam = searchParams.get('entity');
-  const initialEntity = entityParam === 'crises' || entityParam === 'postings'
+  const initialEntity = entityParam === 'crises' || entityParam === 'postings' || entityParam === 'organizations'
     ? entityParam
     : undefined;
 
@@ -33,9 +33,11 @@ function OrganizationSearch() {
         showBack={false}
         actions={<PostingViewModeToggle />}
         fetchUrl="/organization/posting/discover"
+        organizationsFetchUrl="/organization/organizations"
         crisisBasePath="/organization/crises"
         crisesFetchBasePath="/organization/crises"
         enableCrisisFilter
+        enableOrganizationSearch
         initialFilters={initialEntity ? { entity: initialEntity } : undefined}
         crisisOptions={pinnedCrises?.map(crisis => ({
           id: crisis.id,

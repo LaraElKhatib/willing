@@ -43,6 +43,71 @@ describe('Organization index routes', () => {
     });
   });
 
+  test('GET /organization/organizations returns organizations with posting counts', async () => {
+    const { token } = await createOrganizationAccount(transaction, { email: 'org-search-viewer@example.com' });
+    const { organization: firstOrg } = await createOrganizationAccount(transaction, {
+      email: 'org-search-a@example.com',
+      name: 'Alpha Aid',
+      phone_number: '+96110000001',
+      url: 'https://alpha-aid.org',
+    });
+    const { organization: secondOrg } = await createOrganizationAccount(transaction, {
+      email: 'org-search-b@example.com',
+      name: 'Bravo Relief',
+      phone_number: '+96110000002',
+      url: 'https://bravo-relief.org',
+    });
+
+    await transaction
+      .insertInto('organization_posting')
+      .values([
+        {
+          organization_id: firstOrg.id,
+          title: 'Alpha Posting 1',
+          description: 'Support alpha area',
+          latitude: 33.9,
+          longitude: 35.5,
+          start_date: new Date('2026-10-01T00:00:00.000Z'),
+          start_time: '09:00:00',
+          end_date: new Date('2026-10-01T00:00:00.000Z'),
+          end_time: '17:00:00',
+          automatic_acceptance: true,
+          is_closed: false,
+          allows_partial_attendance: false,
+          location_name: 'Beirut',
+        },
+        {
+          organization_id: firstOrg.id,
+          title: 'Alpha Posting 2',
+          description: 'Support alpha area',
+          latitude: 33.91,
+          longitude: 35.51,
+          start_date: new Date('2026-10-02T00:00:00.000Z'),
+          start_time: '09:00:00',
+          end_date: new Date('2026-10-02T00:00:00.000Z'),
+          end_time: '17:00:00',
+          automatic_acceptance: true,
+          is_closed: false,
+          allows_partial_attendance: false,
+          location_name: 'Beirut',
+        },
+      ])
+      .execute();
+
+    const response = await server
+      .get('/organization/organizations')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    const alpha = response.body.organizations.find((organization: { id: number }) => organization.id === firstOrg.id);
+    const bravo = response.body.organizations.find((organization: { id: number }) => organization.id === secondOrg.id);
+
+    expect(alpha).toBeDefined();
+    expect(alpha.posting_count).toBe(2);
+    expect(bravo).toBeDefined();
+    expect(bravo.posting_count).toBe(0);
+  });
+
   test('PUT /organization/profile updates organization profile', async () => {
     const { token } = await createOrganizationAccount(transaction, { email: 'org-update-profile@example.com' });
 
