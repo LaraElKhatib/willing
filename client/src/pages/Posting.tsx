@@ -1135,8 +1135,6 @@ function PostingPage() {
                         endDate={formValues.end_date ? formattedEndDate : undefined}
                         startTime={formattedStartTime}
                         endTime={formValues.end_time ? formattedEndTime : undefined}
-                        startTimeLabel="START TIME"
-                        endTimeLabel="END TIME"
                       />
                       <div className="space-y-2">
                         {formValues.minimum_age && (

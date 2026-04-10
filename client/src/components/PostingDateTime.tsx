@@ -5,8 +5,6 @@ type PostingDateTimeProps = {
   endDate?: string;
   startTime?: string;
   endTime?: string;
-  startTimeLabel?: string;
-  endTimeLabel?: string;
   showEndDate?: boolean;
   className?: string;
 };
@@ -16,8 +14,6 @@ function PostingDateTime({
   endDate,
   startTime,
   endTime,
-  startTimeLabel,
-  endTimeLabel,
   showEndDate,
   className,
 }: PostingDateTimeProps) {
@@ -25,8 +21,7 @@ function PostingDateTime({
   const hasEndTime = Boolean(endTime) && hasEndDate;
   const effectiveShowEndDate = showEndDate ?? hasEndDate;
   const effectiveDateLabel = 'DATE';
-  const effectiveStartTimeLabel = startTimeLabel ?? (hasEndTime ? 'START' : 'TIME');
-  const effectiveEndTimeLabel = endTimeLabel ?? 'END';
+  const effectiveTimeLabel = 'TIME';
 
   return (
     <div className={className}>
@@ -55,12 +50,11 @@ function PostingDateTime({
         <div className="flex items-start gap-3">
           <div className="text-right">
             <div className="text-sm">
-              <p className="text-xs opacity-70">{effectiveStartTimeLabel}</p>
+              <p className="text-xs opacity-70">{effectiveTimeLabel}</p>
               <p className="font-medium">{startTime || '—'}</p>
             </div>
-            {hasEndDate && (
+            {hasEndTime && (
               <div className="mt-3 text-sm">
-                <p className="text-xs opacity-70">{effectiveEndTimeLabel}</p>
                 <p className="font-medium">{endTime || '—'}</p>
               </div>
             )}

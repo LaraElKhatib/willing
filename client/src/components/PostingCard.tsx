@@ -115,7 +115,6 @@ function PostingCard({ posting, showCrisis = true, crisisTagClickable = true, fi
   const startDt = normalizeTimestamp(startDateValue);
   const endDt = normalizeTimestamp(endDateValue);
   const hasEndDate = Boolean(endDt);
-  const hasEndTime = Boolean(endTimeValue) && hasEndDate;
 
   const startDateStr = formatCardDate(startDt);
   const endDateStr = formatCardDate(endDt);
@@ -257,8 +256,6 @@ function PostingCard({ posting, showCrisis = true, crisisTagClickable = true, fi
             showEndDate={hasEndDate && startDateStr !== endDateStr}
             startTime={startTimeStr}
             endTime={endTimeStr}
-            startTimeLabel={hasEndTime ? 'START' : 'TIME'}
-            endTimeLabel="END"
           />
         </div>
 
@@ -287,31 +284,35 @@ function PostingCard({ posting, showCrisis = true, crisisTagClickable = true, fi
                 )}
 
             {/* Left column: Volunteers */}
-            {shouldShowVolunteerCapacity ? (
-              <div className="flex items-center gap-2">
-                <span className="relative w-8 h-8">
-                  <div
-                    className={`radial-progress absolute inset-0 m-auto ${radialColor}`}
-                    style={{ '--value': volunteerPercent, '--thickness': '0.4rem', 'scale': 0.4, 'transform': 'translate(-75%, 0%)' } as React.CSSProperties}
-                    aria-valuenow={volunteerPercent}
-                    role="progressbar"
-                  />
-                  <Users size={16} className="text-primary absolute inset-0 m-auto" />
-                </span>
-                <div>
-                  <p className="text-xs opacity-70">VOLUNTEERS</p>
-                  <p className="text-sm">{volunteerCountLabel}</p>
-                </div>
-              </div>
-            ) : shouldShowVolunteerCountOnly ? (
-              <div className="flex items-center gap-2">
-                <Users size={16} className="text-primary shrink-0" />
-                <div>
-                  <p className="text-xs opacity-70">VOLUNTEERS</p>
-                  <p className="text-sm">{volunteerCountLabel}</p>
-                </div>
-              </div>
-            ) : <div />}
+            {shouldShowVolunteerCapacity
+              ? (
+                  <div className="flex items-center gap-2">
+                    <span className="relative w-8 h-8">
+                      <div
+                        className={`radial-progress absolute inset-0 m-auto ${radialColor}`}
+                        style={{ '--value': volunteerPercent, '--thickness': '0.4rem', 'scale': 0.4, 'transform': 'translate(-75%, 0%)' } as React.CSSProperties}
+                        aria-valuenow={volunteerPercent}
+                        role="progressbar"
+                      />
+                      <Users size={16} className="text-primary absolute inset-0 m-auto" />
+                    </span>
+                    <div>
+                      <p className="text-xs opacity-70">VOLUNTEERS</p>
+                      <p className="text-sm">{volunteerCountLabel}</p>
+                    </div>
+                  </div>
+                )
+              : shouldShowVolunteerCountOnly
+                ? (
+                    <div className="flex items-center gap-2">
+                      <Users size={16} className="text-primary shrink-0" />
+                      <div>
+                        <p className="text-xs opacity-70">VOLUNTEERS</p>
+                        <p className="text-sm">{volunteerCountLabel}</p>
+                      </div>
+                    </div>
+                  )
+                : <div />}
 
             {/* Right column: Age */}
             {posting.minimum_age
