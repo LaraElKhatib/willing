@@ -1,4 +1,4 @@
-import supertest from 'supertest';
+﻿import supertest from 'supertest';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import createApp from '../../../app.ts';
@@ -68,10 +68,11 @@ describe('Volunteer CV routes', () => {
       .expect(429);
 
     expect(response.body).toEqual({
-      message: 'Too many profile vector recompute requests. Please try again in a few minutes.',
+      message: 'Too many profile update requests. Please try again in a few minutes.',
     });
 
     recomputeProfileSpy.mockRestore();
     getVolunteerProfileSpy.mockRestore();
   });
 });
+

@@ -1,4 +1,4 @@
-import fs from 'fs';
+﻿import fs from 'fs';
 import path from 'path';
 
 import supertest from 'supertest';
@@ -151,7 +151,7 @@ describe('Organization index routes', () => {
       .expect(429);
 
     expect(response.body).toEqual({
-      message: 'Too many profile vector recompute requests. Please try again in a few minutes.',
+      message: 'Too many profile update requests. Please try again in a few minutes.',
     });
 
     recomputeOrganizationVectorSpy.mockRestore();
@@ -513,3 +513,4 @@ describe('Organization index routes', () => {
     }
   });
 });
+

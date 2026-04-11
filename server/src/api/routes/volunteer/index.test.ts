@@ -1,4 +1,4 @@
-import { sql, type ControlledTransaction } from 'kysely';
+﻿import { sql, type ControlledTransaction } from 'kysely';
 import supertest from 'supertest';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
@@ -1515,7 +1515,7 @@ describe('PUT /volunteer/profile', () => {
       .expect(429);
 
     expect(response.body).toEqual({
-      message: 'Too many profile vector recompute requests. Please try again in a few minutes.',
+      message: 'Too many profile update requests. Please try again in a few minutes.',
     });
 
     recomputeProfileSpy.mockRestore();
@@ -2074,3 +2074,4 @@ describe('POST /volunteer/reset-password', () => {
     expect(await compare('NewPassword123!', afterUpdate.password)).toBe(true);
   });
 });
+
