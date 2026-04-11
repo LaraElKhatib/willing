@@ -2,6 +2,8 @@ import { z } from 'zod';
 
 import { passwordSchema } from '../../../server/src/schemas/index.ts';
 
+export { passwordSchema } from '../../../server/src/schemas/index.ts';
+
 export const loginFormSchema = z.object({
   email: z.string().min(1, 'Email is required').email('Invalid email'),
   password: z.string().min(1, 'Password is required'),
