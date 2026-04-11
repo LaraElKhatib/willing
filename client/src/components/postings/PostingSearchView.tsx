@@ -184,7 +184,7 @@ function PostingSearchView({
   const [searchParams, setSearchParams] = useSearchParams();
   const storageKey = useMemo(() => `posting-search-filters:${location.pathname}`, [location.pathname]);
 
-  const storedFilters = useMemo<Partial<PostingSearchFilters> | undefined>(() => {
+  const [persistedFilters, setPersistedFilters] = useState<Partial<PostingSearchFilters> | undefined>(() => {
     if (typeof window === 'undefined') return undefined;
 
     const raw = window.sessionStorage.getItem(storageKey);
@@ -195,6 +195,26 @@ function PostingSearchView({
       return parsed && typeof parsed === 'object' ? parsed : undefined;
     } catch {
       return undefined;
+    }
+  });
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      setPersistedFilters(undefined);
+      return;
+    }
+
+    const raw = window.sessionStorage.getItem(storageKey);
+    if (!raw) {
+      setPersistedFilters(undefined);
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(raw) as Partial<PostingSearchFilters>;
+      setPersistedFilters(parsed && typeof parsed === 'object' ? parsed : undefined);
+    } catch {
+      setPersistedFilters(undefined);
     }
   }, [storageKey]);
 
@@ -212,9 +232,9 @@ function PostingSearchView({
     crisisFilter: 'all',
     postingFilter: 'all',
     organizationCertificateFilter: 'all',
-    ...storedFilters,
+    ...persistedFilters,
     ...initialFilters,
-  }), [initialFilters, storedFilters]);
+  }), [initialFilters, persistedFilters]);
 
   const [activeEntity, setActiveEntity] = useState<PostingSearchFilters['entity']>(defaultFilters.entity);
   const cleanEntityDefaults = useMemo(() => getCleanDefaultsForEntity(activeEntity), [activeEntity]);
@@ -223,13 +243,26 @@ function PostingSearchView({
     setActiveEntity(defaultFilters.entity);
   }, [defaultFilters.entity]);
 
-  const activeFilters = useMemo(() => ({
-    ...defaultFilters,
-    entity: activeEntity,
-    sortBy: activeEntity === 'organizations' || activeEntity === 'crises' ? 'title' : defaultFilters.sortBy,
-    sortDir: defaultFilters.sortDir,
-    crisisFilter: activeEntity === 'crises' ? defaultFilters.crisisFilter ?? 'all' : 'all',
-  }), [defaultFilters, activeEntity]);
+  const activeFilters = useMemo(() => {
+    if (activeEntity === 'organizations' || activeEntity === 'crises') {
+      const keepUserTitleSort = defaultFilters.sortBy === 'title';
+      return {
+        ...defaultFilters,
+        entity: activeEntity,
+        sortBy: 'title' as const,
+        sortDir: keepUserTitleSort ? defaultFilters.sortDir : 'asc' as const,
+        crisisFilter: activeEntity === 'crises' ? defaultFilters.crisisFilter ?? 'all' : 'all',
+      };
+    }
+
+    return {
+      ...defaultFilters,
+      entity: activeEntity,
+      sortBy: defaultFilters.sortBy,
+      sortDir: defaultFilters.sortDir,
+      crisisFilter: 'all' as const,
+    };
+  }, [defaultFilters, activeEntity]);
 
   const defaultFormValues = useMemo(() => toPostingSearchFormValues(activeFilters), [activeFilters]);
 
@@ -342,6 +375,7 @@ function PostingSearchView({
     if (typeof window !== 'undefined') {
       window.sessionStorage.setItem(storageKey, JSON.stringify(filters));
     }
+    setPersistedFilters(filters);
 
     setActiveEntity(filters.entity);
     await fetchPostings(filters);
@@ -353,21 +387,24 @@ function PostingSearchView({
     setSearchParams(nextParams);
 
     if (showEntityTabs && typeof window !== 'undefined') {
-      const existing = window.sessionStorage.getItem(storageKey);
-      let parsed: Partial<PostingSearchFilters> = {};
-      if (existing) {
-        try {
-          parsed = JSON.parse(existing) as Partial<PostingSearchFilters>;
-        } catch {
-          parsed = {};
-        }
-      }
-      window.sessionStorage.setItem(storageKey, JSON.stringify({
-        ...parsed,
+      const entityDefaults = getCleanDefaultsForEntity(entity);
+      const nextStoredFilters: Partial<PostingSearchFilters> = {
+        ...(persistedFilters ?? {}),
         entity,
-      }));
+      };
+
+      if (entity !== 'postings') {
+        nextStoredFilters.sortBy = 'title';
+        nextStoredFilters.sortDir = 'asc';
+      } else if (!nextStoredFilters.sortBy || nextStoredFilters.sortBy === 'title') {
+        nextStoredFilters.sortBy = entityDefaults.sortBy;
+        nextStoredFilters.sortDir = entityDefaults.sortDir;
+      }
+
+      window.sessionStorage.setItem(storageKey, JSON.stringify(nextStoredFilters));
+      setPersistedFilters(nextStoredFilters);
     }
-  }, [searchParams, setSearchParams, showEntityTabs, storageKey]);
+  }, [searchParams, setSearchParams, showEntityTabs, storageKey, persistedFilters]);
 
   return (
     <PageContainer>
