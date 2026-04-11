@@ -14,6 +14,10 @@ const formatDateToIso = (date: Date) => `${date.getFullYear()}-${String(date.get
 let transaction: ControlledTransaction<Database, []>;
 let server: TestAgent;
 
+type SkillResponseItem = {
+  name: string;
+};
+
 beforeEach(async () => {
   transaction = await database.startTransaction().execute();
   server = supertest(createApp(transaction));
@@ -374,7 +378,7 @@ describe('Organization posting management', () => {
 
     expect(response.body.posting.title).toBe('Created Posting');
     expect(response.body.posting.crisis_id).toBe(crisis.id);
-    const skillNames = response.body.skills.map((skill: any) => skill.name);
+    const skillNames = (response.body.skills as SkillResponseItem[]).map(skill => skill.name);
     expect(skillNames).toHaveLength(3);
     expect(skillNames).toContain('CPR');
     expect(skillNames).toContain(' First Aid ');
@@ -455,7 +459,7 @@ describe('Organization posting management', () => {
 
     expect(response.body.posting.title).toBe('Updated Posting');
     expect(response.body.crisis.id).toBe(crisis.id);
-    expect(response.body.skills.map((skill: any) => skill.name).sort()).toEqual(['CPR', 'Updated']);
+    expect((response.body.skills as SkillResponseItem[]).map(skill => skill.name).sort()).toEqual(['CPR', 'Updated']);
   });
 
   test('deletes a posting and removes associated enrollment rows', async () => {
