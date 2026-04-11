@@ -126,7 +126,7 @@ describe('Organization index routes', () => {
     });
   });
 
-  test('PUT /organization/profile returns 429 when profile vector recompute rate limit is exceeded', async () => {
+  test('PUT /organization/profile skips recomputing profile vector after the per-window limit is exceeded', async () => {
     const { token } = await createOrganizationAccount(transaction, { email: 'org-profile-rate-limit@example.com' });
     const recomputeOrganizationVectorSpy = vi
       .spyOn(embeddingService, 'recomputeOrganizationVector')
@@ -142,17 +142,15 @@ describe('Organization index routes', () => {
         .expect(200);
     }
 
-    const response = await server
+    await server
       .put('/organization/profile')
       .set('Authorization', `Bearer ${token}`)
       .send({
         description: 'Updated organization description 4',
       })
-      .expect(429);
+      .expect(200);
 
-    expect(response.body).toEqual({
-      message: 'Too many profile update requests. Please try again in a few minutes.',
-    });
+    expect(recomputeOrganizationVectorSpy).toHaveBeenCalledTimes(3);
 
     recomputeOrganizationVectorSpy.mockRestore();
   });

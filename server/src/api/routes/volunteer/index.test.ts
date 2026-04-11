@@ -1464,7 +1464,7 @@ describe('PUT /volunteer/profile', () => {
       .expect(403);
   });
 
-  test('returns 429 when profile vector recompute rate limit is exceeded', async () => {
+  test('skips profile vector recomputation when profile update recompute limit is exceeded', async () => {
     const { volunteer, token } = await createVolunteerAccount(transaction, { email: 'profile-rate-limit@example.com' });
     const recomputeProfileSpy = vi
       .spyOn(embeddingUpdates, 'recomputeVolunteerProfileVector')
@@ -1504,17 +1504,15 @@ describe('PUT /volunteer/profile', () => {
         .expect(200);
     }
 
-    const response = await server
+    await server
       .put('/volunteer/profile')
       .set('Authorization', `Bearer ${token}`)
       .send({
         description: 'Updated volunteer description 4',
       })
-      .expect(429);
+      .expect(200);
 
-    expect(response.body).toEqual({
-      message: 'Too many profile update requests. Please try again in a few minutes.',
-    });
+    expect(recomputeProfileSpy).toHaveBeenCalledTimes(3);
 
     recomputeProfileSpy.mockRestore();
     getVolunteerProfileSpy.mockRestore();

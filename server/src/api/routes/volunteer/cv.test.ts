@@ -24,7 +24,7 @@ afterEach(async () => {
 });
 
 describe('Volunteer CV routes', () => {
-  test('DELETE /volunteer/profile/cv returns 429 when profile vector recompute rate limit is exceeded', async () => {
+  test('DELETE /volunteer/profile/cv skips profile vector recomputation after the per-window limit is exceeded', async () => {
     const { volunteer, token } = await createVolunteerAccount(transaction, { email: 'vol-cv-rate-limit@example.com' });
 
     const recomputeProfileSpy = vi
@@ -62,14 +62,12 @@ describe('Volunteer CV routes', () => {
         .expect(200);
     }
 
-    const response = await server
+    await server
       .delete('/volunteer/profile/cv')
       .set('Authorization', `Bearer ${token}`)
-      .expect(429);
+      .expect(200);
 
-    expect(response.body).toEqual({
-      message: 'Too many profile update requests. Please try again in a few minutes.',
-    });
+    expect(recomputeProfileSpy).toHaveBeenCalledTimes(3);
 
     recomputeProfileSpy.mockRestore();
     getVolunteerProfileSpy.mockRestore();
