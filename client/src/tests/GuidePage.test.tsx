@@ -2,8 +2,8 @@ import { cleanup, screen } from '@testing-library/react';
 import { test, expect, beforeEach, afterEach, vi } from 'vitest';
 
 import '@testing-library/jest-dom/vitest';
-import GuidePage from '../pages/GuidePage';
 import { renderPageWithAuth } from './test-utils';
+import GuidePage from '../pages/GuidePage';
 
 // Helpers
 

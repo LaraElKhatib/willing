@@ -4,8 +4,8 @@ import { test, expect, beforeEach, afterEach, vi } from 'vitest';
 
 import '@testing-library/jest-dom/vitest';
 
-import ForgotPasswordPage from '../pages/ForgotPassword';
 import { renderPageWithAuth } from './test-utils';
+import ForgotPasswordPage from '../pages/ForgotPassword';
 
 vi.mock('../utils/requestServer', () => ({
   __esModule: true,
