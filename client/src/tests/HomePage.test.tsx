@@ -1,13 +1,9 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { cleanup, screen, waitFor } from '@testing-library/react';
 import { test, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 
 import '@testing-library/jest-dom/vitest';
-import AuthContext from '../auth/AuthContext';
+import { renderPageWithAuth } from './test-utils';
 import HomePage from '../pages/HomePage';
-
-import type { VolunteerCreateResponse, VolunteerVerifyEmailResponse } from '../../../server/src/api/routes/volunteer/index.types';
-import type { VolunteerAccountWithoutPassword } from '../../../server/src/db/tables/index.ts';
 
 vi.mock('../utils/requestServer', () => ({
   __esModule: true,
@@ -32,31 +28,11 @@ const mockStats = {
   newOrganizationsThisWeek: 1,
 };
 
-function buildAuthContext(role?: 'volunteer' | 'organization' | 'admin') {
-  return {
-    user: role ? { role } : undefined,
-    loaded: true,
-    refreshUser: vi.fn(),
-    loginAdmin: vi.fn(async () => {}),
-    loginUser: vi.fn(async () => {}),
-    createVolunteer: vi.fn(async () => ({ requires_email_verification: true } as VolunteerCreateResponse)),
-    verifyVolunteerEmail: vi.fn(async () => ({ volunteer: {} as VolunteerAccountWithoutPassword, token: '' } as VolunteerVerifyEmailResponse)),
-    resendVolunteerVerification: vi.fn(async () => {}),
-    changePassword: vi.fn(async () => {}),
-    deleteAccount: vi.fn(async () => {}),
-    logout: vi.fn(),
-    restrictRoute: vi.fn(() => ({} as VolunteerAccountWithoutPassword)),
-  };
-}
-
 function renderHomePage(role?: 'volunteer' | 'organization' | 'admin', initialPath = '/') {
-  return render(
-    <MemoryRouter initialEntries={[initialPath]}>
-      <AuthContext.Provider value={buildAuthContext(role)}>
-        <HomePage />
-      </AuthContext.Provider>
-    </MemoryRouter>,
-  );
+  return renderPageWithAuth(<HomePage />, {
+    initialEntries: [initialPath],
+    authOverrides: role ? { user: { role } } : {},
+  });
 }
 
 beforeEach(() => {

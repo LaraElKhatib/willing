@@ -1,15 +1,11 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
 import { test, expect, beforeEach, afterEach, vi } from 'vitest';
 
 import '@testing-library/jest-dom/vitest';
 
-import AuthContext from '../auth/AuthContext';
 import ForgotPasswordPage from '../pages/ForgotPassword';
-
-import type { VolunteerCreateResponse, VolunteerVerifyEmailResponse } from '../../../server/src/api/routes/volunteer/index.types';
-import type { VolunteerAccountWithoutPassword } from '../../../server/src/db/tables/index.ts';
+import { renderPageWithAuth } from './test-utils';
 
 vi.mock('../utils/requestServer', () => ({
   __esModule: true,
@@ -20,31 +16,10 @@ let requestServerMock: ReturnType<typeof vi.fn>;
 
 // Helpers
 
-function buildAuthContext() {
-  return {
-    user: undefined,
-    loaded: true,
-    refreshUser: vi.fn(),
-    loginAdmin: vi.fn(async () => {}),
-    loginUser: vi.fn(async () => {}),
-    createVolunteer: vi.fn(async () => ({ requires_email_verification: true } as VolunteerCreateResponse)),
-    verifyVolunteerEmail: vi.fn(async () => ({ volunteer: {} as VolunteerAccountWithoutPassword, token: '' } as VolunteerVerifyEmailResponse)),
-    resendVolunteerVerification: vi.fn(async () => {}),
-    changePassword: vi.fn(async () => {}),
-    deleteAccount: vi.fn(async () => {}),
-    logout: vi.fn(),
-    restrictRoute: vi.fn(() => ({} as VolunteerAccountWithoutPassword)),
-  };
-}
-
 function renderForgotPasswordPage(path = '/forgot-password') {
-  render(
-    <MemoryRouter initialEntries={[path]}>
-      <AuthContext.Provider value={buildAuthContext()}>
-        <ForgotPasswordPage />
-      </AuthContext.Provider>
-    </MemoryRouter>,
-  );
+  renderPageWithAuth(<ForgotPasswordPage />, {
+    initialEntries: [path],
+  });
 }
 
 beforeEach(async () => {

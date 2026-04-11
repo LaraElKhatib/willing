@@ -1,41 +1,17 @@
-import { cleanup, render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { cleanup, screen } from '@testing-library/react';
 import { test, expect, beforeEach, afterEach, vi } from 'vitest';
 
 import '@testing-library/jest-dom/vitest';
-import AuthContext from '../auth/AuthContext';
 import GuidePage from '../pages/GuidePage';
-
-import type { VolunteerCreateResponse, VolunteerVerifyEmailResponse } from '../../../server/src/api/routes/volunteer/index.types';
-import type { VolunteerAccountWithoutPassword } from '../../../server/src/db/tables/index.ts';
+import { renderPageWithAuth } from './test-utils';
 
 // Helpers
 
-function buildAuthContext(role?: 'volunteer' | 'organization' | 'admin') {
-  return {
-    user: role ? { role } : undefined,
-    loaded: true,
-    refreshUser: vi.fn(),
-    loginAdmin: vi.fn(async () => {}),
-    loginUser: vi.fn(async () => {}),
-    createVolunteer: vi.fn(async () => ({ requires_email_verification: true } as VolunteerCreateResponse)),
-    verifyVolunteerEmail: vi.fn(async () => ({ volunteer: {} as VolunteerAccountWithoutPassword, token: '' } as VolunteerVerifyEmailResponse)),
-    resendVolunteerVerification: vi.fn(async () => {}),
-    changePassword: vi.fn(async () => {}),
-    deleteAccount: vi.fn(async () => {}),
-    logout: vi.fn(),
-    restrictRoute: vi.fn(() => ({} as VolunteerAccountWithoutPassword)),
-  };
-}
-
 function renderGuidePage(role?: 'volunteer' | 'organization' | 'admin') {
-  return render(
-    <MemoryRouter initialEntries={['/guide']}>
-      <AuthContext.Provider value={buildAuthContext(role)}>
-        <GuidePage />
-      </AuthContext.Provider>
-    </MemoryRouter>,
-  );
+  return renderPageWithAuth(<GuidePage />, {
+    initialEntries: ['/guide'],
+    authOverrides: role ? { user: { role } } : {},
+  });
 }
 
 beforeEach(() => {

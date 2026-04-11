@@ -1,15 +1,10 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
 import { test, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 
 import '@testing-library/jest-dom/vitest';
-import AuthContext from '../auth/AuthContext';
+import { renderPageWithAuth } from './test-utils';
 import UserLoginPage from '../pages/UserLogin';
-
-import type { VolunteerCreateResponse, VolunteerVerifyEmailResponse } from '../../../server/src/api/routes/volunteer/index.types';
-import type { VolunteerAccountWithoutPassword } from '../../../server/src/db/tables/index.ts';
-import type { AuthContextType } from '../auth/AuthContext';
 
 vi.mock('../utils/requestServer', () => ({
   __esModule: true,
@@ -25,36 +20,6 @@ beforeAll(async () => {
 
 // Helpers
 
-function buildAuthContext(overrides?: Partial<AuthContextType>) {
-  return {
-    user: undefined,
-    loaded: true,
-    refreshUser: vi.fn(),
-    loginAdmin: vi.fn(async () => {}),
-    loginUser: vi.fn(async () => {}),
-    createVolunteer: vi.fn(async () => ({ requires_email_verification: true } as VolunteerCreateResponse)),
-    verifyVolunteerEmail: vi.fn(async () => ({ volunteer: {} as VolunteerAccountWithoutPassword, token: '' } as VolunteerVerifyEmailResponse)),
-    resendVolunteerVerification: vi.fn(async () => {}),
-    changePassword: vi.fn(async () => {}),
-    deleteAccount: vi.fn(async () => {}),
-    logout: vi.fn(),
-    restrictRoute: vi.fn(() => ({} as VolunteerAccountWithoutPassword)),
-    ...overrides,
-  };
-}
-
-function renderLoginPage(authOverrides?: Partial<AuthContextType>) {
-  const auth = buildAuthContext(authOverrides);
-  render(
-    <MemoryRouter initialEntries={['/login']}>
-      <AuthContext.Provider value={auth}>
-        <UserLoginPage />
-      </AuthContext.Provider>
-    </MemoryRouter>,
-  );
-  return { auth };
-}
-
 beforeEach(() => {
   requestServerMock.mockResolvedValue(undefined);
 });
@@ -68,13 +33,13 @@ afterEach(() => {
 // Link targets
 
 test('"Forgot password?" links to /forgot-password', () => {
-  renderLoginPage();
+  renderPageWithAuth(<UserLoginPage />, { initialEntries: ['/login'] });
   const link = screen.getByRole('link', { name: /forgot password/i });
   expect(link).toHaveAttribute('href', '/forgot-password');
 });
 
 test('"Sign up" links to /volunteer/create', () => {
-  renderLoginPage();
+  renderPageWithAuth(<UserLoginPage />, { initialEntries: ['/login'] });
   const link = screen.getByRole('link', { name: /sign up/i });
   expect(link).toHaveAttribute('href', '/volunteer/create');
 });
@@ -83,7 +48,7 @@ test('"Sign up" links to /volunteer/create', () => {
 
 test('calls loginUser with email and password on valid submit', async () => {
   const user = userEvent.setup();
-  const { auth } = renderLoginPage();
+  const { auth } = renderPageWithAuth(<UserLoginPage />, { initialEntries: ['/login'] });
 
   await user.type(screen.getByLabelText(/email/i), 'test@example.com');
   await user.type(screen.getByLabelText(/password/i), 'secret123');
@@ -96,7 +61,7 @@ test('calls loginUser with email and password on valid submit', async () => {
 
 test('does not call loginUser when email is missing', async () => {
   const user = userEvent.setup();
-  const { auth } = renderLoginPage();
+  const { auth } = renderPageWithAuth(<UserLoginPage />, { initialEntries: ['/login'] });
 
   await user.type(screen.getByLabelText(/password/i), 'secret123');
   await user.click(screen.getByRole('button', { name: /login/i }));
@@ -108,7 +73,7 @@ test('does not call loginUser when email is missing', async () => {
 
 test('does not call loginUser when password is missing', async () => {
   const user = userEvent.setup();
-  const { auth } = renderLoginPage();
+  const { auth } = renderPageWithAuth(<UserLoginPage />, { initialEntries: ['/login'] });
 
   await user.type(screen.getByLabelText(/email/i), 'test@example.com');
   await user.click(screen.getByRole('button', { name: /login/i }));
@@ -122,10 +87,13 @@ test('does not call loginUser when password is missing', async () => {
 
 test('shows root error message when loginUser throws', async () => {
   const user = userEvent.setup();
-  renderLoginPage({
-    loginUser: vi.fn(async () => {
-      throw new Error('Invalid credentials');
-    }),
+  renderPageWithAuth(<UserLoginPage />, {
+    initialEntries: ['/login'],
+    authOverrides: {
+      loginUser: vi.fn(async () => {
+        throw new Error('Invalid credentials');
+      }),
+    },
   });
 
   await user.type(screen.getByLabelText(/email/i), 'test@example.com');
@@ -137,10 +105,13 @@ test('shows root error message when loginUser throws', async () => {
 
 test('shows invalid credentials when email is wrong', async () => {
   const user = userEvent.setup();
-  renderLoginPage({
-    loginUser: vi.fn(async () => {
-      throw new Error('Invalid email or password');
-    }),
+  renderPageWithAuth(<UserLoginPage />, {
+    initialEntries: ['/login'],
+    authOverrides: {
+      loginUser: vi.fn(async () => {
+        throw new Error('Invalid email or password');
+      }),
+    },
   });
 
   await user.type(screen.getByLabelText(/email/i), 'wrong@example.com');
@@ -152,10 +123,13 @@ test('shows invalid credentials when email is wrong', async () => {
 
 test('shows invalid credentials when password is wrong', async () => {
   const user = userEvent.setup();
-  renderLoginPage({
-    loginUser: vi.fn(async () => {
-      throw new Error('Invalid email or password');
-    }),
+  renderPageWithAuth(<UserLoginPage />, {
+    initialEntries: ['/login'],
+    authOverrides: {
+      loginUser: vi.fn(async () => {
+        throw new Error('Invalid email or password');
+      }),
+    },
   });
 
   await user.type(screen.getByLabelText(/email/i), 'test@example.com');
@@ -174,8 +148,11 @@ test('login button is disabled while submission is in progress', async () => {
     resolve = res;
   });
 
-  renderLoginPage({
-    loginUser: vi.fn(() => pendingLogin),
+  renderPageWithAuth(<UserLoginPage />, {
+    initialEntries: ['/login'],
+    authOverrides: {
+      loginUser: vi.fn(() => pendingLogin),
+    },
   });
 
   await user.type(screen.getByLabelText(/email/i), 'test@example.com');
