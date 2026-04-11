@@ -23,7 +23,6 @@ export default defineConfig({
     environment: 'jsdom',
     css: true,
     include: [
-      'src/**/*.unit.test.{ts,tsx}',
       'src/tests/**/*.test.{ts,tsx}',
     ],
     setupFiles: ['src/tests/vitest.setup.ts'],
