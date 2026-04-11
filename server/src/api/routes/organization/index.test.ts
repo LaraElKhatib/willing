@@ -513,4 +513,3 @@ describe('Organization index routes', () => {
     }
   });
 });
-

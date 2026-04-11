@@ -75,4 +75,3 @@ describe('Volunteer CV routes', () => {
     getVolunteerProfileSpy.mockRestore();
   });
 });
-

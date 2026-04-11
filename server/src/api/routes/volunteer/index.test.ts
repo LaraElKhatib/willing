@@ -1,4 +1,4 @@
-﻿import { sql, type ControlledTransaction } from 'kysely';
+import { sql, type ControlledTransaction } from 'kysely';
 import supertest from 'supertest';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
@@ -230,7 +230,6 @@ describe('POST /volunteer/create', () => {
     expect(sendVolunteerVerificationEmailSpy).toHaveBeenCalledTimes(1);
   });
 });
-
 describe('POST /volunteer/verify-email', () => {
   test('returns 400 for an invalid verification token', async () => {
     await server
@@ -361,7 +360,6 @@ describe('POST /volunteer/verify-email', () => {
     recomputeExperienceSpy.mockRestore();
   });
 });
-
 describe('POST /volunteer/resend-verification', () => {
   test('returns 200 and does nothing when email already belongs to a volunteer', async () => {
     const { volunteer } = await createVolunteerAccount(transaction, { email: 'resend-existing@example.com' });
@@ -2074,4 +2072,3 @@ describe('POST /volunteer/reset-password', () => {
     expect(await compare('NewPassword123!', afterUpdate.password)).toBe(true);
   });
 });
-
