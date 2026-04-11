@@ -79,7 +79,14 @@ function PostingFiltersCard<T extends FieldValues>({
     onApplyRef.current = onApply;
   });
 
+  const lastDefaultSnapshotRef = useRef<string | null>(null);
+
   useEffect(() => {
+    const snapshot = JSON.stringify(defaultValues);
+    if (lastDefaultSnapshotRef.current === snapshot) {
+      return;
+    }
+    lastDefaultSnapshotRef.current = snapshot;
     setAppliedValues(defaultValues);
     form.reset(defaultValues);
     setShowAdvancedSearch(false);
