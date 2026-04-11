@@ -29,31 +29,27 @@ function OrganizationPostingAttendance() {
   const [availableDates, setAvailableDates] = useState<string[]>([]);
   const [currentDateIndex, setCurrentDateIndex] = useState(0);
   const [draftDateAttendance, setDraftDateAttendance] = useState<Record<number, Record<string, boolean>>>({});
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState<'name_asc' | 'name_desc' | 'attended_first' | 'absent_first'>('name_asc');
-  const notifications = useNotifications();
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const raw = window.sessionStorage.getItem(attendanceFiltersStorageKey);
-    if (!raw) {
-      setSearchTerm('');
-      setSortBy('name_asc');
-      return;
-    }
-
+  const [searchTerm, setSearchTerm] = useState(() => {
+    if (typeof window === 'undefined') return '';
     try {
-      const parsed = JSON.parse(raw) as {
-        searchTerm?: string;
-        sortBy?: 'name_asc' | 'name_desc' | 'attended_first' | 'absent_first';
-      };
-      setSearchTerm(parsed.searchTerm ?? '');
-      setSortBy(parsed.sortBy ?? 'name_asc');
+      const raw = window.sessionStorage.getItem(attendanceFiltersStorageKey);
+      const parsed = raw ? JSON.parse(raw) as { searchTerm?: string } : null;
+      return parsed?.searchTerm ?? '';
     } catch {
-      setSearchTerm('');
-      setSortBy('name_asc');
+      return '';
     }
-  }, [attendanceFiltersStorageKey]);
+  });
+  const [sortBy, setSortBy] = useState<'name_asc' | 'name_desc' | 'attended_first' | 'absent_first'>(() => {
+    if (typeof window === 'undefined') return 'name_asc';
+    try {
+      const raw = window.sessionStorage.getItem(attendanceFiltersStorageKey);
+      const parsed = raw ? JSON.parse(raw) as { sortBy?: 'name_asc' | 'name_desc' | 'attended_first' | 'absent_first' } : null;
+      return parsed?.sortBy ?? 'name_asc';
+    } catch {
+      return 'name_asc';
+    }
+  });
+  const notifications = useNotifications();
 
   useEffect(() => {
     if (typeof window === 'undefined') return;

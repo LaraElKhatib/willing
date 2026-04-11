@@ -77,7 +77,7 @@ function OrganizationCrisisPostings() {
 
   return (
     <PostingSearchView
-      title={resolvedCrisis?.name ?? 'Crisis'}
+      title={resolvedCrisis?.name ?? 'Postings'}
       subtitle={subtitle}
       icon={AlertCircle}
       actions={<PostingViewModeToggle />}

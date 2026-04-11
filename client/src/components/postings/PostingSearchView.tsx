@@ -32,7 +32,13 @@ import PostingCollection from './PostingCollection.tsx';
 import PostingFiltersCard from './PostingFiltersCard.tsx';
 import Button from '../Button.tsx';
 
-import type { VolunteerCrisesResponse, VolunteerOrganizationSearchResponse, VolunteerPostingSearchResponse, VolunteerEnrollmentsResponse } from '../../../../server/src/api/types.ts';
+import type {
+  VolunteerCrisesResponse,
+  VolunteerEnrollmentsResponse,
+  VolunteerOrganizationSearchResponse,
+  VolunteerOrganizationSearchResult,
+  VolunteerPostingSearchResponse,
+} from '../../../../server/src/api/types.ts';
 import type { Crisis } from '../../../../server/src/db/tables/index.ts';
 import type { PostingWithContext } from '../../../../server/src/types.ts';
 
@@ -61,15 +67,6 @@ type PostingSearchFormValues = Omit<PostingSearchFilters, 'sortBy' | 'sortDir'> 
   sortOption: VolunteerPostingSortOptionValue | OrganizationPostingSortOptionValue | CrisisPostingSortOptionValue;
   crisisFilter: PostingSearchFilters['crisisFilter'];
   entity: PostingSearchFilters['entity'];
-};
-
-type VolunteerOrganizationSearchResult = {
-  id: number;
-  name: string;
-  description: string | null;
-  location_name: string | null;
-  logo_path: string | null;
-  posting_count: number;
 };
 
 type PostingSearchViewProps = {
@@ -336,7 +333,7 @@ function PostingSearchView({
     } finally {
       setLoading(false);
     }
-  }, [fetchPostingsRequest, fetchUrl, filterPostings, enableOrganizationSearch, organizationsFetchUrl]);
+  }, [fetchPostingsRequest, fetchUrl, filterPostings, enableOrganizationSearch, organizationsFetchUrl, crisesFetchBasePath]);
 
   const applyFilters = useCallback(async (formValues: PostingSearchFormValues) => {
     const withEntity = { ...formValues, entity: activeEntity };
@@ -558,20 +555,6 @@ function PostingSearchView({
               label="End Time By"
               type="time"
             />
-            {activeEntity === 'organizations' && (
-              <div className="lg:col-span-2">
-                <FormField
-                  form={form}
-                  name="organizationCertificateFilter"
-                  label="Certificate status"
-                  selectOptions={[
-                    { label: 'All organizations', value: 'all' },
-                    { label: 'Cert enabled', value: 'enabled' },
-                    { label: 'Cert disabled', value: 'disabled' },
-                  ]}
-                />
-              </div>
-            )}
             {enableCrisisFilter && (
               <div className="lg:col-span-2">
                 <FormField

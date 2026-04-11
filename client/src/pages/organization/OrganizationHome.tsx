@@ -125,8 +125,9 @@ function OrganizationHome() {
       return defaultFilters;
     }
   });
-  const [initialFormValues] = useState<OrganizationPostingFilterFormValues>(
+  const initialFormValues = useMemo(
     () => toOrganizationPostingFilterFormValues(initialFilters),
+    [initialFilters],
   );
 
   const fetchOrganizationPostings = useCallback(

@@ -1,4 +1,4 @@
-import { sql } from 'kysely';
+ï»¿import { sql } from 'kysely';
 
 import config from '../config.ts';
 import database from '../db/index.ts';
@@ -490,7 +490,7 @@ async function seed() {
         name: 'Beirut Port Explosion Aftermath',
         description:
           'Five years on, many families in the neighborhoods closest to the port are still '
-          + 'living in damaged homes — the cameras moved on, but the need did not.',
+          + 'living in damaged homes â€” the cameras moved on, but the need did not.',
         pinned: true,
       },
       {
@@ -506,7 +506,7 @@ async function seed() {
         description:
           'With the lira in freefall and salaries worth a fraction of what they were, '
           + 'more Lebanese families than ever are skipping meals. The people lining up at '
-          + 'community kitchens are teachers, nurses, and retired civil servants — '
+          + 'community kitchens are teachers, nurses, and retired civil servants â€” '
           + 'people who never imagined they would need this kind of help.',
         pinned: false,
       },
@@ -514,7 +514,7 @@ async function seed() {
         name: 'Tyre Coastal Pollution Emergency',
         description:
           'A fuel spill and years of unchecked waste dumping have left the Tyre coastline '
-          + 'visibly damaged — tar on the sand, dead fish, and a smell that carries for kilometers. '
+          + 'visibly damaged â€” tar on the sand, dead fish, and a smell that carries for kilometers. '
           + 'Local fishermen say they have not been able to work in weeks.',
         pinned: false,
       },
@@ -684,7 +684,7 @@ async function seed() {
         title: 'Meals for the Displaced',
         description: 'Help cook and distribute hot meals to displaced families sheltering '
           + 'in schools across Beirut. Shifts run morning and evening. No cooking experience '
-          + 'required — just willingness to work hard and stay organised.',
+          + 'required â€” just willingness to work hard and stay organised.',
         latitude: 33.8760,
         longitude: 35.4980,
         location_name: 'Ras Beirut School Shelter',
@@ -797,7 +797,7 @@ async function seed() {
         crisis_id: null,
         title: 'Remote Homework Support',
         description: 'Provide online academic support to public school students in South Lebanon '
-          + 'via phone or video call. Each volunteer takes 2–3 one-hour slots per week. '
+          + 'via phone or video call. Each volunteer takes 2â€“3 one-hour slots per week. '
           + 'Subjects: Arabic, English, Maths, Sciences.',
         latitude: 33.3547,
         longitude: 35.4955,
@@ -1170,7 +1170,7 @@ async function seed() {
     { posting_id: postingByTitle.get('Inclusive Sports Day')!, name: 'Teamwork' },
     { posting_id: postingByTitle.get('Inclusive Sports Day')!, name: 'Communication' },
 
-    // Community Kitchen – Saida
+    // Community Kitchen - Saida
     { posting_id: postingByTitle.get('Community Kitchen')!, name: 'Cooking' },
     { posting_id: postingByTitle.get('Community Kitchen')!, name: 'Food Preparation' },
     { posting_id: postingByTitle.get('Community Kitchen')!, name: 'Serving' },
@@ -1252,7 +1252,7 @@ async function seed() {
     { posting_id: postingByTitle.get('Crisis Hotline Coverage Week')!, name: 'Remote Support' },
     { posting_id: postingByTitle.get('Crisis Hotline Coverage Week')!, name: 'Data Entry' },
 
-    // Coastal Cleanup – Tyre
+    // Coastal Cleanup - Tyre
     { posting_id: postingByTitle.get('Coastal Cleanup')!, name: 'Physical Stamina' },
     { posting_id: postingByTitle.get('Coastal Cleanup')!, name: 'Environmental Awareness' },
     { posting_id: postingByTitle.get('Coastal Cleanup')!, name: 'Teamwork' },
@@ -1295,7 +1295,7 @@ async function seed() {
     { posting_id: postingByTitle.get('Youth Garden Helpers')!, name: 'Teamwork' },
     { posting_id: postingByTitle.get('Youth Garden Helpers')!, name: 'Community Support' },
 
-    // Debris Clearance – Akkar Villages
+    // Debris Clearance â€“ Akkar Villages
     { posting_id: postingByTitle.get('Debris Clearance')!, name: 'Physical Stamina' },
     { posting_id: postingByTitle.get('Debris Clearance')!, name: 'Teamwork' },
     { posting_id: postingByTitle.get('Debris Clearance')!, name: 'Construction' },
@@ -1305,7 +1305,7 @@ async function seed() {
   // --- Volunteer Skills ---------------------------------------------------------
 
   await database.insertInto('volunteer_skill').values([
-    // vol1 – logistics / physical
+    // vol1 â€“ logistics / physical
     { volunteer_id: volByEmail.get('vol1@willing.social')!, name: 'Logistics' },
     { volunteer_id: volByEmail.get('vol1@willing.social')!, name: 'Physical Stamina' },
     { volunteer_id: volByEmail.get('vol1@willing.social')!, name: 'Packing' },
@@ -1313,7 +1313,7 @@ async function seed() {
     { volunteer_id: volByEmail.get('vol1@willing.social')!, name: 'Organisation' },
     { volunteer_id: volByEmail.get('vol1@willing.social')!, name: 'Safety Awareness' },
 
-    // vol2 – teaching / communication
+    // vol2 â€“ teaching / communication
     { volunteer_id: volByEmail.get('vol2@willing.social')!, name: 'Teaching' },
     { volunteer_id: volByEmail.get('vol2@willing.social')!, name: 'Communication' },
     { volunteer_id: volByEmail.get('vol2@willing.social')!, name: 'Patience' },
@@ -1321,14 +1321,14 @@ async function seed() {
     { volunteer_id: volByEmail.get('vol2@willing.social')!, name: 'Arabic' },
     { volunteer_id: volByEmail.get('vol2@willing.social')!, name: 'Active Listening' },
 
-    // vol3 – medical / first aid
+    // vol3 â€“ medical / first aid
     { volunteer_id: volByEmail.get('vol3@willing.social')!, name: 'First Aid' },
     { volunteer_id: volByEmail.get('vol3@willing.social')!, name: 'Medical Assistance' },
     { volunteer_id: volByEmail.get('vol3@willing.social')!, name: 'Triage Support' },
     { volunteer_id: volByEmail.get('vol3@willing.social')!, name: 'Crisis Response' },
     { volunteer_id: volByEmail.get('vol3@willing.social')!, name: 'Teamwork' },
 
-    // vol4 – elderly care / com support
+    // vol4 â€“ elderly care / com support
     { volunteer_id: volByEmail.get('vol4@willing.social')!, name: 'Empathy' },
     { volunteer_id: volByEmail.get('vol4@willing.social')!, name: 'Emotional Support' },
     { volunteer_id: volByEmail.get('vol4@willing.social')!, name: 'Active Listening' },
@@ -1336,14 +1336,14 @@ async function seed() {
     { volunteer_id: volByEmail.get('vol4@willing.social')!, name: 'Patience' },
     { volunteer_id: volByEmail.get('vol4@willing.social')!, name: 'Arabic' },
 
-    // vol5 – environment / outdoors
+    // vol5 â€“ environment / outdoors
     { volunteer_id: volByEmail.get('vol5@willing.social')!, name: 'Physical Stamina' },
     { volunteer_id: volByEmail.get('vol5@willing.social')!, name: 'Environmental Awareness' },
     { volunteer_id: volByEmail.get('vol5@willing.social')!, name: 'Teamwork' },
     { volunteer_id: volByEmail.get('vol5@willing.social')!, name: 'Waste Sorting' },
     { volunteer_id: volByEmail.get('vol5@willing.social')!, name: 'Safety Awareness' },
 
-    // vol6 – children / creativity
+    // vol6 â€“ children / creativity
     { volunteer_id: volByEmail.get('vol6@willing.social')!, name: 'Creativity' },
     { volunteer_id: volByEmail.get('vol6@willing.social')!, name: 'Storytelling' },
     { volunteer_id: volByEmail.get('vol6@willing.social')!, name: 'Child Engagement' },
@@ -1351,21 +1351,21 @@ async function seed() {
     { volunteer_id: volByEmail.get('vol6@willing.social')!, name: 'Patience' },
     { volunteer_id: volByEmail.get('vol6@willing.social')!, name: 'Teaching' },
 
-    // vol7 – tech / remote support
+    // vol7 â€“ tech / remote support
     { volunteer_id: volByEmail.get('vol7@willing.social')!, name: 'Remote Support' },
     { volunteer_id: volByEmail.get('vol7@willing.social')!, name: 'Teaching' },
     { volunteer_id: volByEmail.get('vol7@willing.social')!, name: 'Problem Solving' },
     { volunteer_id: volByEmail.get('vol7@willing.social')!, name: 'Communication' },
     { volunteer_id: volByEmail.get('vol7@willing.social')!, name: 'Explaining Concepts' },
 
-    // vol8 – food / community kitchen
+    // vol8 â€“ food / community kitchen
     { volunteer_id: volByEmail.get('vol8@willing.social')!, name: 'Cooking' },
     { volunteer_id: volByEmail.get('vol8@willing.social')!, name: 'Food Preparation' },
     { volunteer_id: volByEmail.get('vol8@willing.social')!, name: 'Serving' },
     { volunteer_id: volByEmail.get('vol8@willing.social')!, name: 'Hygiene' },
     { volunteer_id: volByEmail.get('vol8@willing.social')!, name: 'Teamwork' },
 
-    // vol9 – sorting / warehousing
+    // vol9 â€“ sorting / warehousing
     { volunteer_id: volByEmail.get('vol9@willing.social')!, name: 'Sorting' },
     { volunteer_id: volByEmail.get('vol9@willing.social')!, name: 'Inventory Handling' },
     { volunteer_id: volByEmail.get('vol9@willing.social')!, name: 'Attention to Detail' },
@@ -1373,30 +1373,30 @@ async function seed() {
     { volunteer_id: volByEmail.get('vol9@willing.social')!, name: 'Accuracy' },
     { volunteer_id: volByEmail.get('vol9@willing.social')!, name: 'Organisation' },
 
-    // vol10 – general (fewer skills, private profile)
+    // vol10 â€“ general (fewer skills, private profile)
     { volunteer_id: volByEmail.get('vol10@willing.social')!, name: 'Communication' },
     { volunteer_id: volByEmail.get('vol10@willing.social')!, name: 'Teamwork' },
     { volunteer_id: volByEmail.get('vol10@willing.social')!, name: 'Organisation' },
 
-    // vol11 – operations / logistics
+    // vol11 â€“ operations / logistics
     { volunteer_id: volByEmail.get('vol11@willing.social')!, name: 'Logistics' },
     { volunteer_id: volByEmail.get('vol11@willing.social')!, name: 'Inventory Handling' },
     { volunteer_id: volByEmail.get('vol11@willing.social')!, name: 'Organisation' },
     { volunteer_id: volByEmail.get('vol11@willing.social')!, name: 'Physical Stamina' },
 
-    // vol12 – tutoring / facilitation
+    // vol12 â€“ tutoring / facilitation
     { volunteer_id: volByEmail.get('vol12@willing.social')!, name: 'Teaching' },
     { volunteer_id: volByEmail.get('vol12@willing.social')!, name: 'Child Engagement' },
     { volunteer_id: volByEmail.get('vol12@willing.social')!, name: 'Communication' },
     { volunteer_id: volByEmail.get('vol12@willing.social')!, name: 'Patience' },
 
-    // vol13 – tech / coordination
+    // vol13 - tech / coordination
     { volunteer_id: volByEmail.get('vol13@willing.social')!, name: 'Remote Support' },
     { volunteer_id: volByEmail.get('vol13@willing.social')!, name: 'Data Entry' },
     { volunteer_id: volByEmail.get('vol13@willing.social')!, name: 'Communication' },
     { volunteer_id: volByEmail.get('vol13@willing.social')!, name: 'Problem Solving' },
 
-    // vol14 – admin / events
+    // vol14 - admin / events
     { volunteer_id: volByEmail.get('vol14@willing.social')!, name: 'Organisation' },
     { volunteer_id: volByEmail.get('vol14@willing.social')!, name: 'Communication' },
     { volunteer_id: volByEmail.get('vol14@willing.social')!, name: 'Data Entry' },
@@ -1534,7 +1534,7 @@ async function seed() {
     {
       volunteer_id: volByEmail.get('vol8@willing.social')!,
       posting_id: postingByTitle.get('Meals for the Displaced')!,
-      message: 'Catering background — comfortable with large-scale food prep and service.',
+      message: 'Catering background - comfortable with large-scale food prep and service.',
       attended: true,
     },
     {
@@ -1558,7 +1558,7 @@ async function seed() {
       attended: false,
     },
 
-    // Blood Drive Coordination (closed – historical)
+    // Blood Drive Coordination (closed - historical)
     {
       volunteer_id: volByEmail.get('vol2@willing.social')!,
       posting_id: postingByTitle.get('Blood Drive Coordination')!,
@@ -1600,7 +1600,7 @@ async function seed() {
       attended: false,
     },
 
-    // Community Kitchen – Saida
+    // Community Kitchen - Saida
     {
       volunteer_id: volByEmail.get('vol8@willing.social')!,
       posting_id: postingByTitle.get('Community Kitchen')!,
@@ -1614,7 +1614,7 @@ async function seed() {
       attended: false,
     },
 
-    // Winter Clothing Distribution (closed – historical)
+    // Winter Clothing Distribution (closed - historical)
     {
       volunteer_id: volByEmail.get('vol1@willing.social')!,
       posting_id: postingByTitle.get('Winter Clothing Distribution')!,
@@ -1648,7 +1648,7 @@ async function seed() {
       attended: false,
     },
 
-    // Coastal Cleanup – Tyre
+    // Coastal Cleanup - Tyre
     {
       volunteer_id: volByEmail.get('vol5@willing.social')!,
       posting_id: postingByTitle.get('Coastal Cleanup')!,
@@ -1676,7 +1676,7 @@ async function seed() {
       attended: false,
     },
 
-    // Debris Clearance – Akkar Villages (closed – historical)
+    // Debris Clearance - Akkar Villages (closed - historical)
     {
       volunteer_id: volByEmail.get('vol1@willing.social')!,
       posting_id: postingByTitle.get('Debris Clearance')!,

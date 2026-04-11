@@ -4,6 +4,7 @@ import morgan from 'morgan';
 import { ZodError } from 'zod';
 
 import createAPIRouter from './api/index.ts';
+import { createGlobalRateLimit } from './api/routes/utils/rateLimit.ts';
 import config from './config.ts';
 
 import type { Database } from './db/tables/index.ts';
@@ -14,6 +15,7 @@ function createApp(db: Kysely<Database>) {
 
   if (config.NODE_ENV !== 'test') {
     app.use(morgan('dev'));
+    app.use(createGlobalRateLimit());
   }
 
   app.use(express.json());

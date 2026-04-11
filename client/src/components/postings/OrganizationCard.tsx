@@ -40,7 +40,7 @@ function OrganizationCard({ organization }: OrganizationCardProps) {
         <span className="badge badge-secondary text-sm py-2 whitespace-nowrap">
           {organization.posting_count}
           {' '}
-          postings
+          {organization.posting_count === 1 ? 'posting' : 'postings'}
         </span>
       </div>
 

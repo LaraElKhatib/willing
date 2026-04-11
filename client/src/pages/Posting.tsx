@@ -1309,7 +1309,7 @@ function PostingPage() {
               )}
             </Card>
 
-            {canManagePosting && (
+            {!isVolunteerView && (
               <Card
                 title="Location"
                 description={isEditMode ? 'Pick the location on the map.' : 'Posting location on map.'}
