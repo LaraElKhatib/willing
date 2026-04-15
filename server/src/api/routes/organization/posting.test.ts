@@ -261,7 +261,7 @@ describe('Organization posting management', () => {
 
     expect(response.body.posting.title).toBe('Created Posting');
     expect(response.body.posting.crisis_id).toBe(crisis.id);
-    const skillNames = response.body.skills.map((skill: any) => skill.name);
+    const skillNames = response.body.skills.map((skill: { name: string }) => skill.name);
     expect(skillNames).toHaveLength(3);
     expect(skillNames).toContain('CPR');
     expect(skillNames).toContain(' First Aid ');
@@ -342,7 +342,7 @@ describe('Organization posting management', () => {
 
     expect(response.body.posting.title).toBe('Updated Posting');
     expect(response.body.crisis.id).toBe(crisis.id);
-    expect(response.body.skills.map((skill: any) => skill.name).sort()).toEqual(['CPR', 'Updated']);
+    expect(response.body.skills.map((skill: { name: string }) => skill.name).sort()).toEqual(['CPR', 'Updated']);
   });
 
   test('deletes a posting and removes associated enrollment rows', async () => {
@@ -829,4 +829,3 @@ describe('Organization posting management', () => {
     expect(response.body.message).toBe('Application does not belong to this posting');
   });
 });
-
