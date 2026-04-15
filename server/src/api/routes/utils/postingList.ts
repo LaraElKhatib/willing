@@ -120,23 +120,23 @@ export const applyPostingDateTimeFilters = <Q extends PostingQueryLike>(
   let nextQuery = query;
 
   if (filters.startDateFrom) {
-    nextQuery = nextQuery.where('organization_posting.start_date', '>=', filters.startDateFrom) as Q;
+    nextQuery = nextQuery.where('posting.start_date', '>=', filters.startDateFrom) as Q;
   }
 
   if (filters.endDateTo) {
     nextQuery = nextQuery
-      .where('organization_posting.end_date', 'is not', null)
-      .where('organization_posting.end_date', '<=', filters.endDateTo) as Q;
+      .where('posting.end_date', 'is not', null)
+      .where('posting.end_date', '<=', filters.endDateTo) as Q;
   }
 
   if (filters.startTimeFrom) {
-    nextQuery = nextQuery.where('organization_posting.start_time', '>=', filters.startTimeFrom) as Q;
+    nextQuery = nextQuery.where('posting.start_time', '>=', filters.startTimeFrom) as Q;
   }
 
   if (filters.endTimeTo) {
     nextQuery = nextQuery
-      .where('organization_posting.end_time', 'is not', null)
-      .where('organization_posting.end_time', '<=', filters.endTimeTo) as Q;
+      .where('posting.end_time', 'is not', null)
+      .where('posting.end_time', '<=', filters.endTimeTo) as Q;
   }
 
   return nextQuery;
@@ -263,16 +263,16 @@ export const applySharedPostingSort = <Q extends PostingQueryLike>(
   switch (sortBy) {
     case 'created_at':
       return query
-        .orderBy('organization_posting.created_at', sortDir)
-        .orderBy('organization_posting.id', sortDir) as Q;
+        .orderBy('posting.created_at', sortDir)
+        .orderBy('posting.id', sortDir) as Q;
     case 'title':
       return query
-        .orderBy('organization_posting.title', sortDir)
-        .orderBy('organization_posting.id', sortDir) as Q;
+        .orderBy('posting.title', sortDir)
+        .orderBy('posting.id', sortDir) as Q;
     case 'start_date':
     default:
       return query
-        .orderBy('organization_posting.start_date', sortDir)
-        .orderBy('organization_posting.start_time', sortDir) as Q;
+        .orderBy('posting.start_date', sortDir)
+        .orderBy('posting.start_time', sortDir) as Q;
   }
 };

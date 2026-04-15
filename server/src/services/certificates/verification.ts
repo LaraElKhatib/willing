@@ -23,16 +23,16 @@ const getVolunteerHoursSnapshot = async (db: Kysely<Database>, volunteerId: numb
   const hoursPerPostingExpression = sql<number>`GREATEST(
     0,
     EXTRACT(EPOCH FROM (
-      (organization_posting.end_date + organization_posting.end_time)
-      - (organization_posting.start_date + organization_posting.start_time)
+      (posting.end_date + posting.end_time)
+      - (posting.start_date + posting.start_time)
     )) / 3600.0
   )`;
 
   const rows = await db
     .selectFrom('enrollment')
-    .innerJoin('organization_posting', 'organization_posting.id', 'enrollment.posting_id')
+    .innerJoin('posting', 'posting.id', 'enrollment.posting_id')
     .select([
-      'organization_posting.organization_id as organization_id',
+      'posting.organization_id as organization_id',
       sql<number>`COALESCE(SUM(${hoursPerPostingExpression}), 0)`.as('hours'),
     ])
     .where('enrollment.volunteer_id', '=', volunteerId)
@@ -40,7 +40,7 @@ const getVolunteerHoursSnapshot = async (db: Kysely<Database>, volunteerId: numb
     // Historical attendance timestamps are not fully modeled in schema.
     // We use enrollment.created_at as the strongest available "known by issued_at" bound.
     .where('enrollment.created_at', '<=', issuedAt)
-    .groupBy('organization_posting.organization_id')
+    .groupBy('posting.organization_id')
     .execute();
 
   const hoursByOrgId = new Map<number, number>();

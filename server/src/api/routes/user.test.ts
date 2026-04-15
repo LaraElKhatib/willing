@@ -708,7 +708,7 @@ describe('DELETE /user/account', () => {
       .expect(200);
 
     const deletedPosting = await transaction
-      .selectFrom('organization_posting')
+      .selectFrom('posting')
       .select('id')
       .where('id', '=', posting.id)
       .executeTakeFirst();

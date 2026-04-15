@@ -29,7 +29,7 @@ describe('Organization posting applications', () => {
     const { volunteer } = await createVolunteerAccount(transaction, { email: 'vol-posting-apps@example.com' });
 
     const posting = await transaction
-      .insertInto('organization_posting')
+      .insertInto('posting')
       .values({
         organization_id: organization.id,
         title: 'Review Partial Attendance Event',
@@ -86,7 +86,7 @@ describe('Organization posting applications', () => {
     const { volunteer } = await createVolunteerAccount(transaction, { email: 'vol-posting-accept@example.com' });
 
     const posting = await transaction
-      .insertInto('organization_posting')
+      .insertInto('posting')
       .values({
         organization_id: organization.id,
         title: 'Review Acceptance Dates Event',
@@ -166,7 +166,7 @@ describe('Organization posting applications', () => {
     const { volunteer } = await createVolunteerAccount(transaction, { email: 'vol-posting-reject@example.com' });
 
     const posting = await transaction
-      .insertInto('organization_posting')
+      .insertInto('posting')
       .values({
         organization_id: organization.id,
         title: 'Review Partial Attendance Rejection',
@@ -298,7 +298,7 @@ describe('Organization posting management', () => {
   test('updates posting skills and attaches crisis data', async () => {
     const { organization, token } = await createOrganizationAccount(transaction, { email: 'org-update-posting@example.com' });
     const posting = await transaction
-      .insertInto('organization_posting')
+      .insertInto('posting')
       .values({
         organization_id: organization.id,
         title: 'Update Me',
@@ -349,7 +349,7 @@ describe('Organization posting management', () => {
     const { organization, token } = await createOrganizationAccount(transaction, { email: 'org-delete-posting@example.com' });
     const { volunteer } = await createVolunteerAccount(transaction, { email: 'vol-delete-posting@example.com' });
     const posting = await transaction
-      .insertInto('organization_posting')
+      .insertInto('posting')
       .values({
         organization_id: organization.id,
         title: 'Delete Me',
@@ -385,7 +385,7 @@ describe('Organization posting management', () => {
       .expect(200);
 
     const deletedPosting = await transaction
-      .selectFrom('organization_posting')
+      .selectFrom('posting')
       .select('id')
       .where('id', '=', posting.id)
       .executeTakeFirst();
@@ -397,7 +397,7 @@ describe('Organization posting management', () => {
     const { organization, token } = await createOrganizationAccount(transaction, { email: 'org-accept-open@example.com' });
     const { volunteer } = await createVolunteerAccount(transaction, { email: 'vol-accept-open@example.com' });
     const posting = await transaction
-      .insertInto('organization_posting')
+      .insertInto('posting')
       .values({
         organization_id: organization.id,
         title: 'Open Posting',
@@ -437,7 +437,7 @@ describe('Organization posting management', () => {
     const { volunteer } = await createVolunteerAccount(transaction, { email: 'vol-reject-mismatch@example.com' });
 
     const postingOne = await transaction
-      .insertInto('organization_posting')
+      .insertInto('posting')
       .values({
         organization_id: organization.id,
         title: 'Posting One',
@@ -459,7 +459,7 @@ describe('Organization posting management', () => {
       .executeTakeFirstOrThrow();
 
     const postingTwo = await transaction
-      .insertInto('organization_posting')
+      .insertInto('posting')
       .values({
         organization_id: organization.id,
         title: 'Posting Two',
@@ -498,7 +498,7 @@ describe('Organization posting management', () => {
     const { organization, token } = await createOrganizationAccount(transaction, { email: 'org-accept-no-dates@example.com' });
     const { volunteer } = await createVolunteerAccount(transaction, { email: 'vol-accept-no-dates@example.com' });
     const posting = await transaction
-      .insertInto('organization_posting')
+      .insertInto('posting')
       .values({
         organization_id: organization.id,
         title: 'No Dates Posting',
@@ -556,7 +556,7 @@ describe('Organization posting management', () => {
       .executeTakeFirstOrThrow();
 
     await transaction
-      .insertInto('organization_posting')
+      .insertInto('posting')
       .values({
         organization_id: organization.id,
         title: 'Other Posting',
@@ -577,7 +577,7 @@ describe('Organization posting management', () => {
       .execute();
 
     const expectedPosting = await transaction
-      .insertInto('organization_posting')
+      .insertInto('posting')
       .values({
         organization_id: organization.id,
         title: 'Searchable Posting',
@@ -630,7 +630,7 @@ describe('Organization posting management', () => {
       .executeTakeFirstOrThrow();
 
     const posting = await transaction
-      .insertInto('organization_posting')
+      .insertInto('posting')
       .values({
         organization_id: organization.id,
         title: 'Detail Posting',
@@ -682,7 +682,7 @@ describe('Organization posting management', () => {
     const { organization, token } = await createOrganizationAccount(transaction, { email: 'org-get-enrollments@example.com' });
     const { volunteer } = await createVolunteerAccount(transaction, { email: 'vol-get-enrollments@example.com' });
     const posting = await transaction
-      .insertInto('organization_posting')
+      .insertInto('posting')
       .values({
         organization_id: organization.id,
         title: 'Enrollments Posting',
@@ -720,7 +720,7 @@ describe('Organization posting management', () => {
   test('GET /organization/posting/:id/applications returns empty array for automatic acceptance postings', async () => {
     const { organization, token } = await createOrganizationAccount(transaction, { email: 'org-open-apps@example.com' });
     const posting = await transaction
-      .insertInto('organization_posting')
+      .insertInto('posting')
       .values({
         organization_id: organization.id,
         title: 'Open Apps Posting',
@@ -772,7 +772,7 @@ describe('Organization posting management', () => {
     const { organization, token } = await createOrganizationAccount(transaction, { email: 'org-accept-mismatch@example.com' });
     const { volunteer } = await createVolunteerAccount(transaction, { email: 'vol-accept-mismatch@example.com' });
     const postingOne = await transaction
-      .insertInto('organization_posting')
+      .insertInto('posting')
       .values({
         organization_id: organization.id,
         title: 'Posting One',
@@ -794,7 +794,7 @@ describe('Organization posting management', () => {
       .executeTakeFirstOrThrow();
 
     const postingTwo = await transaction
-      .insertInto('organization_posting')
+      .insertInto('posting')
       .values({
         organization_id: organization.id,
         title: 'Posting Two',
@@ -829,3 +829,4 @@ describe('Organization posting management', () => {
     expect(response.body.message).toBe('Application does not belong to this posting');
   });
 });
+

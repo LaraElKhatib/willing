@@ -590,7 +590,7 @@ describe('GET /volunteer/certificate', () => {
       .execute();
 
     const posting = await transaction
-      .insertInto('organization_posting')
+      .insertInto('posting')
       .values({
         organization_id: organization.id,
         title: 'Relief Packing',
@@ -710,7 +710,7 @@ describe('DELETE /volunteer/posting/:id/enroll withdrawal behavior', () => {
     const { organization } = await createOrganizationAccount(transaction, { email: 'partial-withdraw-org@example.com' });
 
     const posting = await transaction
-      .insertInto('organization_posting')
+      .insertInto('posting')
       .values({
         organization_id: organization.id,
         title: 'Partial Attendance Event',
@@ -764,7 +764,7 @@ describe('DELETE /volunteer/posting/:id/enroll withdrawal behavior', () => {
     const { organization } = await createOrganizationAccount(transaction, { email: 'partial-pending-withdraw-org@example.com' });
 
     const posting = await transaction
-      .insertInto('organization_posting')
+      .insertInto('posting')
       .values({
         organization_id: organization.id,
         title: 'Partial Pending Withdrawal Event',
@@ -820,7 +820,7 @@ describe('GET /volunteer/posting/:id selected partial dates', () => {
     const { organization } = await createOrganizationAccount(transaction, { email: 'partial-pending-selected-org@example.com' });
 
     const posting = await transaction
-      .insertInto('organization_posting')
+      .insertInto('posting')
       .values({
         organization_id: organization.id,
         title: 'Pending Partial Attendance Event',
@@ -863,7 +863,7 @@ describe('GET /volunteer/posting/:id selected partial dates', () => {
     const { organization, token: orgToken } = await createOrganizationAccount(transaction, { email: 'partial-accepted-selected-org@example.com' });
 
     const posting = await transaction
-      .insertInto('organization_posting')
+      .insertInto('posting')
       .values({
         organization_id: organization.id,
         title: 'Accepted Partial Attendance Event',
@@ -921,7 +921,7 @@ describe('GET /volunteer/posting/:id selected partial dates', () => {
     const { organization } = await createOrganizationAccount(transaction, { email: 'partial-posting-dates-org@example.com' });
 
     const posting = await transaction
-      .insertInto('organization_posting')
+      .insertInto('posting')
       .values({
         organization_id: organization.id,
         title: 'Inclusive Posting Dates Event',
@@ -958,7 +958,7 @@ describe('GET /volunteer/posting/:id selected partial dates', () => {
     const { organization } = await createOrganizationAccount(transaction, { email: 'partial-full-day-org@example.com' });
 
     const posting = await transaction
-      .insertInto('organization_posting')
+      .insertInto('posting')
       .values({
         organization_id: organization.id,
         title: 'Per-Day Capacity Event',
@@ -1015,7 +1015,7 @@ describe('GET /volunteer/posting/:id selected partial dates', () => {
     const { organization } = await createOrganizationAccount(transaction, { email: 'partial-mixed-capacity-org@example.com' });
 
     const posting = await transaction
-      .insertInto('organization_posting')
+      .insertInto('posting')
       .values({
         organization_id: organization.id,
         title: 'Mixed Capacity Partial Event',
@@ -1073,7 +1073,7 @@ describe('GET /volunteer/posting/:id selected partial dates', () => {
     const { organization } = await createOrganizationAccount(transaction, { email: 'partial-available-date-org@example.com' });
 
     const posting = await transaction
-      .insertInto('organization_posting')
+      .insertInto('posting')
       .values({
         organization_id: organization.id,
         title: 'Partial Available Day Event',
@@ -1151,7 +1151,7 @@ describe('GET /volunteer/posting/:id selected partial dates', () => {
     const { organization } = await createOrganizationAccount(transaction, { email: 'partial-no-dates-org@example.com' });
 
     const posting = await transaction
-      .insertInto('organization_posting')
+      .insertInto('posting')
       .values({
         organization_id: organization.id,
         title: 'Partial Attendance Missing Dates',
@@ -1186,7 +1186,7 @@ describe('GET /volunteer/posting/:id selected partial dates', () => {
     const { organization } = await createOrganizationAccount(transaction, { email: 'partial-outside-date-org@example.com' });
 
     const posting = await transaction
-      .insertInto('organization_posting')
+      .insertInto('posting')
       .values({
         organization_id: organization.id,
         title: 'Partial Attendance Out of Range',
@@ -1221,7 +1221,7 @@ describe('GET /volunteer/posting/:id selected partial dates', () => {
     const { organization } = await createOrganizationAccount(transaction, { email: 'full-commitment-dates-org@example.com' });
 
     const posting = await transaction
-      .insertInto('organization_posting')
+      .insertInto('posting')
       .values({
         organization_id: organization.id,
         title: 'Full Commitment Event',
@@ -1256,7 +1256,7 @@ describe('GET /volunteer/posting/:id selected partial dates', () => {
     const { organization } = await createOrganizationAccount(transaction, { email: 'partial-duplicate-dates-org@example.com' });
 
     const posting = await transaction
-      .insertInto('organization_posting')
+      .insertInto('posting')
       .values({
         organization_id: organization.id,
         title: 'Duplicate Selected Dates Event',
@@ -1301,7 +1301,7 @@ describe('GET /volunteer/posting/:id selected partial dates', () => {
     const { organization } = await createOrganizationAccount(transaction, { email: 'partial-auto-accept-org@example.com' });
 
     const posting = await transaction
-      .insertInto('organization_posting')
+      .insertInto('posting')
       .values({
         organization_id: organization.id,
         title: 'Auto Accept Partial Attendance Event',
@@ -1694,7 +1694,7 @@ describe('GET /volunteer/organizations', () => {
     });
 
     await transaction
-      .insertInto('organization_posting')
+      .insertInto('posting')
       .values([
         {
           organization_id: firstOrg.id,

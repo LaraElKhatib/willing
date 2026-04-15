@@ -18,10 +18,10 @@ import { getPostingEnrollments } from './postingEnrollments.ts';
 import executeTransaction from '../../../db/executeTransaction.ts';
 import {
   type Database,
-  type OrganizationPostingWithoutVectors,
+  type PostingWithoutVectors,
   type PostingSkill,
   type VolunteerSkill,
-  newOrganizationPostingSchema,
+  newPostingSchema,
 } from '../../../db/tables/index.ts';
 import {
   recomputeOrganizationCompositeVectorOnly,
@@ -48,30 +48,30 @@ import {
   parsePostingDateTimeFilters,
 } from '../utils/postingList.ts';
 
-const organizationPostingUpdateSchema = newOrganizationPostingSchema.partial().extend({
+const postingUpdateSchema = newPostingSchema.partial().extend({
   crisis_id: zod.number().int().positive().nullable().optional(),
 });
 
-const organizationPostingResponseColumns = [
-  'organization_posting.id',
-  'organization_posting.organization_id',
-  'organization_posting.crisis_id',
-  'organization_posting.title',
-  'organization_posting.description',
-  'organization_posting.latitude',
-  'organization_posting.longitude',
-  'organization_posting.max_volunteers',
-  'organization_posting.start_date',
-  'organization_posting.start_time',
-  'organization_posting.end_date',
-  'organization_posting.end_time',
-  'organization_posting.minimum_age',
-  'organization_posting.automatic_acceptance',
-  'organization_posting.is_closed',
-  'organization_posting.allows_partial_attendance',
-  'organization_posting.location_name',
-  'organization_posting.created_at',
-  'organization_posting.updated_at',
+const postingResponseColumns = [
+  'posting.id',
+  'posting.organization_id',
+  'posting.crisis_id',
+  'posting.title',
+  'posting.description',
+  'posting.latitude',
+  'posting.longitude',
+  'posting.max_volunteers',
+  'posting.start_date',
+  'posting.start_time',
+  'posting.end_date',
+  'posting.end_time',
+  'posting.minimum_age',
+  'posting.automatic_acceptance',
+  'posting.is_closed',
+  'posting.allows_partial_attendance',
+  'posting.location_name',
+  'posting.created_at',
+  'posting.updated_at',
 ] as const;
 
 const normalizeSkillList = (skills: string[]) => Array.from(new Set(skills.map(skill => skill.trim()).filter(Boolean))).sort();
@@ -153,7 +153,7 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
   const postingRouter = Router();
 
   postingRouter.post('/', async (req, res: Response<OrganizationPostingCreateResponse>) => {
-    const body = newOrganizationPostingSchema.parse(req.body);
+    const body = newPostingSchema.parse(req.body);
     const orgId = req.userJWT!.id;
     const { skills, ...postingBody } = body;
 
@@ -165,10 +165,10 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
       const postingInsertValues = {
         organization_id: orgId,
         ...postingBody,
-      } as Partial<OrganizationPostingWithoutVectors>;
+      } as Partial<PostingWithoutVectors>;
 
       const newPosting = await trx
-        .insertInto('organization_posting')
+        .insertInto('posting')
         .values(postingInsertValues as never)
         .returning('id')
         .executeTakeFirst();
@@ -188,8 +188,8 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
     await recomputePostingVectors(result.postingId, db);
 
     const posting = await db
-      .selectFrom('organization_posting')
-      .select(organizationPostingResponseColumns)
+      .selectFrom('posting')
+      .select(postingResponseColumns)
       .where('id', '=', result.postingId)
       .executeTakeFirstOrThrow();
 
@@ -215,8 +215,8 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
     const dateTimeFilters = parsePostingDateTimeFilters(req.query);
 
     let postingsQuery = db
-      .selectFrom('organization_posting')
-      .select(organizationPostingResponseColumns)
+      .selectFrom('posting')
+      .select(postingResponseColumns)
       .where('organization_id', '=', orgId);
 
     if (search) {
@@ -225,30 +225,30 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
         terms.map((term) => {
           const searchPattern = buildSearchRegexPattern(term);
           return or([
-            sql<boolean>`lower(organization_posting.title) ~ ${searchPattern}`,
-            sql<boolean>`lower(organization_posting.description) ~ ${searchPattern}`,
-            sql<boolean>`lower(organization_posting.location_name) ~ ${searchPattern}`,
+            sql<boolean>`lower(posting.title) ~ ${searchPattern}`,
+            sql<boolean>`lower(posting.description) ~ ${searchPattern}`,
+            sql<boolean>`lower(posting.location_name) ~ ${searchPattern}`,
           ]);
         }),
       ));
     }
 
     if (isClosedFilter !== undefined) {
-      postingsQuery = postingsQuery.where('organization_posting.is_closed', '=', isClosedFilter);
+      postingsQuery = postingsQuery.where('posting.is_closed', '=', isClosedFilter);
     }
 
     if (automaticAcceptanceFilter !== undefined) {
-      postingsQuery = postingsQuery.where('organization_posting.automatic_acceptance', '=', automaticAcceptanceFilter);
+      postingsQuery = postingsQuery.where('posting.automatic_acceptance', '=', automaticAcceptanceFilter);
     }
 
     if (crisisIdFilter !== undefined) {
-      postingsQuery = postingsQuery.where('organization_posting.crisis_id', '=', crisisIdFilter);
+      postingsQuery = postingsQuery.where('posting.crisis_id', '=', crisisIdFilter);
     }
 
     postingsQuery = applyPostingDateTimeFilters(postingsQuery, dateTimeFilters);
 
     if (sortBy === 'title') {
-      postingsQuery = postingsQuery.orderBy('organization_posting.title', sortDir);
+      postingsQuery = postingsQuery.orderBy('posting.title', sortDir);
     } else {
       postingsQuery = applySharedPostingSort(postingsQuery, sortBy, sortDir);
     }
@@ -304,10 +304,10 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
     const { id: postingId } = postingIdParamsSchema.parse(req.params);
 
     const posting = await db
-      .selectFrom('organization_posting')
-      .select(organizationPostingResponseColumns)
-      .where('organization_posting.id', '=', postingId)
-      .where('organization_posting.organization_id', '=', orgId)
+      .selectFrom('posting')
+      .select(postingResponseColumns)
+      .where('posting.id', '=', postingId)
+      .where('posting.organization_id', '=', orgId)
       .executeTakeFirst();
 
     if (!posting) {
@@ -344,10 +344,10 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
     const { id: postingId } = postingIdParamsSchema.parse(req.params);
 
     const posting = await db
-      .selectFrom('organization_posting')
+      .selectFrom('posting')
       .select(['id'])
-      .where('organization_posting.id', '=', postingId)
-      .where('organization_posting.organization_id', '=', orgId)
+      .where('posting.id', '=', postingId)
+      .where('posting.organization_id', '=', orgId)
       .executeTakeFirst();
 
     if (!posting) {
@@ -362,10 +362,10 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
   postingRouter.put('/:id', async (req, res: Response<OrganizationPostingUpdateResponse>) => {
     const orgId = req.userJWT!.id;
     const { id: postingId } = postingIdParamsSchema.parse(req.params);
-    const body = organizationPostingUpdateSchema.parse(req.body);
+    const body = postingUpdateSchema.parse(req.body);
 
     const posting = await db
-      .selectFrom('organization_posting')
+      .selectFrom('posting')
       .select([
         'id',
         'crisis_id',
@@ -439,7 +439,7 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
 
       if (Object.keys(postingFields).length > 0) {
         await trx
-          .updateTable('organization_posting')
+          .updateTable('posting')
           .set(postingFields)
           .where('id', '=', postingId)
           .where('organization_id', '=', orgId)
@@ -471,8 +471,8 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
     }
 
     const updatedPosting = await db
-      .selectFrom('organization_posting')
-      .select(organizationPostingResponseColumns)
+      .selectFrom('posting')
+      .select(postingResponseColumns)
       .where('id', '=', postingId)
       .where('organization_id', '=', orgId)
       .executeTakeFirstOrThrow();
@@ -494,7 +494,7 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
     const { id: postingId } = postingIdParamsSchema.parse(req.params);
 
     const posting = await db
-      .selectFrom('organization_posting')
+      .selectFrom('posting')
       .select(['id'])
       .where('id', '=', postingId)
       .where('organization_id', '=', orgId)
@@ -521,7 +521,7 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
       await trx.deleteFrom('enrollment_date').where('posting_id', '=', postingId).execute();
       await trx.deleteFrom('enrollment_application').where('posting_id', '=', postingId).execute();
       await trx.deleteFrom('enrollment').where('posting_id', '=', postingId).execute();
-      await trx.deleteFrom('organization_posting').where('id', '=', postingId).execute();
+      await trx.deleteFrom('posting').where('id', '=', postingId).execute();
     });
 
     const impactedVolunteerIds = Array.from(new Set(impactedVolunteerRows.map(row => row.volunteer_id)));
@@ -538,7 +538,7 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
     const { id: postingId } = postingIdParamsSchema.parse(req.params);
 
     const posting = await db
-      .selectFrom('organization_posting')
+      .selectFrom('posting')
       .select(['id', 'automatic_acceptance', 'is_closed', 'max_volunteers'])
       .where('id', '=', postingId)
       .where('organization_id', '=', orgId)
@@ -626,7 +626,7 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
     }).parse(req.params);
 
     const posting = await db
-      .selectFrom('organization_posting')
+      .selectFrom('posting')
       .select(['id', 'automatic_acceptance', 'is_closed', 'max_volunteers', 'allows_partial_attendance', 'start_date', 'end_date'])
       .where('id', '=', postingId)
       .where('organization_id', '=', orgId)
@@ -661,8 +661,8 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
     const emailContext = await db
       .selectFrom('enrollment_application')
       .innerJoin('volunteer_account', 'volunteer_account.id', 'enrollment_application.volunteer_id')
-      .innerJoin('organization_posting', 'organization_posting.id', 'enrollment_application.posting_id')
-      .innerJoin('organization_account', 'organization_account.id', 'organization_posting.organization_id')
+      .innerJoin('posting', 'posting.id', 'enrollment_application.posting_id')
+      .innerJoin('organization_account', 'organization_account.id', 'posting.organization_id')
       .select([
         'volunteer_account.email as volunteer_email',
         'volunteer_account.first_name',
@@ -670,12 +670,11 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
         'volunteer_account.is_deleted as volunteer_is_deleted',
         'volunteer_account.is_disabled as volunteer_is_disabled',
         'organization_account.name as organization_name',
-        'organization_posting.title as posting_title',
+        'posting.title as posting_title',
       ])
       .where('enrollment_application.id', '=', applicationId)
       .where('enrollment_application.posting_id', '=', postingId)
-      .where('organization_posting.organization_id', '=', orgId)
-      .where('organization_account.is_deleted', '=', false)
+      .where('posting.organization_id', '=', orgId)
       .executeTakeFirst();
 
     if (!emailContext) {
@@ -702,7 +701,7 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
 
     await executeTransaction(db, async (trx) => {
       const lockedPosting = await trx
-        .selectFrom('organization_posting')
+        .selectFrom('posting')
         .select(['id', 'is_closed', 'max_volunteers'])
         .where('id', '=', postingId)
         .where('organization_id', '=', orgId)
@@ -792,7 +791,7 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
     }).parse(req.params);
 
     const posting = await db
-      .selectFrom('organization_posting')
+      .selectFrom('posting')
       .select(['id', 'automatic_acceptance'])
       .where('id', '=', postingId)
       .where('organization_id', '=', orgId)
@@ -822,21 +821,18 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
     const emailContext = await db
       .selectFrom('enrollment_application')
       .innerJoin('volunteer_account', 'volunteer_account.id', 'enrollment_application.volunteer_id')
-      .innerJoin('organization_posting', 'organization_posting.id', 'enrollment_application.posting_id')
-      .innerJoin('organization_account', 'organization_account.id', 'organization_posting.organization_id')
+      .innerJoin('posting', 'posting.id', 'enrollment_application.posting_id')
+      .innerJoin('organization_account', 'organization_account.id', 'posting.organization_id')
       .select([
         'volunteer_account.email as volunteer_email',
         'volunteer_account.first_name',
         'volunteer_account.last_name',
         'organization_account.name as organization_name',
-        'organization_posting.title as posting_title',
+        'posting.title as posting_title',
       ])
       .where('enrollment_application.id', '=', applicationId)
       .where('enrollment_application.posting_id', '=', postingId)
-      .where('organization_posting.organization_id', '=', orgId)
-      .where('volunteer_account.is_deleted', '=', false)
-      .where('volunteer_account.is_disabled', '=', false)
-      .where('organization_account.is_deleted', '=', false)
+      .where('posting.organization_id', '=', orgId)
       .executeTakeFirst();
 
     await executeTransaction(db, async (trx) => {

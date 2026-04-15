@@ -420,8 +420,8 @@ All components are in `client/src/components/`. **Use these instead of recreatin
 5. Until experience entities are implemented in DB, do not generate or recompute experience-derived embeddings from synthetic or temporary tables.
 6. Vector definitions in current schema:
    `organization_account.org_vector`: embedding of organization profile fields.
-   `organization_posting.opportunity_vector`: embedding of posting fields and skills.
-   `organization_posting.posting_context_vector`: normalized weighted combination of posting + organization vectors (70/30).
+   `posting.opportunity_vector`: embedding of posting fields and skills.
+   `posting.posting_context_vector`: normalized weighted combination of posting + organization vectors (70/30).
    `volunteer_account.profile_vector`: embedding of volunteer profile fields, skills, and parsed CV text (if available).
    `volunteer_account.experience_vector`: weighted aggregation from attended posting context vectors (latest-first, max 10).
 

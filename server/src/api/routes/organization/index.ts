@@ -68,24 +68,24 @@ const organizationPrivateResponseColumns = [
 ] as const;
 
 const organizationPostingResponseColumns = [
-  'organization_posting.id',
-  'organization_posting.organization_id',
-  'organization_posting.title',
-  'organization_posting.description',
-  'organization_posting.latitude',
-  'organization_posting.longitude',
-  'organization_posting.max_volunteers',
-  'organization_posting.start_date',
-  'organization_posting.start_time',
-  'organization_posting.end_date',
-  'organization_posting.end_time',
-  'organization_posting.minimum_age',
-  'organization_posting.automatic_acceptance',
-  'organization_posting.is_closed',
-  'organization_posting.allows_partial_attendance',
-  'organization_posting.location_name',
-  'organization_posting.created_at',
-  'organization_posting.updated_at',
+  'posting.id',
+  'posting.organization_id',
+  'posting.title',
+  'posting.description',
+  'posting.latitude',
+  'posting.longitude',
+  'posting.max_volunteers',
+  'posting.start_date',
+  'posting.start_time',
+  'posting.end_date',
+  'posting.end_time',
+  'posting.minimum_age',
+  'posting.automatic_acceptance',
+  'posting.is_closed',
+  'posting.allows_partial_attendance',
+  'posting.location_name',
+  'posting.created_at',
+  'posting.updated_at',
 ] as const;
 
 const organizationProfileUpdateSchema = organizationAccountSchema
@@ -114,23 +114,23 @@ function createOrganizationRouter(db: Kysely<Database>) {
     const relatedApplication = await db
       .selectFrom('enrollment_application')
       .innerJoin(
-        'organization_posting',
-        'organization_posting.id',
+        'posting',
+        'posting.id',
         'enrollment_application.posting_id',
       )
       .select('enrollment_application.id')
       .where('enrollment_application.volunteer_id', '=', volunteerId)
-      .where('organization_posting.organization_id', '=', organizationId)
+      .where('posting.organization_id', '=', organizationId)
       .executeTakeFirst();
 
     if (relatedApplication) return true;
 
     const relatedEnrollment = await db
       .selectFrom('enrollment')
-      .innerJoin('organization_posting', 'organization_posting.id', 'enrollment.posting_id')
+      .innerJoin('posting', 'posting.id', 'enrollment.posting_id')
       .select('enrollment.id')
       .where('enrollment.volunteer_id', '=', volunteerId)
-      .where('organization_posting.organization_id', '=', organizationId)
+      .where('posting.organization_id', '=', organizationId)
       .executeTakeFirst();
 
     return Boolean(relatedEnrollment);
@@ -300,11 +300,11 @@ function createOrganizationRouter(db: Kysely<Database>) {
     const { is_deleted: _d, is_disabled: _i, ...organizationProfile } = organization;
 
     const postings = await db
-      .selectFrom('organization_posting')
+      .selectFrom('posting')
       .select(organizationPostingResponseColumns)
       .where('organization_id', '=', orgId)
-      .orderBy('organization_posting.start_date', 'asc')
-      .orderBy('organization_posting.start_time', 'asc')
+      .orderBy('posting.start_date', 'asc')
+      .orderBy('posting.start_time', 'asc')
       .execute();
 
     const postingIds = postings.map(p => p.id);

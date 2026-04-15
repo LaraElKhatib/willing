@@ -90,7 +90,7 @@ const updatePostingVectors = async (
   executor: DBExecutor,
 ) => {
   await executor
-    .updateTable('organization_posting')
+    .updateTable('posting')
     .set({
       posting_profile_vector: sql<string>`${vectorToSqlLiteral(opportunityVector)}::vector`,
       posting_context_vector: sql<string>`${vectorToSqlLiteral(postingContextVector)}::vector`,
@@ -165,7 +165,7 @@ const updatePostingContextVectorOnly = async (
   executor: DBExecutor,
 ) => {
   await executor
-    .updateTable('organization_posting')
+    .updateTable('posting')
     .set({
       posting_context_vector: sql<string>`${vectorToSqlLiteral(postingContextVector)}::vector`,
     })
@@ -175,7 +175,7 @@ const updatePostingContextVectorOnly = async (
 
 const getOrganizationHistoricalPostingVector = async (organizationId: number, executor: DBExecutor) => {
   const rows = await executor
-    .selectFrom('organization_posting')
+    .selectFrom('posting')
     .select(['posting_context_vector', 'posting_profile_vector'])
     .where('organization_id', '=', organizationId)
     .where('is_closed', '=', true)
@@ -431,7 +431,7 @@ export const recomputePostingVectors = async (postingId: number, executor: DBExe
   let resultVectors: { opportunityVector: number[]; postingContextVector: number[] } | null = null;
   const run = async () => {
     const posting = await executor
-      .selectFrom('organization_posting')
+      .selectFrom('posting')
       .select([
         'id',
         'organization_id',
@@ -504,7 +504,7 @@ export const recomputePostingContextVectorOnly = async (
   options?: { skipIfMissingOpportunityVector?: boolean },
 ) => {
   const posting = await executor
-    .selectFrom('organization_posting')
+    .selectFrom('posting')
     .select(['id', 'organization_id', 'posting_profile_vector'])
     .where('id', '=', postingId)
     .executeTakeFirst();
@@ -579,8 +579,8 @@ export const recomputePostingVectorsForVolunteerEnrollments = async (volunteerId
 export const recomputeVolunteerExperienceVector = async (volunteerId: number, executor: DBExecutor) => {
   const rows = await executor
     .selectFrom('enrollment')
-    .innerJoin('organization_posting', 'organization_posting.id', 'enrollment.posting_id')
-    .select(['organization_posting.posting_context_vector'])
+    .innerJoin('posting', 'posting.id', 'enrollment.posting_id')
+    .select(['posting.posting_context_vector'])
     .where('enrollment.volunteer_id', '=', volunteerId)
     .where('enrollment.attended', '=', true)
     .orderBy('enrollment.created_at', 'desc')
@@ -630,7 +630,7 @@ export const recomputePostingContextVectorsForOrganization = async (organization
   if (!orgVector) return;
 
   const postings = await executor
-    .selectFrom('organization_posting')
+    .selectFrom('posting')
     .select(['id', 'posting_profile_vector'])
     .where('organization_id', '=', organizationId)
     .execute();
@@ -644,7 +644,7 @@ export const recomputePostingContextVectorsForOrganization = async (organization
 
     const postingContextVector = await buildPostingContextVector(posting.id, opportunityVector, orgVector, executor);
     await executor
-      .updateTable('organization_posting')
+      .updateTable('posting')
       .set({
         posting_context_vector: sql<string>`${vectorToSqlLiteral(postingContextVector)}::vector`,
       })
