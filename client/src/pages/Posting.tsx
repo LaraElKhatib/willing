@@ -1309,6 +1309,20 @@ function PostingPage() {
               )}
             </Card>
 
+            {canManagePosting && (
+              <Card
+                title="Location"
+                description={isEditMode ? 'Pick the location on the map.' : 'Posting location on map.'}
+                Icon={MapPin}
+              >
+                <LocationPicker
+                  position={position}
+                  setPosition={onMapPositionPick}
+                  readOnly={!isEditMode}
+                />
+              </Card>
+            )}
+
           </>
         )}
       >
@@ -1394,17 +1408,19 @@ function PostingPage() {
               )}
         </Card>
 
-        <Card
-          title="Location"
-          description={isEditMode ? 'Pick the location on the map.' : 'Posting location on map.'}
-          Icon={MapPin}
-        >
-          <LocationPicker
-            position={position}
-            setPosition={onMapPositionPick}
-            readOnly={!isEditMode}
-          />
-        </Card>
+        {(isVolunteerView || !canManagePosting) && (
+          <Card
+            title="Location"
+            description={isEditMode ? 'Pick the location on the map.' : 'Posting location on map.'}
+            Icon={MapPin}
+          >
+            <LocationPicker
+              position={position}
+              setPosition={onMapPositionPick}
+              readOnly={!isEditMode}
+            />
+          </Card>
+        )}
 
         {canManagePosting && !isOpen && (
           <Card
