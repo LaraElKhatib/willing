@@ -1,8 +1,8 @@
 import { z } from 'zod';
 
-import { newOrganizationPostingSchema } from '../../../server/src/db/tables';
+import { newPostingSchema } from '../../../server/src/db/tables';
 
-export const organizationPostingFormSchema = newOrganizationPostingSchema
+export const organizationPostingFormSchema = newPostingSchema
   .omit({
     latitude: true,
     longitude: true,
@@ -28,7 +28,7 @@ export const organizationPostingFormSchema = newOrganizationPostingSchema
 
 export type OrganizationPostingFormData = z.infer<typeof organizationPostingFormSchema>;
 
-export const organizationPostingEditFormSchema = newOrganizationPostingSchema
+export const organizationPostingEditFormSchema = newPostingSchema
   .omit({
     latitude: true,
     longitude: true,

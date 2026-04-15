@@ -117,6 +117,10 @@ function createAttendanceRouter(db: Kysely<Database>) {
 
     const posting = await db
       .selectFrom('posting')
+      .select(['id'])
+      .where('id', '=', postingId)
+      .where('organization_id', '=', orgId)
+      .executeTakeFirst();
 
     if (!posting) {
       res.status(404);

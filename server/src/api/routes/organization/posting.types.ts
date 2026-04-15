@@ -1,8 +1,8 @@
-import { type Crisis, type OrganizationPostingWithoutVectors, type PostingSkill } from '../../../db/tables/index.ts';
+import { type Crisis, type PostingWithoutVectors, type PostingSkill } from '../../../db/tables/index.ts';
 import { type PostingWithSkills, type PostingEnrollment, type SuccessResponse, type PostingApplication } from '../../../types.ts';
 
 export type OrganizationPostingCreateResponse = {
-  posting: OrganizationPostingWithoutVectors;
+  posting: PostingWithoutVectors;
   skills: PostingSkill[];
 };
 
@@ -11,7 +11,7 @@ export type OrganizationPostingListResponse = {
 };
 
 export type OrganizationPostingResponse = {
-  posting: OrganizationPostingWithoutVectors;
+  posting: PostingWithoutVectors;
   skills: PostingSkill[];
   is_full: boolean;
   crisis?: Crisis;
@@ -22,7 +22,7 @@ export type OrganizationPostingEnrollmentsResponse = {
 };
 
 export type OrganizationPostingUpdateResponse = {
-  posting: OrganizationPostingWithoutVectors;
+  posting: PostingWithoutVectors;
   skills: PostingSkill[];
   crisis?: Crisis;
 };

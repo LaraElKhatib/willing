@@ -9,7 +9,7 @@ import {
 import { runOrDeferEmbeddingJob } from './rateLimiter.ts';
 import { extractCvText } from './textExtraction.ts';
 import database from '../../db/index.ts';
-import { type Database, type OrganizationAccount, type OrganizationPosting, type VolunteerAccountWithoutPassword } from '../../db/tables/index.ts';
+import { type Database, type OrganizationAccount, type Posting, type VolunteerAccountWithoutPassword } from '../../db/tables/index.ts';
 
 type DBExecutor = Kysely<Database> | Transaction<Database>;
 
@@ -25,7 +25,7 @@ const cosineSimilarity = (left: number[], right: number[]) =>
   left.reduce((sum, value, index) => sum + (value * (right[index] ?? 0)), 0);
 
 type OrganizationEmbeddingSource = Pick<OrganizationAccount, 'name' | 'description' | 'location_name'>;
-type PostingEmbeddingSource = Pick<OrganizationPosting, 'title' | 'description' | 'location_name' | 'start_date' | 'start_time' | 'end_date' | 'end_time' | 'minimum_age' | 'max_volunteers'>;
+type PostingEmbeddingSource = Pick<Posting, 'title' | 'description' | 'location_name' | 'start_date' | 'start_time' | 'end_date' | 'end_time' | 'minimum_age' | 'max_volunteers'>;
 type VolunteerProfileEmbeddingSource = Pick<VolunteerAccountWithoutPassword, 'first_name' | 'last_name' | 'description' | 'gender'>;
 
 const formatDate = (value: Date | undefined) => {
