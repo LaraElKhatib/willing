@@ -204,6 +204,14 @@ function PostingPage() {
   const endDate = useWatch({ control: form.control, name: 'end_date' }) ?? '';
   const endTime = useWatch({ control: form.control, name: 'end_time' }) ?? '';
 
+  const hasEnded = useMemo(() => {
+    if (!endDate) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const end = new Date(endDate + 'T00:00:00');
+    return end < today;
+  }, [endDate]);
+
   const selectedCrisisName = useMemo(() => {
     if (selectedCrisisId == null) return null;
     return availableCrises.find(crisis => crisis.id === selectedCrisisId)?.name
@@ -625,13 +633,13 @@ function PostingPage() {
   }, []);
 
   const openApplyModal = useCallback(() => {
-    if (!id || hasPendingApplication || isEnrolled) return;
+    if (!id || hasPendingApplication || isEnrolled || hasEnded) return;
     setSelectedApplicationDates([]);
     setIsApplyModalOpen(true);
-  }, [id, hasPendingApplication, isEnrolled]);
+  }, [id, hasPendingApplication, isEnrolled, hasEnded]);
 
   const submitApplication = useCallback(async (message?: string) => {
-    if (!id || hasPendingApplication || isEnrolled || !posting) return;
+    if (!id || hasPendingApplication || isEnrolled || hasEnded || !posting) return;
 
     if (posting.allows_partial_attendance) {
       if (selectedApplicationDates.length === 0) {
@@ -656,7 +664,7 @@ function PostingPage() {
     } finally {
       setApplying(false);
     }
-  }, [applyToPosting, id, hasPendingApplication, isEnrolled, notifications, loadPosting, posting, postingDates, selectedApplicationDates]);
+  }, [applyToPosting, id, hasPendingApplication, isEnrolled, hasEnded, notifications, loadPosting, posting, postingDates, selectedApplicationDates]);
 
   const withdrawApplication = useCallback(async () => {
     if (!id || (!hasPendingApplication && !isEnrolled)) return;
@@ -1363,16 +1371,20 @@ function PostingPage() {
                         Withdraw Application
                       </Button>
                     )
-                  : (
-                      <Button
-                        color="primary"
-                        onClick={openApplyModal}
-                        loading={applying}
-                        Icon={Send}
-                      >
-                        Apply
-                      </Button>
-                    )}
+                  : hasEnded
+                    ? (
+                        <span className="text-sm text-error font-medium">This posting has ended</span>
+                      )
+                    : (
+                        <Button
+                          color="primary"
+                          onClick={openApplyModal}
+                          loading={applying}
+                          Icon={Send}
+                        >
+                          Apply
+                        </Button>
+                      )}
             </div>
           </Card>
         )}

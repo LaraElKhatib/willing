@@ -529,6 +529,13 @@ function createVolunteerPostingRouter(db: Kysely<Database>) {
       throw new Error('This posting is closed and no longer accepting applications');
     }
 
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (posting.end_date && posting.end_date < today) {
+      res.status(403);
+      throw new Error('This posting has ended');
+    }
+
     if (!volunteer) {
       res.status(404);
       throw new Error('Volunteer not found');

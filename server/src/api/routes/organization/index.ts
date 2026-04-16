@@ -67,7 +67,7 @@ const organizationPrivateResponseColumns = [
   'logo_path',
 ] as const;
 
-const organizationPostingResponseColumns = [
+const postingResponseColumns = [
   'posting.id',
   'posting.organization_id',
   'posting.title',
@@ -301,7 +301,7 @@ function createOrganizationRouter(db: Kysely<Database>) {
 
     const postings = await db
       .selectFrom('posting')
-      .select(organizationPostingResponseColumns)
+      .select(postingResponseColumns)
       .where('organization_id', '=', orgId)
       .orderBy('posting.start_date', 'asc')
       .orderBy('posting.start_time', 'asc')

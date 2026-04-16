@@ -718,9 +718,9 @@ describe('DELETE /volunteer/posting/:id/enroll withdrawal behavior', () => {
         latitude: 33.9,
         longitude: 35.5,
         max_volunteers: 20,
-        start_date: new Date('2026-04-05T00:00:00.000Z'),
+        start_date: new Date('2027-04-05T00:00:00.000Z'),
         start_time: '09:00:00',
-        end_date: new Date('2026-04-11T00:00:00.000Z'),
+        end_date: new Date('2027-04-11T00:00:00.000Z'),
         end_time: '17:00:00',
         minimum_age: 18,
         automatic_acceptance: true,
@@ -737,7 +737,7 @@ describe('DELETE /volunteer/posting/:id/enroll withdrawal behavior', () => {
     const enrollResponse = await server
       .post(`/volunteer/posting/${posting.id}/enroll`)
       .set('Authorization', 'Bearer ' + token)
-      .send({ dates: ['2026-04-05', '2026-04-07', '2026-04-09'], message: 'Enroll for selected partial dates' })
+      .send({ dates: ['2027-04-05', '2027-04-07', '2027-04-09'], message: 'Enroll for selected partial dates' })
       .expect(200);
 
     expect(enrollResponse.body.enrollment).toBeDefined();
@@ -2016,5 +2016,88 @@ describe('POST /volunteer/reset-password', () => {
     expect(afterUpdate.password).not.toBe(beforeUpdate.password);
     expect(await compare(plainPassword, afterUpdate.password)).toBe(false);
     expect(await compare('NewPassword123!', afterUpdate.password)).toBe(true);
+  });
+});
+
+describe('POST /volunteer/posting/:id/enroll ended posting validation', () => {
+  test('returns 403 when applying to a posting that has ended', async () => {
+    const { token } = await createVolunteerAccount(transaction, { email: 'ended-posting-vol@example.com' });
+    const { organization } = await createOrganizationAccount(transaction, { email: 'ended-posting-org@example.com' });
+
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    yesterday.setHours(0, 0, 0, 0);
+    const lastWeek = new Date();
+    lastWeek.setDate(lastWeek.getDate() - 7);
+    lastWeek.setHours(0, 0, 0, 0);
+
+    const posting = await transaction
+      .insertInto('posting')
+      .values({
+        organization_id: organization.id,
+        title: 'Ended Posting',
+        description: 'This posting has already ended',
+        latitude: 33.9,
+        longitude: 35.5,
+        max_volunteers: 10,
+        start_date: lastWeek,
+        start_time: '09:00:00',
+        end_date: yesterday,
+        end_time: '17:00:00',
+        minimum_age: 18,
+        automatic_acceptance: true,
+        is_closed: false,
+        allows_partial_attendance: false,
+        location_name: 'Test Location',
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    const response = await server
+      .post(`/volunteer/posting/${posting.id}/enroll`)
+      .set('Authorization', 'Bearer ' + token)
+      .send({ message: 'I want to join' })
+      .expect(403);
+
+    expect(response.body.message).toBe('This posting has ended');
+  });
+
+  test('allows applying to a posting ending today', async () => {
+    const { token } = await createVolunteerAccount(transaction, { email: 'today-posting-vol@example.com' });
+    const { organization } = await createOrganizationAccount(transaction, { email: 'today-posting-org@example.com' });
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const lastWeek = new Date();
+    lastWeek.setDate(lastWeek.getDate() - 7);
+    lastWeek.setHours(0, 0, 0, 0);
+
+    const posting = await transaction
+      .insertInto('posting')
+      .values({
+        organization_id: organization.id,
+        title: 'Ending Today Posting',
+        description: 'This posting ends today',
+        latitude: 33.9,
+        longitude: 35.5,
+        max_volunteers: 10,
+        start_date: lastWeek,
+        start_time: '09:00:00',
+        end_date: today,
+        end_time: '17:00:00',
+        minimum_age: 18,
+        automatic_acceptance: true,
+        is_closed: false,
+        allows_partial_attendance: false,
+        location_name: 'Test Location',
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    await server
+      .post(`/volunteer/posting/${posting.id}/enroll`)
+      .set('Authorization', 'Bearer ' + token)
+      .send({ message: 'Joining on the last day' })
+      .expect(200);
   });
 });
