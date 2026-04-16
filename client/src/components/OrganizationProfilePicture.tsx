@@ -45,7 +45,7 @@ export default function OrganizationProfilePicture({
         style={{ width: size, height: size, backgroundColor: isPng ? 'white' : undefined }}
       >
         <img
-          src={`${SERVER_BASE_URL}/organization/${organizationId}/logo`}
+          src={`${SERVER_BASE_URL}/organization/${organizationId}/logo?v=${encodeURIComponent(logoPath)}`}
           alt={`${organizationName} logo`}
           className="h-full w-full object-contain"
         />
