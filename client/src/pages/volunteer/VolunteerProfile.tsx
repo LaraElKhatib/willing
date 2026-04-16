@@ -736,7 +736,7 @@ function VolunteerProfile() {
                 <span>{profile.experience_stats.total_skills_used}</span>
               </div>
             </div>
-            <div className="stat place-items-center h-full grid-rows-[auto,1fr]">
+            <div className="stat min-w-0 place-items-center h-full grid-rows-[auto,1fr]">
               <div className="stat-title text-base">Most Volunteered Crisis</div>
               <div className="stat-value text-lg text-primary/80 flex w-full min-w-0 items-center justify-center gap-2 px-2 self-center">
                 <span className="max-w-full text-center whitespace-normal break-words leading-tight overflow-hidden [display:-webkit-box] [-webkit-line-clamp:2] [-webkit-box-orient:vertical]">
