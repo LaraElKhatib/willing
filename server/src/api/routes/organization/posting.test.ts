@@ -828,4 +828,208 @@ describe('Organization posting management', () => {
 
     expect(response.body.message).toBe('Application does not belong to this posting');
   });
+
+  test('returns 400 when creating a posting with a past start date', async () => {
+    const { token } = await createOrganizationAccount(transaction, { email: 'org-past-start@example.com' });
+
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const response = await server
+      .post('/organization/posting')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        title: 'Past Start Posting',
+        description: 'Should fail',
+        latitude: 33.9,
+        longitude: 35.5,
+        max_volunteers: 10,
+        start_date: formatDateToIso(yesterday),
+        start_time: '09:00:00',
+        end_date: '2026-12-01',
+        end_time: '17:00:00',
+        minimum_age: 18,
+        automatic_acceptance: false,
+        is_closed: false,
+        allows_partial_attendance: false,
+        location_name: 'Past Location',
+      })
+      .expect(400);
+
+    expect(response.body.message).toBe('Start date cannot be in the past');
+  });
+
+  test('returns 400 when creating a posting with a past end date', async () => {
+    const { token } = await createOrganizationAccount(transaction, { email: 'org-past-end@example.com' });
+
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const response = await server
+      .post('/organization/posting')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        title: 'Past End Posting',
+        description: 'Should fail',
+        latitude: 33.9,
+        longitude: 35.5,
+        max_volunteers: 10,
+        start_date: formatDateToIso(new Date()),
+        start_time: '09:00:00',
+        end_date: formatDateToIso(yesterday),
+        end_time: '17:00:00',
+        minimum_age: 18,
+        automatic_acceptance: false,
+        is_closed: false,
+        allows_partial_attendance: false,
+        location_name: 'Past Location',
+      })
+      .expect(400);
+
+    expect(response.body.message).toBe('End date cannot be in the past');
+  });
+
+  test('allows creating a posting with today as the start date', async () => {
+    const { token } = await createOrganizationAccount(transaction, { email: 'org-today-date@example.com' });
+
+    const today = formatDateToIso(new Date());
+
+    const response = await server
+      .post('/organization/posting')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        title: 'Today Posting',
+        description: 'Should succeed',
+        latitude: 33.9,
+        longitude: 35.5,
+        max_volunteers: 10,
+        start_date: today,
+        start_time: '09:00:00',
+        end_date: today,
+        end_time: '17:00:00',
+        minimum_age: 18,
+        automatic_acceptance: false,
+        is_closed: false,
+        allows_partial_attendance: false,
+        location_name: 'Today Location',
+      })
+      .expect(200);
+
+    expect(response.body.posting.title).toBe('Today Posting');
+  });
+
+  test('returns 400 when updating a posting with a new past start date', async () => {
+    const { organization, token } = await createOrganizationAccount(transaction, { email: 'org-update-past@example.com' });
+
+    const posting = await transaction
+      .insertInto('posting')
+      .values({
+        organization_id: organization.id,
+        title: 'Future Posting',
+        description: 'Will try past update',
+        latitude: 33.9,
+        longitude: 35.5,
+        max_volunteers: 10,
+        start_date: new Date('2026-12-01T00:00:00.000Z'),
+        start_time: '09:00:00',
+        end_date: new Date('2026-12-02T00:00:00.000Z'),
+        end_time: '17:00:00',
+        minimum_age: 18,
+        automatic_acceptance: false,
+        is_closed: false,
+        allows_partial_attendance: false,
+        location_name: 'Update Location',
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const response = await server
+      .put(`/organization/posting/${posting.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ start_date: formatDateToIso(yesterday) })
+      .expect(400);
+
+    expect(response.body.message).toBe('Start date cannot be in the past');
+  });
+
+  test('returns 400 when updating a posting with a new past end date', async () => {
+    const { organization, token } = await createOrganizationAccount(transaction, { email: 'org-update-past-end@example.com' });
+
+    const posting = await transaction
+      .insertInto('posting')
+      .values({
+        organization_id: organization.id,
+        title: 'Future Posting',
+        description: 'Will try past end update',
+        latitude: 33.9,
+        longitude: 35.5,
+        max_volunteers: 10,
+        start_date: new Date('2026-12-01T00:00:00.000Z'),
+        start_time: '09:00:00',
+        end_date: new Date('2026-12-02T00:00:00.000Z'),
+        end_time: '17:00:00',
+        minimum_age: 18,
+        automatic_acceptance: false,
+        is_closed: false,
+        allows_partial_attendance: false,
+        location_name: 'Update Location',
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const response = await server
+      .put(`/organization/posting/${posting.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ end_date: formatDateToIso(yesterday) })
+      .expect(400);
+
+    expect(response.body.message).toBe('End date cannot be in the past');
+  });
+
+  test('allows updating a posting without changing its existing past dates', async () => {
+    const { organization, token } = await createOrganizationAccount(transaction, { email: 'org-update-keep-past@example.com' });
+
+    const pastDate = new Date();
+    pastDate.setDate(pastDate.getDate() - 5);
+
+    const posting = await transaction
+      .insertInto('posting')
+      .values({
+        organization_id: organization.id,
+        title: 'Old Posting',
+        description: 'Has past dates',
+        latitude: 33.9,
+        longitude: 35.5,
+        max_volunteers: 10,
+        start_date: pastDate,
+        start_time: '09:00:00',
+        end_date: pastDate,
+        end_time: '17:00:00',
+        minimum_age: 18,
+        automatic_acceptance: false,
+        is_closed: false,
+        allows_partial_attendance: false,
+        location_name: 'Past Location',
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    const response = await server
+      .put(`/organization/posting/${posting.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        title: 'Updated Title Only',
+        start_date: formatDateToIso(pastDate),
+        end_date: formatDateToIso(pastDate),
+      })
+      .expect(200);
+
+    expect(response.body.posting.title).toBe('Updated Title Only');
+  });
 });

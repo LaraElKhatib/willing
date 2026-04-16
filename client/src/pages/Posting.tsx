@@ -1058,6 +1058,7 @@ function PostingPage() {
                           <CalendarInfo
                             selectionMode="range"
                             rangeLabel="Date Range"
+                            disablePastDates
                             rangeValue={{ from: startDate, to: endDate }}
                             onRangeChange={({ from, to }) => {
                               form.setValue('start_date', from, {

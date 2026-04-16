@@ -157,6 +157,17 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
     const orgId = req.userJWT!.id;
     const { skills, ...postingBody } = body;
 
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (body.start_date < today) {
+      res.status(400);
+      throw new Error('Start date cannot be in the past');
+    }
+    if (body.end_date < today) {
+      res.status(400);
+      throw new Error('End date cannot be in the past');
+    }
+
     if (body.crisis_id !== undefined) {
       await assertCrisisExists(body.crisis_id, db, res);
     }
@@ -387,6 +398,17 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
     if (!posting) {
       res.status(404);
       throw new Error('Posting not found');
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (body.start_date !== undefined && formatDateToIso(body.start_date) !== formatDateToIso(posting.start_date) && body.start_date < today) {
+      res.status(400);
+      throw new Error('Start date cannot be in the past');
+    }
+    if (body.end_date !== undefined && formatDateToIso(body.end_date) !== formatDateToIso(posting.end_date) && body.end_date < today) {
+      res.status(400);
+      throw new Error('End date cannot be in the past');
     }
 
     if (body.crisis_id !== undefined && body.crisis_id !== null && body.crisis_id !== posting.crisis_id) {
