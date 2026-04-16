@@ -11,6 +11,7 @@ type PostingCollectionProps = {
   crisisTagClickable?: boolean;
   crisisBasePath?: string;
   variant?: 'volunteer' | 'organization';
+  showOrganizationName?: boolean;
   cardsContainerClassName?: string;
   listContainerClassName?: string;
   cardItemClassName?: string;
@@ -24,6 +25,7 @@ function PostingCollection({
   crisisTagClickable = true,
   crisisBasePath = '/volunteer/crises',
   variant = 'volunteer',
+  showOrganizationName,
   cardsContainerClassName,
   listContainerClassName,
   cardItemClassName,
@@ -61,6 +63,7 @@ function PostingCollection({
               crisisTagClickable={crisisTagClickable}
               crisisBasePath={crisisBasePath}
               variant={variant}
+              showOrganizationName={showOrganizationName}
             />
           )}
     </div>

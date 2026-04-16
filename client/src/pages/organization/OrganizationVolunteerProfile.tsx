@@ -450,6 +450,8 @@ function OrganizationVolunteerProfile() {
                         <PostingCollection
                           postings={experiencePostings}
                           showCrisis={false}
+                          variant="organization"
+                          showOrganizationName={true}
                           cardsContainerClassName="grid grid-cols-1 gap-6"
                           listContainerClassName="space-y-3"
                         />
