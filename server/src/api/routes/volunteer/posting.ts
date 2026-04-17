@@ -782,7 +782,10 @@ function createVolunteerPostingRouter(db: Kysely<Database>) {
     const { enrollment } = await executeTransaction(db, async (trx) => {
       const posting = await trx
         .selectFrom('organization_posting')
-        .select(['id'])
+        .select([
+          'id',
+          sql<boolean>`(organization_posting.end_date + organization_posting.end_time) <= now()`.as('has_ended'),
+        ])
         .where('id', '=', id)
         .forUpdate()
         .executeTakeFirst();
@@ -790,6 +793,11 @@ function createVolunteerPostingRouter(db: Kysely<Database>) {
       if (!posting) {
         res.status(404);
         throw new Error('Posting not found');
+      }
+
+      if (posting.has_ended) {
+        res.status(403);
+        throw new Error('Cannot withdraw from a posting that has already ended');
       }
 
       const enrollment = await trx
