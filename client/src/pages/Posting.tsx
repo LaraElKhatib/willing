@@ -101,6 +101,12 @@ const getPostingStartDateTime = (posting: PostingWithSkills) => {
   return new Date(`${datePart}T${timePart}`);
 };
 
+const getPostingEndDateTime = (posting: PostingWithSkills | PostingWithContext) => {
+  const datePart = getDateInputValue(posting.end_date ?? posting.start_date);
+  const timePart = (posting.end_time ?? '').slice(0, 5) || '23:59';
+  return new Date(`${datePart}T${timePart}`);
+};
+
 const formatDisplayDate = (value?: string) => {
   if (!value) return '-';
 
@@ -640,8 +646,22 @@ function PostingPage() {
     }
   }, [applyToPosting, id, hasPendingApplication, isEnrolled, notifications, loadPosting, posting, postingDates, selectedApplicationDates]);
 
+  const canWithdrawFromPosting = useMemo(() => {
+    if (!posting) return false;
+
+    const endDateTime = getPostingEndDateTime(posting);
+    return !Number.isNaN(endDateTime.getTime()) && new Date() < endDateTime;
+  }, [posting]);
+
   const withdrawApplication = useCallback(async () => {
     if (!id || (!hasPendingApplication && !isEnrolled)) return;
+    if (!canWithdrawFromPosting) {
+      notifications.push({
+        type: 'error',
+        message: 'This posting has already ended and can no longer be withdrawn.',
+      });
+      return;
+    }
 
     const choice = await modal.promptModal({
       title: isEnrolled ? 'Leave Position' : 'Withdraw Application',
@@ -672,7 +692,7 @@ function PostingPage() {
     } finally {
       setWithdrawing(false);
     }
-  }, [id, hasPendingApplication, isEnrolled, loadPosting, modal, notifications, withdrawFromPosting]);
+  }, [canWithdrawFromPosting, hasPendingApplication, id, isEnrolled, loadPosting, modal, notifications, withdrawFromPosting]);
 
   const acceptApplication = useCallback(async (applicationId: number) => {
     if (!id) return;
@@ -1347,6 +1367,8 @@ function PostingPage() {
                       style="outline"
                       onClick={withdrawApplication}
                       loading={withdrawing}
+                      disabled={!canWithdrawFromPosting}
+                      title={canWithdrawFromPosting ? undefined : 'This posting has already ended.'}
                       Icon={SquareArrowRight}
                     >
                       Leave Position
@@ -1359,6 +1381,8 @@ function PostingPage() {
                         style="outline"
                         onClick={withdrawApplication}
                         loading={withdrawing}
+                        disabled={!canWithdrawFromPosting}
+                        title={canWithdrawFromPosting ? undefined : 'This posting has already ended.'}
                         Icon={SquareArrowRight}
                       >
                         Withdraw Application
