@@ -707,6 +707,17 @@ describe('DELETE /volunteer/posting/:id/enroll withdrawal behavior', () => {
     const { token } = await createVolunteerAccount(transaction, { email: 'partial-withdraw@example.com' });
     const { organization } = await createOrganizationAccount(transaction, { email: 'partial-withdraw-org@example.com' });
 
+    const postingStartDate = new Date();
+    postingStartDate.setDate(postingStartDate.getDate() + 3);
+    const postingEndDate = new Date(postingStartDate);
+    postingEndDate.setDate(postingEndDate.getDate() + 6);
+
+    const selectedDateOne = new Date(postingStartDate);
+    const selectedDateTwo = new Date(postingStartDate);
+    selectedDateTwo.setDate(selectedDateTwo.getDate() + 2);
+    const selectedDateThree = new Date(postingStartDate);
+    selectedDateThree.setDate(selectedDateThree.getDate() + 4);
+
     const posting = await transaction
       .insertInto('organization_posting')
       .values({
@@ -716,9 +727,9 @@ describe('DELETE /volunteer/posting/:id/enroll withdrawal behavior', () => {
         latitude: 33.9,
         longitude: 35.5,
         max_volunteers: 20,
-        start_date: new Date('2026-04-05T00:00:00.000Z'),
+        start_date: postingStartDate,
         start_time: '09:00:00',
-        end_date: new Date('2026-04-11T00:00:00.000Z'),
+        end_date: postingEndDate,
         end_time: '17:00:00',
         minimum_age: 18,
         automatic_acceptance: true,
@@ -726,8 +737,8 @@ describe('DELETE /volunteer/posting/:id/enroll withdrawal behavior', () => {
         allows_partial_attendance: true,
         location_name: 'Test Location',
         crisis_id: null,
-        created_at: new Date('2026-03-01T00:00:00.000Z'),
-        updated_at: new Date('2026-03-01T00:00:00.000Z'),
+        created_at: new Date(),
+        updated_at: new Date(),
       })
       .returningAll()
       .executeTakeFirstOrThrow();
@@ -735,7 +746,14 @@ describe('DELETE /volunteer/posting/:id/enroll withdrawal behavior', () => {
     const enrollResponse = await server
       .post(`/volunteer/posting/${posting.id}/enroll`)
       .set('Authorization', 'Bearer ' + token)
-      .send({ dates: ['2026-04-05', '2026-04-07', '2026-04-09'], message: 'Enroll for selected partial dates' })
+      .send({
+        dates: [
+          formatDateToIso(selectedDateOne),
+          formatDateToIso(selectedDateTwo),
+          formatDateToIso(selectedDateThree),
+        ],
+        message: 'Enroll for selected partial dates',
+      })
       .expect(200);
 
     expect(enrollResponse.body.enrollment).toBeDefined();
