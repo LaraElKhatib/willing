@@ -62,9 +62,9 @@ export async function createOrganizationRequest(arg1?: DbExecutor | Organization
   return request;
 }
 
-export async function createOrganizationPosting(options: PostingOptions): Promise<Posting>;
-export async function createOrganizationPosting(db: DbExecutor, options: PostingOptions): Promise<Posting>;
-export async function createOrganizationPosting(arg1: DbExecutor | PostingOptions, arg2?: PostingOptions): Promise<Posting> {
+export async function createPosting(options: PostingOptions): Promise<Posting>;
+export async function createPosting(db: DbExecutor, options: PostingOptions): Promise<Posting>;
+export async function createPosting(arg1: DbExecutor | PostingOptions, arg2?: PostingOptions): Promise<Posting> {
   const [db, options] = resolveFixtureArgs<PostingOptions>(arg1, arg2);
 
   const {

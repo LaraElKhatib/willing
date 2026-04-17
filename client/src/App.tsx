@@ -24,11 +24,11 @@ import GuidePage from './pages/GuidePage';
 import HomePage from './pages/HomePage';
 import NotFoundPage from './pages/NotFoundPage';
 import OrganizationHome from './pages/organization/OrganizationHome';
-import OrganizationPostingAttendance from './pages/organization/OrganizationPostingAttendance';
-import OrganizationPostingCreate from './pages/organization/OrganizationPostingCreate';
 import OrganizationOwnProfile from './pages/organization/OrganizationProfile';
 import OrganizationSettings from './pages/organization/OrganizationSettings';
 import OrganizationVolunteerProfile from './pages/organization/OrganizationVolunteerProfile';
+import PostingAttendance from './pages/organization/PostingAttendance';
+import PostingCreate from './pages/organization/PostingCreate';
 import OrganizationProfile from './pages/OrganizationProfile';
 import OrganizationRequest from './pages/OrganizationRequest';
 import Posting from './pages/Posting';
@@ -75,8 +75,8 @@ function App() {
 
                   <Route path="organization" element={<OrganizationPage />}>
                     <Route index element={<OrganizationHome />} />
-                    <Route path="posting" element={<OrganizationPostingCreate />} />
-                    <Route path="posting/:id/attendance" element={<OrganizationPostingAttendance />} />
+                    <Route path="posting" element={<PostingCreate />} />
+                    <Route path="posting/:id/attendance" element={<PostingAttendance />} />
                     <Route path="profile" element={<OrganizationOwnProfile />} />
                     <Route path="settings" element={<OrganizationSettings />} />
                     <Route path="volunteer/:volunteerId" element={<OrganizationVolunteerProfile />} />

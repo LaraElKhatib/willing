@@ -1,38 +1,38 @@
 import { type Crisis, type PostingWithoutVectors, type PostingSkill } from '../../../db/tables/index.ts';
 import { type PostingWithSkills, type PostingEnrollment, type SuccessResponse, type PostingApplication } from '../../../types.ts';
 
-export type OrganizationPostingCreateResponse = {
+export type PostingCreateResponse = {
   posting: PostingWithoutVectors;
   skills: PostingSkill[];
 };
 
-export type OrganizationPostingListResponse = {
+export type PostingListResponse = {
   postings: (PostingWithSkills & { enrollment_count: number; is_full: boolean })[];
 };
 
-export type OrganizationPostingResponse = {
+export type PostingResponse = {
   posting: PostingWithoutVectors;
   skills: PostingSkill[];
   is_full: boolean;
   crisis?: Crisis;
 };
 
-export type OrganizationPostingEnrollmentsResponse = {
+export type PostingEnrollmentsResponse = {
   enrollments: PostingEnrollment[];
 };
 
-export type OrganizationPostingUpdateResponse = {
+export type PostingUpdateResponse = {
   posting: PostingWithoutVectors;
   skills: PostingSkill[];
   crisis?: Crisis;
 };
 
-export type OrganizationPostingDeleteResponse = SuccessResponse;
+export type PostingDeleteResponse = SuccessResponse;
 
-export type OrganizationPostingApplicationsReponse = {
+export type PostingApplicationsReponse = {
   applications: PostingApplication[];
 };
 
-export type OrganizationPostingApplicationAcceptanceResponse = SuccessResponse;
+export type PostingApplicationAcceptanceResponse = SuccessResponse;
 
-export type OrganizationPostingApplicationRejectionResponse = SuccessResponse;
+export type PostingApplicationRejectionResponse = SuccessResponse;

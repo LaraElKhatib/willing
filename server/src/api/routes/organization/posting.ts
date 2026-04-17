@@ -4,15 +4,15 @@ import zod from 'zod';
 
 import createAttendanceRouter from './attendance.ts';
 import {
-  type OrganizationPostingCreateResponse,
-  type OrganizationPostingListResponse,
-  type OrganizationPostingResponse,
-  type OrganizationPostingEnrollmentsResponse,
-  type OrganizationPostingUpdateResponse,
-  type OrganizationPostingDeleteResponse,
-  type OrganizationPostingApplicationsReponse,
-  type OrganizationPostingApplicationAcceptanceResponse,
-  type OrganizationPostingApplicationRejectionResponse,
+  type PostingCreateResponse,
+  type PostingListResponse,
+  type PostingResponse,
+  type PostingEnrollmentsResponse,
+  type PostingUpdateResponse,
+  type PostingDeleteResponse,
+  type PostingApplicationsReponse,
+  type PostingApplicationAcceptanceResponse,
+  type PostingApplicationRejectionResponse,
 } from './posting.types.ts';
 import { getPostingEnrollments } from './postingEnrollments.ts';
 import executeTransaction from '../../../db/executeTransaction.ts';
@@ -149,10 +149,10 @@ const getPostingCrisis = async (crisisId: number | null | undefined, db: Kysely<
     .executeTakeFirst();
 };
 
-function createOrganizationPostingRouter(db: Kysely<Database>) {
+function createPostingRouter(db: Kysely<Database>) {
   const postingRouter = Router();
 
-  postingRouter.post('/', async (req, res: Response<OrganizationPostingCreateResponse>) => {
+  postingRouter.post('/', async (req, res: Response<PostingCreateResponse>) => {
     const body = newPostingSchema.parse(req.body);
     const orgId = req.userJWT!.id;
     const { skills, ...postingBody } = body;
@@ -213,7 +213,7 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
     res.json({ posting, skills: insertedSkills });
   });
 
-  postingRouter.get('/', async (req, res: Response<OrganizationPostingListResponse>) => {
+  postingRouter.get('/', async (req, res: Response<PostingListResponse>) => {
     const orgId = req.userJWT!.id;
     const { search, sortBy, sortDir } = parseListQuery(req.query, {
       allowedSortBy: ['start_date', 'created_at', 'title'],
@@ -310,7 +310,7 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
     res.json({ postings: postingsWithSkills });
   });
 
-  postingRouter.get('/:id', async (req, res: Response<OrganizationPostingResponse>) => {
+  postingRouter.get('/:id', async (req, res: Response<PostingResponse>) => {
     const orgId = req.userJWT!.id;
     const { id: postingId } = postingIdParamsSchema.parse(req.params);
 
@@ -350,7 +350,7 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
     });
   });
 
-  postingRouter.get('/:id/enrollments', async (req, res: Response<OrganizationPostingEnrollmentsResponse>) => {
+  postingRouter.get('/:id/enrollments', async (req, res: Response<PostingEnrollmentsResponse>) => {
     const orgId = req.userJWT!.id;
     const { id: postingId } = postingIdParamsSchema.parse(req.params);
 
@@ -370,7 +370,7 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
     res.json({ enrollments });
   });
 
-  postingRouter.put('/:id', async (req, res: Response<OrganizationPostingUpdateResponse>) => {
+  postingRouter.put('/:id', async (req, res: Response<PostingUpdateResponse>) => {
     const orgId = req.userJWT!.id;
     const { id: postingId } = postingIdParamsSchema.parse(req.params);
     const body = postingUpdateSchema.parse(req.body);
@@ -511,7 +511,7 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
     res.json({ posting: updatedPosting, skills, ...(crisis ? { crisis } : {}) });
   });
 
-  postingRouter.delete('/:id', async (req, res: Response<OrganizationPostingDeleteResponse>) => {
+  postingRouter.delete('/:id', async (req, res: Response<PostingDeleteResponse>) => {
     const orgId = req.userJWT!.id;
     const { id: postingId } = postingIdParamsSchema.parse(req.params);
 
@@ -555,7 +555,7 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
     res.json({});
   });
 
-  postingRouter.get('/:id/applications', async (req, res: Response<OrganizationPostingApplicationsReponse>) => {
+  postingRouter.get('/:id/applications', async (req, res: Response<PostingApplicationsReponse>) => {
     const orgId = req.userJWT!.id;
     const { id: postingId } = postingIdParamsSchema.parse(req.params);
 
@@ -640,7 +640,7 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
     res.json({ applications: applicationsWithSkills });
   });
 
-  postingRouter.post('/:id/applications/:applicationId/accept', async (req, res: Response<OrganizationPostingApplicationAcceptanceResponse>) => {
+  postingRouter.post('/:id/applications/:applicationId/accept', async (req, res: Response<PostingApplicationAcceptanceResponse>) => {
     const orgId = req.userJWT!.id;
     const { id: postingId, applicationId } = zod.object({
       id: zod.coerce.number().int().positive(),
@@ -805,7 +805,7 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
     res.json({});
   });
 
-  postingRouter.delete('/:id/applications/:applicationId', async (req, res: Response<OrganizationPostingApplicationRejectionResponse>) => {
+  postingRouter.delete('/:id/applications/:applicationId', async (req, res: Response<PostingApplicationRejectionResponse>) => {
     const orgId = req.userJWT!.id;
     const { id: postingId, applicationId } = zod.object({
       id: zod.coerce.number().int().positive(),
@@ -890,4 +890,4 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
   return postingRouter;
 }
 
-export default createOrganizationPostingRouter;
+export default createPostingRouter;

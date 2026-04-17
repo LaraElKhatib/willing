@@ -14,10 +14,10 @@ import useNotifications from '../../notifications/useNotifications';
 import requestServer, { SERVER_BASE_URL } from '../../utils/requestServer';
 import useAsync from '../../utils/useAsync';
 
-import type { OrganizationPostingAttendanceResponse } from '../../../../server/src/api/types';
+import type { PostingAttendanceResponse } from '../../../../server/src/api/types';
 import type { PostingEnrollment } from '../../../../server/src/types';
 
-function OrganizationPostingAttendance() {
+function PostingAttendance() {
   const { id } = useParams<{ id: string }>();
 
   const [saving, setSaving] = useState(false);
@@ -34,12 +34,12 @@ function OrganizationPostingAttendance() {
     loading,
     error,
     trigger: loadAttendance,
-  } = useAsync<OrganizationPostingAttendanceResponse, []>(async () => {
+  } = useAsync<PostingAttendanceResponse, []>(async () => {
     if (!id) {
       throw new Error('Posting ID is missing.');
     }
 
-    const response = await requestServer<OrganizationPostingAttendanceResponse>(`/organization/posting/${id}/attendance`, { includeJwt: true });
+    const response = await requestServer<PostingAttendanceResponse>(`/organization/posting/${id}/attendance`, { includeJwt: true });
     const postingDates = response.posting_dates ?? [];
 
     const dateAttendanceMap: Record<number, Record<string, boolean>> = {};
@@ -561,4 +561,4 @@ function OrganizationPostingAttendance() {
   );
 }
 
-export default OrganizationPostingAttendance;
+export default PostingAttendance;

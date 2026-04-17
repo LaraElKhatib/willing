@@ -22,7 +22,7 @@ import {
   type OrganizationVolunteerProfileResponse,
   type OrganizationUploadLogoResponse,
 } from './index.types.ts';
-import createOrganizationPostingRouter from './posting.ts';
+import createPostingRouter from './posting.ts';
 import authorizeOnly from '../../../auth/authorizeOnly.ts';
 import createResetPassword from '../../../auth/resetPassword.ts';
 import {
@@ -622,7 +622,7 @@ function createOrganizationRouter(db: Kysely<Database>) {
 
   organizationRouter.post('/reset-password', createResetPassword(db));
 
-  organizationRouter.use('/posting', createOrganizationPostingRouter(db));
+  organizationRouter.use('/posting', createPostingRouter(db));
   organizationRouter.use('/certificate-info', createOrganizationCertificateInfoRouter(db));
 
   return organizationRouter;

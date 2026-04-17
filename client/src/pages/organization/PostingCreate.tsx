@@ -12,19 +12,19 @@ import PageHeader from '../../components/layout/PageHeader';
 import LocationPicker from '../../components/LocationPicker';
 import SkillsInput from '../../components/skills/SkillsInput';
 import { ToggleButton } from '../../components/ToggleButton';
-import { organizationPostingFormSchema, type OrganizationPostingFormData } from '../../schemas/posting';
+import { postingFormSchema, type PostingFormData } from '../../schemas/posting';
 import { executeAndShowError, FormField, FormRootError } from '../../utils/formUtils';
 import requestServer from '../../utils/requestServer';
 import { useOrganization } from '../../utils/useUsers';
 
-import type { OrganizationCrisesResponse, OrganizationPostingCreateResponse } from '../../../../server/src/api/types';
+import type { OrganizationCrisesResponse, PostingCreateResponse } from '../../../../server/src/api/types';
 
-export default function OrganizationPostingCreate() {
+export default function PostingCreate() {
   const account = useOrganization();
   const navigate = useNavigate();
 
-  const form = useForm<OrganizationPostingFormData>({
-    resolver: zodResolver(organizationPostingFormSchema),
+  const form = useForm<PostingFormData>({
+    resolver: zodResolver(postingFormSchema),
     mode: 'onTouched',
     reValidateMode: 'onChange',
     defaultValues: {
@@ -95,7 +95,7 @@ export default function OrganizationPostingCreate() {
 
       console.log('Submitting posting payload:', payload);
 
-      const response = await requestServer<OrganizationPostingCreateResponse>('/organization/posting', {
+      const response = await requestServer<PostingCreateResponse>('/organization/posting', {
         method: 'POST',
         body: payload,
         includeJwt: true,

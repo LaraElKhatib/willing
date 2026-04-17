@@ -17,7 +17,7 @@ const notPastDate = (date: string, ctx: z.RefinementCtx, field: string, label: s
   }
 };
 
-export const organizationPostingFormSchema = newPostingSchema
+export const postingFormSchema = newPostingSchema
   .omit({
     latitude: true,
     longitude: true,
@@ -45,9 +45,9 @@ export const organizationPostingFormSchema = newPostingSchema
     notPastDate(data.end_date, ctx, 'end_date', 'End date');
   });
 
-export type OrganizationPostingFormData = z.infer<typeof organizationPostingFormSchema>;
+export type PostingFormData = z.infer<typeof postingFormSchema>;
 
-export const organizationPostingEditFormSchema = newPostingSchema
+export const postingEditFormSchema = newPostingSchema
   .omit({
     latitude: true,
     longitude: true,
@@ -70,4 +70,4 @@ export const organizationPostingEditFormSchema = newPostingSchema
     is_closed: z.boolean(),
   });
 
-export type OrganizationPostingEditFormData = z.infer<typeof organizationPostingEditFormSchema>;
+export type PostingEditFormData = z.infer<typeof postingEditFormSchema>;

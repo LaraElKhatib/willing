@@ -6,7 +6,7 @@ import database from '../../db/index.ts';
 import { compare } from '../../services/bcrypt/index.ts';
 import * as emailService from '../../services/smtp/emails.ts';
 import { createAdminAccount, createOrganizationAccount, createVolunteerAccount } from '../../tests/fixtures/accounts.ts';
-import { createOrganizationPosting } from '../../tests/fixtures/organizationData.ts';
+import { createPosting } from '../../tests/fixtures/organizationData.ts';
 
 import type { Database } from '../../db/tables/index.ts';
 import type { ControlledTransaction } from 'kysely';
@@ -634,7 +634,7 @@ describe('DELETE /user/account', () => {
     const pastStart = new Date(today);
     pastStart.setDate(pastStart.getDate() - 1);
 
-    const posting = await createOrganizationPosting(transaction, {
+    const posting = await createPosting(transaction, {
       organizationId: organization.id,
       overrides: { start_date: pastStart, end_date: futureEnd },
     });
@@ -670,7 +670,7 @@ describe('DELETE /user/account', () => {
     const pastStart = new Date(today);
     pastStart.setDate(pastStart.getDate() - 1);
 
-    await createOrganizationPosting(transaction, {
+    await createPosting(transaction, {
       organizationId: organization.id,
       overrides: { start_date: pastStart, end_date: futureEnd },
     });
@@ -696,7 +696,7 @@ describe('DELETE /user/account', () => {
     const futureEnd = new Date(futureStart);
     futureEnd.setDate(futureEnd.getDate() + 5);
 
-    const posting = await createOrganizationPosting(transaction, {
+    const posting = await createPosting(transaction, {
       organizationId: organization.id,
       overrides: { start_date: futureStart, end_date: futureEnd },
     });

@@ -44,7 +44,7 @@ import { ToggleButton } from '../components/ToggleButton.tsx';
 import VolunteerInfoCollapse from '../components/VolunteerInfoCollapse.tsx';
 import { useModal } from '../contexts/useModal.ts';
 import useNotifications from '../notifications/useNotifications';
-import { organizationPostingEditFormSchema, type OrganizationPostingEditFormData } from '../schemas/posting';
+import { postingEditFormSchema, type PostingEditFormData } from '../schemas/posting';
 import { executeAndShowError, FormField } from '../utils/formUtils.tsx';
 import requestServer from '../utils/requestServer.ts';
 import useAsync from '../utils/useAsync';
@@ -54,9 +54,9 @@ import type {
   OrganizationCrisisResponse,
   OrganizationCrisesResponse,
   OrganizationGetMeResponse,
-  OrganizationPostingApplicationsReponse,
-  OrganizationPostingEnrollmentsResponse,
-  OrganizationPostingResponse,
+  PostingApplicationsReponse,
+  PostingEnrollmentsResponse,
+  PostingResponse,
   OrganizationProfileResponse,
   VolunteerCrisisResponse,
   VolunteerPostingResponse,
@@ -183,8 +183,8 @@ function PostingPage() {
   const notifications = useNotifications();
   const modal = useModal();
 
-  const form = useForm<OrganizationPostingEditFormData>({
-    resolver: zodResolver(organizationPostingEditFormSchema),
+  const form = useForm<PostingEditFormData>({
+    resolver: zodResolver(postingEditFormSchema),
     mode: 'onTouched',
     reValidateMode: 'onChange',
     defaultValues: {
@@ -356,8 +356,8 @@ function PostingPage() {
     }
 
     const [postingResponse, enrollmentsResponse] = await Promise.all([
-      requestServer<OrganizationPostingResponse>(`/organization/posting/${id}`, { includeJwt: true }),
-      requestServer<OrganizationPostingEnrollmentsResponse>(`/organization/posting/${id}/enrollments`, { includeJwt: true }),
+      requestServer<PostingResponse>(`/organization/posting/${id}`, { includeJwt: true }),
+      requestServer<PostingEnrollmentsResponse>(`/organization/posting/${id}/enrollments`, { includeJwt: true }),
     ]);
 
     const postingWithSkills = {
@@ -371,7 +371,7 @@ function PostingPage() {
     setPostingEnrollmentCount(enrollmentsResponse.enrollments.length);
 
     if (!postingResponse.posting.automatic_acceptance) {
-      const applicationsResponse = await requestServer<OrganizationPostingApplicationsReponse>(
+      const applicationsResponse = await requestServer<PostingApplicationsReponse>(
         `/organization/posting/${id}/applications`,
         { includeJwt: true },
       );
@@ -446,7 +446,7 @@ function PostingPage() {
   }, [loadPosting]);
 
   const { trigger: updatePosting } = useAsync(
-    async (postingId: string, payload: Record<string, unknown>) => requestServer<OrganizationPostingResponse>(
+    async (postingId: string, payload: Record<string, unknown>) => requestServer<PostingResponse>(
       `/organization/posting/${postingId}`,
       {
         method: 'PUT',
@@ -494,7 +494,7 @@ function PostingPage() {
   );
 
   const { trigger: loadPostingEnrollments } = useAsync(
-    async (postingId: string) => requestServer<OrganizationPostingEnrollmentsResponse>(
+    async (postingId: string) => requestServer<PostingEnrollmentsResponse>(
       `/organization/posting/${postingId}/enrollments`,
       { includeJwt: true },
     ),
