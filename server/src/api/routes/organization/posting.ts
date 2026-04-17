@@ -33,6 +33,7 @@ import {
   recomputeVolunteerExperienceVector,
 } from '../../../services/embeddings/updates.ts';
 import {
+  sendPostingDeletedEmail,
   sendVolunteerApplicationAcceptedEmail,
   sendVolunteerApplicationRejectedEmail,
 } from '../../../services/smtp/emails.ts';
@@ -628,6 +629,25 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
       .where('attended', '=', true)
       .execute();
 
+    const enrolledVolunteerEmailContexts = await db
+      .selectFrom('enrollment')
+      .innerJoin('volunteer_account', 'volunteer_account.id', 'enrollment.volunteer_id')
+      .innerJoin('organization_posting', 'organization_posting.id', 'enrollment.posting_id')
+      .innerJoin('organization_account', 'organization_account.id', 'organization_posting.organization_id')
+      .select([
+        'volunteer_account.id as volunteer_id',
+        'volunteer_account.email as volunteer_email',
+        'volunteer_account.first_name',
+        'volunteer_account.last_name',
+        'organization_posting.title as posting_title',
+        'organization_account.name as organization_name',
+      ])
+      .where('enrollment.posting_id', '=', postingId)
+      .where('volunteer_account.is_deleted', '=', false)
+      .where('volunteer_account.is_disabled', '=', false)
+      .where('organization_account.is_deleted', '=', false)
+      .execute();
+
     await executeTransaction(db, async (trx) => {
       await trx.deleteFrom('posting_skill').where('posting_id', '=', postingId).execute();
       await trx.deleteFrom('enrollment_application_date').where('application_id', 'in', trx
@@ -645,6 +665,19 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
     await recomputeOrganizationHistoryVectorOnly(orgId, db);
     await recomputeOrganizationCompositeVectorOnly(orgId, db);
     await recomputePostingContextVectorsForOrganization(orgId, db);
+
+    for (const emailContext of enrolledVolunteerEmailContexts) {
+      try {
+        await sendPostingDeletedEmail({
+          volunteerEmail: emailContext.volunteer_email,
+          volunteerName: `${emailContext.first_name} ${emailContext.last_name}`,
+          postingTitle: emailContext.posting_title,
+          organizationName: emailContext.organization_name,
+        });
+      } catch (err) {
+        console.error('Failed to send posting deleted email:', err);
+      }
+    }
 
     res.json({});
   });
