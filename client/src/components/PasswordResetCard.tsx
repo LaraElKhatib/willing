@@ -1,14 +1,14 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CheckCircle, LockIcon, LockKeyhole, Save } from 'lucide-react';
-import { useContext } from 'react';
+import { useContext, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import zod from 'zod';
 
 import Button from './Button';
 import Card from './Card';
-import { passwordSchema } from '../../../server/src/schemas';
 import AuthContext from '../auth/AuthContext';
 import useNotifications from '../notifications/useNotifications';
+import { passwordSchema } from '../schemas/auth';
 import { executeAndShowError, FormField, FormRootError } from '../utils/formUtils';
 
 const passwordResetSchema = zod.object({
@@ -30,6 +30,13 @@ function PasswordResetCard() {
     mode: 'onTouched',
     reValidateMode: 'onChange',
   });
+
+  const newPasswordValue = form.watch('newPassword');
+  const confirmPasswordValue = form.watch('confirmedNewPassword');
+  useEffect(() => {
+    if (!confirmPasswordValue) return;
+    void form.trigger('confirmedNewPassword');
+  }, [confirmPasswordValue, form, newPasswordValue]);
 
   const onSubmit = form.handleSubmit(async (data: PasswordResetForm) => {
     await executeAndShowError(form, async () => {
