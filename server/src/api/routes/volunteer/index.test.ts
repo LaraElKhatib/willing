@@ -757,6 +757,57 @@ describe('DELETE /volunteer/posting/:id/enroll withdrawal behavior', () => {
     expect(remainingDates).toEqual([]);
   });
 
+  test('returns 403 when trying to withdraw from an ended enrolled posting', async () => {
+    const { token } = await createVolunteerAccount(transaction, { email: 'ended-enrolled-withdraw@example.com' });
+    const { organization } = await createOrganizationAccount(transaction, { email: 'ended-enrolled-withdraw-org@example.com' });
+
+    const posting = await transaction
+      .insertInto('organization_posting')
+      .values({
+        organization_id: organization.id,
+        title: 'Ended Enrolled Event',
+        description: 'Withdraw should be blocked after the posting ends',
+        latitude: 33.9,
+        longitude: 35.5,
+        max_volunteers: 20,
+        start_date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+        start_time: '09:00:00',
+        end_date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+        end_time: '17:00:00',
+        minimum_age: 18,
+        automatic_acceptance: true,
+        is_closed: false,
+        allows_partial_attendance: false,
+        location_name: 'Test Location',
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    await server
+      .post(`/volunteer/posting/${posting.id}/enroll`)
+      .set('Authorization', 'Bearer ' + token)
+      .send({ message: 'Enroll before the posting ends' })
+      .expect(200);
+
+    await server
+      .delete(`/volunteer/posting/${posting.id}/enroll`)
+      .set('Authorization', 'Bearer ' + token)
+      .expect(403);
+
+    const enrollment = await transaction
+      .selectFrom('enrollment')
+      .select('id')
+      .where('posting_id', '=', posting.id)
+      .where('volunteer_id', '=', (await transaction
+        .selectFrom('volunteer_account')
+        .select('id')
+        .where('email', '=', 'ended-enrolled-withdraw@example.com')
+        .executeTakeFirstOrThrow()).id)
+      .executeTakeFirst();
+
+    expect(enrollment).toBeDefined();
+  });
+
   test('removes the entire pending application for partial attendance postings', async () => {
     const { token } = await createVolunteerAccount(transaction, { email: 'partial-pending-withdraw@example.com' });
     const { organization } = await createOrganizationAccount(transaction, { email: 'partial-pending-withdraw-org@example.com' });
@@ -809,6 +860,57 @@ describe('DELETE /volunteer/posting/:id/enroll withdrawal behavior', () => {
 
     expect(remainingApplication).toBeUndefined();
     expect(remainingApplicationDates).toEqual([]);
+  });
+
+  test('returns 403 when trying to withdraw an ended pending application', async () => {
+    const { token } = await createVolunteerAccount(transaction, { email: 'ended-pending-withdraw@example.com' });
+    const { organization } = await createOrganizationAccount(transaction, { email: 'ended-pending-withdraw-org@example.com' });
+
+    const posting = await transaction
+      .insertInto('organization_posting')
+      .values({
+        organization_id: organization.id,
+        title: 'Ended Pending Event',
+        description: 'Pending applications should not be withdrawable after the posting ends',
+        latitude: 33.9,
+        longitude: 35.5,
+        max_volunteers: 20,
+        start_date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+        start_time: '09:00:00',
+        end_date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+        end_time: '17:00:00',
+        minimum_age: 18,
+        automatic_acceptance: false,
+        is_closed: false,
+        allows_partial_attendance: false,
+        location_name: 'Test Location',
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    await server
+      .post(`/volunteer/posting/${posting.id}/enroll`)
+      .set('Authorization', 'Bearer ' + token)
+      .send({ message: 'Apply before the posting ends' })
+      .expect(200);
+
+    await server
+      .delete(`/volunteer/posting/${posting.id}/enroll`)
+      .set('Authorization', 'Bearer ' + token)
+      .expect(403);
+
+    const application = await transaction
+      .selectFrom('enrollment_application')
+      .select('id')
+      .where('posting_id', '=', posting.id)
+      .where('volunteer_id', '=', (await transaction
+        .selectFrom('volunteer_account')
+        .select('id')
+        .where('email', '=', 'ended-pending-withdraw@example.com')
+        .executeTakeFirstOrThrow()).id)
+      .executeTakeFirst();
+
+    expect(application).toBeDefined();
   });
 });
 
