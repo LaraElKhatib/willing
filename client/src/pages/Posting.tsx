@@ -64,20 +64,19 @@ import type {
 import type { Crisis } from '../../../server/src/db/tables/index.ts';
 import type { PostingApplication, PostingEnrollment, PostingWithContext, PostingWithSkills } from '../../../server/src/types.ts';
 
-const parseDateOnlyParts = (value: string) => {
-  const datePart = value.split('T')[0] ?? '';
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(datePart);
-  if (!match) return null;
+const parseLocalDateParts = (value: string | Date) => {
+  const parsed = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
 
   return {
-    year: Number(match[1]),
-    month: Number(match[2]),
-    day: Number(match[3]),
+    year: parsed.getFullYear(),
+    month: parsed.getMonth() + 1,
+    day: parsed.getDate(),
   };
 };
 
-const normalizeDateOnlyValue = (value: string) => {
-  const dateParts = parseDateOnlyParts(value);
+const normalizeDateOnlyValue = (value: string | Date) => {
+  const dateParts = parseLocalDateParts(value);
   if (!dateParts) return '';
 
   return `${dateParts.year}-${String(dateParts.month).padStart(2, '0')}-${String(dateParts.day).padStart(2, '0')}`;
@@ -88,19 +87,10 @@ const normalizeDateOnlyList = (values: string[]) => values
   .filter((value): value is string => Boolean(value));
 
 const getDateInputValue = (value: Date | string) => {
-  if (typeof value === 'string') {
-    const dateParts = parseDateOnlyParts(value);
-    if (dateParts) {
-      return `${dateParts.year}-${String(dateParts.month).padStart(2, '0')}-${String(dateParts.day).padStart(2, '0')}`;
-    }
-  }
+  const dateParts = parseLocalDateParts(value);
+  if (!dateParts) return '';
 
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return '';
-  const year = parsed.getUTCFullYear();
-  const month = `${parsed.getUTCMonth() + 1}`.padStart(2, '0');
-  const day = `${parsed.getUTCDate()}`.padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  return `${dateParts.year}-${String(dateParts.month).padStart(2, '0')}-${String(dateParts.day).padStart(2, '0')}`;
 };
 
 const getTimeInputValue = (timeValue: string | undefined) => (timeValue ?? '').slice(0, 5);
@@ -114,7 +104,7 @@ const getPostingStartDateTime = (posting: PostingWithSkills) => {
 const formatDisplayDate = (value?: string) => {
   if (!value) return '-';
 
-  const dateParts = parseDateOnlyParts(value);
+  const dateParts = parseLocalDateParts(value);
   if (dateParts) {
     return new Intl.DateTimeFormat('en-US', {
       month: 'short',
@@ -123,13 +113,7 @@ const formatDisplayDate = (value?: string) => {
     }).format(new Date(dateParts.year, dateParts.month - 1, dateParts.day));
   }
 
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return value;
-  return new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  }).format(parsed);
+  return value;
 };
 
 const formatDisplayTime = (value?: string) => {
