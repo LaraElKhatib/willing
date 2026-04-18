@@ -1,5 +1,3 @@
-import { sql } from 'kysely';
-
 import { getSingleQueryValue } from './queryValue.ts';
 
 export type PostingSortDir = 'asc' | 'desc';
@@ -209,86 +207,69 @@ export const sortPostingsBySharedSort = <T extends PostingSortLike>(
   postings: T[],
   sortBy: SharedPostingSortBy,
   sortDir: PostingSortDir,
-): T[] => {
-  const todayKey = normalizeDateKey(new Date())!;
+): T[] => [...postings].sort((left, right) => {
+  switch (sortBy) {
+    case 'created_at':
+    {
+      const createdAtCompare = compareNullableKeys(
+        normalizeTimestampKey(left.created_at),
+        normalizeTimestampKey(right.created_at),
+        sortDir,
+      );
 
-  return [...postings].sort((left, right) => {
-    // Always push ended postings to the bottom regardless of sort field
-    const leftEndKey = normalizeDateKey(left.end_date);
-    const rightEndKey = normalizeDateKey(right.end_date);
-    const leftEnded = leftEndKey !== null && leftEndKey < todayKey ? 1 : 0;
-    const rightEnded = rightEndKey !== null && rightEndKey < todayKey ? 1 : 0;
-    if (leftEnded !== rightEnded) return leftEnded - rightEnded;
-
-    switch (sortBy) {
-      case 'created_at':
-      {
-        const createdAtCompare = compareNullableKeys(
-          normalizeTimestampKey(left.created_at),
-          normalizeTimestampKey(right.created_at),
-          sortDir,
-        );
-
-        if (createdAtCompare !== 0) {
-          return createdAtCompare;
-        }
-
-        const leftId = left.id ?? 0;
-        const rightId = right.id ?? 0;
-        return sortDir === 'asc' ? leftId - rightId : rightId - leftId;
+      if (createdAtCompare !== 0) {
+        return createdAtCompare;
       }
-      case 'start_date':
-      case 'title': {
-        return compareNullableKeys(
-          left.title ?? '',
-          right.title ?? '',
-          sortDir,
-        );
-      }
-      default: {
-        const dateCompare = compareNullableKeys(
-          normalizeDateKey(left.start_date),
-          normalizeDateKey(right.start_date),
-          sortDir,
-        );
 
-        if (dateCompare !== 0) {
-          return dateCompare;
-        }
-
-        return compareNullableKeys(
-          normalizeTimeKey(left.start_time),
-          normalizeTimeKey(right.start_time),
-          sortDir,
-        );
-      }
+      const leftId = left.id ?? 0;
+      const rightId = right.id ?? 0;
+      return sortDir === 'asc' ? leftId - rightId : rightId - leftId;
     }
-  });
-};
+    case 'start_date':
+    case 'title': {
+      return compareNullableKeys(
+        left.title ?? '',
+        right.title ?? '',
+        sortDir,
+      );
+    }
+    default: {
+      const dateCompare = compareNullableKeys(
+        normalizeDateKey(left.start_date),
+        normalizeDateKey(right.start_date),
+        sortDir,
+      );
+
+      if (dateCompare !== 0) {
+        return dateCompare;
+      }
+
+      return compareNullableKeys(
+        normalizeTimeKey(left.start_time),
+        normalizeTimeKey(right.start_time),
+        sortDir,
+      );
+    }
+  }
+});
 
 export const applySharedPostingSort = <Q extends PostingQueryLike>(
   query: Q,
   sortBy: SharedPostingSortBy,
   sortDir: PostingSortDir,
 ): Q => {
-  // Always push ended postings to the bottom regardless of sort field
-  const withEndedLast = query.orderBy(
-    sql`CASE WHEN posting.end_date < CURRENT_DATE THEN 1 ELSE 0 END`,
-    'asc',
-  ) as Q;
-
   switch (sortBy) {
     case 'created_at':
-      return withEndedLast
+      return query
         .orderBy('posting.created_at', sortDir)
         .orderBy('posting.id', sortDir) as Q;
     case 'title':
-      return withEndedLast
+      return query
         .orderBy('posting.title', sortDir)
         .orderBy('posting.id', sortDir) as Q;
     case 'start_date':
     default:
-      return withEndedLast
+      return query
         .orderBy('posting.start_date', sortDir)
         .orderBy('posting.start_time', sortDir) as Q;
   }

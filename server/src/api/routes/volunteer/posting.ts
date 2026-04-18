@@ -192,7 +192,11 @@ function createVolunteerPostingRouter(db: Kysely<Database>) {
       .innerJoin('organization_account', 'organization_account.id', 'posting.organization_id')
       .leftJoin('crisis', 'crisis.id', 'posting.crisis_id')
       .select(postingWithContextSelectColumns)
-      .where('posting.is_closed', '=', false);
+      .where('posting.is_closed', '=', false)
+      .where(({ or }) => or([
+        sql<boolean>`posting.end_date >= CURRENT_DATE`,
+        sql<boolean>`posting.end_date IS NULL`,
+      ]));
     query = query.where('organization_account.is_deleted', '=', false);
     query = query.where('organization_account.is_disabled', '=', false);
 

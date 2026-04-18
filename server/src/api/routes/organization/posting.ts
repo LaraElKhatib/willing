@@ -159,6 +159,7 @@ function createPostingRouter(db: Kysely<Database>) {
     const orgId = req.userJWT!.id;
     const { skills, ...postingBody } = body;
 
+    const now = new Date();
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     if (body.start_date < today) {
@@ -168,6 +169,15 @@ function createPostingRouter(db: Kysely<Database>) {
     if (body.end_date < today) {
       res.status(400);
       throw new Error('End date cannot be in the past');
+    }
+    if (body.start_date.getTime() === today.getTime() && body.start_time) {
+      const parts = body.start_time.split(':').map(Number);
+      const startDateTime = new Date(now);
+      startDateTime.setHours(parts[0] ?? 0, parts[1] ?? 0, 0, 0);
+      if (startDateTime < now) {
+        res.status(400);
+        throw new Error('Start time cannot be in the past');
+      }
     }
 
     if (body.crisis_id != null) {
@@ -331,6 +341,10 @@ function createPostingRouter(db: Kysely<Database>) {
       .leftJoin('crisis', 'crisis.id', 'posting.crisis_id')
       .select(postingWithContextSelectColumns)
       .where('posting.is_closed', '=', false)
+      .where(({ or }) => or([
+        sql<boolean>`posting.end_date >= CURRENT_DATE`,
+        sql<boolean>`posting.end_date IS NULL`,
+      ]))
       .where('organization_account.is_deleted', '=', false)
       .where('organization_account.is_disabled', '=', false);
 
@@ -516,6 +530,7 @@ function createPostingRouter(db: Kysely<Database>) {
       throw new Error('Posting not found');
     }
 
+    const now = new Date();
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     if (body.start_date !== undefined && formatDateToIso(body.start_date) !== formatDateToIso(posting.start_date) && body.start_date < today) {
@@ -525,6 +540,18 @@ function createPostingRouter(db: Kysely<Database>) {
     if (body.end_date !== undefined && formatDateToIso(body.end_date) !== formatDateToIso(posting.end_date) && body.end_date < today) {
       res.status(400);
       throw new Error('End date cannot be in the past');
+    }
+
+    const effectiveStartDate = body.start_date ?? posting.start_date;
+    const effectiveStartTime = body.start_time ?? posting.start_time;
+    if (formatDateToIso(effectiveStartDate) === formatDateToIso(today) && effectiveStartTime) {
+      const parts = effectiveStartTime.split(':').map(Number);
+      const startDateTime = new Date(now);
+      startDateTime.setHours(parts[0] ?? 0, parts[1] ?? 0, 0, 0);
+      if (startDateTime < now) {
+        res.status(400);
+        throw new Error('Start time cannot be in the past');
+      }
     }
 
     if (body.crisis_id !== undefined && body.crisis_id !== null && body.crisis_id !== posting.crisis_id) {

@@ -40,6 +40,9 @@ export const newPostingSchema = postingSchema
     skills: zod
       .array(zod.string().min(1, 'Skill name is required'))
       .optional(),
+    max_volunteers: zod.number().nullable().optional(),
+    minimum_age: zod.number().nullable().optional(),
+    crisis_id: zod.number().int().positive().nullable().optional(),
   })
   .strict();
 export type NewPosting = zod.infer<typeof newPostingSchema>;
