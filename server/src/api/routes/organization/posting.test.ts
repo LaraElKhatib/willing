@@ -1058,9 +1058,9 @@ describe('Organization posting management', () => {
         longitude: 35.5,
         max_volunteers: 10,
         start_date: today,
-        start_time: '09:00:00',
+        start_time: '23:59:00',
         end_date: today,
-        end_time: '17:00:00',
+        end_time: '23:59:00',
         minimum_age: 18,
         automatic_acceptance: false,
         is_closed: false,
@@ -1071,6 +1071,73 @@ describe('Organization posting management', () => {
       .expect(200);
 
     expect(response.body.posting.title).toBe('Today Posting');
+  });
+
+  test('returns 400 when creating a posting with today start date but past start time', async () => {
+    const { token } = await createOrganizationAccount(transaction, { email: 'org-past-time-create@example.com' });
+
+    const today = formatDateToIso(new Date());
+
+    const response = await server
+      .post('/organization/posting')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        title: 'Past Time Posting',
+        description: 'Should fail',
+        latitude: 33.9,
+        longitude: 35.5,
+        max_volunteers: 10,
+        start_date: today,
+        start_time: '00:00:00',
+        end_date: today,
+        end_time: '23:59:00',
+        minimum_age: 18,
+        automatic_acceptance: false,
+        is_closed: false,
+        allows_partial_attendance: false,
+        location_name: 'Past Time Location',
+        crisis_id: null,
+      })
+      .expect(400);
+
+    expect(response.body.message).toBe('Start time cannot be in the past');
+  });
+
+  test('returns 400 when updating a posting start time to a past time on today', async () => {
+    const { organization, token } = await createOrganizationAccount(transaction, { email: 'org-past-time-update@example.com' });
+
+    const today = new Date();
+    const todayIso = formatDateToIso(today);
+
+    const posting = await transaction
+      .insertInto('posting')
+      .values({
+        organization_id: organization.id,
+        title: 'Today Posting',
+        description: 'Will update time',
+        latitude: 33.9,
+        longitude: 35.5,
+        max_volunteers: 10,
+        start_date: today,
+        start_time: '23:59:00',
+        end_date: today,
+        end_time: '23:59:00',
+        minimum_age: 18,
+        automatic_acceptance: false,
+        is_closed: false,
+        allows_partial_attendance: false,
+        location_name: 'Update Time Location',
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    const response = await server
+      .put(`/organization/posting/${posting.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ start_date: todayIso, start_time: '00:00:00' })
+      .expect(400);
+
+    expect(response.body.message).toBe('Start time cannot be in the past');
   });
 
   test('returns 400 when updating a posting with a new past start date', async () => {

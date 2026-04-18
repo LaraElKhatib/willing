@@ -196,9 +196,9 @@ function createVolunteerPostingRouter(db: Kysely<Database>) {
       .where(({ or }) => or([
         sql<boolean>`posting.end_date >= CURRENT_DATE`,
         sql<boolean>`posting.end_date IS NULL`,
-      ]));
-    query = query.where('organization_account.is_deleted', '=', false);
-    query = query.where('organization_account.is_disabled', '=', false);
+      ]))
+      .where('organization_account.is_deleted', '=', false)
+      .where('organization_account.is_disabled', '=', false);
 
     if (!includeApplied) {
       query = query.where(({ not, exists, selectFrom, or }) => not(or([

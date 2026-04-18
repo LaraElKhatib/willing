@@ -160,17 +160,16 @@ function createPostingRouter(db: Kysely<Database>) {
     const { skills, ...postingBody } = body;
 
     const now = new Date();
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    if (body.start_date < today) {
+    const todayIso = formatDateToIso(now);
+    if (formatDateToIso(body.start_date) < todayIso) {
       res.status(400);
       throw new Error('Start date cannot be in the past');
     }
-    if (body.end_date < today) {
+    if (formatDateToIso(body.end_date) < todayIso) {
       res.status(400);
       throw new Error('End date cannot be in the past');
     }
-    if (body.start_date.getTime() === today.getTime() && body.start_time) {
+    if (formatDateToIso(body.start_date) === todayIso && body.start_time) {
       const parts = body.start_time.split(':').map(Number);
       const startDateTime = new Date(now);
       startDateTime.setHours(parts[0] ?? 0, parts[1] ?? 0, 0, 0);
@@ -531,20 +530,19 @@ function createPostingRouter(db: Kysely<Database>) {
     }
 
     const now = new Date();
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    if (body.start_date !== undefined && formatDateToIso(body.start_date) !== formatDateToIso(posting.start_date) && body.start_date < today) {
+    const todayIso = formatDateToIso(now);
+    if (body.start_date !== undefined && formatDateToIso(body.start_date) !== formatDateToIso(posting.start_date) && formatDateToIso(body.start_date) < todayIso) {
       res.status(400);
       throw new Error('Start date cannot be in the past');
     }
-    if (body.end_date !== undefined && formatDateToIso(body.end_date) !== formatDateToIso(posting.end_date) && body.end_date < today) {
+    if (body.end_date !== undefined && formatDateToIso(body.end_date) !== formatDateToIso(posting.end_date) && formatDateToIso(body.end_date) < todayIso) {
       res.status(400);
       throw new Error('End date cannot be in the past');
     }
 
     const effectiveStartDate = body.start_date ?? posting.start_date;
     const effectiveStartTime = body.start_time ?? posting.start_time;
-    if (formatDateToIso(effectiveStartDate) === formatDateToIso(today) && effectiveStartTime) {
+    if (formatDateToIso(effectiveStartDate) === todayIso && effectiveStartTime) {
       const parts = effectiveStartTime.split(':').map(Number);
       const startDateTime = new Date(now);
       startDateTime.setHours(parts[0] ?? 0, parts[1] ?? 0, 0, 0);
