@@ -1367,7 +1367,6 @@ function PostingPage() {
                       style="outline"
                       onClick={withdrawApplication}
                       loading={withdrawing}
-                      disabled={!canWithdrawFromPosting}
                       title={canWithdrawFromPosting ? undefined : 'This posting has already ended.'}
                       Icon={SquareArrowRight}
                     >
@@ -1381,7 +1380,6 @@ function PostingPage() {
                         style="outline"
                         onClick={withdrawApplication}
                         loading={withdrawing}
-                        disabled={!canWithdrawFromPosting}
                         title={canWithdrawFromPosting ? undefined : 'This posting has already ended.'}
                         Icon={SquareArrowRight}
                       >
