@@ -125,7 +125,7 @@ export default function VolunteerVerifyEmail() {
                 const validation = forgotPasswordRequestSchema.safeParse({ email });
                 if (!validation.success) {
                   notifications.push({
-                    type: 'error',
+                    type: 'warning',
                     message: validation.error.issues[0]?.message ?? 'Please enter a valid email address.',
                   });
                   return;
