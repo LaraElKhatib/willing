@@ -8,6 +8,7 @@ import Card from '../components/Card';
 import Hero from '../components/layout/Hero';
 import LinkButton from '../components/LinkButton';
 import useNotifications from '../notifications/useNotifications';
+import { forgotPasswordRequestSchema } from '../schemas/auth';
 import useAsync from '../utils/useAsync';
 
 export default function VolunteerVerifyEmail() {
@@ -91,7 +92,7 @@ export default function VolunteerVerifyEmail() {
       <Hero>
         <Card>
           <h2 className="font-bold text-2xl text-center">Email verification failed</h2>
-          <p className="opacity-80 text-center">{error.message}</p>
+          <p className="opacity-80 text-center text-error">{error.message}</p>
           <div className="form-control w-full max-w-md mx-auto">
             <label className="label" htmlFor="resend-verification-email">
               <span className="label-text">Need a new link? Enter your email</span>
@@ -121,6 +122,15 @@ export default function VolunteerVerifyEmail() {
                   return;
                 }
 
+                const validation = forgotPasswordRequestSchema.safeParse({ email });
+                if (!validation.success) {
+                  notifications.push({
+                    type: 'error',
+                    message: validation.error.issues[0]?.message ?? 'Please enter a valid email address.',
+                  });
+                  return;
+                }
+
                 triggerResend(email)
                   .then(() => {
                     notifications.push({
@@ -131,7 +141,7 @@ export default function VolunteerVerifyEmail() {
                   .catch((err) => {
                     notifications.push({
                       type: 'error',
-                      message: err.message,
+                      message: err instanceof Error ? err.message : 'Failed to resend verification email.',
                     });
                   });
               }}
