@@ -1214,6 +1214,52 @@ describe('GET /volunteer/posting/:id selected partial dates', () => {
     expect(response.body.message).toBe('Selected date 2026-06-04 is outside the posting date range');
   });
 
+  test('allows one-day partial attendance postings to apply without selecting dates', async () => {
+    const { token } = await createVolunteerAccount(transaction, { email: 'partial-single-day@example.com' });
+    const { organization } = await createOrganizationAccount(transaction, { email: 'partial-single-day-org@example.com' });
+
+    const posting = await transaction
+      .insertInto('organization_posting')
+      .values({
+        organization_id: organization.id,
+        title: 'Partial Attendance Single Day',
+        description: 'Single-day partial posting should not require date selection',
+        latitude: 33.9,
+        longitude: 35.5,
+        max_volunteers: 10,
+        start_date: new Date('2026-06-01T00:00:00.000Z'),
+        start_time: '09:00:00',
+        end_date: new Date('2026-06-01T00:00:00.000Z'),
+        end_time: '17:00:00',
+        minimum_age: 18,
+        automatic_acceptance: false,
+        is_closed: false,
+        allows_partial_attendance: true,
+        location_name: 'Test Location',
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    const response = await server
+      .post(`/volunteer/posting/${posting.id}/enroll`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ message: 'Applying without selecting the only available day' })
+      .expect(200);
+
+    expect(response.body.enrollment).toBeDefined();
+    expect(response.body.enrollment.posting_id).toBe(posting.id);
+
+    const selectedDates = await transaction
+      .selectFrom('enrollment_application_date')
+      .select('date')
+      .where('application_id', '=', response.body.enrollment.id)
+      .execute();
+
+    expect(selectedDates).toHaveLength(1);
+    expect(selectedDates[0]).toBeDefined();
+    expect(formatDateToIso(selectedDates[0]!.date)).toBe('2026-06-01');
+  });
+
   test('rejects date selection for full commitment postings', async () => {
     const { token } = await createVolunteerAccount(transaction, { email: 'full-commitment-dates@example.com' });
     const { organization } = await createOrganizationAccount(transaction, { email: 'full-commitment-dates-org@example.com' });

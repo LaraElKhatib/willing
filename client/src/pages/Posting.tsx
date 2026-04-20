@@ -631,7 +631,7 @@ function PostingPage() {
   const submitApplication = useCallback(async (message?: string) => {
     if (!id || hasPendingApplication || isEnrolled || !posting) return;
 
-    if (posting.allows_partial_attendance) {
+    if (posting.allows_partial_attendance && !isSingleDayPosting) {
       if (selectedApplicationDates.length === 0) {
         notifications.push({ type: 'error', message: 'Please select at least one date to apply.' });
         return;
@@ -910,7 +910,7 @@ function PostingPage() {
         title="Apply to posting"
         placeholder="You can add an optional message to tell the organization why you're interested in this opportunity"
       >
-        {posting?.allows_partial_attendance && (
+        {posting?.allows_partial_attendance && !isSingleDayPosting && (
           <div className="mt-3">
             <p className="text-sm font-medium mb-2">Select your available days (partial attendance)</p>
             <CalendarInfo
