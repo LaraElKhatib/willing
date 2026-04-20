@@ -1362,29 +1362,41 @@ function PostingPage() {
             <div className="mt-3 flex justify-end">
               {isEnrolled
                 ? (
-                    <Button
-                      color="error"
-                      style="outline"
-                      onClick={withdrawApplication}
-                      loading={withdrawing}
-                      title={canWithdrawFromPosting ? undefined : 'This posting has already ended.'}
-                      Icon={SquareArrowRight}
+                    <span
+                      className={canWithdrawFromPosting ? 'inline-block' : 'tooltip tooltip-top inline-block'}
+                      data-tip={canWithdrawFromPosting ? undefined : 'This posting has ended.'}
                     >
-                      Leave Position
-                    </Button>
-                  )
-                : hasPendingApplication
-                  ? (
                       <Button
                         color="error"
                         style="outline"
                         onClick={withdrawApplication}
                         loading={withdrawing}
-                        title={canWithdrawFromPosting ? undefined : 'This posting has already ended.'}
+                        disabled={!canWithdrawFromPosting}
+                        className={!canWithdrawFromPosting ? 'pointer-events-none' : undefined}
                         Icon={SquareArrowRight}
                       >
-                        Withdraw Application
+                        Leave Position
                       </Button>
+                    </span>
+                  )
+                : hasPendingApplication
+                  ? (
+                      <span
+                        className={canWithdrawFromPosting ? 'inline-block' : 'tooltip tooltip-top inline-block'}
+                        data-tip={canWithdrawFromPosting ? undefined : 'This posting has ended.'}
+                      >
+                        <Button
+                          color="error"
+                          style="outline"
+                          onClick={withdrawApplication}
+                          loading={withdrawing}
+                          disabled={!canWithdrawFromPosting}
+                          className={!canWithdrawFromPosting ? 'pointer-events-none' : undefined}
+                          Icon={SquareArrowRight}
+                        >
+                          Withdraw Application
+                        </Button>
+                      </span>
                     )
                   : (
                       <Button
