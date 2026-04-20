@@ -666,18 +666,18 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
     await recomputeOrganizationCompositeVectorOnly(orgId, db);
     await recomputePostingContextVectorsForOrganization(orgId, db);
 
-    for (const emailContext of enrolledVolunteerEmailContexts) {
-      try {
-        await sendPostingDeletedEmail({
+    await Promise.allSettled(
+      enrolledVolunteerEmailContexts.map(emailContext =>
+        sendPostingDeletedEmail({
           volunteerEmail: emailContext.volunteer_email,
           volunteerName: `${emailContext.first_name} ${emailContext.last_name}`,
           postingTitle: emailContext.posting_title,
           organizationName: emailContext.organization_name,
-        });
-      } catch (err) {
-        console.error('Failed to send posting deleted email:', err);
-      }
-    }
+        }).catch((err) => {
+          console.error(`Failed to send deletion notification email for posting ${postingId} to volunteer ${emailContext.volunteer_id}:`, err);
+        }),
+      ),
+    );
 
     res.json({});
   });
