@@ -100,7 +100,7 @@ export default function VolunteerVerifyEmail() {
             <input
               id="resend-verification-email"
               type="email"
-              className="input input-bordered w-full"
+              className="input input-bordered w-full mt-2"
               placeholder="name@example.com"
               value={resendEmail}
               onChange={event => setResendEmail(event.target.value)}
