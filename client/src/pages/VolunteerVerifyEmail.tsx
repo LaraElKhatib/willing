@@ -93,7 +93,7 @@ export default function VolunteerVerifyEmail() {
         <Card>
           <h2 className="font-bold text-2xl text-center">Email verification failed</h2>
           <p className="opacity-80 text-center text-error">{error.message}</p>
-          <div className="form-control w-full max-w-md mx-auto">
+          <div className="form-control w-full max-w-md mx-auto mt-4">
             <label className="label" htmlFor="resend-verification-email">
               <span className="label-text">Need a new link? Enter your email</span>
             </label>
