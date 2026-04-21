@@ -65,6 +65,17 @@ import type { Crisis } from '../../../server/src/db/tables/index.ts';
 import type { PostingApplication, PostingEnrollment, PostingWithContext, PostingWithSkills } from '../../../server/src/types.ts';
 
 const parseLocalDateParts = (value: string | Date) => {
+  if (typeof value === 'string') {
+    const isoDateMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+    if (isoDateMatch) {
+      return {
+        year: Number(isoDateMatch[1]),
+        month: Number(isoDateMatch[2]),
+        day: Number(isoDateMatch[3]),
+      };
+    }
+  }
+
   const parsed = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(parsed.getTime())) return null;
 
@@ -85,6 +96,32 @@ const normalizeDateOnlyValue = (value: string | Date) => {
 const normalizeDateOnlyList = (values: string[]) => values
   .map(normalizeDateOnlyValue)
   .filter((value): value is string => Boolean(value));
+
+const buildDateRangeInclusive = (startValue: string | Date, endValue: string | Date) => {
+  const startParts = parseLocalDateParts(startValue);
+  const endParts = parseLocalDateParts(endValue);
+
+  if (!startParts || !endParts) {
+    return [] as string[];
+  }
+
+  const start = new Date(startParts.year, startParts.month - 1, startParts.day);
+  const end = new Date(endParts.year, endParts.month - 1, endParts.day);
+
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start.getTime() > end.getTime()) {
+    return [] as string[];
+  }
+
+  const dates: string[] = [];
+  const cursor = new Date(start);
+
+  while (cursor.getTime() <= end.getTime()) {
+    dates.push(normalizeDateOnlyValue(cursor));
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  return dates;
+};
 
 const getDateInputValue = (value: Date | string) => {
   const dateParts = parseLocalDateParts(value);
@@ -291,7 +328,22 @@ function PostingPage() {
       setHasPendingApplication(postingResponse.posting.application_status === 'pending');
       setIsEnrolled(postingResponse.posting.application_status === 'registered');
       setPostingEnrollmentCount(postingResponse.posting.enrollment_count);
-      setPostingDates(normalizeDateOnlyList(postingResponse.posting_dates ?? []));
+      const normalizedPostingDates = normalizeDateOnlyList(postingResponse.posting_dates ?? []);
+      const computedPostingDates = buildDateRangeInclusive(
+        postingResponse.posting.start_date,
+        postingResponse.posting.end_date ?? postingResponse.posting.start_date,
+      );
+      const normalizedStartDate = normalizeDateOnlyValue(postingResponse.posting.start_date);
+      const normalizedEndDate = normalizeDateOnlyValue(
+        postingResponse.posting.end_date ?? postingResponse.posting.start_date,
+      );
+      const mergedPostingDates = Array.from(new Set([
+        ...normalizedPostingDates,
+        ...computedPostingDates,
+        normalizedStartDate,
+        normalizedEndDate,
+      ].filter(Boolean))).sort();
+      setPostingDates(mergedPostingDates);
       setSelectedVolunteerDates(normalizeDateOnlyList(postingResponse.selected_dates ?? []));
       setSkills(postingResponse.posting.skills.map(s => s.name));
       setSelectedCrisisId(postingResponse.posting.crisis_id ?? undefined);
