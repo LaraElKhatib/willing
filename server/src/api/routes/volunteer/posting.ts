@@ -542,10 +542,14 @@ function createVolunteerPostingRouter(db: Kysely<Database>) {
     }
 
     // Block registration if posting has ended
-    if (posting.end_date && posting.end_time) {
-      const endDateTime = new Date(
-        `${formatDateToIso(posting.end_date)}T${posting.end_time}:00Z`,
-      );
+    if (posting.end_date) {
+      let endDateTime;
+      if (posting.end_time) {
+        endDateTime = new Date(`${formatDateToIso(posting.end_date)}T${posting.end_time}:00Z`);
+      } else {
+        // If no end_time, treat as end of the day (23:59:59)
+        endDateTime = new Date(`${formatDateToIso(posting.end_date)}T23:59:59Z`);
+      }
       const now = new Date();
       if (now > endDateTime) {
         res.status(403);
