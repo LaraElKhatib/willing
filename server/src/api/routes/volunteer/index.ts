@@ -26,6 +26,7 @@ import createResetPassword from '../../../auth/resetPassword.ts';
 import config from '../../../config.ts';
 import executeTransaction from '../../../db/executeTransaction.ts';
 import { type Database, type VolunteerAccountWithoutPassword, newVolunteerAccountSchema, newOrganizationReportSchema, volunteerAccountSchema } from '../../../db/tables/index.ts';
+import { emailSchema } from '../../../schemas/index.ts';
 import { CERTIFICATE_PAYLOAD_VERSION, CERTIFICATE_TYPE, signCertificateVerificationPayload } from '../../../services/certificates/token.ts';
 import {
   recomputeVolunteerExperienceVector,
@@ -92,7 +93,7 @@ const verifyVolunteerEmailSchema = zod.object({
 const VOLUNTEER_VERIFICATION_TOKEN_TTL_MS = 1 * 60 * 60 * 1000;
 
 const resendVolunteerVerificationSchema = zod.object({
-  email: zod.email(),
+  email: emailSchema,
 });
 
 function createVolunteerRouter(db: Kysely<Database>) {

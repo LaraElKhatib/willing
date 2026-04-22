@@ -193,9 +193,15 @@ function createVolunteerPostingRouter(db: Kysely<Database>) {
       .leftJoin('crisis', 'crisis.id', 'posting.crisis_id')
       .select(postingWithContextSelectColumns)
       .where('posting.is_closed', '=', false)
+      // Only include postings that have NOT ended (end_date + end_time is in the future or null)
       .where(({ or }) => or([
-        sql<boolean>`posting.end_date >= CURRENT_DATE`,
-        sql<boolean>`posting.end_date IS NULL`,
+        sql<boolean>`(
+          posting.end_date IS NULL OR posting.end_time IS NULL OR
+          to_timestamp(
+            to_char(posting.end_date, 'YYYY-MM-DD') || ' ' || posting.end_time,
+            'YYYY-MM-DD HH24:MI'
+          ) >= now()
+        )`,
       ]))
       .where('organization_account.is_deleted', '=', false)
       .where('organization_account.is_disabled', '=', false);
@@ -510,6 +516,7 @@ function createVolunteerPostingRouter(db: Kysely<Database>) {
           'posting.allows_partial_attendance',
           'posting.start_date',
           'posting.end_date',
+          'posting.end_time',
         ])
         .where('posting.id', '=', id)
         .where('organization_account.is_deleted', '=', false)
@@ -533,11 +540,16 @@ function createVolunteerPostingRouter(db: Kysely<Database>) {
       throw new Error('This posting is closed and no longer accepting applications');
     }
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    if (posting.end_date && posting.end_date < today) {
-      res.status(403);
-      throw new Error('This posting has ended');
+    // Only block registration if current timestamp is after end_date + end_time
+    if (posting.end_date && posting.end_time) {
+      const endDateTime = new Date(
+        `${formatDateToIso(posting.end_date)}T${posting.end_time}:00Z`,
+      );
+      const now = new Date();
+      if (now > endDateTime) {
+        res.status(403);
+        throw new Error('This posting has ended');
+      }
     }
 
     if (!volunteer) {
@@ -791,9 +803,20 @@ function createVolunteerPostingRouter(db: Kysely<Database>) {
     const { id } = postingIdParamsSchema.parse(req.params);
 
     const { enrollment } = await executeTransaction(db, async (trx) => {
+      // Mark as ended if end_date + end_time is in the past
       const posting = await trx
         .selectFrom('posting')
-        .select(['id'])
+        .select([
+          'id',
+          sql<boolean>`(
+            posting.end_date IS NOT NULL AND posting.end_time IS NOT NULL AND
+            (to_timestamp(
+              to_char(posting.end_date, 'YYYY-MM-DD') || ' ' || posting.end_time,
+              'YYYY-MM-DD HH24:MI'
+            ) < now())
+          )`
+            .as('has_ended'),
+        ])
         .where('id', '=', id)
         .forUpdate()
         .executeTakeFirst();
@@ -801,6 +824,11 @@ function createVolunteerPostingRouter(db: Kysely<Database>) {
       if (!posting) {
         res.status(404);
         throw new Error('Posting not found');
+      }
+
+      if (posting.has_ended) {
+        res.status(403);
+        throw new Error('Cannot withdraw from a posting that has already ended');
       }
 
       const enrollment = await trx
