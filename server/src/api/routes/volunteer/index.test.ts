@@ -2196,13 +2196,6 @@ describe('POST /volunteer/posting/:id/enroll ended posting validation', () => {
     const { token } = await createVolunteerAccount(transaction, { email: 'ended-posting-vol@example.com' });
     const { organization } = await createOrganizationAccount(transaction, { email: 'ended-posting-org@example.com' });
 
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    yesterday.setHours(0, 0, 0, 0);
-    const lastWeek = new Date();
-    lastWeek.setDate(lastWeek.getDate() - 7);
-    lastWeek.setHours(0, 0, 0, 0);
-
     const posting = await transaction
       .insertInto('posting')
       .values({
@@ -2212,9 +2205,9 @@ describe('POST /volunteer/posting/:id/enroll ended posting validation', () => {
         latitude: 33.9,
         longitude: 35.5,
         max_volunteers: 10,
-        start_date: lastWeek,
+        start_date: new Date('2000-01-01T09:00:00Z'),
         start_time: '09:00:00',
-        end_date: yesterday,
+        end_date: new Date('2000-01-02T00:00:00Z'),
         end_time: '17:00:00',
         minimum_age: 18,
         automatic_acceptance: true,
