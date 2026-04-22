@@ -480,7 +480,7 @@ function PostingSearchView({
         searchFieldName="search"
         searchPlaceholder={activeEntity === 'organizations'
           ? 'Search by name, description, or location'
-          : 'Search by title, or description'}
+          : 'Search by title, description,or location'}
         sortFieldName="sortOption"
         sortOptions={activeEntity === 'organizations'
           ? organizationPostingSortOptions
