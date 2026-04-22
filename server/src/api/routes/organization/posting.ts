@@ -679,14 +679,14 @@ function createPostingRouter(db: Kysely<Database>) {
     const enrolledVolunteerEmailContexts = await db
       .selectFrom('enrollment')
       .innerJoin('volunteer_account', 'volunteer_account.id', 'enrollment.volunteer_id')
-      .innerJoin('organization_posting', 'organization_posting.id', 'enrollment.posting_id')
-      .innerJoin('organization_account', 'organization_account.id', 'organization_posting.organization_id')
+      .innerJoin('posting', 'posting.id', 'enrollment.posting_id')
+      .innerJoin('organization_account', 'organization_account.id', 'posting.organization_id')
       .select([
         'volunteer_account.id as volunteer_id',
         'volunteer_account.email as volunteer_email',
         'volunteer_account.first_name',
         'volunteer_account.last_name',
-        'organization_posting.title as posting_title',
+        'posting.title as posting_title',
         'organization_account.name as organization_name',
       ])
       .where('enrollment.posting_id', '=', postingId)

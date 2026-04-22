@@ -525,7 +525,7 @@ describe('Organization posting management', () => {
     });
 
     const posting = await transaction
-      .insertInto('organization_posting')
+      .insertInto('posting')
       .values({
         organization_id: organization.id,
         title: 'Delete With Email Notifications',
