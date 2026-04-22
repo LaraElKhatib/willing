@@ -535,25 +535,13 @@ function createVolunteerPostingRouter(db: Kysely<Database>) {
       throw new Error('Posting not found');
     }
 
-    if (posting.is_closed) {
-    // Only block registration if current timestamp is after end_date + end_time
-    if (posting.end_date && posting.end_time) {
-      const endDateTime = new Date(
-        `${formatDateToIso(posting.end_date)}T${posting.end_time}:00Z`,
-      );
-      const now = new Date();
-      if (now > endDateTime) {
-        res.status(403);
-        throw new Error('This posting has ended');
-      }
-    }
+    // Block registration if posting is closed
     if (posting.is_closed) {
       res.status(403);
       throw new Error('This posting is closed and no longer accepting applications');
     }
-    }
 
-    // Only block registration if current timestamp is after end_date + end_time
+    // Block registration if posting has ended
     if (posting.end_date && posting.end_time) {
       const endDateTime = new Date(
         `${formatDateToIso(posting.end_date)}T${posting.end_time}:00Z`,
