@@ -553,15 +553,21 @@ function createVolunteerPostingRouter(db: Kysely<Database>) {
       : [];
 
     const isPartial = Boolean(posting.allows_partial_attendance);
+    const isSingleDayPosting = postingDateKeys.length === 1;
     let selectedDates: string[] = [];
 
     if (isPartial) {
-      if (!dates || dates.length === 0) {
-        res.status(400);
-        throw new Error('You must select at least one date when partial attendance is enabled');
-      }
+      const normalizedDates = dates?.map(d => d.trim()).filter(Boolean) ?? [];
+      if (normalizedDates.length === 0) {
+        if (!isSingleDayPosting) {
+          res.status(400);
+          throw new Error('You must select at least one date when partial attendance is enabled');
+        }
 
-      selectedDates = Array.from(new Set(dates.map(d => d.trim())));
+        selectedDates = postingDateKeys;
+      } else {
+        selectedDates = Array.from(new Set(normalizedDates));
+      }
 
       const invalidDate = selectedDates.find(date => !postingDateKeys.includes(date));
       if (invalidDate) {
