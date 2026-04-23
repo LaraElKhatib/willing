@@ -434,7 +434,7 @@ describe('POST /volunteer/verify-email', () => {
   });
 });
 describe('POST /volunteer/resend-verification', () => {
-  test('returns 200 and does nothing when email already belongs to a volunteer', async () => {
+  test('returns 200, creates pending token, and resends email when account is already verified', async () => {
     const { volunteer } = await createVolunteerAccount(transaction, { email: 'resend-existing@example.com' });
 
     const response = await server
@@ -443,14 +443,20 @@ describe('POST /volunteer/resend-verification', () => {
       .expect(200);
 
     expect(response.body).toEqual({});
-    expect(sendVolunteerVerificationEmailSpy).not.toHaveBeenCalled();
+    expect(sendVolunteerVerificationEmailSpy).toHaveBeenCalledTimes(1);
 
-    const { pending_volunteer_count } = await transaction
+    const pendingVolunteer = await transaction
       .selectFrom('volunteer_pending_account')
-      .select(({ fn }) => fn.count('id').as('pending_volunteer_count'))
+      .selectAll()
+      .where('email', '=', volunteer.email)
       .executeTakeFirstOrThrow();
 
-    expect(pending_volunteer_count).toBe('0');
+    expect(pendingVolunteer.token.length).toBeGreaterThan(0);
+    expect(sendVolunteerVerificationEmailSpy).toHaveBeenCalledWith({
+      volunteerEmail: volunteer.email,
+      volunteerName: `${volunteer.first_name} ${volunteer.last_name}`,
+      verificationToken: pendingVolunteer.token,
+    });
   });
 
   test('returns 200 and does nothing when pending volunteer is not found', async () => {

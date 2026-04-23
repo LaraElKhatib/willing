@@ -276,14 +276,9 @@ function createVolunteerRouter(db: Kysely<Database>) {
 
     const existingVolunteer = await db
       .selectFrom('volunteer_account')
-      .select('id')
+      .select(['first_name', 'last_name', 'email', 'password', 'gender', 'date_of_birth'])
       .where('email', '=', email)
       .executeTakeFirst();
-
-    if (existingVolunteer) {
-      res.json({});
-      return;
-    }
 
     const pendingVolunteer = await db
       .selectFrom('volunteer_pending_account')
@@ -291,22 +286,49 @@ function createVolunteerRouter(db: Kysely<Database>) {
       .where('email', '=', email)
       .executeTakeFirst();
 
-    if (!pendingVolunteer) {
+    if (!pendingVolunteer && !existingVolunteer) {
       res.json({});
       return;
     }
 
     const verificationToken = crypto.randomBytes(32).toString('hex');
 
-    await db
-      .updateTable('volunteer_pending_account')
-      .set({ token: verificationToken, created_at: new Date() })
-      .where('id', '=', pendingVolunteer.id)
-      .execute();
+    if (pendingVolunteer) {
+      await db
+        .updateTable('volunteer_pending_account')
+        .set({ token: verificationToken, created_at: new Date() })
+        .where('id', '=', pendingVolunteer.id)
+        .execute();
+    } else {
+      await db
+        .insertInto('volunteer_pending_account')
+        .values({
+          first_name: existingVolunteer!.first_name,
+          last_name: existingVolunteer!.last_name,
+          password: existingVolunteer!.password,
+          email: existingVolunteer!.email,
+          gender: existingVolunteer!.gender,
+          date_of_birth: new Date(existingVolunteer!.date_of_birth),
+          token: verificationToken,
+        })
+        .execute();
+    }
+
+    const recipient = pendingVolunteer
+      ? {
+          email: pendingVolunteer.email,
+          first_name: pendingVolunteer.first_name,
+          last_name: pendingVolunteer.last_name,
+        }
+      : {
+          email: existingVolunteer!.email,
+          first_name: existingVolunteer!.first_name,
+          last_name: existingVolunteer!.last_name,
+        };
 
     await sendVolunteerVerificationEmail({
-      volunteerEmail: pendingVolunteer.email,
-      volunteerName: `${pendingVolunteer.first_name} ${pendingVolunteer.last_name}`,
+      volunteerEmail: recipient.email,
+      volunteerName: `${recipient.first_name} ${recipient.last_name}`,
       verificationToken,
     });
 
