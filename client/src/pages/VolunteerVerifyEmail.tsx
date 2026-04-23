@@ -46,12 +46,7 @@ export default function VolunteerVerifyEmail() {
       .then(() => {
         navigate('/volunteer', { replace: true });
       })
-      .catch((err) => {
-        notifications.push({
-          type: 'error',
-          message: err.message,
-        });
-      });
+      .catch(() => {});
   }, [verificationKey, trigger, notifications, navigate]);
 
   if (!verificationKey) {
