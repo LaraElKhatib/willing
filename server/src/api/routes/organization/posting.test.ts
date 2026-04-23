@@ -1,8 +1,9 @@
 import supertest from 'supertest';
-import { afterEach, beforeEach, describe, expect, test } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import createApp from '../../../app.ts';
 import database from '../../../db/index.ts';
+import * as smtpEmails from '../../../services/smtp/emails.ts';
 import { createOrganizationAccount, createVolunteerAccount } from '../../../tests/fixtures/accounts.ts';
 
 import type { Database } from '../../../db/tables/index.ts';
@@ -543,6 +544,81 @@ describe('Organization posting management', () => {
       .executeTakeFirst();
 
     expect(deletedPosting).toBeUndefined();
+  });
+
+  test('deleting a posting sends notification emails to enrolled volunteers', async () => {
+    const { organization, token } = await createOrganizationAccount(transaction, { email: 'org-delete-email-posting@example.com' });
+    const { volunteer: volunteerOne } = await createVolunteerAccount(transaction, {
+      email: 'vol-delete-email-one@example.com',
+      first_name: 'Alice',
+      last_name: 'Walker',
+    });
+    const { volunteer: volunteerTwo } = await createVolunteerAccount(transaction, {
+      email: 'vol-delete-email-two@example.com',
+      first_name: 'Bob',
+      last_name: 'Stone',
+    });
+
+    const posting = await transaction
+      .insertInto('organization_posting')
+      .values({
+        organization_id: organization.id,
+        title: 'Delete With Email Notifications',
+        description: 'To be deleted with volunteer notifications',
+        latitude: 33.9,
+        longitude: 35.5,
+        max_volunteers: 10,
+        start_date: new Date('2026-11-10T00:00:00.000Z'),
+        start_time: '09:00:00',
+        end_date: new Date('2026-11-10T00:00:00.000Z'),
+        end_time: '17:00:00',
+        minimum_age: 18,
+        automatic_acceptance: false,
+        is_closed: false,
+        allows_partial_attendance: false,
+        location_name: 'Delete Email Location',
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    await transaction
+      .insertInto('enrollment')
+      .values([
+        {
+          volunteer_id: volunteerOne.id,
+          posting_id: posting.id,
+          attended: false,
+        },
+        {
+          volunteer_id: volunteerTwo.id,
+          posting_id: posting.id,
+          attended: true,
+        },
+      ])
+      .execute();
+
+    const postingDeletedEmailSpy = vi.spyOn(smtpEmails, 'sendPostingDeletedEmail').mockResolvedValue(undefined);
+
+    await server
+      .delete(`/organization/posting/${posting.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(postingDeletedEmailSpy).toHaveBeenCalledTimes(2);
+    expect(postingDeletedEmailSpy).toHaveBeenCalledWith({
+      volunteerEmail: volunteerOne.email,
+      volunteerName: `${volunteerOne.first_name} ${volunteerOne.last_name}`,
+      postingTitle: posting.title,
+      organizationName: organization.name,
+    });
+    expect(postingDeletedEmailSpy).toHaveBeenCalledWith({
+      volunteerEmail: volunteerTwo.email,
+      volunteerName: `${volunteerTwo.first_name} ${volunteerTwo.last_name}`,
+      postingTitle: posting.title,
+      organizationName: organization.name,
+    });
+
+    postingDeletedEmailSpy.mockRestore();
   });
 
   test('returns 400 when accepting an application for an open posting', async () => {
