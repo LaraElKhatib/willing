@@ -125,7 +125,7 @@ export default function VolunteerVerifyEmail() {
                   .then(() => {
                     notifications.push({
                       type: 'success',
-                      message: 'If an unverified account exists for this email, a new verification link has been sent.',
+                      message: 'A new verification link has been sent.',
                     });
                   })
                   .catch((err) => {
