@@ -63,6 +63,10 @@ const profileFormSchema = volunteerAccountSchema.omit({
   id: true,
   password: true,
   email: true,
+  first_name: true,
+  last_name: true,
+  date_of_birth: true,
+  cv_path: true,
   volunteer_profile_vector: true,
   volunteer_history_vector: true,
   volunteer_context_vector: true,
@@ -146,9 +150,6 @@ function VolunteerProfile() {
     resolver: zodResolver(profileFormSchema),
     mode: 'onTouched',
     defaultValues: {
-      first_name: '',
-      last_name: '',
-      date_of_birth: '',
       gender: 'male',
       description: '',
     },
@@ -163,9 +164,6 @@ function VolunteerProfile() {
     setShowAllExperiences(false);
     setSkills(response.skills);
     form.reset({
-      first_name: response.volunteer.first_name,
-      last_name: response.volunteer.last_name,
-      date_of_birth: getDateInputValue(response.volunteer.date_of_birth),
       gender: response.volunteer.gender,
       description: response.volunteer.description ?? '',
     });
@@ -242,8 +240,11 @@ function VolunteerProfile() {
   const formValues = form.watch();
 
   const volunteerName = useMemo(
-    () => `${formValues.first_name || ''} ${formValues.last_name || ''}`.trim(),
-    [formValues.first_name, formValues.last_name],
+    () => {
+      if (!profile) return '';
+      return `${profile.volunteer.first_name || ''} ${profile.volunteer.last_name || ''}`.trim();
+    },
+    [profile],
   );
 
   const initials = useMemo(() => {
@@ -255,20 +256,20 @@ function VolunteerProfile() {
   }, [volunteerName]);
 
   const formattedDateOfBirth = useMemo(() => {
-    if (!formValues.date_of_birth) return '-';
+    if (!profile) return '-';
 
-    const dateParts = getDateParts(formValues.date_of_birth);
-    if (!dateParts) return formValues.date_of_birth;
+    const dateParts = getDateParts(profile.volunteer.date_of_birth);
+    if (!dateParts) return profile.volunteer.date_of_birth;
 
     const parsed = new Date(dateParts.year, dateParts.month - 1, dateParts.day);
-    if (Number.isNaN(parsed.getTime())) return formValues.date_of_birth;
+    if (Number.isNaN(parsed.getTime())) return profile.volunteer.date_of_birth;
 
     return parsed.toLocaleDateString(undefined, {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
     });
-  }, [formValues.date_of_birth]);
+  }, [profile]);
 
   const formattedGender = useMemo(() => {
     if (formValues.gender === 'male') return 'Male';
@@ -358,9 +359,6 @@ function VolunteerProfile() {
       setProfile(response);
       setSkills(response.skills);
       form.reset({
-        first_name: response.volunteer.first_name,
-        last_name: response.volunteer.last_name,
-        date_of_birth: getDateInputValue(response.volunteer.date_of_birth),
         gender: response.volunteer.gender,
         description: response.volunteer.description ?? '',
       });
@@ -377,9 +375,6 @@ function VolunteerProfile() {
   const onCancelEdit = useCallback(() => {
     if (!profile) return;
     form.reset({
-      first_name: profile.volunteer.first_name,
-      last_name: profile.volunteer.last_name,
-      date_of_birth: getDateInputValue(profile.volunteer.date_of_birth),
       gender: profile.volunteer.gender,
       description: profile.volunteer.description ?? '',
     });
