@@ -563,7 +563,7 @@ function createVolunteerRouter(db: Kysely<Database>) {
 
   volunteerRouter.get('/crises', async (req, res: Response<VolunteerCrisesResponse>) => {
     const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
-    const sortBy = typeof req.query.sort_by === 'string' ? req.query.sort_by : 'title_asc';
+    const sortBy = typeof req.query.sort_by === 'string' ? req.query.sort_by : 'pinned_first';
     const pinnedFilter = typeof req.query.pinned === 'string'
       ? req.query.pinned === 'true'
         ? true
@@ -595,9 +595,10 @@ function createVolunteerRouter(db: Kysely<Database>) {
       query = query.where('pinned', '=', pinnedFilter);
     }
 
-    query = query.orderBy('pinned', 'desc');
-
     switch (sortBy) {
+      case 'pinned_first':
+        query = query.orderBy('pinned', 'desc').orderBy('created_at', 'desc');
+        break;
       case 'title_asc':
         query = query.orderBy('name', 'asc');
         break;

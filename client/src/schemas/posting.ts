@@ -19,6 +19,7 @@ const notPastDate = (date: string, ctx: z.RefinementCtx, field: string, label: s
 
 export const postingFormSchema = newPostingSchema
   .omit({
+    crisis_id: true,
     latitude: true,
     longitude: true,
     start_date: true,
@@ -49,6 +50,7 @@ export type PostingFormData = z.infer<typeof postingFormSchema>;
 
 export const postingEditFormSchema = newPostingSchema
   .omit({
+    crisis_id: true,
     latitude: true,
     longitude: true,
     start_date: true,

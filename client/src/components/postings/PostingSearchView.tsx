@@ -43,7 +43,7 @@ import type { Crisis } from '../../../../server/src/db/tables/index.ts';
 import type { PostingWithContext } from '../../../../server/src/types.ts';
 
 export type PostingSearchFilters = SharedPostingFilterFields & {
-  sortBy: VolunteerPostingSortBy | PostingSortBy;
+  sortBy: VolunteerPostingSortBy | PostingSortBy | CrisisPostingSortBy;
   sortDir: PostingSortDir;
   startDateFrom: string;
   endDateTo: string;
@@ -61,7 +61,8 @@ type PostingCrisisOption = {
   name: string;
 };
 
-type CrisisPostingSortOptionValue = 'title_asc' | 'title_desc';
+type CrisisPostingSortBy = 'pinned' | 'title';
+type CrisisPostingSortOptionValue = 'pinned_first' | 'title_asc' | 'title_desc';
 
 type PostingSearchFormValues = Omit<PostingSearchFilters, 'sortBy' | 'sortDir'> & {
   sortOption: VolunteerPostingSortOptionValue | PostingSortOptionValue | CrisisPostingSortOptionValue;
@@ -95,7 +96,9 @@ const toPostingSearchFormValues = (filters: PostingSearchFilters): PostingSearch
   sortOption: filters.entity === 'organizations'
     ? toPostingSortOptionValue(filters.sortBy as PostingSortBy, filters.sortDir)
     : filters.entity === 'crises'
-      ? (filters.sortDir === 'desc' ? 'title_desc' : 'title_asc')
+      ? (filters.sortBy === 'pinned'
+          ? 'pinned_first'
+          : (filters.sortDir === 'desc' ? 'title_desc' : 'title_asc'))
       : toVolunteerPostingSortOptionValue(filters.sortBy as VolunteerPostingSortBy, filters.sortDir),
   crisisFilter: filters.crisisFilter,
   startDateFrom: filters.startDateFrom,
@@ -110,7 +113,7 @@ const toPostingSearchFormValues = (filters: PostingSearchFilters): PostingSearch
 });
 
 const fromPostingSearchFormValues = (values: PostingSearchFormValues): PostingSearchFilters => {
-  let querySortBy: VolunteerPostingSortBy | PostingSortBy = 'title';
+  let querySortBy: VolunteerPostingSortBy | PostingSortBy | CrisisPostingSortBy = 'title';
   let querySortDir: PostingSortDir = 'asc';
   let crisisFilter: 'all' | 'pinned_only' | 'unpinned_only' = 'all';
 
@@ -120,8 +123,13 @@ const fromPostingSearchFormValues = (values: PostingSearchFormValues): PostingSe
     querySortDir = selectedSortOption.sortDir;
   } else if (values.entity === 'crises') {
     const selected = values.sortOption as CrisisPostingSortOptionValue;
-    querySortBy = 'title';
-    querySortDir = selected === 'title_desc' ? 'desc' : 'asc';
+    if (selected === 'pinned_first') {
+      querySortBy = 'pinned';
+      querySortDir = 'desc';
+    } else {
+      querySortBy = 'title';
+      querySortDir = selected === 'title_desc' ? 'desc' : 'asc';
+    }
     crisisFilter = values.crisisFilter;
   } else {
     const selectedSortOption = resolveVolunteerPostingSortOption(values.sortOption as VolunteerPostingSortOptionValue);
@@ -146,8 +154,8 @@ const fromPostingSearchFormValues = (values: PostingSearchFormValues): PostingSe
 
 const getCleanDefaultsForEntity = (entity: PostingSearchFilters['entity']): PostingSearchFilters => ({
   search: '',
-  sortBy: entity === 'postings' ? 'recommended' : 'title',
-  sortDir: entity === 'postings' ? 'desc' : 'asc',
+  sortBy: entity === 'postings' ? 'recommended' : entity === 'crises' ? 'pinned' : 'title',
+  sortDir: entity === 'postings' ? 'desc' : entity === 'crises' ? 'desc' : 'asc',
   startDateFrom: '',
   endDateTo: '',
   startTimeFrom: '',
@@ -249,8 +257,12 @@ function PostingSearchView({
       return {
         ...defaultFilters,
         entity: activeEntity,
-        sortBy: 'title' as const,
-        sortDir: keepUserTitleSort ? defaultFilters.sortDir : 'asc' as const,
+        sortBy: activeEntity === 'crises'
+          ? (defaultFilters.sortBy as CrisisPostingSortBy)
+          : 'title' as const,
+        sortDir: activeEntity === 'crises'
+          ? defaultFilters.sortDir
+          : (keepUserTitleSort ? defaultFilters.sortDir : 'asc' as const),
         crisisFilter: activeEntity === 'crises' ? defaultFilters.crisisFilter ?? 'all' : 'all',
       };
     }
@@ -325,7 +337,9 @@ function PostingSearchView({
               crisisQuery.append('pinned', 'false');
             }
 
-            if (activeFilters.sortBy === 'title' && activeFilters.sortDir === 'desc') {
+            if (activeFilters.sortBy === 'pinned') {
+              crisisQuery.append('sort_by', 'pinned_first');
+            } else if (activeFilters.sortBy === 'title' && activeFilters.sortDir === 'desc') {
               crisisQuery.append('sort_by', 'title_desc');
             } else if (activeFilters.sortBy === 'title' && activeFilters.sortDir === 'asc') {
               crisisQuery.append('sort_by', 'title_asc');
@@ -348,7 +362,10 @@ function PostingSearchView({
       let orderedCrises = crisisResponse.crises;
       if (activeFilters.entity === 'crises') {
         orderedCrises = [...orderedCrises].sort((a, b) => {
-          if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+          if (activeFilters.sortBy === 'pinned') {
+            if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+          }
+
           const nameA = a.name || '';
           const nameB = b.name || '';
           return activeFilters.sortDir === 'desc'
