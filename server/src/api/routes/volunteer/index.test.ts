@@ -776,7 +776,7 @@ describe('DELETE /volunteer/posting/:id/enroll withdrawal behavior', () => {
   });
 
   test('returns 403 when trying to withdraw from an ended enrolled posting', async () => {
-    const { token } = await createVolunteerAccount(transaction, { email: 'ended-enrolled-withdraw@example.com' });
+    const { volunteer, token } = await createVolunteerAccount(transaction, { email: 'ended-enrolled-withdraw@example.com' });
     const { organization } = await createOrganizationAccount(transaction, { email: 'ended-enrolled-withdraw-org@example.com' });
 
     const posting = await transaction
@@ -801,11 +801,15 @@ describe('DELETE /volunteer/posting/:id/enroll withdrawal behavior', () => {
       .returningAll()
       .executeTakeFirstOrThrow();
 
-    await server
-      .post(`/volunteer/posting/${posting.id}/enroll`)
-      .set('Authorization', 'Bearer ' + token)
-      .send({ message: 'Enroll before the posting ends' })
-      .expect(200);
+    await transaction
+      .insertInto('enrollment')
+      .values({
+        volunteer_id: volunteer.id,
+        posting_id: posting.id,
+        message: 'Enroll before the posting ends',
+        attended: false,
+      })
+      .execute();
 
     await server
       .delete(`/volunteer/posting/${posting.id}/enroll`)
@@ -816,11 +820,7 @@ describe('DELETE /volunteer/posting/:id/enroll withdrawal behavior', () => {
       .selectFrom('enrollment')
       .select('id')
       .where('posting_id', '=', posting.id)
-      .where('volunteer_id', '=', (await transaction
-        .selectFrom('volunteer_account')
-        .select('id')
-        .where('email', '=', 'ended-enrolled-withdraw@example.com')
-        .executeTakeFirstOrThrow()).id)
+      .where('volunteer_id', '=', volunteer.id)
       .executeTakeFirst();
 
     expect(enrollment).toBeDefined();
@@ -881,7 +881,7 @@ describe('DELETE /volunteer/posting/:id/enroll withdrawal behavior', () => {
   });
 
   test('returns 403 when trying to withdraw an ended pending application', async () => {
-    const { token } = await createVolunteerAccount(transaction, { email: 'ended-pending-withdraw@example.com' });
+    const { volunteer, token } = await createVolunteerAccount(transaction, { email: 'ended-pending-withdraw@example.com' });
     const { organization } = await createOrganizationAccount(transaction, { email: 'ended-pending-withdraw-org@example.com' });
 
     const posting = await transaction
@@ -906,11 +906,14 @@ describe('DELETE /volunteer/posting/:id/enroll withdrawal behavior', () => {
       .returningAll()
       .executeTakeFirstOrThrow();
 
-    await server
-      .post(`/volunteer/posting/${posting.id}/enroll`)
-      .set('Authorization', 'Bearer ' + token)
-      .send({ message: 'Apply before the posting ends' })
-      .expect(200);
+    await transaction
+      .insertInto('enrollment_application')
+      .values({
+        volunteer_id: volunteer.id,
+        posting_id: posting.id,
+        message: 'Apply before the posting ends',
+      })
+      .execute();
 
     await server
       .delete(`/volunteer/posting/${posting.id}/enroll`)
@@ -921,11 +924,7 @@ describe('DELETE /volunteer/posting/:id/enroll withdrawal behavior', () => {
       .selectFrom('enrollment_application')
       .select('id')
       .where('posting_id', '=', posting.id)
-      .where('volunteer_id', '=', (await transaction
-        .selectFrom('volunteer_account')
-        .select('id')
-        .where('email', '=', 'ended-pending-withdraw@example.com')
-        .executeTakeFirstOrThrow()).id)
+      .where('volunteer_id', '=', volunteer.id)
       .executeTakeFirst();
 
     expect(application).toBeDefined();
@@ -2249,7 +2248,7 @@ describe('POST /volunteer/posting/:id/enroll ended posting validation', () => {
         start_date: lastWeek,
         start_time: '09:00:00',
         end_date: today,
-        end_time: '17:00:00',
+        end_time: '23:59:59',
         minimum_age: 18,
         automatic_acceptance: true,
         is_closed: false,

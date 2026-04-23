@@ -50,6 +50,29 @@ function normalizeStoredDate(value: Date | string | null | undefined): string | 
   return undefined;
 }
 
+function normalizeStoredTime(value: string | null | undefined): string | undefined {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const timePart = value.trim().split('.')[0];
+  if (!timePart) {
+    return undefined;
+  }
+
+  const segments = timePart.split(':');
+
+  if (segments.length === 2) {
+    return `${segments[0]}:${segments[1]}:00`;
+  }
+
+  if (segments.length >= 3) {
+    return `${segments[0]}:${segments[1]}:${segments[2]}`;
+  }
+
+  return undefined;
+}
+
 function dateColumnAsIsoSql(columnName: string) {
   return sql<string>`to_char(${sql.ref(columnName)}, 'YYYY-MM-DD')`;
 }
@@ -535,7 +558,7 @@ function createVolunteerPostingRouter(db: Kysely<Database>) {
       throw new Error('Posting not found');
     }
 
-    // Block registration if posting is closed
+    // Block registration if posting is closed||
     if (posting.is_closed) {
       res.status(403);
       throw new Error('This posting is closed and no longer accepting applications');
@@ -543,15 +566,14 @@ function createVolunteerPostingRouter(db: Kysely<Database>) {
 
     // Block registration if posting has ended
     if (posting.end_date) {
-      let endDateTime;
-      if (posting.end_time) {
-        endDateTime = new Date(`${formatDateToIso(posting.end_date)}T${posting.end_time}:00Z`);
-      } else {
-        // If no end_time, treat as end of the day (23:59:59)
-        endDateTime = new Date(`${formatDateToIso(posting.end_date)}T23:59:59Z`);
-      }
-      const now = new Date();
-      if (now > endDateTime) {
+      const endDateStr = normalizeStoredDate(posting.end_date);
+      const endTimeStr = normalizeStoredTime(posting.end_time);
+      const endDateTime = new Date(
+        endTimeStr
+          ? `${endDateStr}T${endTimeStr}Z`
+          : `${endDateStr}T23:59:59Z`,
+      );
+      if (new Date() > endDateTime) {
         res.status(403);
         throw new Error('This posting has ended');
       }
