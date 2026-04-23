@@ -212,6 +212,9 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
       defaultSortBy: 'start_date',
       defaultSortDir: 'asc',
     });
+
+    const hideFull = parseOptionalBooleanQueryParam(req.query.hide_full) ?? false;
+    const postingFilter = typeof req.query.posting_filter === 'string' ? req.query.posting_filter : 'all';
     const isClosedFilter = parseOptionalBooleanQueryParam(req.query.is_closed);
     const automaticAcceptanceFilter = parseOptionalBooleanQueryParam(req.query.automatic_acceptance);
     const crisisIdFilter = parseOptionalNumberQueryParam(req.query.crisis_id);
@@ -238,6 +241,20 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
 
     if (isClosedFilter !== undefined) {
       postingsQuery = postingsQuery.where('organization_posting.is_closed', '=', isClosedFilter);
+    }
+
+    if (postingFilter === 'open') {
+      postingsQuery = postingsQuery.where('organization_posting.automatic_acceptance', '=', true);
+    } else if (postingFilter === 'review') {
+      postingsQuery = postingsQuery.where('organization_posting.automatic_acceptance', '=', false);
+    } else if (postingFilter === 'partial') {
+      postingsQuery = postingsQuery.where('organization_posting.allows_partial_attendance', '=', true);
+    } else if (postingFilter === 'full') {
+      postingsQuery = postingsQuery.where('organization_posting.allows_partial_attendance', '=', false);
+    } else if (postingFilter === 'tagged') {
+      postingsQuery = postingsQuery.where('organization_posting.crisis_id', 'is not', null);
+    } else if (postingFilter === 'untagged') {
+      postingsQuery = postingsQuery.where('organization_posting.crisis_id', 'is', null);
     }
 
     if (automaticAcceptanceFilter !== undefined) {
@@ -299,7 +316,11 @@ function createOrganizationPostingRouter(db: Kysely<Database>) {
       };
     });
 
-    res.json({ postings: postingsWithSkills });
+    const visiblePostings = hideFull
+      ? postingsWithSkills.filter(posting => !posting.is_full)
+      : postingsWithSkills;
+
+    res.json({ postings: visiblePostings });
   });
 
   postingRouter.get('/discover', async (req, res: Response<OrganizationPostingDiscoverResponse>) => {
