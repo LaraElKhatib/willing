@@ -305,6 +305,7 @@ describe('POST /volunteer/verify-email', () => {
 
   test('returns 409 and removes pending account when email belongs to an organization', async () => {
     const { organization } = await createOrganizationAccount(transaction, { email: 'org-existing-verify@example.com' });
+    generateJWTSpy.mockClear();
 
     await transaction
       .insertInto('volunteer_pending_account')
