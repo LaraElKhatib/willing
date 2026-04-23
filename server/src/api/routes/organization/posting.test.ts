@@ -814,6 +814,109 @@ describe('Organization posting management', () => {
     expect(response.body.postings[0].title).toBe('Searchable Posting');
   });
 
+  test('GET /organization/posting supports posting_filter and hide_full', async () => {
+    const { organization, token } = await createOrganizationAccount(transaction, { email: 'org-list-posting-filter@example.com' });
+    const { volunteer } = await createVolunteerAccount(transaction, { email: 'vol-listing-vol@example.com' });
+    const crisis = await transaction
+      .insertInto('crisis')
+      .values({ name: 'Filter Crisis', description: 'Filter crisis', pinned: false })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    await transaction
+      .insertInto('organization_posting')
+      .values({
+        organization_id: organization.id,
+        title: 'Open Posting',
+        description: 'Open posting example',
+        latitude: 33.9,
+        longitude: 35.5,
+        max_volunteers: 10,
+        start_date: new Date('2026-09-04T00:00:00.000Z'),
+        start_time: '09:00:00',
+        end_date: new Date('2026-09-04T00:00:00.000Z'),
+        end_time: '17:00:00',
+        minimum_age: 18,
+        automatic_acceptance: true,
+        is_closed: false,
+        allows_partial_attendance: false,
+        location_name: 'Open Location',
+      })
+      .execute();
+
+    const fullPosting = await transaction
+      .insertInto('organization_posting')
+      .values({
+        organization_id: organization.id,
+        title: 'Full Posting',
+        description: 'Full posting example',
+        latitude: 33.9,
+        longitude: 35.5,
+        max_volunteers: 1,
+        start_date: new Date('2026-09-05T00:00:00.000Z'),
+        start_time: '10:00:00',
+        end_date: new Date('2026-09-05T00:00:00.000Z'),
+        end_time: '18:00:00',
+        minimum_age: 18,
+        automatic_acceptance: true,
+        is_closed: false,
+        allows_partial_attendance: false,
+        location_name: 'Full Location',
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    await transaction
+      .insertInto('enrollment')
+      .values({
+        volunteer_id: volunteer.id,
+        posting_id: fullPosting.id,
+        attended: false,
+      })
+      .execute();
+
+    await transaction
+      .insertInto('organization_posting')
+      .values({
+        organization_id: organization.id,
+        title: 'Tagged Partial Posting',
+        description: 'Tagged partial posting',
+        latitude: 33.9,
+        longitude: 35.5,
+        max_volunteers: 10,
+        start_date: new Date('2026-09-06T00:00:00.000Z'),
+        start_time: '11:00:00',
+        end_date: new Date('2026-09-06T00:00:00.000Z'),
+        end_time: '19:00:00',
+        minimum_age: 18,
+        automatic_acceptance: false,
+        is_closed: false,
+        allows_partial_attendance: true,
+        location_name: 'Tagged Location',
+        crisis_id: crisis.id,
+      })
+      .execute();
+
+    const openResponse = await server
+      .get('/organization/posting')
+      .query({ posting_filter: 'open' })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(openResponse.body.postings.map((posting: { title: string }) => posting.title)).toEqual(
+      expect.arrayContaining(['Open Posting', 'Full Posting']),
+    );
+    expect(openResponse.body.postings.some((posting: { title: string }) => posting.title === 'Tagged Partial Posting')).toBe(false);
+
+    const hideFullResponse = await server
+      .get('/organization/posting')
+      .query({ posting_filter: 'open', hide_full: 'true' })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(hideFullResponse.body.postings.map((posting: { title: string }) => posting.title)).toEqual(['Open Posting']);
+  });
+
   test('GET /organization/posting/:id returns posting with crisis and skills', async () => {
     const { organization, token } = await createOrganizationAccount(transaction, { email: 'org-get-posting@example.com' });
     const crisis = await transaction
