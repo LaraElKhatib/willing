@@ -40,6 +40,8 @@ const profileFormSchema = organizationAccountSchema.omit({
   email: true,
   name: true,
   url: true,
+  logo_path: true,
+  certificate_info_id: true,
   org_profile_vector: true,
   org_history_vector: true,
   org_context_vector: true,
