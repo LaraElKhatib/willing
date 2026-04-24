@@ -92,19 +92,9 @@ function VolunteerCertificateRequest() {
     { notifyOnError: true },
   );
 
-  const rankedOrganizations = useMemo(
-    () => [...(data?.organizations ?? [])].sort((left, right) => {
-      if (left.certificate_feature_enabled !== right.certificate_feature_enabled) {
-        return left.certificate_feature_enabled ? -1 : 1;
-      }
-      return right.hours - left.hours;
-    }),
-    [data?.organizations],
-  );
-
   const organizationsWithEligibility = useMemo(
-    () => rankedOrganizations,
-    [rankedOrganizations],
+    () => data?.organizations ?? [],
+    [data?.organizations],
   );
 
   const eligibleOrganizations = useMemo(
@@ -119,8 +109,7 @@ function VolunteerCertificateRequest() {
 
   const selectedOrganizations = useMemo(
     () => organizationsWithEligibility
-      .filter(org => selectedOrganizationIds.includes(org.id))
-      .sort((left, right) => right.hours - left.hours),
+      .filter(org => selectedOrganizationIds.includes(org.id)),
     [organizationsWithEligibility, selectedOrganizationIds],
   );
 
@@ -244,7 +233,7 @@ function VolunteerCertificateRequest() {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-sm opacity-70">Organizations Involved</p>
-                  <p className="text-3xl font-bold mt-1">{rankedOrganizations.length}</p>
+                  <p className="text-3xl font-bold mt-1">{organizationsWithEligibility.length}</p>
                 </div>
                 <div className="rounded-full bg-secondary/10 p-2 text-secondary">
                   <Building size={18} />

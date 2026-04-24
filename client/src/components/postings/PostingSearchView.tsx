@@ -346,7 +346,9 @@ function PostingSearchView({
       setOrganizations(organizationResponse.organizations);
 
       let orderedCrises = crisisResponse.crises;
-      if (activeFilters.entity === 'crises') {
+      const shouldApplyClientCrisisSort = activeFilters.entity === 'crises'
+        && crisesFetchBasePath.startsWith('/organization/');
+      if (shouldApplyClientCrisisSort) {
         orderedCrises = [...orderedCrises].sort((a, b) => {
           if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
           const nameA = a.name || '';
