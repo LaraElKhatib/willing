@@ -353,6 +353,10 @@ All components are in `client/src/components/`. **Use these instead of recreatin
 
 - **`StatsCarousel`**: In `client/src/components/home/StatsCarousel.tsx`; used in `HomePage` for the active stats carousel with navigation and keyboard controls.
 
+### Certificate Components (`client/src/components/certificates/`)
+
+- **`CertificatePreview`**: Shared certificate renderer used by both generation and verification screens so they stay visually and structurally identical. Use `certificatePreview.constants.ts` for shared sizing (`CERTIFICATE_PREVIEW_WIDTH`, `CERTIFICATE_PREVIEW_HEIGHT`, `MAX_CERTIFICATE_ORGANIZATIONS`) and `getCertificatePreviewStyles(...)` for typography/print style injection.
+
 ### Posting Components (`client/src/components/postings/` + shared posting cards)
 
 - **`PostingCard`**: Standard volunteer opportunity card (title, description, location, dates, constraints, skills). Required prop: `posting`. Optional prop: `organization`.

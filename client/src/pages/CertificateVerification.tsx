@@ -6,6 +6,8 @@ import { z } from 'zod';
 
 import Button from '../components/Button';
 import Card from '../components/Card';
+import CertificatePreview from '../components/certificates/CertificatePreview';
+import { getCertificatePreviewStyles } from '../components/certificates/certificatePreview.constants';
 import Footer from '../components/layout/Footer';
 import UserNavbar from '../components/layout/navbars/UserNavbar';
 import PageContainer from '../components/layout/PageContainer';
@@ -20,9 +22,11 @@ const verificationSchema = z.object({
 });
 
 type VerificationFormData = z.infer<typeof verificationSchema>;
+const CERTIFICATE_PREVIEW_ID = 'certificate-preview-verify';
 
 function CertificateVerification() {
   const [result, setResult] = useState<PublicCertificateVerificationResponse | null>(null);
+  const [verifiedToken, setVerifiedToken] = useState<string>('');
 
   const form = useForm<VerificationFormData>({
     resolver: zodResolver(verificationSchema),
@@ -45,6 +49,7 @@ function CertificateVerification() {
         },
       );
       setResult(response);
+      setVerifiedToken(data.token.trim());
     });
   });
 
@@ -52,6 +57,10 @@ function CertificateVerification() {
     <div className="min-h-screen flex flex-col bg-base-100">
       <UserNavbar />
       <PageContainer>
+        <style>
+          {getCertificatePreviewStyles(CERTIFICATE_PREVIEW_ID, false)}
+        </style>
+
         <PageHeader
           title="Verify Certificate"
           subtitle="Enter a certificate verification token to validate authenticity."
@@ -118,6 +127,22 @@ function CertificateVerification() {
                 </ul>
               </div>
             )}
+          </Card>
+        )}
+
+        {result?.valid && (
+          <Card title="Regenerated Certificate">
+            <div className="overflow-x-auto">
+              <CertificatePreview
+                previewId={CERTIFICATE_PREVIEW_ID}
+                volunteerName={result.volunteer_name ?? 'Volunteer'}
+                totalHours={result.total_hours ?? 0}
+                organizations={result.organizations ?? []}
+                platformCertificate={result.platform_certificate ?? null}
+                generatedAtLabel={result.issued_at ? new Date(result.issued_at).toLocaleDateString() : '-'}
+                verificationToken={verifiedToken}
+              />
+            </div>
           </Card>
         )}
       </PageContainer>

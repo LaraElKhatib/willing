@@ -461,6 +461,7 @@ describe('POST /public/certificate/verify', () => {
       volunteer_name: `${volunteer.first_name} ${volunteer.last_name}`,
       total_hours: payload.total_hours,
       organizations: [],
+      platform_certificate: null,
     });
   });
 
@@ -496,13 +497,22 @@ describe('POST /public/certificate/verify', () => {
           id: organizationOne.id,
           name: organizationOne.name,
           hours: payload.hours_per_org[String(organizationOne.id)],
+          logo_path: null,
+          signatory_name: null,
+          signatory_position: null,
+          signature_path: null,
         },
         {
           id: organizationTwo.id,
           name: organizationTwo.name,
           hours: payload.hours_per_org[String(organizationTwo.id)],
+          logo_path: null,
+          signatory_name: null,
+          signatory_position: null,
+          signature_path: null,
         },
       ],
+      platform_certificate: null,
     });
   });
 
