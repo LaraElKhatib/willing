@@ -997,14 +997,14 @@ function PostingPage() {
             <Card>
               <div className="flex items-start gap-3 mb-4">
                 {postingOrganization && (
-                  <Link to={`/organization/${postingOrganization.id}`} className="shrink-0">
-                    <OrganizationProfilePicture
-                      organizationName={postingOrganization.name}
-                      organizationId={postingOrganization.id}
-                      logoPath={postingOrganization.logoPath}
-                      size={48}
-                    />
-                  </Link>
+                  <OrganizationProfilePicture
+                    organizationName={postingOrganization.name}
+                    organizationId={postingOrganization.id}
+                    logoPath={postingOrganization.logoPath}
+                    size={48}
+                    linkToOrganizationPage
+                    linkClassName="shrink-0"
+                  />
                 )}
 
                 <div className="min-w-0">

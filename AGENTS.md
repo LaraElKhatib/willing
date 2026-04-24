@@ -379,6 +379,7 @@ All components are in `client/src/components/`. **Use these instead of recreatin
 
 - **`Loading`**: DaisyUI loading spinner. Optional prop: `size` (`xs`, `sm`, `md`, `lg`, `xl`; default `md`).
 - **`EmptyState`**: Generic empty-state panel with centered icon and text for no-data/result cases. Required props: `title`, `description`, `Icon`.
+- **`OrganizationProfilePicture`**: Shared organization avatar/logo renderer with initials fallback. Required props: `organizationName`, `organizationId`. Optional props: `logoPath`, `size` (default `96`), `className`, `linkToOrganizationPage` (default `false`), `linkClassName`, `onLinkClick`.
 - **`LocationPicker`**: Leaflet map picker with draggable marker, click-to-place, Lebanon geocoding search, and read-only mode. Required props: `position`, `setPosition`. Optional props: `readOnly` (default `false`), `className`.
 - **`OrganizationRequestReviewCard`**: Admin review card for organization onboarding requests. Required props: `request`, `refreshOrganizationRequests`.
 - **`VolunteerInfoCollapse`**: Expandable volunteer info block for applications/enrollments. Required prop: `volunteer`. Optional prop: `actions`.
