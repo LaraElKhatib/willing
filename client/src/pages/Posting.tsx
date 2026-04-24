@@ -781,10 +781,13 @@ function PostingPage() {
 
   const applicationDaysLabel = useMemo(() => {
     if (!posting || (!isEnrolled && !hasPendingApplication)) return null;
-    if (!posting.allows_partial_attendance) return 'All days';
+    if (!posting.allows_partial_attendance) {
+      if (startDate === endDate && startDate) return formatDisplayDate(startDate);
+      return 'All days';
+    }
     if (formattedSelectedDates.length === 0) return null;
     return formattedSelectedDates.join(', ');
-  }, [formattedSelectedDates, hasPendingApplication, isEnrolled, posting]);
+  }, [endDate, formattedSelectedDates, hasPendingApplication, isEnrolled, posting, startDate]);
 
   const shouldShowCommitmentCard = useMemo(() => {
     if (!posting) return false;
