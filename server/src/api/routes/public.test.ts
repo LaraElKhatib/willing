@@ -516,6 +516,51 @@ describe('POST /public/certificate/verify', () => {
     });
   });
 
+  test('keeps a previously issued certificate valid when one referenced organization is later disabled', async () => {
+    const { token, payload, volunteer, organizationOne, organizationTwo } = await createValidCertificateVerificationContext();
+
+    await transaction
+      .updateTable('organization_account')
+      .set({ is_disabled: true })
+      .where('id', '=', organizationOne.id)
+      .execute();
+
+    const response = await server
+      .post('/public/certificate/verify')
+      .send({ token })
+      .expect(200);
+
+    expect(response.body).toEqual({
+      valid: true,
+      message: 'Certificate is valid.',
+      issued_at: payload.issued_at,
+      certificate_type: CERTIFICATE_TYPE,
+      volunteer_name: `${volunteer.first_name} ${volunteer.last_name}`,
+      total_hours: payload.total_hours,
+      organizations: [
+        {
+          id: organizationOne.id,
+          name: organizationOne.name,
+          hours: payload.hours_per_org[String(organizationOne.id)],
+          logo_path: null,
+          signatory_name: null,
+          signatory_position: null,
+          signature_path: null,
+        },
+        {
+          id: organizationTwo.id,
+          name: organizationTwo.name,
+          hours: payload.hours_per_org[String(organizationTwo.id)],
+          logo_path: null,
+          signatory_name: null,
+          signatory_position: null,
+          signature_path: null,
+        },
+      ],
+      platform_certificate: null,
+    });
+  });
+
   test('returns 429 when verification requests exceed rate limit window', async () => {
     for (let index = 0; index < 20; index += 1) {
       await server

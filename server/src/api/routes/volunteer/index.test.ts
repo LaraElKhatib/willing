@@ -673,6 +673,7 @@ describe('GET /volunteer/certificate', () => {
       hours: 4,
       hours_threshold: 3,
       certificate_feature_enabled: true,
+      is_disabled: false,
       eligible: true,
       logo_path: null,
       signatory_name: 'Org Signatory',
@@ -699,6 +700,208 @@ describe('GET /volunteer/certificate', () => {
       organizations: [],
       platform_certificate: null,
     });
+  });
+
+  test('includes disabled organizations in certificate list but keeps them unselectable, while deleted organizations stay excluded and all hours count toward total', async () => {
+    const { volunteer, token } = await createVolunteerAccount(transaction, { email: 'certificate-org-status@example.com' });
+    const { organization: activeOrg } = await createOrganizationAccount(transaction, { email: 'certificate-active-org@example.com' });
+    const { organization: disabledOrg } = await createOrganizationAccount(transaction, { email: 'certificate-disabled-org@example.com' });
+    const { organization: deletedOrg } = await createOrganizationAccount(transaction, { email: 'certificate-deleted-org@example.com' });
+
+    const certificateInfo = await transaction
+      .insertInto('organization_certificate_info')
+      .values({
+        certificate_feature_enabled: true,
+        hours_threshold: 1,
+        signatory_name: 'Org Signatory',
+        signatory_position: 'Director',
+        signature_path: 'uploads/org-signature.png',
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    await transaction
+      .updateTable('organization_account')
+      .set({ certificate_info_id: certificateInfo.id })
+      .where('id', 'in', [activeOrg.id, disabledOrg.id, deletedOrg.id])
+      .execute();
+
+    await transaction
+      .updateTable('organization_account')
+      .set({ is_disabled: true })
+      .where('id', '=', disabledOrg.id)
+      .execute();
+
+    await transaction
+      .updateTable('organization_account')
+      .set({ is_deleted: true })
+      .where('id', '=', deletedOrg.id)
+      .execute();
+
+    const createPostingForOrg = async (organizationId: number, title: string) => transaction
+      .insertInto('organization_posting')
+      .values({
+        organization_id: organizationId,
+        title,
+        description: 'Certificate status test posting',
+        latitude: 33.9,
+        longitude: 35.5,
+        max_volunteers: 25,
+        start_date: new Date('2026-02-01T00:00:00.000Z'),
+        start_time: '09:00:00',
+        end_date: new Date('2026-02-01T00:00:00.000Z'),
+        end_time: '11:00:00',
+        minimum_age: 18,
+        automatic_acceptance: true,
+        is_closed: false,
+        allows_partial_attendance: false,
+        location_name: 'Beirut',
+        crisis_id: null,
+        created_at: new Date('2026-01-01T00:00:00.000Z'),
+        updated_at: new Date('2026-01-01T00:00:00.000Z'),
+      })
+      .returning(['id'])
+      .executeTakeFirstOrThrow();
+
+    const activePosting = await createPostingForOrg(activeOrg.id, 'Active Org Posting');
+    const disabledPosting = await createPostingForOrg(disabledOrg.id, 'Disabled Org Posting');
+    const deletedPosting = await createPostingForOrg(deletedOrg.id, 'Deleted Org Posting');
+
+    await transaction
+      .insertInto('enrollment')
+      .values([
+        {
+          volunteer_id: volunteer.id,
+          posting_id: activePosting.id,
+          attended: true,
+          created_at: new Date('2026-02-02T00:00:00.000Z'),
+        },
+        {
+          volunteer_id: volunteer.id,
+          posting_id: disabledPosting.id,
+          attended: true,
+          created_at: new Date('2026-02-02T00:00:00.000Z'),
+        },
+        {
+          volunteer_id: volunteer.id,
+          posting_id: deletedPosting.id,
+          attended: true,
+          created_at: new Date('2026-02-02T00:00:00.000Z'),
+        },
+      ])
+      .execute();
+
+    const response = await server
+      .get('/volunteer/certificate')
+      .set('Authorization', 'Bearer ' + token)
+      .expect(200);
+
+    expect(response.body.total_hours).toBe(6);
+    expect(response.body.organizations).toHaveLength(2);
+    expect(response.body.organizations[0]).toMatchObject({
+      id: activeOrg.id,
+      name: activeOrg.name,
+      hours: 2,
+      is_disabled: false,
+      eligible: true,
+    });
+    expect(response.body.organizations[1]).toMatchObject({
+      id: disabledOrg.id,
+      name: disabledOrg.name,
+      hours: 2,
+      is_disabled: true,
+      eligible: false,
+    });
+  });
+});
+
+describe('POST /volunteer/certificate/issue', () => {
+  test('rejects disabled organizations while still counting their attended hours in total certificate hours', async () => {
+    const { volunteer, token } = await createVolunteerAccount(transaction, { email: 'certificate-issue-disabled-org@example.com' });
+    const { organization: activeOrg } = await createOrganizationAccount(transaction, { email: 'certificate-issue-active-org@example.com' });
+    const { organization: disabledOrg } = await createOrganizationAccount(transaction, { email: 'certificate-issue-disabled-org-2@example.com' });
+
+    await transaction
+      .updateTable('organization_account')
+      .set({ is_disabled: true })
+      .where('id', '=', disabledOrg.id)
+      .execute();
+
+    const activePosting = await transaction
+      .insertInto('organization_posting')
+      .values({
+        organization_id: activeOrg.id,
+        title: 'Active Issue Posting',
+        description: 'Certificate issue test posting',
+        latitude: 33.9,
+        longitude: 35.5,
+        max_volunteers: 25,
+        start_date: new Date('2026-02-01T00:00:00.000Z'),
+        start_time: '09:00:00',
+        end_date: new Date('2026-02-01T00:00:00.000Z'),
+        end_time: '11:00:00',
+        minimum_age: 18,
+        automatic_acceptance: true,
+        is_closed: false,
+        allows_partial_attendance: false,
+        location_name: 'Beirut',
+        crisis_id: null,
+        created_at: new Date('2026-01-01T00:00:00.000Z'),
+        updated_at: new Date('2026-01-01T00:00:00.000Z'),
+      })
+      .returning(['id'])
+      .executeTakeFirstOrThrow();
+
+    const disabledPosting = await transaction
+      .insertInto('organization_posting')
+      .values({
+        organization_id: disabledOrg.id,
+        title: 'Disabled Issue Posting',
+        description: 'Certificate issue test posting',
+        latitude: 33.9,
+        longitude: 35.5,
+        max_volunteers: 25,
+        start_date: new Date('2026-02-02T00:00:00.000Z'),
+        start_time: '09:00:00',
+        end_date: new Date('2026-02-02T00:00:00.000Z'),
+        end_time: '11:00:00',
+        minimum_age: 18,
+        automatic_acceptance: true,
+        is_closed: false,
+        allows_partial_attendance: false,
+        location_name: 'Beirut',
+        crisis_id: null,
+        created_at: new Date('2026-01-01T00:00:00.000Z'),
+        updated_at: new Date('2026-01-01T00:00:00.000Z'),
+      })
+      .returning(['id'])
+      .executeTakeFirstOrThrow();
+
+    await transaction
+      .insertInto('enrollment')
+      .values([
+        {
+          volunteer_id: volunteer.id,
+          posting_id: activePosting.id,
+          attended: true,
+          created_at: new Date('2026-02-03T00:00:00.000Z'),
+        },
+        {
+          volunteer_id: volunteer.id,
+          posting_id: disabledPosting.id,
+          attended: true,
+          created_at: new Date('2026-02-03T00:00:00.000Z'),
+        },
+      ])
+      .execute();
+
+    const response = await server
+      .post('/volunteer/certificate/issue')
+      .set('Authorization', 'Bearer ' + token)
+      .send({ org_ids: [disabledOrg.id] })
+      .expect(400);
+
+    expect(response.body.message).toBe(`Organization ${disabledOrg.id} cannot be included in this certificate.`);
   });
 });
 

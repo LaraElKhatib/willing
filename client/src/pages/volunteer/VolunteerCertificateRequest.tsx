@@ -30,6 +30,13 @@ const CERTIFICATE_PREVIEW_ID = 'certificate-preview';
 const formatHours = (value: number) => Math.floor(value);
 
 const getOrganizationEligibilityStatus = (organization: VolunteerCertificateResponse['organizations'][number]) => {
+  if (organization.is_disabled) {
+    return {
+      label: 'Organization disabled',
+      className: 'badge badge-error',
+    };
+  }
+
   if (organization.eligible) {
     return {
       label: 'Eligible',
@@ -275,6 +282,7 @@ function VolunteerCertificateRequest() {
                 const selected = selectedOrganizationIds.includes(organization.id);
                 const eligibilityStatus = getOrganizationEligibilityStatus(organization);
                 const certificatesNotEnabled = !organization.certificate_feature_enabled;
+                const organizationDisabled = organization.is_disabled;
 
                 return (
                   <label
@@ -287,27 +295,29 @@ function VolunteerCertificateRequest() {
                       <span className="badge badge-ghost">{`#${index + 1}`}</span>
                       <div>
                         <p className="font-semibold">{organization.name}</p>
-                        {certificatesNotEnabled
-                          ? (
-                              <p className="text-sm opacity-70">Certificates not enabled</p>
-                            )
-                          : (
-                              <p className="text-sm opacity-70">
-                                Hours:
-                                {' '}
-                                {formatHours(organization.hours)}
-                                {' '}
-                                |
-                                {' '}
-                                Threshold:
-                                {' '}
-                                {organization.hours_threshold ?? '-'}
-                              </p>
-                            )}
+                        {organizationDisabled && (
+                          <p className="text-sm opacity-70">Organization account is disabled</p>
+                        )}
+                        {!organizationDisabled && certificatesNotEnabled && (
+                          <p className="text-sm opacity-70">Certificates not enabled</p>
+                        )}
+                        {!organizationDisabled && !certificatesNotEnabled && (
+                          <p className="text-sm opacity-70">
+                            Hours:
+                            {' '}
+                            {formatHours(organization.hours)}
+                            {' '}
+                            |
+                            {' '}
+                            Threshold:
+                            {' '}
+                            {organization.hours_threshold ?? '-'}
+                          </p>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      {!certificatesNotEnabled && (
+                      {(organizationDisabled || !certificatesNotEnabled) && (
                         <span className={eligibilityStatus.className}>{eligibilityStatus.label}</span>
                       )}
                       <input

@@ -38,6 +38,7 @@ export type VolunteerCertificateOrganization = {
   hours: number;
   hours_threshold: number | null;
   certificate_feature_enabled: boolean;
+  is_disabled: boolean;
   eligible: boolean;
   logo_path: string | null;
   signatory_name: string | null;
