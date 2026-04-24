@@ -7,51 +7,6 @@ interface RequestServerOptions {
 
 export const SERVER_BASE_URL = import.meta.env.VITE_SERVER_BASE_URL ?? 'http://localhost:9090';
 
-function getServerErrorMessage(json: unknown) {
-  if (json == null) {
-    return 'Request failed.';
-  }
-
-  if (typeof json === 'string') {
-    return json;
-  }
-
-  if (Array.isArray(json)) {
-    return json
-      .map((item) => {
-        if (typeof item === 'string') return item;
-        if (item && typeof item === 'object' && 'message' in item) {
-          return String((item as Record<string, unknown>).message);
-        }
-        return JSON.stringify(item);
-      })
-      .filter(Boolean)
-      .join('; ');
-  }
-
-  if (typeof json === 'object') {
-    const message = (json as Record<string, unknown>).message;
-    if (typeof message === 'string') {
-      return message;
-    }
-    if (Array.isArray(message)) {
-      return getServerErrorMessage(message);
-    }
-    if (message != null) {
-      return String(message);
-    }
-    const error = (json as Record<string, unknown>).error;
-    if (typeof error === 'string') {
-      return error;
-    }
-    if (error != null) {
-      return String(error);
-    }
-  }
-
-  return 'Request failed.';
-}
-
 export default async function requestServer<ReturnType>(path: string, { body, method = 'GET', includeJwt = false, query }: RequestServerOptions) {
   const headers = new Headers();
   const options: RequestInit = {
@@ -86,15 +41,10 @@ export default async function requestServer<ReturnType>(path: string, { body, me
     localStorage.removeItem('jwt');
   }
 
-  let json: unknown;
-  try {
-    json = await response.json();
-  } catch {
-    json = null;
-  }
+  const json = await response.json();
 
   if (response.status >= 400) {
-    throw new Error(getServerErrorMessage(json), { cause: response });
+    throw new Error(json.message, { cause: response });
   }
 
   return json as ReturnType;
