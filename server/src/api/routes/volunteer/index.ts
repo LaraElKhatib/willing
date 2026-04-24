@@ -26,6 +26,7 @@ import createResetPassword from '../../../auth/resetPassword.ts';
 import config from '../../../config.ts';
 import executeTransaction from '../../../db/executeTransaction.ts';
 import { type Database, type VolunteerAccountWithoutPassword, newVolunteerAccountSchema, newOrganizationReportSchema, volunteerAccountSchema } from '../../../db/tables/index.ts';
+import { emailSchema } from '../../../schemas/index.ts';
 import { CERTIFICATE_PAYLOAD_VERSION, CERTIFICATE_TYPE, signCertificateVerificationPayload } from '../../../services/certificates/token.ts';
 import {
   recomputeVolunteerExperienceVector,
@@ -92,7 +93,7 @@ const verifyVolunteerEmailSchema = zod.object({
 const VOLUNTEER_VERIFICATION_TOKEN_TTL_MS = 1 * 60 * 60 * 1000;
 
 const resendVolunteerVerificationSchema = zod.object({
-  email: zod.email(),
+  email: emailSchema,
 });
 
 function createVolunteerRouter(db: Kysely<Database>) {
@@ -584,7 +585,7 @@ function createVolunteerRouter(db: Kysely<Database>) {
 
   volunteerRouter.get('/crises', async (req, res: Response<VolunteerCrisesResponse>) => {
     const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
-    const sortBy = typeof req.query.sort_by === 'string' ? req.query.sort_by : 'title_asc';
+    const sortBy = typeof req.query.sort_by === 'string' ? req.query.sort_by : 'pinned_first';
     const pinnedFilter = typeof req.query.pinned === 'string'
       ? req.query.pinned === 'true'
         ? true
@@ -616,9 +617,10 @@ function createVolunteerRouter(db: Kysely<Database>) {
       query = query.where('pinned', '=', pinnedFilter);
     }
 
-    query = query.orderBy('pinned', 'desc');
-
     switch (sortBy) {
+      case 'pinned_first':
+        query = query.orderBy('pinned', 'desc').orderBy('created_at', 'desc');
+        break;
       case 'title_asc':
         query = query.orderBy('name', 'asc');
         break;
