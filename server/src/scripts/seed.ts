@@ -1,16 +1,11 @@
 ﻿import { sql } from 'kysely';
 
-import config from '../config.ts';
 import database from '../db/index.ts';
 import { hash } from '../services/bcrypt/index.ts';
 
-const PASSWORD_PLAIN = 'Willing123';
+const PASSWORD_PLAIN = process.argv[2] || 'Willing123';
 
 async function seed() {
-  if (config.NODE_ENV === 'production') {
-    throw new Error('Refusing to seed in production.');
-  }
-
   const passwordHash = await hash(PASSWORD_PLAIN);
 
   await sql`
