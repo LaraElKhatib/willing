@@ -86,6 +86,64 @@ describe('Organization posting applications', () => {
     });
   });
 
+  test('automatically rejects pending applications for an ended review-based posting', async () => {
+    const rejectionEmailSpy = vi.spyOn(smtpEmails, 'sendVolunteerApplicationRejectedEmail').mockResolvedValue(undefined);
+    const { organization, token } = await createOrganizationAccount(transaction, { email: 'org-ended-auto-reject@example.com' });
+    const { volunteer } = await createVolunteerAccount(transaction, { email: 'vol-ended-auto-reject@example.com' });
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const posting = await transaction
+      .insertInto('posting')
+      .values({
+        organization_id: organization.id,
+        title: 'Ended Review Posting',
+        description: 'Pending applications should be rejected automatically',
+        latitude: 33.9,
+        longitude: 35.5,
+        max_volunteers: 20,
+        start_date: yesterday,
+        start_time: '09:00:00',
+        end_date: yesterday,
+        end_time: '17:00:00',
+        minimum_age: 18,
+        automatic_acceptance: false,
+        is_closed: false,
+        allows_partial_attendance: false,
+        location_name: 'Ended Location',
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    const application = await transaction
+      .insertInto('enrollment_application')
+      .values({
+        volunteer_id: volunteer.id,
+        posting_id: posting.id,
+        message: 'Please accept me',
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    const response = await server
+      .get(`/organization/posting/${posting.id}/applications`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(response.body.applications).toEqual([]);
+
+    const remainingApplication = await transaction
+      .selectFrom('enrollment_application')
+      .select('id')
+      .where('id', '=', application.id)
+      .executeTakeFirst();
+
+    expect(remainingApplication).toBeUndefined();
+    expect(rejectionEmailSpy).toHaveBeenCalledTimes(1);
+
+    rejectionEmailSpy.mockRestore();
+  });
+
   test('accepting a review-based partial application creates enrollment_date rows', async () => {
     const { organization, token } = await createOrganizationAccount(transaction, { email: 'org-posting-accept@example.com' });
     const { volunteer } = await createVolunteerAccount(transaction, { email: 'vol-posting-accept@example.com' });
@@ -814,6 +872,109 @@ describe('Organization posting management', () => {
     expect(response.body.postings[0].title).toBe('Searchable Posting');
   });
 
+  test('GET /organization/posting supports posting_filter and hide_full', async () => {
+    const { organization, token } = await createOrganizationAccount(transaction, { email: 'org-list-posting-filter@example.com' });
+    const { volunteer } = await createVolunteerAccount(transaction, { email: 'vol-listing-vol@example.com' });
+    const crisis = await transaction
+      .insertInto('crisis')
+      .values({ name: 'Filter Crisis', description: 'Filter crisis', pinned: false })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    await transaction
+      .insertInto('posting')
+      .values({
+        organization_id: organization.id,
+        title: 'Open Posting',
+        description: 'Open posting example',
+        latitude: 33.9,
+        longitude: 35.5,
+        max_volunteers: 10,
+        start_date: new Date('2026-09-04T00:00:00.000Z'),
+        start_time: '09:00:00',
+        end_date: new Date('2026-09-04T00:00:00.000Z'),
+        end_time: '17:00:00',
+        minimum_age: 18,
+        automatic_acceptance: true,
+        is_closed: false,
+        allows_partial_attendance: false,
+        location_name: 'Open Location',
+      })
+      .execute();
+
+    const fullPosting = await transaction
+      .insertInto('posting')
+      .values({
+        organization_id: organization.id,
+        title: 'Full Posting',
+        description: 'Full posting example',
+        latitude: 33.9,
+        longitude: 35.5,
+        max_volunteers: 1,
+        start_date: new Date('2026-09-05T00:00:00.000Z'),
+        start_time: '10:00:00',
+        end_date: new Date('2026-09-05T00:00:00.000Z'),
+        end_time: '18:00:00',
+        minimum_age: 18,
+        automatic_acceptance: true,
+        is_closed: false,
+        allows_partial_attendance: false,
+        location_name: 'Full Location',
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    await transaction
+      .insertInto('enrollment')
+      .values({
+        volunteer_id: volunteer.id,
+        posting_id: fullPosting.id,
+        attended: false,
+      })
+      .execute();
+
+    await transaction
+      .insertInto('posting')
+      .values({
+        organization_id: organization.id,
+        title: 'Tagged Partial Posting',
+        description: 'Tagged partial posting',
+        latitude: 33.9,
+        longitude: 35.5,
+        max_volunteers: 10,
+        start_date: new Date('2026-09-06T00:00:00.000Z'),
+        start_time: '11:00:00',
+        end_date: new Date('2026-09-06T00:00:00.000Z'),
+        end_time: '19:00:00',
+        minimum_age: 18,
+        automatic_acceptance: false,
+        is_closed: false,
+        allows_partial_attendance: true,
+        location_name: 'Tagged Location',
+        crisis_id: crisis.id,
+      })
+      .execute();
+
+    const openResponse = await server
+      .get('/organization/posting')
+      .query({ posting_filter: 'open' })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(openResponse.body.postings.map((posting: { title: string }) => posting.title)).toEqual(
+      expect.arrayContaining(['Open Posting', 'Full Posting']),
+    );
+    expect(openResponse.body.postings.some((posting: { title: string }) => posting.title === 'Tagged Partial Posting')).toBe(false);
+
+    const hideFullResponse = await server
+      .get('/organization/posting')
+      .query({ posting_filter: 'open', hide_full: 'true' })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(hideFullResponse.body.postings.map((posting: { title: string }) => posting.title)).toEqual(['Open Posting']);
+  });
+
   test('GET /organization/posting/:id returns posting with crisis and skills', async () => {
     const { organization, token } = await createOrganizationAccount(transaction, { email: 'org-get-posting@example.com' });
     const crisis = await transaction
@@ -1055,6 +1216,145 @@ describe('Organization posting management', () => {
       .expect(403);
 
     expect(response.body.message).toBe('Application does not belong to this posting');
+  });
+
+  test('returns 403 when accepting an application for a posting that has already ended', async () => {
+    const { organization, token } = await createOrganizationAccount(transaction, { email: 'org-accept-ended@example.com' });
+    const { volunteer } = await createVolunteerAccount(transaction, { email: 'vol-accept-ended@example.com' });
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const posting = await transaction
+      .insertInto('posting')
+      .values({
+        organization_id: organization.id,
+        title: 'Ended Review Posting',
+        description: 'Should reject acceptance after end time',
+        latitude: 33.9,
+        longitude: 35.5,
+        max_volunteers: 10,
+        start_date: yesterday,
+        start_time: '09:00:00',
+        end_date: yesterday,
+        end_time: '17:00:00',
+        minimum_age: 18,
+        automatic_acceptance: false,
+        is_closed: false,
+        allows_partial_attendance: false,
+        location_name: 'Ended Location',
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    const application = await transaction
+      .insertInto('enrollment_application')
+      .values({ volunteer_id: volunteer.id, posting_id: posting.id })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    const response = await server
+      .post(`/organization/posting/${posting.id}/applications/${application.id}/accept`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(403);
+
+    expect(response.body.message).toBe('This posting has ended');
+
+    const enrollment = await transaction
+      .selectFrom('enrollment')
+      .select('id')
+      .where('posting_id', '=', posting.id)
+      .where('volunteer_id', '=', volunteer.id)
+      .executeTakeFirst();
+
+    expect(enrollment).toBeUndefined();
+  });
+
+  test('returns 403 when changing closed state for a posting that has already ended', async () => {
+    const { organization, token } = await createOrganizationAccount(transaction, { email: 'org-ended-closed-update@example.com' });
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const posting = await transaction
+      .insertInto('posting')
+      .values({
+        organization_id: organization.id,
+        title: 'Ended Closed Toggle Posting',
+        description: 'Closed state should not change after end',
+        latitude: 33.9,
+        longitude: 35.5,
+        max_volunteers: 10,
+        start_date: yesterday,
+        start_time: '09:00:00',
+        end_date: yesterday,
+        end_time: '17:00:00',
+        minimum_age: 18,
+        automatic_acceptance: false,
+        is_closed: false,
+        allows_partial_attendance: false,
+        location_name: 'Ended Location',
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    const response = await server
+      .put(`/organization/posting/${posting.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ is_closed: true })
+      .expect(403);
+
+    expect(response.body.message).toBe('Cannot change posting availability after it has ended');
+
+    const updatedPosting = await transaction
+      .selectFrom('posting')
+      .select('is_closed')
+      .where('id', '=', posting.id)
+      .executeTakeFirstOrThrow();
+
+    expect(updatedPosting.is_closed).toBe(false);
+  });
+
+  test('returns 403 when changing schedule fields for a posting that has already ended', async () => {
+    const { organization, token } = await createOrganizationAccount(transaction, { email: 'org-ended-schedule-update@example.com' });
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const posting = await transaction
+      .insertInto('posting')
+      .values({
+        organization_id: organization.id,
+        title: 'Ended Schedule Update Posting',
+        description: 'Schedule should not change after end',
+        latitude: 33.9,
+        longitude: 35.5,
+        max_volunteers: 10,
+        start_date: yesterday,
+        start_time: '09:00:00',
+        end_date: yesterday,
+        end_time: '17:00:00',
+        minimum_age: 18,
+        automatic_acceptance: false,
+        is_closed: false,
+        allows_partial_attendance: false,
+        location_name: 'Ended Location',
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    const response = await server
+      .put(`/organization/posting/${posting.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ end_time: '18:00:00' })
+      .expect(403);
+
+    expect(response.body.message).toBe('Cannot change posting availability after it has ended');
+
+    const updatedPosting = await transaction
+      .selectFrom('posting')
+      .select('end_time')
+      .where('id', '=', posting.id)
+      .executeTakeFirstOrThrow();
+
+    expect(updatedPosting.end_time).toBe('17:00:00');
   });
 
   test('returns 400 when creating a posting with a past start date', async () => {

@@ -1,13 +1,23 @@
 import { type Crisis, type PostingWithoutVectors, type PostingSkill } from '../../../db/tables/index.ts';
 import { type PostingWithContext, type PostingWithSkills, type PostingEnrollment, type SuccessResponse, type PostingApplication } from '../../../types.ts';
 
+type PostingWithEndedStatus = PostingWithoutVectors & {
+  has_ended: boolean;
+};
+
+type PostingListItem = PostingWithSkills & {
+  enrollment_count: number;
+  is_full: boolean;
+  has_ended: boolean;
+};
+
 export type PostingCreateResponse = {
-  posting: PostingWithoutVectors;
+  posting: PostingWithEndedStatus;
   skills: PostingSkill[];
 };
 
 export type PostingListResponse = {
-  postings: (PostingWithSkills & { enrollment_count: number; is_full: boolean })[];
+  postings: PostingListItem[];
 };
 
 export type PostingDiscoverResponse = {
@@ -15,7 +25,7 @@ export type PostingDiscoverResponse = {
 };
 
 export type PostingResponse = {
-  posting: PostingWithoutVectors;
+  posting: PostingWithEndedStatus;
   skills: PostingSkill[];
   is_full: boolean;
   crisis?: Crisis;
@@ -26,7 +36,7 @@ export type PostingEnrollmentsResponse = {
 };
 
 export type PostingUpdateResponse = {
-  posting: PostingWithoutVectors;
+  posting: PostingWithEndedStatus;
   skills: PostingSkill[];
   crisis?: Crisis;
 };

@@ -88,11 +88,3 @@ export const isPostingFullyBooked = (posting: PostingWithContext): boolean => {
 
   return postingDates.every(date => (posting.date_capacity?.[date] ?? 0) >= posting.max_volunteers!);
 };
-
-export const hasPostingEnded = (endDt: Date | null): boolean => {
-  if (!endDt) return false;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const endLocal = new Date(endDt.getFullYear(), endDt.getMonth(), endDt.getDate());
-  return endLocal < today;
-};

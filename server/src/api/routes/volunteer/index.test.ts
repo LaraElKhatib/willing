@@ -238,7 +238,7 @@ describe('POST /volunteer/verify-email', () => {
       .expect(400);
   });
 
-  test('returns 400 and deletes pending account when token is expired', async () => {
+  test('returns 400 and keeps pending account when token is expired', async () => {
     await transaction
       .insertInto('volunteer_pending_account')
       .values({
@@ -264,11 +264,11 @@ describe('POST /volunteer/verify-email', () => {
       .where('email', '=', 'expired-token@example.com')
       .executeTakeFirst();
 
-    expect(pendingVolunteer).toBeUndefined();
+    expect(pendingVolunteer).not.toBeUndefined();
     expect(generateJWTSpy).not.toHaveBeenCalled();
   });
 
-  test('returns 409 and removes pending account when account already exists', async () => {
+  test('returns 200 and logs volunteer in when account already exists', async () => {
     const { volunteer } = await createVolunteerAccount(transaction, { email: 'existing-verify@example.com' });
     generateJWTSpy.mockClear();
 
@@ -285,15 +285,50 @@ describe('POST /volunteer/verify-email', () => {
       })
       .execute();
 
-    await server
+    const response = await server
       .post('/volunteer/verify-email')
       .send({ key: 'existing-token' })
-      .expect(409);
+      .expect(200);
+
+    expect(response.body.volunteer.email).toBe(volunteer.email);
+    expect(typeof response.body.token).toBe('string');
+    expect(generateJWTSpy).toHaveBeenCalledTimes(1);
 
     const pendingVolunteer = await transaction
       .selectFrom('volunteer_pending_account')
       .select('id')
       .where('email', '=', volunteer.email)
+      .executeTakeFirst();
+
+    expect(pendingVolunteer).not.toBeUndefined();
+  });
+
+  test('returns 409 and removes pending account when email belongs to an organization', async () => {
+    const { organization } = await createOrganizationAccount(transaction, { email: 'org-existing-verify@example.com' });
+    generateJWTSpy.mockClear();
+
+    await transaction
+      .insertInto('volunteer_pending_account')
+      .values({
+        first_name: 'Org',
+        last_name: 'Conflict',
+        password: 'hashed-password',
+        email: organization.email,
+        gender: 'male',
+        date_of_birth: new Date('2000-01-01T00:00:00.000Z'),
+        token: 'org-existing-token',
+      })
+      .execute();
+
+    await server
+      .post('/volunteer/verify-email')
+      .send({ key: 'org-existing-token' })
+      .expect(409);
+
+    const pendingVolunteer = await transaction
+      .selectFrom('volunteer_pending_account')
+      .select('id')
+      .where('email', '=', organization.email)
       .executeTakeFirst();
 
     expect(pendingVolunteer).toBeUndefined();
@@ -350,18 +385,57 @@ describe('POST /volunteer/verify-email', () => {
 
     const pendingVolunteer = await transaction
       .selectFrom('volunteer_pending_account')
-      .select('id')
+      .selectAll()
       .where('email', '=', 'verify-success@example.com')
       .executeTakeFirst();
 
-    expect(pendingVolunteer).toBeUndefined();
+    expect(pendingVolunteer).not.toBeUndefined();
 
     recomputeProfileSpy.mockRestore();
     recomputeExperienceSpy.mockRestore();
   });
+
+  test('returns 200 and logs volunteer in when verification link is reused', async () => {
+    await transaction
+      .insertInto('volunteer_pending_account')
+      .values({
+        first_name: 'Replay',
+        last_name: 'Volunteer',
+        password: 'hashed-password',
+        email: 'replay-verify@example.com',
+        gender: 'female',
+        date_of_birth: new Date('2001-05-06T00:00:00.000Z'),
+        token: 'reused-valid-token',
+      })
+      .execute();
+
+    await server
+      .post('/volunteer/verify-email')
+      .send({ key: 'reused-valid-token' })
+      .expect(200);
+
+    generateJWTSpy.mockClear();
+
+    const secondResponse = await server
+      .post('/volunteer/verify-email')
+      .send({ key: 'reused-valid-token' })
+      .expect(200);
+
+    expect(secondResponse.body.volunteer.email).toBe('replay-verify@example.com');
+    expect(typeof secondResponse.body.token).toBe('string');
+    expect(generateJWTSpy).toHaveBeenCalledTimes(1);
+
+    const pendingVolunteer = await transaction
+      .selectFrom('volunteer_pending_account')
+      .select('id')
+      .where('email', '=', 'replay-verify@example.com')
+      .executeTakeFirst();
+
+    expect(pendingVolunteer).not.toBeUndefined();
+  });
 });
 describe('POST /volunteer/resend-verification', () => {
-  test('returns 200 and does nothing when email already belongs to a volunteer', async () => {
+  test('returns 200, creates pending token, and resends email when account is already verified', async () => {
     const { volunteer } = await createVolunteerAccount(transaction, { email: 'resend-existing@example.com' });
 
     const response = await server
@@ -370,14 +444,20 @@ describe('POST /volunteer/resend-verification', () => {
       .expect(200);
 
     expect(response.body).toEqual({});
-    expect(sendVolunteerVerificationEmailSpy).not.toHaveBeenCalled();
+    expect(sendVolunteerVerificationEmailSpy).toHaveBeenCalledTimes(1);
 
-    const { pending_volunteer_count } = await transaction
+    const pendingVolunteer = await transaction
       .selectFrom('volunteer_pending_account')
-      .select(({ fn }) => fn.count('id').as('pending_volunteer_count'))
+      .selectAll()
+      .where('email', '=', volunteer.email)
       .executeTakeFirstOrThrow();
 
-    expect(pending_volunteer_count).toBe('0');
+    expect(pendingVolunteer.token.length).toBeGreaterThan(0);
+    expect(sendVolunteerVerificationEmailSpy).toHaveBeenCalledWith({
+      volunteerEmail: volunteer.email,
+      volunteerName: `${volunteer.first_name} ${volunteer.last_name}`,
+      verificationToken: pendingVolunteer.token,
+    });
   });
 
   test('returns 200 and does nothing when pending volunteer is not found', async () => {
@@ -975,6 +1055,65 @@ describe('GET /volunteer/posting/:id selected partial dates', () => {
     expect(response.body.selected_dates).toEqual(['2026-05-10', '2026-05-12']);
   });
 
+  test('automatically rejects a pending application when the posting has already ended', async () => {
+    const rejectionEmailSpy = vi.spyOn(emailService, 'sendVolunteerApplicationRejectedEmail').mockResolvedValue(undefined);
+    const { volunteer, token } = await createVolunteerAccount(transaction, { email: 'ended-pending-detail@example.com' });
+    const { organization } = await createOrganizationAccount(transaction, { email: 'ended-pending-detail-org@example.com' });
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const posting = await transaction
+      .insertInto('posting')
+      .values({
+        organization_id: organization.id,
+        title: 'Ended Pending Review Posting',
+        description: 'Pending applications should disappear after the posting ends',
+        latitude: 33.9,
+        longitude: 35.5,
+        max_volunteers: 20,
+        start_date: yesterday,
+        start_time: '09:00:00',
+        end_date: yesterday,
+        end_time: '17:00:00',
+        minimum_age: 18,
+        automatic_acceptance: false,
+        is_closed: false,
+        allows_partial_attendance: false,
+        location_name: 'Ended Location',
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    const application = await transaction
+      .insertInto('enrollment_application')
+      .values({
+        volunteer_id: volunteer.id,
+        posting_id: posting.id,
+        message: 'Please consider me',
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    const response = await server
+      .get(`/volunteer/posting/${posting.id}`)
+      .set('Authorization', 'Bearer ' + token)
+      .expect(200);
+
+    expect(response.body.posting.application_status).toBe('none');
+    expect(response.body.selected_dates).toEqual([]);
+
+    const remainingApplication = await transaction
+      .selectFrom('enrollment_application')
+      .select('id')
+      .where('id', '=', application.id)
+      .executeTakeFirst();
+
+    expect(remainingApplication).toBeUndefined();
+    expect(rejectionEmailSpy).toHaveBeenCalledTimes(1);
+
+    rejectionEmailSpy.mockRestore();
+  });
+
   test('returns enrolled_dates after a review-based partial application is accepted', async () => {
     const { token } = await createVolunteerAccount(transaction, { email: 'partial-accepted-selected@example.com' });
     const { organization, token: orgToken } = await createOrganizationAccount(transaction, { email: 'partial-accepted-selected-org@example.com' });
@@ -1331,6 +1470,52 @@ describe('GET /volunteer/posting/:id selected partial dates', () => {
       .expect(400);
 
     expect(response.body.message).toBe('Selected date 2026-06-04 is outside the posting date range');
+  });
+
+  test('allows one-day partial attendance postings to apply without selecting dates', async () => {
+    const { token } = await createVolunteerAccount(transaction, { email: 'partial-single-day@example.com' });
+    const { organization } = await createOrganizationAccount(transaction, { email: 'partial-single-day-org@example.com' });
+
+    const posting = await transaction
+      .insertInto('posting')
+      .values({
+        organization_id: organization.id,
+        title: 'Partial Attendance Single Day',
+        description: 'Single-day partial posting should not require date selection',
+        latitude: 33.9,
+        longitude: 35.5,
+        max_volunteers: 10,
+        start_date: new Date('2026-06-01T00:00:00.000Z'),
+        start_time: '09:00:00',
+        end_date: new Date('2026-06-01T00:00:00.000Z'),
+        end_time: '17:00:00',
+        minimum_age: 18,
+        automatic_acceptance: false,
+        is_closed: false,
+        allows_partial_attendance: true,
+        location_name: 'Test Location',
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    const response = await server
+      .post(`/volunteer/posting/${posting.id}/enroll`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ message: 'Applying without selecting the only available day' })
+      .expect(200);
+
+    expect(response.body.enrollment).toBeDefined();
+    expect(response.body.enrollment.posting_id).toBe(posting.id);
+
+    const selectedDates = await transaction
+      .selectFrom('enrollment_application_date')
+      .select('date')
+      .where('application_id', '=', response.body.enrollment.id)
+      .execute();
+
+    expect(selectedDates).toHaveLength(1);
+    expect(selectedDates[0]).toBeDefined();
+    expect(formatDateToIso(selectedDates[0]!.date)).toBe('2026-06-01');
   });
 
   test('rejects date selection for full commitment postings', async () => {

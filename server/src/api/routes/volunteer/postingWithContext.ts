@@ -1,6 +1,8 @@
 import { sql, type Kysely } from 'kysely';
 
 import { type Database } from '../../../db/tables/index.ts';
+import { hasPostingEnded } from '../../../services/posting/postingTime.ts';
+import { rejectEndedPendingApplicationsForPostings } from '../../../services/posting/rejectEndedPendingApplications.ts';
 import { type PostingWithContext, type PostingApplicationStatus } from '../../../types.ts';
 
 export const postingWithContextSelectColumns = [
@@ -113,6 +115,11 @@ export async function buildPostingsWithContext(
     return [];
   }
 
+  const autoRejectedPostingIds = await rejectEndedPendingApplicationsForPostings(
+    db,
+    postings.map(posting => posting.id),
+  );
+
   const postingIds = postings.map(posting => posting.id);
 
   const [skills, enrollmentCounts, dateCapacities, volunteerEnrollments, volunteerPendingApplications] = await Promise.all([
@@ -184,6 +191,9 @@ export async function buildPostingsWithContext(
 
   if (applicationStatusByPostingId) {
     applicationStatusByPostingId.forEach((status, postingId) => {
+      if (status === 'pending' && autoRejectedPostingIds.has(postingId)) {
+        return;
+      }
       resolvedApplicationStatusByPostingId.set(postingId, status);
     });
   } else {
@@ -200,6 +210,7 @@ export async function buildPostingsWithContext(
     crisis_name: posting.crisis_name ?? null,
     skills: skillsByPostingId.get(posting.id) ?? [],
     enrollment_count: countsByPostingId.get(posting.id) ?? 0,
+    has_ended: hasPostingEnded(posting),
     date_capacity: dateCapacityByPostingId.get(posting.id) ?? {},
     application_status: resolvedApplicationStatusByPostingId.get(posting.id) ?? 'none',
   }));

@@ -32,6 +32,8 @@ import {
   recomputePostingVectors,
   recomputeVolunteerExperienceVector,
 } from '../../../services/embeddings/updates.ts';
+import { hasPostingEnded } from '../../../services/posting/postingTime.ts';
+import { rejectEndedPendingApplicationsForPostings } from '../../../services/posting/rejectEndedPendingApplications.ts';
 import {
   sendPostingDeletedEmail,
   sendVolunteerApplicationAcceptedEmail,
@@ -76,6 +78,11 @@ const postingResponseColumns = [
   'posting.created_at',
   'posting.updated_at',
 ] as const;
+
+const withPostingEndedFlag = <T extends { end_date: Date | string | null | undefined; end_time?: string | null }>(posting: T) => ({
+  ...posting,
+  has_ended: hasPostingEnded(posting),
+});
 
 const normalizeSkillList = (skills: string[]) => Array.from(new Set(skills.map(skill => skill.trim()).filter(Boolean))).sort();
 const areSkillListsEqual = (left: string[], right: string[]) => {
@@ -210,11 +217,11 @@ function createPostingRouter(db: Kysely<Database>) {
 
     await recomputePostingVectors(result.postingId, db);
 
-    const posting = await db
+    const posting = withPostingEndedFlag(await db
       .selectFrom('posting')
       .select(postingResponseColumns)
       .where('id', '=', result.postingId)
-      .executeTakeFirstOrThrow();
+      .executeTakeFirstOrThrow());
 
     const insertedSkills = await db
       .selectFrom('posting_skill')
@@ -232,6 +239,9 @@ function createPostingRouter(db: Kysely<Database>) {
       defaultSortBy: 'start_date',
       defaultSortDir: 'asc',
     });
+
+    const hideFull = parseOptionalBooleanQueryParam(req.query.hide_full) ?? false;
+    const postingFilter = typeof req.query.posting_filter === 'string' ? req.query.posting_filter : 'all';
     const isClosedFilter = parseOptionalBooleanQueryParam(req.query.is_closed);
     const automaticAcceptanceFilter = parseOptionalBooleanQueryParam(req.query.automatic_acceptance);
     const crisisIdFilter = parseOptionalNumberQueryParam(req.query.crisis_id);
@@ -258,6 +268,20 @@ function createPostingRouter(db: Kysely<Database>) {
 
     if (isClosedFilter !== undefined) {
       postingsQuery = postingsQuery.where('posting.is_closed', '=', isClosedFilter);
+    }
+
+    if (postingFilter === 'open') {
+      postingsQuery = postingsQuery.where('posting.automatic_acceptance', '=', true);
+    } else if (postingFilter === 'review') {
+      postingsQuery = postingsQuery.where('posting.automatic_acceptance', '=', false);
+    } else if (postingFilter === 'partial') {
+      postingsQuery = postingsQuery.where('posting.allows_partial_attendance', '=', true);
+    } else if (postingFilter === 'full') {
+      postingsQuery = postingsQuery.where('posting.allows_partial_attendance', '=', false);
+    } else if (postingFilter === 'tagged') {
+      postingsQuery = postingsQuery.where('posting.crisis_id', 'is not', null);
+    } else if (postingFilter === 'untagged') {
+      postingsQuery = postingsQuery.where('posting.crisis_id', 'is', null);
     }
 
     if (automaticAcceptanceFilter !== undefined) {
@@ -312,14 +336,18 @@ function createPostingRouter(db: Kysely<Database>) {
     const postingsWithSkills = postings.map((posting) => {
       const enrollmentCount = countsByPostingId.get(posting.id) ?? 0;
       return {
-        ...posting,
+        ...withPostingEndedFlag(posting),
         skills: skillsByPostingId.get(posting.id) || [],
         enrollment_count: enrollmentCount,
         is_full: isPostingFull(posting.max_volunteers, enrollmentCount),
       };
     });
 
-    res.json({ postings: postingsWithSkills });
+    const visiblePostings = hideFull
+      ? postingsWithSkills.filter(posting => !posting.is_full)
+      : postingsWithSkills;
+
+    res.json({ postings: visiblePostings });
   });
 
   postingRouter.get('/discover', async (req, res: Response<PostingDiscoverResponse>) => {
@@ -342,7 +370,7 @@ function createPostingRouter(db: Kysely<Database>) {
       .select(postingWithContextSelectColumns)
       .where('posting.is_closed', '=', false)
       .where(({ or }) => or([
-        sql<boolean>`posting.end_date >= CURRENT_DATE`,
+        sql<boolean>`(posting.end_date + posting.end_time) >= now()`,
         sql<boolean>`posting.end_date IS NULL`,
       ]))
       .where('organization_account.is_deleted', '=', false)
@@ -442,7 +470,7 @@ function createPostingRouter(db: Kysely<Database>) {
   postingRouter.get('/:id', async (req, res: Response<PostingResponse>) => {
     const { id: postingId } = postingIdParamsSchema.parse(req.params);
 
-    const posting = await db
+    const postingRow = await db
       .selectFrom('posting')
       .innerJoin('organization_account', 'organization_account.id', 'posting.organization_id')
       .select(postingResponseColumns)
@@ -451,10 +479,12 @@ function createPostingRouter(db: Kysely<Database>) {
       .where('organization_account.is_disabled', '=', false)
       .executeTakeFirst();
 
-    if (!posting) {
+    if (!postingRow) {
       res.status(404);
       throw new Error('Posting not found');
     }
+
+    const posting = withPostingEndedFlag(postingRow);
 
     const [skills, crisis, enrollmentCountRow] = await Promise.all([
       db
@@ -504,6 +534,8 @@ function createPostingRouter(db: Kysely<Database>) {
     const orgId = req.userJWT!.id;
     const { id: postingId } = postingIdParamsSchema.parse(req.params);
     const body = postingUpdateSchema.parse(req.body);
+    const rawBody = (req.body ?? {}) as Record<string, unknown>;
+    const hasBodyField = (field: string) => Object.prototype.hasOwnProperty.call(rawBody, field);
 
     const posting = await db
       .selectFrom('posting')
@@ -513,6 +545,7 @@ function createPostingRouter(db: Kysely<Database>) {
         'title',
         'description',
         'location_name',
+        'automatic_acceptance',
         'start_date',
         'start_time',
         'end_date',
@@ -520,6 +553,7 @@ function createPostingRouter(db: Kysely<Database>) {
         'minimum_age',
         'max_volunteers',
         'is_closed',
+        'allows_partial_attendance',
       ])
       .where('id', '=', postingId)
       .where('organization_id', '=', orgId)
@@ -528,6 +562,22 @@ function createPostingRouter(db: Kysely<Database>) {
     if (!posting) {
       res.status(404);
       throw new Error('Posting not found');
+    }
+
+    const isEndedPosting = hasPostingEnded(posting);
+    const isEndedLifecycleChange = isEndedPosting && (
+      (hasBodyField('is_closed') && body.is_closed !== posting.is_closed)
+      || (body.start_date !== undefined && normalizeStoredDate(body.start_date) !== normalizeStoredDate(posting.start_date))
+      || (body.end_date !== undefined && normalizeStoredDate(body.end_date) !== normalizeStoredDate(posting.end_date))
+      || (body.start_time !== undefined && !areTimeValuesEqual(body.start_time, posting.start_time ?? undefined))
+      || (body.end_time !== undefined && !areTimeValuesEqual(body.end_time, posting.end_time ?? undefined))
+      || (hasBodyField('automatic_acceptance') && body.automatic_acceptance !== posting.automatic_acceptance)
+      || (hasBodyField('allows_partial_attendance') && body.allows_partial_attendance !== posting.allows_partial_attendance)
+    );
+
+    if (isEndedLifecycleChange) {
+      res.status(403);
+      throw new Error('Cannot change posting availability after it has ended');
     }
 
     const now = new Date();
@@ -634,12 +684,12 @@ function createPostingRouter(db: Kysely<Database>) {
       await recomputePostingContextVectorsForOrganization(orgId, db);
     }
 
-    const updatedPosting = await db
+    const updatedPosting = withPostingEndedFlag(await db
       .selectFrom('posting')
       .select(postingResponseColumns)
       .where('id', '=', postingId)
       .where('organization_id', '=', orgId)
-      .executeTakeFirstOrThrow();
+      .executeTakeFirstOrThrow());
 
     const [skills, crisis] = await Promise.all([
       db
@@ -750,6 +800,13 @@ function createPostingRouter(db: Kysely<Database>) {
       return;
     }
 
+    const rejectedPostingIds = await rejectEndedPendingApplicationsForPostings(db, [postingId]);
+
+    if (rejectedPostingIds.has(postingId)) {
+      res.json({ applications: [] });
+      return;
+    }
+
     const applications = await db
       .selectFrom('enrollment_application')
       .innerJoin('volunteer_account', 'volunteer_account.id', 'enrollment_application.volunteer_id')
@@ -824,7 +881,7 @@ function createPostingRouter(db: Kysely<Database>) {
 
     const posting = await db
       .selectFrom('posting')
-      .select(['id', 'automatic_acceptance', 'is_closed', 'max_volunteers', 'allows_partial_attendance', 'start_date', 'end_date'])
+      .select(['id', 'automatic_acceptance', 'is_closed', 'max_volunteers', 'allows_partial_attendance', 'start_date', 'end_date', 'end_time'])
       .where('id', '=', postingId)
       .where('organization_id', '=', orgId)
       .executeTakeFirst();
@@ -899,7 +956,13 @@ function createPostingRouter(db: Kysely<Database>) {
     await executeTransaction(db, async (trx) => {
       const lockedPosting = await trx
         .selectFrom('posting')
-        .select(['id', 'is_closed', 'max_volunteers'])
+        .select([
+          'id',
+          'is_closed',
+          'max_volunteers',
+          'end_date',
+          'end_time',
+        ])
         .where('id', '=', postingId)
         .where('organization_id', '=', orgId)
         .forUpdate()
@@ -908,6 +971,11 @@ function createPostingRouter(db: Kysely<Database>) {
       if (!lockedPosting) {
         res.status(404);
         throw new Error('Posting not found');
+      }
+
+      if (hasPostingEnded(lockedPosting)) {
+        res.status(403);
+        throw new Error('This posting has ended');
       }
 
       if (lockedPosting.max_volunteers !== undefined && lockedPosting.max_volunteers !== null) {

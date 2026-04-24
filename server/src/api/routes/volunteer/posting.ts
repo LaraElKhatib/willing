@@ -8,6 +8,8 @@ import authorizeOnly from '../../../auth/authorizeOnly.ts';
 import executeTransaction from '../../../db/executeTransaction.ts';
 import { type Database, type Enrollment, type EnrollmentApplication } from '../../../db/tables/index.ts';
 import { recomputePostingContextVectorOnly, recomputeVolunteerExperienceVector } from '../../../services/embeddings/updates.ts';
+import { hasPostingEnded } from '../../../services/posting/postingTime.ts';
+import { rejectEndedPendingApplicationsForPostings } from '../../../services/posting/rejectEndedPendingApplications.ts';
 import { type PostingWithContext } from '../../../types.ts';
 import {
   parseListQuery,
@@ -45,29 +47,6 @@ function normalizeStoredDate(value: Date | string | null | undefined): string | 
   if (typeof value === 'string') {
     const datePart = value.split('T')[0]?.trim();
     return datePart || undefined;
-  }
-
-  return undefined;
-}
-
-function normalizeStoredTime(value: string | null | undefined): string | undefined {
-  if (typeof value !== 'string') {
-    return undefined;
-  }
-
-  const timePart = value.trim().split('.')[0];
-  if (!timePart) {
-    return undefined;
-  }
-
-  const segments = timePart.split(':');
-
-  if (segments.length === 2) {
-    return `${segments[0]}:${segments[1]}:00`;
-  }
-
-  if (segments.length >= 3) {
-    return `${segments[0]}:${segments[1]}:${segments[2]}`;
   }
 
   return undefined;
@@ -374,10 +353,18 @@ function createVolunteerPostingRouter(db: Kysely<Database>) {
         .execute(),
     ]);
 
+    const autoRejectedPostingIds = await rejectEndedPendingApplicationsForPostings(
+      db,
+      pendingPostings.map(posting => posting.id),
+    );
+
     const applicationStatusMap = new Map<number, 'registered' | 'pending'>();
     const postingsMap = new Map<number, typeof enrolledPostings[0]>();
 
     for (const posting of pendingPostings) {
+      if (autoRejectedPostingIds.has(posting.id)) {
+        continue;
+      }
       applicationStatusMap.set(posting.id, 'pending');
       postingsMap.set(posting.id, posting);
     }
@@ -565,18 +552,9 @@ function createVolunteerPostingRouter(db: Kysely<Database>) {
     }
 
     // Block registration if posting has ended
-    if (posting.end_date) {
-      const endDateStr = normalizeStoredDate(posting.end_date);
-      const endTimeStr = normalizeStoredTime(posting.end_time);
-      const endDateTime = new Date(
-        endTimeStr
-          ? `${endDateStr}T${endTimeStr}Z`
-          : `${endDateStr}T23:59:59Z`,
-      );
-      if (new Date() > endDateTime) {
-        res.status(403);
-        throw new Error('This posting has ended');
-      }
+    if (hasPostingEnded(posting)) {
+      res.status(403);
+      throw new Error('This posting has ended');
     }
 
     if (!volunteer) {
@@ -603,15 +581,21 @@ function createVolunteerPostingRouter(db: Kysely<Database>) {
       : [];
 
     const isPartial = Boolean(posting.allows_partial_attendance);
+    const isSingleDayPosting = postingDateKeys.length === 1;
     let selectedDates: string[] = [];
 
     if (isPartial) {
-      if (!dates || dates.length === 0) {
-        res.status(400);
-        throw new Error('You must select at least one date when partial attendance is enabled');
-      }
+      const normalizedDates = dates?.map(d => d.trim()).filter(Boolean) ?? [];
+      if (normalizedDates.length === 0) {
+        if (!isSingleDayPosting) {
+          res.status(400);
+          throw new Error('You must select at least one date when partial attendance is enabled');
+        }
 
-      selectedDates = Array.from(new Set(dates.map(d => d.trim())));
+        selectedDates = postingDateKeys;
+      } else {
+        selectedDates = Array.from(new Set(normalizedDates));
+      }
 
       const invalidDate = selectedDates.find(date => !postingDateKeys.includes(date));
       if (invalidDate) {
@@ -835,14 +819,8 @@ function createVolunteerPostingRouter(db: Kysely<Database>) {
         .selectFrom('posting')
         .select([
           'id',
-          sql<boolean>`(
-            posting.end_date IS NOT NULL AND posting.end_time IS NOT NULL AND
-            (to_timestamp(
-              to_char(posting.end_date, 'YYYY-MM-DD') || ' ' || posting.end_time,
-              'YYYY-MM-DD HH24:MI'
-            ) < now())
-          )`
-            .as('has_ended'),
+          'end_date',
+          'end_time',
         ])
         .where('id', '=', id)
         .forUpdate()
@@ -853,7 +831,7 @@ function createVolunteerPostingRouter(db: Kysely<Database>) {
         throw new Error('Posting not found');
       }
 
-      if (posting.has_ended) {
+      if (hasPostingEnded(posting)) {
         res.status(403);
         throw new Error('Cannot withdraw from a posting that has already ended');
       }

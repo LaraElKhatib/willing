@@ -3,6 +3,7 @@ import {
   Check,
   AlertTriangle,
   Calendar,
+  CalendarX2,
   Cake,
   Edit3,
   House,
@@ -138,12 +139,6 @@ const getPostingStartDateTime = (posting: PostingWithSkills) => {
   return new Date(`${datePart}T${timePart}`);
 };
 
-const getPostingEndDateTime = (posting: PostingWithSkills | PostingWithContext) => {
-  const datePart = getDateInputValue(posting.end_date ?? posting.start_date);
-  const timePart = (posting.end_time ?? '').slice(0, 5) || '23:59';
-  return new Date(`${datePart}T${timePart}`);
-};
-
 const formatDisplayDate = (value?: string) => {
   if (!value) return '-';
 
@@ -230,14 +225,7 @@ function PostingPage() {
   const startTime = useWatch({ control: form.control, name: 'start_time' }) ?? '';
   const endDate = useWatch({ control: form.control, name: 'end_date' }) ?? '';
   const endTime = useWatch({ control: form.control, name: 'end_time' }) ?? '';
-
-  const hasEnded = useMemo(() => {
-    if (!endDate) return false;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const end = new Date(endDate + 'T00:00:00');
-    return end < today;
-  }, [endDate]);
+  const hasEnded = posting && 'has_ended' in posting ? posting.has_ended ?? false : false;
 
   const selectedCrisisName = useMemo(() => {
     if (selectedCrisisId == null) return null;
@@ -681,7 +669,7 @@ function PostingPage() {
   const submitApplication = useCallback(async (message?: string) => {
     if (!id || hasPendingApplication || isEnrolled || hasEnded || !posting) return;
 
-    if (posting.allows_partial_attendance) {
+    if (posting.allows_partial_attendance && !isSingleDayPosting) {
       if (selectedApplicationDates.length === 0) {
         notifications.push({ type: 'error', message: 'Please select at least one date to apply.' });
         return;
@@ -708,10 +696,8 @@ function PostingPage() {
 
   const canWithdrawFromPosting = useMemo(() => {
     if (!posting) return false;
-
-    const endDateTime = getPostingEndDateTime(posting);
-    return !Number.isNaN(endDateTime.getTime()) && new Date() < endDateTime;
-  }, [posting]);
+    return !hasEnded;
+  }, [hasEnded, posting]);
 
   const withdrawApplication = useCallback(async () => {
     if (!id || (!hasPendingApplication && !isEnrolled)) return;
@@ -974,7 +960,7 @@ function PostingPage() {
         title="Apply to posting"
         placeholder="You can add an optional message to tell the organization why you're interested in this opportunity"
       >
-        {posting?.allows_partial_attendance && (
+        {posting?.allows_partial_attendance && !isSingleDayPosting && (
           <div className="mt-3">
             <p className="text-sm font-medium mb-2">Select your available days (partial attendance)</p>
             <CalendarInfo
@@ -1357,17 +1343,19 @@ function PostingPage() {
                     </>
                   )
                 : (
-                    <span className={`badge gap-2 ${posting?.is_closed ? 'badge-error' : isOpen ? 'badge-primary' : 'badge-secondary'}`}>
-                      {posting?.is_closed ? <Lock size={12} /> : isOpen ? <LockOpen size={12} /> : <Lock size={12} />}
-                      {posting?.is_closed ? 'Closed' : isOpen ? 'Open' : 'Review Based'}
+                    <span className={`badge gap-2 ${hasEnded ? 'badge-neutral' : posting?.is_closed ? 'badge-error' : isOpen ? 'badge-primary' : 'badge-secondary'}`}>
+                      {hasEnded ? <CalendarX2 size={12} /> : posting?.is_closed ? <Lock size={12} /> : isOpen ? <LockOpen size={12} /> : <Lock size={12} />}
+                      {hasEnded ? 'Ended' : posting?.is_closed ? 'Closed' : isOpen ? 'Open' : 'Review Based'}
                     </span>
                   )}
               <p className="text-xs opacity-70 mt-2">
-                {posting?.is_closed
-                  ? 'This posting is closed and no longer accepting applications.'
-                  : isOpen
-                    ? 'Volunteers are accepted automatically.'
-                    : 'Volunteers must be accepted by the organization.'}
+                {hasEnded
+                  ? 'This posting has ended.'
+                  : posting?.is_closed
+                    ? 'This posting is closed and no longer accepting applications.'
+                    : isOpen
+                      ? 'Volunteers are accepted automatically.'
+                      : 'Volunteers must be accepted by the organization.'}
               </p>
               {!isEditMode && canManagePosting && (
                 null

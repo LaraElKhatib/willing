@@ -179,11 +179,6 @@ function createVolunteerRouter(db: Kysely<Database>) {
     }
 
     if (pendingVolunteer.is_expired) {
-      await db
-        .deleteFrom('volunteer_pending_account')
-        .where('id', '=', pendingVolunteer.id)
-        .execute();
-
       res.status(400);
       throw new Error('Invalid or expired verification token');
     }
@@ -191,7 +186,12 @@ function createVolunteerRouter(db: Kysely<Database>) {
     const [existingVolunteer, existingOrganization] = await Promise.all([
       db
         .selectFrom('volunteer_account')
-        .select('id')
+        .select([
+          'id',
+          'token_version',
+          'is_deleted',
+          'is_disabled',
+        ])
         .where('email', '=', pendingVolunteer.email)
         .executeTakeFirst(),
       db
@@ -201,7 +201,31 @@ function createVolunteerRouter(db: Kysely<Database>) {
         .executeTakeFirst(),
     ]);
 
-    if (existingVolunteer || existingOrganization) {
+    if (existingVolunteer) {
+      if (existingVolunteer.is_deleted || existingVolunteer.is_disabled) {
+        res.status(403);
+        throw new Error('Account is disabled or deleted');
+      }
+
+      const volunteer = await db
+        .selectFrom('volunteer_account')
+        .select(volunteerResponseColumns)
+        .where('id', '=', existingVolunteer.id)
+        .where('is_deleted', '=', false)
+        .where('is_disabled', '=', false)
+        .executeTakeFirstOrThrow();
+
+      const token = await generateJWT({
+        id: volunteer.id,
+        role: 'volunteer',
+        token_version: existingVolunteer.token_version,
+      });
+
+      res.json({ volunteer, token });
+      return;
+    }
+
+    if (existingOrganization) {
       await db
         .deleteFrom('volunteer_pending_account')
         .where('id', '=', pendingVolunteer.id)
@@ -231,7 +255,8 @@ function createVolunteerRouter(db: Kysely<Database>) {
       }
 
       await trx
-        .deleteFrom('volunteer_pending_account')
+        .updateTable('volunteer_pending_account')
+        .set({ created_at: new Date() })
         .where('id', '=', pendingVolunteer.id)
         .execute();
 
@@ -251,14 +276,9 @@ function createVolunteerRouter(db: Kysely<Database>) {
 
     const existingVolunteer = await db
       .selectFrom('volunteer_account')
-      .select('id')
+      .select(['first_name', 'last_name', 'email', 'password', 'gender', 'date_of_birth'])
       .where('email', '=', email)
       .executeTakeFirst();
-
-    if (existingVolunteer) {
-      res.json({});
-      return;
-    }
 
     const pendingVolunteer = await db
       .selectFrom('volunteer_pending_account')
@@ -266,22 +286,49 @@ function createVolunteerRouter(db: Kysely<Database>) {
       .where('email', '=', email)
       .executeTakeFirst();
 
-    if (!pendingVolunteer) {
+    if (!pendingVolunteer && !existingVolunteer) {
       res.json({});
       return;
     }
 
     const verificationToken = crypto.randomBytes(32).toString('hex');
 
-    await db
-      .updateTable('volunteer_pending_account')
-      .set({ token: verificationToken, created_at: new Date() })
-      .where('id', '=', pendingVolunteer.id)
-      .execute();
+    if (pendingVolunteer) {
+      await db
+        .updateTable('volunteer_pending_account')
+        .set({ token: verificationToken, created_at: new Date() })
+        .where('id', '=', pendingVolunteer.id)
+        .execute();
+    } else {
+      await db
+        .insertInto('volunteer_pending_account')
+        .values({
+          first_name: existingVolunteer!.first_name,
+          last_name: existingVolunteer!.last_name,
+          password: existingVolunteer!.password,
+          email: existingVolunteer!.email,
+          gender: existingVolunteer!.gender,
+          date_of_birth: new Date(existingVolunteer!.date_of_birth),
+          token: verificationToken,
+        })
+        .execute();
+    }
+
+    const recipient = pendingVolunteer
+      ? {
+          email: pendingVolunteer.email,
+          first_name: pendingVolunteer.first_name,
+          last_name: pendingVolunteer.last_name,
+        }
+      : {
+          email: existingVolunteer!.email,
+          first_name: existingVolunteer!.first_name,
+          last_name: existingVolunteer!.last_name,
+        };
 
     await sendVolunteerVerificationEmail({
-      volunteerEmail: pendingVolunteer.email,
-      volunteerName: `${pendingVolunteer.first_name} ${pendingVolunteer.last_name}`,
+      volunteerEmail: recipient.email,
+      volunteerName: `${recipient.first_name} ${recipient.last_name}`,
       verificationToken,
     });
 

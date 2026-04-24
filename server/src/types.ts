@@ -40,6 +40,7 @@ export type PostingWithContext = PostingWithSkills & {
   crisis_name: string | null;
   enrollment_count: number;
   application_status: PostingApplicationStatus;
+  has_ended?: boolean;
   date_capacity?: Record<string, number>;
   confirmed_date_capacity?: Record<string, number>;
 };

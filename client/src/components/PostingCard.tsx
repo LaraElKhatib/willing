@@ -4,7 +4,7 @@ import { Link } from 'react-router';
 import Card from './Card';
 import OrganizationProfilePicture from './OrganizationProfilePicture';
 import PostingDateTime from './PostingDateTime.tsx';
-import { formatCardDate, formatTime12Hour, hasPostingEnded, isPostingFullyBooked, normalizeTimestamp } from './postings/postingUtils';
+import { formatCardDate, formatTime12Hour, isPostingFullyBooked, normalizeTimestamp } from './postings/postingUtils';
 import SkillsList from './skills/SkillsList';
 
 import type { PostingWithContext } from '../../../server/src/types';
@@ -36,7 +36,7 @@ function PostingCard({
   const endDt = normalizeTimestamp(endDateValue);
   const hasEndDate = Boolean(endDt);
 
-  const hasEnded = hasPostingEnded(endDt);
+  const hasEnded = posting.has_ended;
 
   const startDateStr = formatCardDate(startDt);
   const endDateStr = formatCardDate(endDt);

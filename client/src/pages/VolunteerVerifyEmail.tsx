@@ -46,12 +46,7 @@ export default function VolunteerVerifyEmail() {
       .then(() => {
         navigate('/volunteer', { replace: true });
       })
-      .catch((err) => {
-        notifications.push({
-          type: 'error',
-          message: err.message,
-        });
-      });
+      .catch(() => {});
   }, [verificationKey, trigger, notifications, navigate]);
 
   if (!verificationKey) {
@@ -93,7 +88,7 @@ export default function VolunteerVerifyEmail() {
           <h2 className="font-bold text-2xl text-center">Email verification failed</h2>
           <p className="opacity-80 text-center">{error.message}</p>
           <div className="form-control w-full max-w-md mx-auto">
-            <label className="label" htmlFor="resend-verification-email">
+            <label className="label mb-2" htmlFor="resend-verification-email">
               <span className="label-text">Need a new link? Enter your email</span>
             </label>
             <input
@@ -125,7 +120,7 @@ export default function VolunteerVerifyEmail() {
                   .then(() => {
                     notifications.push({
                       type: 'success',
-                      message: 'If an unverified account exists for this email, a new verification link has been sent.',
+                      message: 'A new verification link has been sent.',
                     });
                   })
                   .catch((err) => {

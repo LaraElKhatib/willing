@@ -2,7 +2,7 @@ import { AlertCircle, Ban, Cake, Calendar, CalendarX2, Clock, ExternalLink, Lock
 import { Link } from 'react-router';
 
 import OrganizationProfilePicture from './OrganizationProfilePicture';
-import { formatCardDate, formatTime12Hour, hasPostingEnded, isPostingFullyBooked, normalizeTimestamp } from './postings/postingUtils';
+import { formatCardDate, formatTime12Hour, isPostingFullyBooked, normalizeTimestamp } from './postings/postingUtils';
 import SkillsList from './skills/SkillsList';
 
 import type { PostingWithContext } from '../../../server/src/types';
@@ -35,7 +35,7 @@ function PostingList({
   const endDt = normalizeTimestamp(posting.end_date);
   const hasEndDate = Boolean(endDt);
 
-  const hasEnded = hasPostingEnded(endDt);
+  const hasEnded = posting.has_ended;
 
   const startDateStr = formatCardDate(startDt) || 'TBA';
   const endDateStr = formatCardDate(endDt) || 'TBA';
