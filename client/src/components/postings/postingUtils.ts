@@ -1,9 +1,56 @@
 import type { PostingWithContext } from '../../../../server/src/types';
 
+type PostingEndFields = {
+  end_date: string | Date | null | undefined;
+  end_time?: string | null;
+};
+
 export const normalizeTimestamp = (value: string | Date | undefined | null): Date | null => {
   if (value == null) return null;
   const date = value instanceof Date ? value : new Date(value);
   return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const normalizeDateOnly = (value: string | Date | null | undefined): string | undefined => {
+  if (value == null) return undefined;
+  if (value instanceof Date) {
+    return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`;
+  }
+
+  const datePart = value.split('T')[0]?.trim();
+  return datePart || undefined;
+};
+
+const normalizeTime = (value: string | null | undefined): string | undefined => {
+  if (!value) return undefined;
+  const timePart = value.trim().split('.')[0];
+  if (!timePart) return undefined;
+
+  const segments = timePart.split(':');
+  if (segments.length === 2) {
+    return `${segments[0]}:${segments[1]}:00`;
+  }
+
+  if (segments.length >= 3) {
+    return `${segments[0]}:${segments[1]}:${segments[2]}`;
+  }
+
+  return undefined;
+};
+
+export const getPostingEndDateTime = (posting: PostingEndFields): Date | undefined => {
+  const endDate = normalizeDateOnly(posting.end_date);
+  if (!endDate) return undefined;
+
+  const endTime = normalizeTime(posting.end_time);
+  const endDateTime = new Date(endTime ? `${endDate}T${endTime}` : `${endDate}T23:59:59`);
+
+  return Number.isNaN(endDateTime.getTime()) ? undefined : endDateTime;
+};
+
+export const hasPostingEnded = (posting: PostingEndFields, now = new Date()): boolean => {
+  const endDateTime = getPostingEndDateTime(posting);
+  return endDateTime ? now > endDateTime : false;
 };
 
 export const formatTime12Hour = (timeValue: string | undefined): string => {
@@ -28,16 +75,6 @@ export const formatCardDate = (dateValue: Date | null): string => {
 };
 
 export const getPostingDates = (startDate: string | Date, endDate: string | Date | null | undefined): string[] => {
-  const normalizeDateOnly = (value: string | Date | null | undefined) => {
-    if (value == null) return undefined;
-    if (value instanceof Date) {
-      return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`;
-    }
-
-    const datePart = value.split('T')[0]?.trim();
-    return datePart || undefined;
-  };
-
   const parseIsoDateParts = (value: string) => {
     const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
     if (!match) return undefined;

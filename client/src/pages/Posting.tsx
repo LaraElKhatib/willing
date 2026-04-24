@@ -40,6 +40,8 @@ import LocationPicker from '../components/LocationPicker.tsx';
 import OrganizationProfilePicture from '../components/OrganizationProfilePicture.tsx';
 import PostingDateTime from '../components/PostingDateTime.tsx';
 import CrisisCard from '../components/postings/CrisisCard.tsx';
+import { hasPostingEnded as hasPostingEndedByTime } from '../components/postings/postingUtils.ts';
+import usePostingStatusNow from '../components/postings/usePostingStatusNow.ts';
 import SkillsInput from '../components/skills/SkillsInput.tsx';
 import SkillsList from '../components/skills/SkillsList.tsx';
 import { ToggleButton } from '../components/ToggleButton.tsx';
@@ -225,7 +227,12 @@ function PostingPage() {
   const startTime = useWatch({ control: form.control, name: 'start_time' }) ?? '';
   const endDate = useWatch({ control: form.control, name: 'end_date' }) ?? '';
   const endTime = useWatch({ control: form.control, name: 'end_time' }) ?? '';
-  const hasEnded = posting && 'has_ended' in posting ? posting.has_ended ?? false : false;
+  const statusNow = usePostingStatusNow();
+  const hasEnded = useMemo(() => (
+    posting
+      ? Boolean(('has_ended' in posting ? posting.has_ended : false) || hasPostingEndedByTime(posting, statusNow))
+      : false
+  ), [posting, statusNow]);
 
   const selectedCrisisName = useMemo(() => {
     if (selectedCrisisId == null) return null;

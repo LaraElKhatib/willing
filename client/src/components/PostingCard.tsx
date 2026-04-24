@@ -1,10 +1,12 @@
 import { Cake, Calendar, CalendarX2, Clock, ExternalLink, LockOpen, MapPin, Users, AlertCircle, Ban } from 'lucide-react';
+import { useMemo } from 'react';
 import { Link } from 'react-router';
 
 import Card from './Card';
 import OrganizationProfilePicture from './OrganizationProfilePicture';
 import PostingDateTime from './PostingDateTime.tsx';
-import { formatCardDate, formatTime12Hour, isPostingFullyBooked, normalizeTimestamp } from './postings/postingUtils';
+import { formatCardDate, formatTime12Hour, hasPostingEnded, isPostingFullyBooked, normalizeTimestamp } from './postings/postingUtils';
+import usePostingStatusNow from './postings/usePostingStatusNow.ts';
 import SkillsList from './skills/SkillsList';
 
 import type { PostingWithContext } from '../../../server/src/types';
@@ -36,7 +38,11 @@ function PostingCard({
   const endDt = normalizeTimestamp(endDateValue);
   const hasEndDate = Boolean(endDt);
 
-  const hasEnded = posting.has_ended;
+  const now = usePostingStatusNow();
+  const hasEnded = useMemo(
+    () => Boolean(posting.has_ended || hasPostingEnded(posting, now)),
+    [now, posting],
+  );
 
   const startDateStr = formatCardDate(startDt);
   const endDateStr = formatCardDate(endDt);
