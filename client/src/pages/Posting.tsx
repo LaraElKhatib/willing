@@ -994,17 +994,17 @@ function PostingPage() {
         defaultBackTo={isVolunteerView ? '/volunteer' : '/organization'}
         actions={canManagePosting && (isEditMode
           ? (
-              <>
+              <span className="flex gap-2 flex-wrap justify-end">
                 <Button style="outline" onClick={onCancelEdit} disabled={saving} Icon={X}>
                   Cancel
                 </Button>
                 <Button color="primary" onClick={onSave} loading={saving} Icon={Save}>
                   Save Changes
                 </Button>
-              </>
+              </span>
             )
           : (
-              <>
+              <span className="flex gap-2 flex-wrap justify-end">
                 <LinkButton
                   to={`/organization/posting/${posting.id}/attendance`}
                   color="info"
@@ -1039,7 +1039,7 @@ function PostingPage() {
                 >
                   Delete
                 </Button>
-              </>
+              </span>
             )
         )}
       />
