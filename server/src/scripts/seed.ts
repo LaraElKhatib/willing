@@ -1,5 +1,9 @@
-﻿import { sql } from 'kysely';
+﻿import fs from 'fs';
+import path from 'path';
 
+import { sql } from 'kysely';
+
+import config from '../config.ts';
 import database from '../db/index.ts';
 import { hash } from '../services/bcrypt/index.ts';
 
@@ -7,6 +11,17 @@ const PASSWORD_PLAIN = process.argv[2] || 'Willing123';
 
 async function seed() {
   const passwordHash = await hash(PASSWORD_PLAIN);
+
+  // Copy seed logos to UPLOAD_DIR
+  const SEED_LOGOS_DIR = path.resolve(__dirname, 'seed-assets/org-logos');
+  const DEST_LOGOS_DIR = path.resolve(config.UPLOAD_DIR, 'org-logos');
+  fs.mkdirSync(DEST_LOGOS_DIR, { recursive: true });
+  for (const file of fs.readdirSync(SEED_LOGOS_DIR)) {
+    fs.copyFileSync(
+      path.join(SEED_LOGOS_DIR, file),
+      path.join(DEST_LOGOS_DIR, file),
+    );
+  }
 
   await sql`
   TRUNCATE TABLE
@@ -121,10 +136,10 @@ async function seed() {
     },
     {
       certificate_feature_enabled: false,
-      hours_threshold: null,
-      signatory_name: null,
-      signatory_position: null,
-      signature_path: null,
+      hours_threshold: 20,
+      signatory_name: 'Rani Hayek',
+      signatory_position: 'North Lebanon Coordinator',
+      signature_path: 'org-signatures/ajialouna.png',
     },
     {
       certificate_feature_enabled: true,
@@ -163,10 +178,10 @@ async function seed() {
     },
     {
       certificate_feature_enabled: true,
-      hours_threshold: 10,
-      signatory_name: 'Melhem Khalaf',
-      signatory_position: 'Founder',
-      signature_path: 'org-signatures/offre-joie-signature.png',
+      hours_threshold: null,
+      signatory_name: null,
+      signatory_position: null,
+      signature_path: null,
     },
     {
       certificate_feature_enabled: true,
@@ -247,10 +262,10 @@ async function seed() {
     },
     {
       certificate_feature_enabled: true,
-      hours_threshold: 5,
-      signatory_name: 'Rania Hayek',
-      signatory_position: 'North Lebanon Coordinator',
-      signature_path: 'org-signatures/arcenciel-tripoli-signature.png',
+      hours_threshold: null,
+      signatory_name: null,
+      signatory_position: null,
+      signature_path: null,
     },
     {
       certificate_feature_enabled: false,
@@ -435,7 +450,7 @@ async function seed() {
         longitude: 35.5200,
         location_name: 'Beirut',
         description: 'Nationwide volunteer movement rebuilding homes, restoring public spaces, and planting hope across Lebanon.',
-        logo_path: 'org-logos/offre-joie.png',
+        logo_path: null,
         certificate_info_id: certId(7),
         password: passwordHash,
       },
@@ -513,7 +528,7 @@ async function seed() {
         longitude: 35.5120,
         location_name: 'Beirut',
         description: 'Providing Syrian refugee children with quality education and psychosocial support in Lebanon.',
-        logo_path: 'org-logos/kayany.png',
+        logo_path: null,
         certificate_info_id: certId(13),
         password: passwordHash,
       },
@@ -565,7 +580,7 @@ async function seed() {
         longitude: 35.5000,
         location_name: 'Beirut',
         description: 'Lebanon\'s leading organization addressing drug use through treatment, outreach, and harm reduction.',
-        logo_path: 'org-logos/skoun.png',
+        logo_path: null,
         certificate_info_id: certId(17),
         password: passwordHash,
       },
@@ -591,7 +606,7 @@ async function seed() {
         longitude: 35.8360,
         location_name: 'Tripoli',
         description: 'Branch of Arc en Ciel providing disability support, recycling programs, and economic inclusion in North Lebanon.',
-        logo_path: 'org-logos/arcenciel-tripoli.png',
+        logo_path: null,
         certificate_info_id: certId(19),
         password: passwordHash,
       },
