@@ -75,7 +75,7 @@ async function seed() {
   await database.insertInto('platform_certificate_settings').values({
     signatory_name: 'Willing Platform',
     signatory_position: 'Volunteer Program Director',
-    signature_path: 'platform-signatures/willing-platform-signature.png',
+    signature_path: 'willing-platform-signature.png',
     signature_uploaded_by_admin_id: 1,
   }).execute();
 
