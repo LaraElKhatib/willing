@@ -30,6 +30,7 @@ import Button from '../components/Button.tsx';
 import CalendarInfo from '../components/CalendarInfo.tsx';
 import Card from '../components/Card.tsx';
 import CustomMessageModal from '../components/CustomMessageModal.tsx';
+import EmptyState from '../components/EmptyState.tsx';
 import ColumnLayout from '../components/layout/ColumnLayout.tsx';
 import PageContainer from '../components/layout/PageContainer.tsx';
 import PageHeader from '../components/layout/PageHeader.tsx';
@@ -63,7 +64,6 @@ import type {
 } from '../../../server/src/api/types.ts';
 import type { Crisis } from '../../../server/src/db/tables/index.ts';
 import type { PostingApplication, PostingEnrollment, PostingWithContext, PostingWithSkills } from '../../../server/src/types.ts';
-import EmptyState from '../components/EmptyState.tsx';
 
 const parseLocalDateParts = (value: string | Date) => {
   if (typeof value === 'string') {
