@@ -692,13 +692,24 @@ describe('GET /volunteer/certificate', () => {
       .returning(['id'])
       .executeTakeFirstOrThrow();
 
-    await transaction
+    const enrollment = await transaction
       .insertInto('enrollment')
       .values({
         volunteer_id: volunteer.id,
         posting_id: posting.id,
         attended: true,
         created_at: new Date('2026-02-02T00:00:00.000Z'),
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    await transaction
+      .insertInto('enrollment_date')
+      .values({
+        enrollment_id: enrollment.id,
+        posting_id: posting.id,
+        date: new Date('2026-02-01T00:00:00.000Z'),
+        attended: true,
       })
       .execute();
 
@@ -955,7 +966,7 @@ describe('GET /volunteer/certificate', () => {
     const disabledPosting = await createPostingForOrg(disabledOrg.id, 'Disabled Org Posting');
     const deletedPosting = await createPostingForOrg(deletedOrg.id, 'Deleted Org Posting');
 
-    await transaction
+    const enrollments = await transaction
       .insertInto('enrollment')
       .values([
         {
@@ -975,6 +986,31 @@ describe('GET /volunteer/certificate', () => {
           posting_id: deletedPosting.id,
           attended: true,
           created_at: new Date('2026-02-02T00:00:00.000Z'),
+        },
+      ])
+      .returningAll()
+      .execute();
+
+    await transaction
+      .insertInto('enrollment_date')
+      .values([
+        {
+          enrollment_id: enrollments[0]!.id,
+          posting_id: activePosting.id,
+          date: new Date('2026-02-01T00:00:00.000Z'),
+          attended: true,
+        },
+        {
+          enrollment_id: enrollments[1]!.id,
+          posting_id: disabledPosting.id,
+          date: new Date('2026-02-01T00:00:00.000Z'),
+          attended: true,
+        },
+        {
+          enrollment_id: enrollments[2]!.id,
+          posting_id: deletedPosting.id,
+          date: new Date('2026-02-01T00:00:00.000Z'),
+          attended: true,
         },
       ])
       .execute();
@@ -1103,7 +1139,7 @@ describe('GET /volunteer/certificate', () => {
       .returning(['id'])
       .executeTakeFirstOrThrow();
 
-    await transaction
+    const enrollments = await transaction
       .insertInto('enrollment')
       .values([
         {
@@ -1117,6 +1153,25 @@ describe('GET /volunteer/certificate', () => {
           posting_id: disabledPosting.id,
           attended: true,
           created_at: new Date('2026-03-03T00:00:00.000Z'),
+        },
+      ])
+      .returningAll()
+      .execute();
+
+    await transaction
+      .insertInto('enrollment_date')
+      .values([
+        {
+          enrollment_id: enrollments[0]!.id,
+          posting_id: enabledPosting.id,
+          date: new Date('2026-03-01T00:00:00.000Z'),
+          attended: true,
+        },
+        {
+          enrollment_id: enrollments[1]!.id,
+          posting_id: disabledPosting.id,
+          date: new Date('2026-03-02T00:00:00.000Z'),
+          attended: true,
         },
       ])
       .execute();

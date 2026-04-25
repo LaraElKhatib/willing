@@ -271,7 +271,7 @@ describe('POST /public/certificate/verify', () => {
     const enrollmentCreatedAt = new Date(issuedAtDate);
     enrollmentCreatedAt.setMinutes(enrollmentCreatedAt.getMinutes() - 2);
 
-    await transaction
+    const enrollments = await transaction
       .insertInto('enrollment')
       .values([
         {
@@ -285,6 +285,25 @@ describe('POST /public/certificate/verify', () => {
           posting_id: postingTwo.id,
           attended: true,
           created_at: enrollmentCreatedAt,
+        },
+      ])
+      .returningAll()
+      .execute();
+
+    await transaction
+      .insertInto('enrollment_date')
+      .values([
+        {
+          enrollment_id: enrollments[0]!.id,
+          posting_id: postingOne.id,
+          date: new Date('2026-02-01T00:00:00.000Z'),
+          attended: true,
+        },
+        {
+          enrollment_id: enrollments[1]!.id,
+          posting_id: postingTwo.id,
+          date: new Date('2026-02-03T00:00:00.000Z'),
+          attended: true,
         },
       ])
       .execute();
