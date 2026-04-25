@@ -45,7 +45,7 @@ function Card({
   return (
 
     <div className={`card ${fillHeight ? 'h-full fill-height' : ''} flex flex-col bg-base-100 shadow-md border border-base-300 ${className}`.trim()}>
-      <div className={`card-body ${fillHeight ? 'flex-1' : ''} flex flex-col ${padding ? '' : 'p-0'}`}>
+      <div className={`card-body ${fillHeight ? 'flex-1' : ''} flex flex-col ${padding ? 'sm:p-6 p-4' : 'p-0'}`}>
         {title && (
           <div className={`flex items-center gap-2 ${description ? '' : (children ? 'mb-3' : 'mb-0')}`}>
             { left }
