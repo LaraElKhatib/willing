@@ -297,166 +297,163 @@ function OrganizationVolunteerProfile() {
         )}
       />
 
-      <div className="mt-4">
-        <ColumnLayout
-          sidebar={(
-            <Card>
-              <div className="flex items-center gap-4">
-                <div className="avatar">
-                  <div className="bg-primary text-primary-content rounded-full w-20 flex items-center justify-center">
-                    <span className="text-2xl">{initials || 'V'}</span>
-                  </div>
-                </div>
-                <div>
-                  <h4 className="text-xl font-bold">{volunteerName}</h4>
-                  <div className="mt-1">
-                    <span className={`badge badge-sm gap-1 ${genderBadgeStyles}`}>
-                      {profile.volunteer.gender === 'male' && <Mars size={12} />}
-                      {profile.volunteer.gender === 'female' && <Venus size={12} />}
-                      {profile.volunteer.gender === 'other' && <span className="font-bold">*</span>}
-                      {formattedGender}
-                    </span>
-                  </div>
+      <ColumnLayout
+        sidebar={(
+          <Card>
+            <div className="flex items-center gap-4">
+              <div className="avatar">
+                <div className="bg-primary text-primary-content rounded-full w-20 flex items-center justify-center">
+                  <span className="text-2xl">{initials || 'V'}</span>
                 </div>
               </div>
-
-              <div className="divider my-4" />
-
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="opacity-70 flex items-center gap-2">
-                    <Mail size={14} />
-                    Email
+              <div>
+                <h4 className="text-xl font-bold">{volunteerName}</h4>
+                <div className="mt-1">
+                  <span className={`badge badge-sm gap-1 ${genderBadgeStyles}`}>
+                    {profile.volunteer.gender === 'male' && <Mars size={12} />}
+                    {profile.volunteer.gender === 'female' && <Venus size={12} />}
+                    {profile.volunteer.gender === 'other' && <span className="font-bold">*</span>}
+                    {formattedGender}
                   </span>
-                  <span className="font-medium text-right break-all">{profile.volunteer.email}</span>
-                </div>
-                <div className="flex items-center justify-between gap-2">
-                  <span className="opacity-70 flex items-center gap-2">
-                    <Calendar size={14} />
-                    Date of Birth
-                  </span>
-                  <span className="font-medium text-right">{formattedDateOfBirth}</span>
                 </div>
               </div>
+            </div>
 
-              <div className="mt-4">
-                <label className="text-sm font-semibold text-base-content mb-2 block">Description</label>
-                <p className="text-sm opacity-80 whitespace-pre-wrap wrap-break-word">
-                  {profile.volunteer.description || 'No description added yet.'}
-                </p>
-              </div>
+            <div className="divider my-4" />
 
-              <div className="mt-4">
-                {profile.volunteer.cv_path
-                  ? (
-                      <div className="flex items-center gap-2">
-                        <Button type="button" color="primary" style="soft" onClick={() => { void viewCv(); }} Icon={FileText}>
-                          View User CV
-                        </Button>
-                        <IconButton
-                          type="button"
-                          color="primary"
-                          style="outline"
-                          Icon={Download}
-                          onClick={() => { void downloadCv(); }}
-                          aria-label="Download CV"
-                          title="Download CV"
-                        />
-                      </div>
-                    )
-                  : (
-                      <p className="text-sm opacity-70">No CV uploaded by this volunteer.</p>
-                    )}
-              </div>
-            </Card>
-          )}
-        >
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-0 gap-y-3">
-            <div className="stat place-items-center bg-base-100 shadow-md rounded-2xl sm:rounded-l-2xl sm:rounded-r-none">
-              <div className="stat-title text-base">Completed Postings</div>
-              <div className="stat-value text-2xl text-primary/80 inline-flex w-full items-center justify-center gap-2">
-                <Users className="h-6 w-6 shrink-0 stroke-current" />
-                <span>{profile.experience_stats.total_completed_experiences}</span>
-              </div>
-            </div>
-            <div className="stat place-items-center bg-base-100 shadow-md rounded-2xl sm:rounded-none">
-              <div className="stat-title text-base">Hours Completed</div>
-              <div className="stat-value text-2xl text-primary/80 inline-flex w-full items-center justify-center gap-2">
-                <Clock3 className="h-6 w-6 shrink-0 stroke-current" />
-                <span>{profile.experience_stats.total_hours_completed.toFixed(1)}</span>
-              </div>
-            </div>
-            <div className="stat place-items-center bg-base-100 shadow-md rounded-2xl sm:rounded-r-2xl sm:rounded-l-none">
-              <div className="stat-title text-base">Organizations</div>
-              <div className="stat-value text-2xl text-primary/80 inline-flex w-full items-center justify-center gap-2">
-                <Building2 className="h-6 w-6 shrink-0 stroke-current" />
-                <span>{profile.experience_stats.organizations_supported}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-0 gap-y-3">
-            <div className="stat place-items-center bg-base-100 shadow-md rounded-2xl sm:rounded-l-2xl sm:rounded-r-none">
-              <div className="stat-title text-base">Crisis-Related</div>
-              <div className="stat-value text-2xl text-primary/80 inline-flex w-full items-center justify-center gap-2">
-                <AlertTriangle className="h-6 w-6 shrink-0 stroke-current" />
-                <span>{profile.experience_stats.crisis_related_experiences}</span>
-              </div>
-            </div>
-            <div className="stat place-items-center bg-base-100 shadow-md rounded-2xl sm:rounded-none">
-              <div className="stat-title text-base">Total Skills Used</div>
-              <div className="stat-value text-2xl text-primary/80 inline-flex w-full items-center justify-center gap-2">
-                <FileText className="h-6 w-6 shrink-0 stroke-current" />
-                <span>{profile.experience_stats.total_skills_used}</span>
-              </div>
-            </div>
-            <div className="stat min-w-0 place-items-center bg-base-100 shadow-md rounded-2xl sm:rounded-r-2xl sm:rounded-l-none">
-              <div className="stat-title w-full text-center text-base">Most Volunteered Crisis</div>
-              <div className="stat-value text-lg text-primary/80 flex w-full min-w-0 items-center justify-center gap-2 px-2">
-                <span className="max-w-full text-center whitespace-normal break-words leading-tight overflow-hidden [display:-webkit-box] [-webkit-line-clamp:2] [-webkit-box-orient:vertical]">
-                  {profile.experience_stats.most_volunteered_crisis ?? 'N/A'}
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center justify-between gap-2">
+                <span className="opacity-70 flex items-center gap-2">
+                  <Mail size={14} />
+                  Email
                 </span>
+                <span className="font-medium text-right break-all">{profile.volunteer.email}</span>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="opacity-70 flex items-center gap-2">
+                  <Calendar size={14} />
+                  Date of Birth
+                </span>
+                <span className="font-medium text-right">{formattedDateOfBirth}</span>
               </div>
             </div>
-          </div>
 
-          <Card
-            title="Skills"
-            description="Volunteer skill set."
-          >
-            <SkillsList skills={profile.skills} enableLimit={false} />
-          </Card>
+            <div className="mt-4">
+              <label className="text-sm font-semibold text-base-content mb-2 block">Description</label>
+              <p className="text-sm opacity-80 whitespace-pre-wrap wrap-break-word">
+                {profile.volunteer.description || 'No description added yet.'}
+              </p>
+            </div>
 
-          <Card
-            title="Previous Experiences"
-            description="Past volunteering experiences completed through the platform."
-          >
-            {profile.completed_experiences.length === 0
-              ? (
-                  <div className="alert alert-soft mt-4">
-                    <span className="text-sm">No completed experiences to show yet.</span>
-                  </div>
-                )
-              : (
-                  <div className="mt-4 space-y-3">
-                    <div className="flex justify-end">
-                      <PostingViewModeToggle />
+            <div className="mt-4">
+              {profile.volunteer.cv_path
+                ? (
+                    <div className="flex items-center gap-2">
+                      <Button type="button" color="primary" style="soft" onClick={() => { void viewCv(); }} Icon={FileText}>
+                        View User CV
+                      </Button>
+                      <IconButton
+                        type="button"
+                        color="primary"
+                        style="outline"
+                        Icon={Download}
+                        onClick={() => { void downloadCv(); }}
+                        aria-label="Download CV"
+                        title="Download CV"
+                      />
                     </div>
-
-                    <PostingCollection
-                      postings={experiencePostings}
-                      showCrisis={false}
-                      variant="organization"
-                      showOrganizationName={true}
-                      cardsContainerClassName="grid grid-cols-1 gap-6"
-                      listContainerClassName="space-y-3"
-                    />
-                  </div>
-                )}
+                  )
+                : (
+                    <p className="text-sm opacity-70">No CV uploaded by this volunteer.</p>
+                  )}
+            </div>
           </Card>
+        )}
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-0 gap-y-3">
+          <div className="stat place-items-center bg-base-100 shadow-md rounded-2xl sm:rounded-l-2xl sm:rounded-r-none">
+            <div className="stat-title text-base">Completed Postings</div>
+            <div className="stat-value text-2xl text-primary/80 inline-flex w-full items-center justify-center gap-2">
+              <Users className="h-6 w-6 shrink-0 stroke-current" />
+              <span>{profile.experience_stats.total_completed_experiences}</span>
+            </div>
+          </div>
+          <div className="stat place-items-center bg-base-100 shadow-md rounded-2xl sm:rounded-none">
+            <div className="stat-title text-base">Hours Completed</div>
+            <div className="stat-value text-2xl text-primary/80 inline-flex w-full items-center justify-center gap-2">
+              <Clock3 className="h-6 w-6 shrink-0 stroke-current" />
+              <span>{profile.experience_stats.total_hours_completed.toFixed(1)}</span>
+            </div>
+          </div>
+          <div className="stat place-items-center bg-base-100 shadow-md rounded-2xl sm:rounded-r-2xl sm:rounded-l-none">
+            <div className="stat-title text-base">Organizations</div>
+            <div className="stat-value text-2xl text-primary/80 inline-flex w-full items-center justify-center gap-2">
+              <Building2 className="h-6 w-6 shrink-0 stroke-current" />
+              <span>{profile.experience_stats.organizations_supported}</span>
+            </div>
+          </div>
+        </div>
 
-        </ColumnLayout>
-      </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-0 gap-y-3">
+          <div className="stat place-items-center bg-base-100 shadow-md rounded-2xl sm:rounded-l-2xl sm:rounded-r-none">
+            <div className="stat-title text-base">Crisis-Related</div>
+            <div className="stat-value text-2xl text-primary/80 inline-flex w-full items-center justify-center gap-2">
+              <AlertTriangle className="h-6 w-6 shrink-0 stroke-current" />
+              <span>{profile.experience_stats.crisis_related_experiences}</span>
+            </div>
+          </div>
+          <div className="stat place-items-center bg-base-100 shadow-md rounded-2xl sm:rounded-none">
+            <div className="stat-title text-base">Total Skills Used</div>
+            <div className="stat-value text-2xl text-primary/80 inline-flex w-full items-center justify-center gap-2">
+              <FileText className="h-6 w-6 shrink-0 stroke-current" />
+              <span>{profile.experience_stats.total_skills_used}</span>
+            </div>
+          </div>
+          <div className="stat min-w-0 place-items-center bg-base-100 shadow-md rounded-2xl sm:rounded-r-2xl sm:rounded-l-none">
+            <div className="stat-title w-full text-center text-base">Most Volunteered Crisis</div>
+            <div className="stat-value text-lg text-primary/80 flex w-full min-w-0 items-center justify-center gap-2 px-2">
+              <span className="max-w-full text-center whitespace-normal break-words leading-tight overflow-hidden [display:-webkit-box] [-webkit-line-clamp:2] [-webkit-box-orient:vertical]">
+                {profile.experience_stats.most_volunteered_crisis ?? 'N/A'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <Card
+          title="Skills"
+          description="Volunteer skill set."
+        >
+          <SkillsList skills={profile.skills} enableLimit={false} />
+        </Card>
+
+        <Card
+          title="Previous Experiences"
+          description="Past volunteering experiences completed through the platform."
+        >
+          {profile.completed_experiences.length === 0
+            ? (
+                <div className="alert alert-soft mt-4">
+                  <span className="text-sm">No completed experiences to show yet.</span>
+                </div>
+              )
+            : (
+                <div className="mt-4 space-y-3">
+                  <div className="flex justify-end">
+                    <PostingViewModeToggle />
+                  </div>
+
+                  <PostingCollection
+                    postings={experiencePostings}
+                    showCrisis={false}
+                    variant="organization"
+                    showOrganizationName={true}
+                    cardsContainerClassName="grid grid-cols-1 gap-6"
+                    listContainerClassName="space-y-3"
+                  />
+                </div>
+              )}
+        </Card>
+      </ColumnLayout>
 
       <ReportForm
         open={reportModalOpen}
