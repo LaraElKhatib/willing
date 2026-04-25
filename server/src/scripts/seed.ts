@@ -1,5 +1,6 @@
 ﻿import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
 import { sql } from 'kysely';
 
@@ -12,7 +13,8 @@ const PASSWORD_PLAIN = process.argv[2] || 'Willing123';
 async function seed() {
   const passwordHash = await hash(PASSWORD_PLAIN);
 
-  // Copy seed logos to UPLOAD_DIR
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
   const SEED_LOGOS_DIR = path.resolve(__dirname, 'seed-assets/org-logos');
   const DEST_LOGOS_DIR = path.resolve(config.UPLOAD_DIR, 'org-logos');
   fs.mkdirSync(DEST_LOGOS_DIR, { recursive: true });
