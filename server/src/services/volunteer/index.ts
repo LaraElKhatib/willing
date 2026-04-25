@@ -101,12 +101,12 @@ export const getVolunteerProfile = async (volunteerId: number): Promise<Voluntee
     .innerJoin('enrollment', 'enrollment.id', 'enrollment_date.enrollment_id')
     .innerJoin('organization_posting', 'organization_posting.id', 'enrollment.posting_id')
     .select(sql<number>`COALESCE(SUM(GREATEST(
-      0,
-      EXTRACT(EPOCH FROM (
-        (organization_posting.end_date + organization_posting.end_time)
-        - (organization_posting.start_date + organization_posting.start_time)
-      )) / 3600.0
-    )), 0)`.as('total_hours'))
+    0,
+    EXTRACT(EPOCH FROM (
+      (enrollment_date.date + organization_posting.end_time)
+      - (enrollment_date.date + organization_posting.start_time)
+    )) / 3600.0
+  )), 0)`.as('total_hours'))
     .where('enrollment.volunteer_id', '=', volunteerId)
     .where('enrollment_date.attended', '=', true)
     .executeTakeFirstOrThrow();
