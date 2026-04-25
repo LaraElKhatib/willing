@@ -2,7 +2,6 @@ import { CheckCheck, Download, RotateCcw, Save, Search, Undo2, Users } from 'luc
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 
-import Alert from '../../components/Alert';
 import Button from '../../components/Button';
 import CalendarInfo from '../../components/CalendarInfo';
 import Card from '../../components/Card';

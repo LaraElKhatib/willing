@@ -1,7 +1,6 @@
 import { House, Clipboard } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-import Alert from '../../components/Alert';
 import EmptyState from '../../components/EmptyState.tsx';
 import PageContainer from '../../components/layout/PageContainer.tsx';
 import PageHeader from '../../components/layout/PageHeader.tsx';
