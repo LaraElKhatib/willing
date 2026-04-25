@@ -674,6 +674,7 @@ describe('GET /volunteer/certificate', () => {
       hours_threshold: 3,
       certificate_feature_enabled: true,
       is_disabled: false,
+      is_deleted: false,
       eligible: true,
       logo_path: null,
       signatory_name: 'Org Signatory',
@@ -702,7 +703,7 @@ describe('GET /volunteer/certificate', () => {
     });
   });
 
-  test('includes disabled organizations in certificate list but keeps them unselectable, while deleted organizations stay excluded and all hours count toward total', async () => {
+  test('includes disabled and deleted organizations in certificate list as unselectable while all hours count toward total', async () => {
     const { volunteer, token } = await createVolunteerAccount(transaction, { email: 'certificate-org-status@example.com' });
     const { organization: activeOrg } = await createOrganizationAccount(transaction, { email: 'certificate-active-org@example.com' });
     const { organization: disabledOrg } = await createOrganizationAccount(transaction, { email: 'certificate-disabled-org@example.com' });
@@ -797,12 +798,13 @@ describe('GET /volunteer/certificate', () => {
       .expect(200);
 
     expect(response.body.total_hours).toBe(6);
-    expect(response.body.organizations).toHaveLength(2);
+    expect(response.body.organizations).toHaveLength(3);
     expect(response.body.organizations[0]).toMatchObject({
       id: activeOrg.id,
       name: activeOrg.name,
       hours: 2,
       is_disabled: false,
+      is_deleted: false,
       eligible: true,
     });
     expect(response.body.organizations[1]).toMatchObject({
@@ -810,8 +812,136 @@ describe('GET /volunteer/certificate', () => {
       name: disabledOrg.name,
       hours: 2,
       is_disabled: true,
+      is_deleted: false,
       eligible: false,
     });
+    expect(response.body.organizations[2]).toMatchObject({
+      id: deletedOrg.id,
+      name: deletedOrg.name,
+      hours: 2,
+      is_disabled: false,
+      is_deleted: true,
+      eligible: false,
+    });
+  });
+
+  test('sorts certificate organizations with certificate-enabled organizations first, then by hours', async () => {
+    const { volunteer, token } = await createVolunteerAccount(transaction, { email: 'certificate-sorting-volunteer@example.com' });
+    const { organization: certificateEnabledOrg } = await createOrganizationAccount(transaction, { email: 'certificate-sorting-enabled@example.com' });
+    const { organization: certificateDisabledOrg } = await createOrganizationAccount(transaction, { email: 'certificate-sorting-disabled@example.com' });
+
+    const enabledInfo = await transaction
+      .insertInto('organization_certificate_info')
+      .values({
+        certificate_feature_enabled: true,
+        hours_threshold: 1,
+        signatory_name: 'Enabled Signatory',
+        signatory_position: 'Director',
+        signature_path: 'uploads/enabled-signature.png',
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    const disabledInfo = await transaction
+      .insertInto('organization_certificate_info')
+      .values({
+        certificate_feature_enabled: false,
+        hours_threshold: 1,
+        signatory_name: 'Disabled Signatory',
+        signatory_position: 'Director',
+        signature_path: 'uploads/disabled-signature.png',
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    await transaction
+      .updateTable('organization_account')
+      .set({ certificate_info_id: enabledInfo.id })
+      .where('id', '=', certificateEnabledOrg.id)
+      .execute();
+
+    await transaction
+      .updateTable('organization_account')
+      .set({ certificate_info_id: disabledInfo.id })
+      .where('id', '=', certificateDisabledOrg.id)
+      .execute();
+
+    const enabledPosting = await transaction
+      .insertInto('organization_posting')
+      .values({
+        organization_id: certificateEnabledOrg.id,
+        title: 'Certificate Enabled Posting',
+        description: 'Enabled org posting',
+        latitude: 33.9,
+        longitude: 35.5,
+        max_volunteers: 25,
+        start_date: new Date('2026-03-01T00:00:00.000Z'),
+        start_time: '09:00:00',
+        end_date: new Date('2026-03-01T00:00:00.000Z'),
+        end_time: '10:00:00',
+        minimum_age: 18,
+        automatic_acceptance: true,
+        is_closed: false,
+        allows_partial_attendance: false,
+        location_name: 'Beirut',
+        crisis_id: null,
+        created_at: new Date('2026-02-01T00:00:00.000Z'),
+        updated_at: new Date('2026-02-01T00:00:00.000Z'),
+      })
+      .returning(['id'])
+      .executeTakeFirstOrThrow();
+
+    const disabledPosting = await transaction
+      .insertInto('organization_posting')
+      .values({
+        organization_id: certificateDisabledOrg.id,
+        title: 'Certificate Disabled Posting',
+        description: 'Disabled org posting',
+        latitude: 33.9,
+        longitude: 35.5,
+        max_volunteers: 25,
+        start_date: new Date('2026-03-02T00:00:00.000Z'),
+        start_time: '09:00:00',
+        end_date: new Date('2026-03-02T00:00:00.000Z'),
+        end_time: '13:00:00',
+        minimum_age: 18,
+        automatic_acceptance: true,
+        is_closed: false,
+        allows_partial_attendance: false,
+        location_name: 'Beirut',
+        crisis_id: null,
+        created_at: new Date('2026-02-01T00:00:00.000Z'),
+        updated_at: new Date('2026-02-01T00:00:00.000Z'),
+      })
+      .returning(['id'])
+      .executeTakeFirstOrThrow();
+
+    await transaction
+      .insertInto('enrollment')
+      .values([
+        {
+          volunteer_id: volunteer.id,
+          posting_id: enabledPosting.id,
+          attended: true,
+          created_at: new Date('2026-03-03T00:00:00.000Z'),
+        },
+        {
+          volunteer_id: volunteer.id,
+          posting_id: disabledPosting.id,
+          attended: true,
+          created_at: new Date('2026-03-03T00:00:00.000Z'),
+        },
+      ])
+      .execute();
+
+    const response = await server
+      .get('/volunteer/certificate')
+      .set('Authorization', 'Bearer ' + token)
+      .expect(200);
+
+    expect(response.body.organizations).toHaveLength(2);
+    expect(response.body.organizations[0].id).toBe(certificateEnabledOrg.id);
+    expect(response.body.organizations[1].id).toBe(certificateDisabledOrg.id);
   });
 });
 

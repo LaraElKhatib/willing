@@ -30,6 +30,13 @@ const CERTIFICATE_PREVIEW_ID = 'certificate-preview';
 const formatHours = (value: number) => Math.floor(value);
 
 const getOrganizationEligibilityStatus = (organization: VolunteerCertificateResponse['organizations'][number]) => {
+  if (organization.is_deleted) {
+    return {
+      label: 'Organization deleted',
+      className: 'badge badge-error',
+    };
+  }
+
   if (organization.is_disabled) {
     return {
       label: 'Organization disabled',
@@ -282,6 +289,7 @@ function VolunteerCertificateRequest() {
                 const selected = selectedOrganizationIds.includes(organization.id);
                 const eligibilityStatus = getOrganizationEligibilityStatus(organization);
                 const certificatesNotEnabled = !organization.certificate_feature_enabled;
+                const organizationDeleted = organization.is_deleted;
                 const organizationDisabled = organization.is_disabled;
 
                 return (
@@ -295,13 +303,16 @@ function VolunteerCertificateRequest() {
                       <span className="badge badge-ghost">{`#${index + 1}`}</span>
                       <div>
                         <p className="font-semibold">{organization.name}</p>
+                        {organizationDeleted && (
+                          <p className="text-sm opacity-70">Organization account was deleted</p>
+                        )}
                         {organizationDisabled && (
                           <p className="text-sm opacity-70">Organization account is disabled</p>
                         )}
-                        {!organizationDisabled && certificatesNotEnabled && (
+                        {!organizationDeleted && !organizationDisabled && certificatesNotEnabled && (
                           <p className="text-sm opacity-70">Certificates not enabled</p>
                         )}
-                        {!organizationDisabled && !certificatesNotEnabled && (
+                        {!organizationDeleted && !organizationDisabled && !certificatesNotEnabled && (
                           <p className="text-sm opacity-70">
                             Hours:
                             {' '}
@@ -317,7 +328,7 @@ function VolunteerCertificateRequest() {
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      {(organizationDisabled || !certificatesNotEnabled) && (
+                      {(organizationDeleted || organizationDisabled || !certificatesNotEnabled) && (
                         <span className={eligibilityStatus.className}>{eligibilityStatus.label}</span>
                       )}
                       <input

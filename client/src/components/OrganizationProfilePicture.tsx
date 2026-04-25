@@ -84,7 +84,12 @@ export default function OrganizationProfilePicture({
 
   if (linkToOrganizationPage) {
     return (
-      <Link to={`/organization/${organizationId}`} className={linkClassName} onClick={onLinkClick}>
+      <Link
+        to={`/organization/${organizationId}`}
+        className={linkClassName}
+        onClick={onLinkClick}
+        aria-label={`View ${organizationName} organization page`}
+      >
         {avatarContent}
       </Link>
     );
