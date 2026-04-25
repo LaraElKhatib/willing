@@ -171,14 +171,14 @@ function PostingCard({
 
       <div className="p-4 md:p-5 mt-1 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3 min-w-0">
-          <Link to={`/organization/${posting.organization_id}`} className="shrink-0">
-            <OrganizationProfilePicture
-              organizationName={posting.organization_name ?? 'Organization'}
-              organizationId={posting.organization_id}
-              logoPath={posting.organization_logo_path}
-              size={48}
-            />
-          </Link>
+          <OrganizationProfilePicture
+            organizationName={posting.organization_name ?? 'Organization'}
+            organizationId={posting.organization_id}
+            logoPath={posting.organization_logo_path}
+            size={48}
+            linkToOrganizationPage
+            linkClassName="shrink-0"
+          />
           {posting.organization_name
             ? (
                 <div className="min-w-0">
