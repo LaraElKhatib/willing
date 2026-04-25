@@ -1,6 +1,6 @@
 import { CheckCheck, Download, RotateCcw, Save, Undo2, Users } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useParams } from 'react-router';
+import { useParams } from 'react-router-dom';
 
 import Alert from '../../components/Alert';
 import Button from '../../components/Button';
@@ -415,13 +415,14 @@ function OrganizationPostingAttendance() {
         showBack
         defaultBackTo={`/posting/${data.posting.id}`}
         actions={(
-          <>
+          <span className="flex gap-2 flex-wrap justify-end">
             <Button
               style="outline"
               onClick={() => void exportAttendanceCsv()}
               disabled={data.enrollments.length === 0}
               loading={exportingCsv}
               Icon={Download}
+              size="sm"
             >
               Export CSV
             </Button>
@@ -432,6 +433,7 @@ function OrganizationPostingAttendance() {
               disabled={data.enrollments.length === 0}
               loading={saving}
               Icon={CheckCheck}
+              size="sm"
             >
               Mark All Present
             </Button>
@@ -442,6 +444,7 @@ function OrganizationPostingAttendance() {
               disabled={data.enrollments.length === 0}
               loading={saving}
               Icon={RotateCcw}
+              size="sm"
             >
               Clear All
             </Button>
@@ -451,6 +454,7 @@ function OrganizationPostingAttendance() {
               disabled={!hasUnsavedChanges}
               loading={saving}
               Icon={Undo2}
+              size="sm"
             >
               Undo Changes
             </Button>
@@ -460,10 +464,11 @@ function OrganizationPostingAttendance() {
               disabled={!hasUnsavedChanges}
               loading={saving}
               Icon={Save}
+              size="sm"
             >
               Save Attendance
             </Button>
-          </>
+          </span>
         )}
       />
 

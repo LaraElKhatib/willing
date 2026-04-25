@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Send, MapPin, Edit3, Users, ShieldCheck, LockOpen, Lock, Tag, Plus, Calendar } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
-import { useNavigate } from 'react-router';
+import { useNavigate } from 'react-router-dom';
 
 import Button from '../../components/Button.tsx';
 import CalendarInfo from '../../components/CalendarInfo';

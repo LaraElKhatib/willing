@@ -453,7 +453,9 @@ function PostingSearchView({
               }}
               Icon={ClipboardList}
             >
-              Postings
+              <span className="max-sm:hidden">
+                Postings
+              </span>
             </Button>
             {enableOrganizationSearch && (
               <Button
@@ -469,7 +471,9 @@ function PostingSearchView({
                 }}
                 Icon={Building2}
               >
-                Organizations
+                <span className="max-sm:hidden">
+                  Organizations
+                </span>
               </Button>
             )}
             {enableCrisisFilter && (
@@ -486,13 +490,16 @@ function PostingSearchView({
                 }}
                 Icon={AlertTriangle}
               >
-                Crises
+                <span className="max-sm:hidden">
+                  Crises
+                </span>
               </Button>
             )}
           </div>
         </div>
       )}
       <PostingFiltersCard
+        title={'Filter ' + (activeEntity === 'postings' ? 'Postings' : activeEntity === 'organizations' ? 'Organizations' : 'Crises')}
         defaultValues={defaultFormValues}
         resetValues={toPostingSearchFormValues(cleanEntityDefaults)}
         onApply={applyFilters}

@@ -1,5 +1,5 @@
 import { AlertCircle, Ban, Cake, Calendar, Clock, ExternalLink, LockOpen, MapPin, Users } from 'lucide-react';
-import { Link } from 'react-router';
+import { Link } from 'react-router-dom';
 
 import OrganizationProfilePicture from './OrganizationProfilePicture';
 import SkillsList from './skills/SkillsList';

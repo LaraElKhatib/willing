@@ -997,23 +997,24 @@ function PostingPage() {
         defaultBackTo={isVolunteerView ? '/volunteer' : '/organization'}
         actions={canManagePosting && (isEditMode
           ? (
-              <>
-                <Button style="outline" onClick={onCancelEdit} disabled={saving} Icon={X}>
+              <span className="flex gap-2 flex-wrap justify-end">
+                <Button style="outline" onClick={onCancelEdit} disabled={saving} Icon={X} size="sm">
                   Cancel
                 </Button>
-                <Button color="primary" onClick={onSave} loading={saving} Icon={Save}>
+                <Button color="primary" onClick={onSave} loading={saving} Icon={Save} size="sm">
                   Save Changes
                 </Button>
-              </>
+              </span>
             )
           : (
-              <>
+              <span className="flex gap-2 flex-wrap justify-end">
                 <LinkButton
                   to={`/organization/posting/${posting.id}/attendance`}
                   color="info"
                   style="outline"
                   disabled={!canOpenAttendancePage}
                   Icon={ListChecks}
+                  size="sm"
                 >
                   Attendance
                 </LinkButton>
@@ -1022,6 +1023,7 @@ function PostingPage() {
                   onClick={() => setIsEditMode(true)}
                   style="outline"
                   Icon={Edit3}
+                  size="sm"
                 >
                   Edit
                 </Button>
@@ -1031,6 +1033,7 @@ function PostingPage() {
                   disabled={!posting}
                   loading={togglingClosed}
                   Icon={posting?.is_closed ? LockOpen : Lock}
+                  size="sm"
                 >
                   {posting?.is_closed ? 'Reopen' : 'Close'}
                 </Button>
@@ -1039,10 +1042,11 @@ function PostingPage() {
                   onClick={onDelete}
                   loading={deleting}
                   Icon={Trash2}
+                  size="sm"
                 >
                   Delete
                 </Button>
-              </>
+              </span>
             )
         )}
       />
@@ -1498,7 +1502,6 @@ function PostingPage() {
         {canManagePosting && !isOpen && (
           <Card
             title="Enrollment Applications"
-            description="Enrollment applications description."
             right={
               <span className="badge badge-primary">{applications.length}</span>
             }
@@ -1517,7 +1520,7 @@ function PostingPage() {
                         volunteer={app}
                         profileLink={`/organization/volunteer/${app.volunteer_id}`}
                         actions={(
-                          <>
+                          <span className="flex gap-2">
                             <Button
                               color="success"
                               style="soft"
@@ -1536,7 +1539,7 @@ function PostingPage() {
                             >
                               Reject
                             </Button>
-                          </>
+                          </span>
                         )}
                       />
                     ))}
@@ -1548,7 +1551,6 @@ function PostingPage() {
         {canManagePosting && (
           <Card
             title="Enrolled Volunteers"
-            // description="Enrolled volunteers description"
             right={
               <span className="badge badge-primary">{enrollments.length}</span>
             }
