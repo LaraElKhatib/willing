@@ -117,8 +117,10 @@ function VolunteerInfoCollapse({ volunteer, actions, profileLink }: VolunteerInf
                       <span className="badge badge-sm gap-1">
                         <Cake size={12} />
                         {age}
-                        {' '}
-                        years old
+                        <span className="max-sm:hidden">
+                          {' '}
+                          years old
+                        </span>
                       </span>
                     </div>
                   </div>
@@ -148,8 +150,10 @@ function VolunteerInfoCollapse({ volunteer, actions, profileLink }: VolunteerInf
                       <span className="badge badge-sm gap-1">
                         <Cake size={12} />
                         {age}
-                        {' '}
-                        years old
+                        <span className="max-sm:hidden">
+                          {' '}
+                          years old
+                        </span>
                       </span>
                     </div>
                   </div>
@@ -172,7 +176,7 @@ function VolunteerInfoCollapse({ volunteer, actions, profileLink }: VolunteerInf
           </div>
         )}
         {actions && (
-          <div className="flex gap-2 items-center pointer-events-auto" onClick={e => e.stopPropagation()}>
+          <div className="flex gap-2 items-center pointer-events-auto max-sm:hidden" onClick={e => e.stopPropagation()}>
             {actions}
           </div>
         )}
@@ -215,6 +219,9 @@ function VolunteerInfoCollapse({ volunteer, actions, profileLink }: VolunteerInf
             </p>
           </div>
         )}
+        <div className="mt-3 flex flex-col items-center sm:hidden">
+          {actions}
+        </div>
       </div>
     </div>
   );

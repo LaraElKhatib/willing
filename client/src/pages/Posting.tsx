@@ -1495,7 +1495,6 @@ function PostingPage() {
         {canManagePosting && !isOpen && (
           <Card
             title="Enrollment Applications"
-            description="Enrollment applications description."
             right={
               <span className="badge badge-primary">{applications.length}</span>
             }
@@ -1514,7 +1513,7 @@ function PostingPage() {
                         volunteer={app}
                         profileLink={`/organization/volunteer/${app.volunteer_id}`}
                         actions={(
-                          <>
+                          <span className="flex gap-2">
                             <Button
                               color="success"
                               style="soft"
@@ -1533,7 +1532,7 @@ function PostingPage() {
                             >
                               Reject
                             </Button>
-                          </>
+                          </span>
                         )}
                       />
                     ))}
@@ -1545,7 +1544,6 @@ function PostingPage() {
         {canManagePosting && (
           <Card
             title="Enrolled Volunteers"
-            // description="Enrolled volunteers description"
             right={
               <span className="badge badge-primary">{enrollments.length}</span>
             }
