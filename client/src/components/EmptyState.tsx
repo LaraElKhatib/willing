@@ -16,7 +16,7 @@ function EmptyState({
   className,
 }: PostingEmptyStateProps) {
   return (
-    <div className={`hero bg-base-100 border border-base-300 rounded-box ${compact ? 'p-2' : 'p-10'} ${className}`}>
+    <div className={`hero bg-base-100 border border-base-300 rounded-box ${compact ? 'p-2' : 'sm:p-10 p-1'} ${className}`}>
       <div className="hero-content text-center">
         <div className="max-w-md flex flex-col items-center">
           <Icon
