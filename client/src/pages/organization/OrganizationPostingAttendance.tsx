@@ -1,4 +1,4 @@
-import { CheckCheck, Download, RotateCcw, Save, Undo2, Users } from 'lucide-react';
+import { CheckCheck, Download, RotateCcw, Save, Search, Undo2, Users } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 
@@ -6,6 +6,7 @@ import Alert from '../../components/Alert';
 import Button from '../../components/Button';
 import CalendarInfo from '../../components/CalendarInfo';
 import Card from '../../components/Card';
+import EmptyState from '../../components/EmptyState';
 import PageContainer from '../../components/layout/PageContainer';
 import PageHeader from '../../components/layout/PageHeader';
 import Loading from '../../components/Loading';
@@ -542,15 +543,20 @@ function OrganizationPostingAttendance() {
         )}
 
         {data.enrollments.length === 0 && (
-          <Alert>
-            No enrolled volunteers to track yet.
-          </Alert>
+          <EmptyState
+            title="No enrolled volunteers"
+            description="Volunteers will show up here once they register for this posting."
+            Icon={Users}
+          />
         )}
 
         {data.enrollments.length > 0 && filteredAndSortedEnrollments.length === 0 && (
-          <Alert>
-            No volunteers signed up for this day yet
-          </Alert>
+          <EmptyState
+            title="No match"
+            description="No volunteers match your query."
+            Icon={Search}
+            compact
+          />
         )}
 
         {data.enrollments.length > 0 && filteredAndSortedEnrollments.length > 0 && (

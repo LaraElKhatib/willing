@@ -63,6 +63,7 @@ import type {
 } from '../../../server/src/api/types.ts';
 import type { Crisis } from '../../../server/src/db/tables/index.ts';
 import type { PostingApplication, PostingEnrollment, PostingWithContext, PostingWithSkills } from '../../../server/src/types.ts';
+import EmptyState from '../components/EmptyState.tsx';
 
 const parseLocalDateParts = (value: string | Date) => {
   if (typeof value === 'string') {
@@ -1508,9 +1509,11 @@ function PostingPage() {
           >
             {applications.length === 0
               ? (
-                  <Alert>
-                    No pending applications.
-                  </Alert>
+                  <EmptyState
+                    title="No pending applications"
+                    description="Wait for volunteers to apply to show here."
+                    Icon={Users}
+                  />
                 )
               : (
                   <div className="space-y-2">
@@ -1558,9 +1561,11 @@ function PostingPage() {
 
             {enrollments.length === 0
               ? (
-                  <Alert>
-                    No volunteers have enrolled yet.
-                  </Alert>
+                  <EmptyState
+                    title="No volunteers have enrolled yet"
+                    description="Wait for volunteers to enroll to show here."
+                    Icon={Users}
+                  />
                 )
               : (
                   <div className="space-y-2">
