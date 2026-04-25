@@ -465,6 +465,8 @@ function createVolunteerRouter(db: Kysely<Database>) {
         'organization_account.id',
         'organization_account.name',
         'organization_account.logo_path',
+        'organization_account.is_disabled',
+        'organization_account.is_deleted',
         'organization_certificate_info.hours_threshold',
         'organization_certificate_info.certificate_feature_enabled',
         'organization_certificate_info.signatory_name',
@@ -478,12 +480,15 @@ function createVolunteerRouter(db: Kysely<Database>) {
         'organization_account.id',
         'organization_account.name',
         'organization_account.logo_path',
+        'organization_account.is_disabled',
+        'organization_account.is_deleted',
         'organization_certificate_info.hours_threshold',
         'organization_certificate_info.certificate_feature_enabled',
         'organization_certificate_info.signatory_name',
         'organization_certificate_info.signatory_position',
         'organization_certificate_info.signature_path',
       ])
+      .orderBy(sql<boolean>`COALESCE(organization_certificate_info.certificate_feature_enabled, false)`, 'desc')
       .orderBy('hours', 'desc')
       .orderBy('organization_account.name', 'asc')
       .execute();
@@ -507,6 +512,8 @@ function createVolunteerRouter(db: Kysely<Database>) {
           && organization.signature_path?.trim(),
         );
         const eligible = featureEnabled
+          && !organization.is_disabled
+          && !organization.is_deleted
           && threshold !== null
           && hasSignatoryInfo
           && hours >= threshold;
@@ -517,6 +524,8 @@ function createVolunteerRouter(db: Kysely<Database>) {
           hours,
           hours_threshold: threshold,
           certificate_feature_enabled: featureEnabled,
+          is_disabled: organization.is_disabled,
+          is_deleted: organization.is_deleted,
           eligible,
           logo_path: organization.logo_path ?? null,
           signatory_name: organization.signatory_name ?? null,
@@ -568,6 +577,23 @@ function createVolunteerRouter(db: Kysely<Database>) {
     });
 
     const totalHours = Number(rows.reduce((sum, row) => sum + Number(row.hours ?? 0), 0).toFixed(2));
+
+    if (selectedOrgIds.length > 0) {
+      const activeOrganizations = await db
+        .selectFrom('organization_account')
+        .select(['id'])
+        .where('id', 'in', selectedOrgIds)
+        .where('is_deleted', '=', false)
+        .where('is_disabled', '=', false)
+        .execute();
+
+      const activeOrgIds = new Set(activeOrganizations.map(organization => organization.id));
+      const invalidOrgId = selectedOrgIds.find(orgId => !activeOrgIds.has(orgId));
+      if (invalidOrgId != null) {
+        res.status(400);
+        throw new Error(`Organization ${invalidOrgId} cannot be included in this certificate.`);
+      }
+    }
 
     for (const orgId of selectedOrgIds) {
       const orgHours = hoursByOrganizationId.get(orgId);

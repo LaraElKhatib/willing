@@ -837,10 +837,13 @@ function PostingPage() {
 
   const applicationDaysLabel = useMemo(() => {
     if (!posting || (!isEnrolled && !hasPendingApplication)) return null;
-    if (!posting.allows_partial_attendance) return 'All days';
+    if (!posting.allows_partial_attendance) {
+      if (startDate === endDate && startDate) return formatDisplayDate(startDate);
+      return 'All days';
+    }
     if (formattedSelectedDates.length === 0) return null;
     return formattedSelectedDates.join(', ');
-  }, [formattedSelectedDates, hasPendingApplication, isEnrolled, posting]);
+  }, [endDate, formattedSelectedDates, hasPendingApplication, isEnrolled, posting, startDate]);
 
   const shouldShowCommitmentCard = useMemo(() => {
     if (!posting) return false;
@@ -1050,14 +1053,14 @@ function PostingPage() {
             <Card>
               <div className="flex items-start gap-3 mb-4">
                 {postingOrganization && (
-                  <Link to={`/organization/${postingOrganization.id}`} className="shrink-0">
-                    <OrganizationProfilePicture
-                      organizationName={postingOrganization.name}
-                      organizationId={postingOrganization.id}
-                      logoPath={postingOrganization.logoPath}
-                      size={48}
-                    />
-                  </Link>
+                  <OrganizationProfilePicture
+                    organizationName={postingOrganization.name}
+                    organizationId={postingOrganization.id}
+                    logoPath={postingOrganization.logoPath}
+                    size={48}
+                    linkToOrganizationPage
+                    linkClassName="shrink-0"
+                  />
                 )}
 
                 <div className="min-w-0">
