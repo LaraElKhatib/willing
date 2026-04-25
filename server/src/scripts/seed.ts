@@ -25,6 +25,26 @@ async function seed() {
     );
   }
 
+  const SEED_ORG_SIGNATURES_DIR = path.resolve(__dirname, 'seed-assets/org-signatures');
+  const DEST_ORG_SIGNATURES_DIR = path.resolve(config.UPLOAD_DIR, 'org-signatures');
+  fs.mkdirSync(DEST_ORG_SIGNATURES_DIR, { recursive: true });
+  for (const file of fs.readdirSync(SEED_ORG_SIGNATURES_DIR)) {
+    fs.copyFileSync(
+      path.join(SEED_ORG_SIGNATURES_DIR, file),
+      path.join(DEST_ORG_SIGNATURES_DIR, file),
+    );
+  }
+
+  const SEED_PLATFORM_SIGNATURES_DIR = path.resolve(__dirname, 'seed-assets/platform-signatures');
+  const DEST_PLATFORM_SIGNATURES_DIR = path.resolve(config.UPLOAD_DIR, 'platform-signatures');
+  fs.mkdirSync(DEST_PLATFORM_SIGNATURES_DIR, { recursive: true });
+  for (const file of fs.readdirSync(SEED_PLATFORM_SIGNATURES_DIR)) {
+    fs.copyFileSync(
+      path.join(SEED_PLATFORM_SIGNATURES_DIR, file),
+      path.join(DEST_PLATFORM_SIGNATURES_DIR, file),
+    );
+  }
+
   await sql`
   TRUNCATE TABLE
     enrollment_application_date,
@@ -134,28 +154,28 @@ async function seed() {
       hours_threshold: 8,
       signatory_name: 'Mira Khoury',
       signatory_position: 'Programs Director',
-      signature_path: 'org-signatures/nour-relief-signature.png',
+      signature_path: 'nour-relief-signature.png',
     },
     {
       certificate_feature_enabled: false,
       hours_threshold: 20,
       signatory_name: 'Rani Hayek',
       signatory_position: 'North Lebanon Coordinator',
-      signature_path: 'org-signatures/ajialouna.png',
+      signature_path: 'ajialouna-signature.png',
     },
     {
       certificate_feature_enabled: true,
       hours_threshold: 5,
       signatory_name: 'Fadi Daher',
       signatory_position: 'Community Partnerships Lead',
-      signature_path: 'org-signatures/arz-community-signature.png',
+      signature_path: 'arz-community-signature.png',
     },
     {
       certificate_feature_enabled: true,
       hours_threshold: 6,
       signatory_name: 'Nadine Saliba',
       signatory_position: 'Executive Director',
-      signature_path: 'org-signatures/cedar-response-signature.png',
+      signature_path: 'cedar-response-signature.png',
     },
     {
       certificate_feature_enabled: false,
@@ -176,7 +196,7 @@ async function seed() {
       hours_threshold: 5,
       signatory_name: 'Rima Jouni',
       signatory_position: 'Director',
-      signature_path: 'org-signatures/inssan-signature.png',
+      signature_path: 'inssan-signature.png',
     },
     {
       certificate_feature_enabled: true,
@@ -190,14 +210,14 @@ async function seed() {
       hours_threshold: 6,
       signatory_name: 'Lena Chehade',
       signatory_position: 'Operations Manager',
-      signature_path: 'org-signatures/lfb-signature.png',
+      signature_path: 'lfb-signature.png',
     },
     {
       certificate_feature_enabled: true,
       hours_threshold: 8,
       signatory_name: 'Joseph Matta',
       signatory_position: 'CEO',
-      signature_path: 'org-signatures/arc-en-ciel-signature.png',
+      signature_path: 'arc-en-ciel-signature.png',
     },
     {
       certificate_feature_enabled: false,
@@ -211,14 +231,14 @@ async function seed() {
       hours_threshold: 4,
       signatory_name: 'Sana Itani',
       signatory_position: 'Programs Lead',
-      signature_path: 'org-signatures/green-hand-signature.png',
+      signature_path: 'green-hand-signature.png',
     },
     {
       certificate_feature_enabled: true,
       hours_threshold: 6,
       signatory_name: 'Ahmad Safa',
       signatory_position: 'Executive Director',
-      signature_path: 'org-signatures/basmeh-signature.png',
+      signature_path: 'basmeh-signature.png',
     },
     {
       certificate_feature_enabled: false,
@@ -232,7 +252,7 @@ async function seed() {
       hours_threshold: 5,
       signatory_name: 'Hana Khachab',
       signatory_position: 'Country Director',
-      signature_path: 'org-signatures/sawa-signature.png',
+      signature_path: 'sawa-signature.png',
     },
     {
       certificate_feature_enabled: false,
@@ -246,7 +266,7 @@ async function seed() {
       hours_threshold: 6,
       signatory_name: 'Ziad Nassar',
       signatory_position: 'Director',
-      signature_path: 'org-signatures/beyond-signature.png',
+      signature_path: 'beyond-signature.png',
     },
     {
       certificate_feature_enabled: false,
@@ -260,7 +280,7 @@ async function seed() {
       hours_threshold: 8,
       signatory_name: 'Kamel Mohanna',
       signatory_position: 'President',
-      signature_path: 'org-signatures/amel-signature.png',
+      signature_path: 'amel-signature.png',
     },
     {
       certificate_feature_enabled: true,
@@ -281,14 +301,14 @@ async function seed() {
       hours_threshold: 10,
       signatory_name: 'George Kettaneh',
       signatory_position: 'Secretary General',
-      signature_path: 'org-signatures/lrc-signature.png',
+      signature_path: 'lrc-signature.png',
     },
     {
       certificate_feature_enabled: true,
       hours_threshold: 6,
       signatory_name: 'Maya Semaan',
       signatory_position: 'Country Representative',
-      signature_path: 'org-signatures/tdh-signature.png',
+      signature_path: 'tdh-signature.png',
     },
     {
       certificate_feature_enabled: false,
@@ -302,7 +322,7 @@ async function seed() {
       hours_threshold: 5,
       signatory_name: 'Sara Minkara',
       signatory_position: 'Co-Founder',
-      signature_path: 'org-signatures/nawaya-signature.png',
+      signature_path: 'nawaya-signature.png',
     },
     {
       certificate_feature_enabled: false,
@@ -316,7 +336,7 @@ async function seed() {
       hours_threshold: 4,
       signatory_name: 'Omar Salam',
       signatory_position: 'Chairman',
-      signature_path: 'org-signatures/sidon-welfare-signature.png',
+      signature_path: 'sidon-welfare-signature.png',
     },
     {
       certificate_feature_enabled: false,
@@ -330,7 +350,7 @@ async function seed() {
       hours_threshold: 6,
       signatory_name: 'Hind Beydoun',
       signatory_position: 'Director',
-      signature_path: 'org-signatures/slen-signature.png',
+      signature_path: 'slen-signature.png',
     },
     {
       certificate_feature_enabled: false,
