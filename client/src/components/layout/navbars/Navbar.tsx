@@ -1,6 +1,6 @@
 import { Menu, X } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
-import { Link } from 'react-router';
+import { Link } from 'react-router-dom';
 
 function Navbar({ center, right }: { center?: ReactNode; right?: ReactNode }) {
   const [isCenterOpen, setIsCenterOpen] = useState(false);

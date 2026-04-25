@@ -1,6 +1,6 @@
 import { Cake, FileText, Mail, Mars, MessageSquare, Venus } from 'lucide-react';
 import { useMemo, useState, type ReactNode } from 'react';
-import { Link } from 'react-router';
+import { Link } from 'react-router-dom';
 
 import IconButton from './IconButton';
 import SkillsList from './skills/SkillsList';

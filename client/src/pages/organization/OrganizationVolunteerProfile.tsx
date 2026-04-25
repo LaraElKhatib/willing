@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertTriangle, Building2, Calendar, Clock3, Download, FileText, Flag, Mail, Mars, Users, Venus } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { useParams } from 'react-router';
+import { useParams } from 'react-router-dom';
 import zod from 'zod';
 
 import Alert from '../../components/Alert';

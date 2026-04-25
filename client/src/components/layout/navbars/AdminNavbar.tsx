@@ -1,6 +1,6 @@
 import { AlertCircle, ChevronDown, ClipboardCheck, Flag, Home, LogOut, Settings, ShieldUser } from 'lucide-react';
 import { useCallback, useContext } from 'react';
-import { NavLink } from 'react-router';
+import { NavLink } from 'react-router-dom';
 
 import Navbar from './Navbar';
 import AuthContext from '../../../auth/AuthContext';
