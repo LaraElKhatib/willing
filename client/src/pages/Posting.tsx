@@ -30,6 +30,7 @@ import Button from '../components/Button.tsx';
 import CalendarInfo from '../components/CalendarInfo.tsx';
 import Card from '../components/Card.tsx';
 import CustomMessageModal from '../components/CustomMessageModal.tsx';
+import EmptyState from '../components/EmptyState.tsx';
 import ColumnLayout from '../components/layout/ColumnLayout.tsx';
 import PageContainer from '../components/layout/PageContainer.tsx';
 import PageHeader from '../components/layout/PageHeader.tsx';
@@ -1508,9 +1509,11 @@ function PostingPage() {
           >
             {applications.length === 0
               ? (
-                  <Alert>
-                    No pending applications.
-                  </Alert>
+                  <EmptyState
+                    title="No pending applications"
+                    description="Wait for volunteers to apply to show here."
+                    Icon={Users}
+                  />
                 )
               : (
                   <div className="space-y-2">
@@ -1558,9 +1561,11 @@ function PostingPage() {
 
             {enrollments.length === 0
               ? (
-                  <Alert>
-                    No volunteers have enrolled yet.
-                  </Alert>
+                  <EmptyState
+                    title="No volunteers have enrolled yet"
+                    description="Wait for volunteers to enroll to show here."
+                    Icon={Users}
+                  />
                 )
               : (
                   <div className="space-y-2">

@@ -8,6 +8,7 @@ import zod from 'zod';
 import Alert from '../../components/Alert';
 import Button from '../../components/Button';
 import Card from '../../components/Card';
+import EmptyState from '../../components/EmptyState';
 import IconButton from '../../components/IconButton';
 import ColumnLayout from '../../components/layout/ColumnLayout';
 import PageContainer from '../../components/layout/PageContainer';
@@ -432,9 +433,13 @@ function OrganizationVolunteerProfile() {
         >
           {profile.completed_experiences.length === 0
             ? (
-                <div className="alert alert-soft mt-4">
-                  <span className="text-sm">No completed experiences to show yet.</span>
-                </div>
+                <EmptyState
+                  title="No completed experiences to show"
+                  description="This volunteer hasn't completed any opportunities yet."
+                  Icon={Building2}
+                  compact
+                  className="mt-4"
+                />
               )
             : (
                 <div className="mt-4 space-y-3">
