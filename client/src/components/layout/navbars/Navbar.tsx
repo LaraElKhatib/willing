@@ -1,5 +1,6 @@
 import { Menu, X } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
+import { Link } from 'react-router';
 
 function Navbar({ center, right }: { center?: ReactNode; right?: ReactNode }) {
   const [isCenterOpen, setIsCenterOpen] = useState(false);
@@ -20,10 +21,10 @@ function Navbar({ center, right }: { center?: ReactNode; right?: ReactNode }) {
             </button>
           )}
 
-          <a className="btn btn-ghost text-xl px-2" href="/">
+          <Link className="btn btn-ghost text-xl px-2" to="/">
             <img src="/willing.svg" className="h-6" alt="Willing Logo" />
             Willing
-          </a>
+          </Link>
         </div>
         <div className="navbar-center">
           {center && (
