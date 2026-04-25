@@ -50,7 +50,7 @@ function Card({
           <div className={`flex items-center gap-2 ${description ? '' : (children ? 'mb-3' : 'mb-0')}`}>
             { left }
             <h5 className={`font-bold text-lg inline-flex items-center gap-2 ${coloredText ? `text-${color}` : ''}`}>
-              {Icon && <Icon size={17} className={`text-${color}`} />}
+              {Icon && <Icon size={17} className={`text-${color} shrink-0`} />}
               {link
                 ? (
                     <Link
@@ -59,7 +59,7 @@ function Card({
                     >
                       <span className="inline-flex items-center gap-2">
                         {title}
-                        <ExternalLink size={13} className="opacity-60 hover:opacity-100 transition-opacity" />
+                        <ExternalLink size={14} className="opacity-60 hover:opacity-100 transition-opacity shrink-0" />
                       </span>
                     </Link>
                   )
