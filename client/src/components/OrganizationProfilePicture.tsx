@@ -37,6 +37,9 @@ export default function OrganizationProfilePicture({
 }: OrganizationProfilePictureProps) {
   const initials = getOrganizationInitials(organizationName);
   const isPng = logoPath?.toLowerCase().endsWith('.png');
+  const logoUrl = logoPath
+    ? `${SERVER_BASE_URL}/organization/${organizationId}/logo?v=${encodeURIComponent(logoPath)}`
+    : '';
 
   if (logoPath) {
     return (
@@ -45,7 +48,7 @@ export default function OrganizationProfilePicture({
         style={{ width: size, height: size, backgroundColor: isPng ? 'white' : undefined }}
       >
         <img
-          src={`${SERVER_BASE_URL}/organization/${organizationId}/logo`}
+          src={logoUrl}
           alt={`${organizationName} logo`}
           className="h-full w-full object-contain"
         />

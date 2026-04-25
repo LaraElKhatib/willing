@@ -85,12 +85,12 @@ export default function OrganizationPostingCreate() {
         start_time: data.start_time,
         end_date: data.end_date,
         end_time: data.end_time,
-        max_volunteers: data.max_volunteers ? Number(data.max_volunteers) : undefined,
-        minimum_age: data.minimum_age ? Number(data.minimum_age) : undefined,
+        max_volunteers: data.max_volunteers ? Number(data.max_volunteers) : null,
+        minimum_age: data.minimum_age ? Number(data.minimum_age) : null,
         automatic_acceptance: data.automatic_acceptance,
         allows_partial_attendance: data.allows_partial_attendance,
         skills: skills.length > 0 ? skills : undefined,
-        crisis_id: selectedCrisisId,
+        crisis_id: selectedCrisisId ?? null,
       };
 
       console.log('Submitting posting payload:', payload);
