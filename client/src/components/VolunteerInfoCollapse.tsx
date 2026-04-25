@@ -182,7 +182,10 @@ function VolunteerInfoCollapse({ volunteer, actions, profileLink }: VolunteerInf
         )}
       </div>
       <div className="collapse-content pt-0">
-        <div className="flex items-center gap-2 text-xs opacity-70 mt-1">
+        <div className="mt-1 flex flex-col items-center sm:hidden">
+          {actions}
+        </div>
+        <div className="flex items-center gap-2 text-xs opacity-70 sm:mt-1 mt-3">
           <Mail size={12} />
           {volunteer.email}
         </div>
@@ -219,9 +222,6 @@ function VolunteerInfoCollapse({ volunteer, actions, profileLink }: VolunteerInf
             </p>
           </div>
         )}
-        <div className="mt-3 flex flex-col items-center sm:hidden">
-          {actions}
-        </div>
       </div>
     </div>
   );
