@@ -51,7 +51,7 @@ export default function PageHeader({
 
   return (
     <Card>
-      <div className="flex items-center gap-4 md:flex-nowrap flex-wrap">
+      <div className="flex items-center gap-4 md:flex-nowrap flex-wrap justify-between">
         <div className="flex items-center gap-3">
           {showBack && (
             <IconButton
