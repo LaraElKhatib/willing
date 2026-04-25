@@ -289,6 +289,7 @@ function OrganizationVolunteerProfile() {
               type="button"
               Icon={Flag}
               onClick={openReportModal}
+              size="sm"
             >
               Report volunteer
             </Button>

@@ -514,23 +514,23 @@ function VolunteerProfile() {
         icon={FileText}
         actions={(
           <>
-            <LinkButton to="/volunteer/certificate" color="secondary" className="btn btn-outline">
+            <LinkButton to="/volunteer/certificate" color="secondary" className="btn btn-outline" size="sm">
               <FileText size={16} />
               Generate Certificate
             </LinkButton>
             {isEditMode
               ? (
-                  <Button color="primary" style="outline" onClick={onCancelEdit} loading={saving} Icon={X}>
+                  <Button color="primary" style="outline" onClick={onCancelEdit} loading={saving} Icon={X} size="sm">
                     Cancel
                   </Button>
                 )
               : (
-                  <Button color="primary" style="outline" onClick={() => setIsEditMode(true)} Icon={Edit3}>
+                  <Button color="primary" style="outline" onClick={() => setIsEditMode(true)} Icon={Edit3} size="sm">
                     Edit Profile
                   </Button>
                 )}
             {isEditMode && (
-              <Button color="primary" onClick={onSave} loading={saving} Icon={Save}>
+              <Button color="primary" onClick={onSave} loading={saving} Icon={Save} size="sm">
                 Save Changes
               </Button>
             )}

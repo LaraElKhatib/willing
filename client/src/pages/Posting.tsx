@@ -995,10 +995,10 @@ function PostingPage() {
         actions={canManagePosting && (isEditMode
           ? (
               <span className="flex gap-2 flex-wrap justify-end">
-                <Button style="outline" onClick={onCancelEdit} disabled={saving} Icon={X}>
+                <Button style="outline" onClick={onCancelEdit} disabled={saving} Icon={X} size="sm">
                   Cancel
                 </Button>
-                <Button color="primary" onClick={onSave} loading={saving} Icon={Save}>
+                <Button color="primary" onClick={onSave} loading={saving} Icon={Save} size="sm">
                   Save Changes
                 </Button>
               </span>
@@ -1011,6 +1011,7 @@ function PostingPage() {
                   style="outline"
                   disabled={!canOpenAttendancePage}
                   Icon={ListChecks}
+                  size="sm"
                 >
                   Attendance
                 </LinkButton>
@@ -1019,6 +1020,7 @@ function PostingPage() {
                   onClick={() => setIsEditMode(true)}
                   style="outline"
                   Icon={Edit3}
+                  size="sm"
                 >
                   Edit
                 </Button>
@@ -1028,6 +1030,7 @@ function PostingPage() {
                   disabled={!posting}
                   loading={togglingClosed}
                   Icon={posting?.is_closed ? LockOpen : Lock}
+                  size="sm"
                 >
                   {posting?.is_closed ? 'Reopen' : 'Close'}
                 </Button>
@@ -1036,6 +1039,7 @@ function PostingPage() {
                   onClick={onDelete}
                   loading={deleting}
                   Icon={Trash2}
+                  size="sm"
                 >
                   Delete
                 </Button>
