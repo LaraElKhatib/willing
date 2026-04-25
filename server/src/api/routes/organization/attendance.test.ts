@@ -104,7 +104,7 @@ describe('Organization attendance endpoints', () => {
     expect(fetch2.body.enrollments[0].dates?.[0].attended).toBe(true);
   });
 
-  test('PATCH /organization/posting/:id/enrollment-dates/:enrollmentDateId/attendance marks full-commitment enrollment as attended only when all days are attended', async () => {
+  test('PATCH /organization/posting/:id/enrollment-dates/:enrollmentDateId/attendance marks an enrollment attended when at least one date is attended', async () => {
     const org = await createOrganizationAccount(transaction, { email: 'org-full@example.com' });
     const volunteer = await createVolunteerAccount(transaction, { email: 'vol-full@example.com' });
 
@@ -155,13 +155,13 @@ describe('Organization attendance endpoints', () => {
       .send({ attended: true })
       .expect(200);
 
-    const intermediateEnrollment = await transaction
+    const firstDayEnrollment = await transaction
       .selectFrom('enrollment')
       .select(['attended'])
       .where('id', '=', enrollment.id)
       .executeTakeFirstOrThrow();
 
-    expect(intermediateEnrollment.attended).toBe(false);
+    expect(firstDayEnrollment.attended).toBe(true);
 
     await server
       .patch(`/organization/posting/${posting.id}/enrollment-dates/${secondDay.id}/attendance`)

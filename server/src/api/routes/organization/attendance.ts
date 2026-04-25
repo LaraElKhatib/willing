@@ -199,7 +199,7 @@ function createAttendanceRouter(db: Kysely<Database>) {
       .where('enrollment_id', '=', enrollment.id)
       .execute();
 
-    const updatedEnrollmentAttended = enrollmentDates.length > 0 && enrollmentDates.every(row => row.attended);
+    const updatedEnrollmentAttended = enrollmentDates.length > 0 && enrollmentDates.some(row => row.attended);
 
     const currentEnrollment = await db
       .selectFrom('enrollment')

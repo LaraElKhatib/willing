@@ -433,7 +433,7 @@ function createVolunteerRouter(db: Kysely<Database>) {
       .where('is_disabled', '=', false)
       .executeTakeFirstOrThrow();
 
-    const hoursPerPostingExpr = sql<number>`GREATEST(
+    const hoursPerAttendedDateExpr = sql<number>`GREATEST(
       0,
       EXTRACT(EPOCH FROM (
         (organization_posting.end_date + organization_posting.end_time)
@@ -442,16 +442,18 @@ function createVolunteerRouter(db: Kysely<Database>) {
     )`;
 
     const totalHoursRow = await db
-      .selectFrom('enrollment')
+      .selectFrom('enrollment_date')
+      .innerJoin('enrollment', 'enrollment.id', 'enrollment_date.enrollment_id')
       .innerJoin('organization_posting', 'organization_posting.id', 'enrollment.posting_id')
       .innerJoin('organization_account', 'organization_account.id', 'organization_posting.organization_id')
-      .select(sql<number>`COALESCE(SUM(${hoursPerPostingExpr}), 0)`.as('total_hours'))
+      .select(sql<number>`COALESCE(SUM(${hoursPerAttendedDateExpr}), 0)`.as('total_hours'))
       .where('enrollment.volunteer_id', '=', volunteerId)
-      .where('enrollment.attended', '=', true)
+      .where('enrollment_date.attended', '=', true)
       .executeTakeFirstOrThrow();
 
     const organizations = await db
-      .selectFrom('enrollment')
+      .selectFrom('enrollment_date')
+      .innerJoin('enrollment', 'enrollment.id', 'enrollment_date.enrollment_id')
       .innerJoin('organization_posting', 'organization_posting.id', 'enrollment.posting_id')
       .innerJoin('organization_account', 'organization_account.id', 'organization_posting.organization_id')
       .leftJoin(
@@ -468,10 +470,10 @@ function createVolunteerRouter(db: Kysely<Database>) {
         'organization_certificate_info.signatory_name',
         'organization_certificate_info.signatory_position',
         'organization_certificate_info.signature_path',
-        sql<number>`SUM(${hoursPerPostingExpr})`.as('hours'),
+        sql<number>`COALESCE(SUM(${hoursPerAttendedDateExpr}), 0)`.as('hours'),
       ])
       .where('enrollment.volunteer_id', '=', volunteerId)
-      .where('enrollment.attended', '=', true)
+      .where('enrollment_date.attended', '=', true)
       .groupBy([
         'organization_account.id',
         'organization_account.name',
@@ -538,7 +540,7 @@ function createVolunteerRouter(db: Kysely<Database>) {
     const issuedAt = new Date();
     const selectedOrgIds = [...body.org_ids].sort((left, right) => left - right);
 
-    const hoursPerPostingExpr = sql<number>`GREATEST(
+    const hoursPerAttendedDateExpr = sql<number>`GREATEST(
       0,
       EXTRACT(EPOCH FROM (
         (organization_posting.end_date + organization_posting.end_time)
@@ -547,14 +549,15 @@ function createVolunteerRouter(db: Kysely<Database>) {
     )`;
 
     const rows = await db
-      .selectFrom('enrollment')
+      .selectFrom('enrollment_date')
+      .innerJoin('enrollment', 'enrollment.id', 'enrollment_date.enrollment_id')
       .innerJoin('organization_posting', 'organization_posting.id', 'enrollment.posting_id')
       .select([
         'organization_posting.organization_id as organization_id',
-        sql<number>`COALESCE(SUM(${hoursPerPostingExpr}), 0)`.as('hours'),
+        sql<number>`COALESCE(SUM(${hoursPerAttendedDateExpr}), 0)`.as('hours'),
       ])
       .where('enrollment.volunteer_id', '=', volunteerId)
-      .where('enrollment.attended', '=', true)
+      .where('enrollment_date.attended', '=', true)
       .where('enrollment.created_at', '<=', issuedAt)
       .groupBy('organization_posting.organization_id')
       .execute();
