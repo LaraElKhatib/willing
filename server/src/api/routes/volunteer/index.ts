@@ -436,8 +436,8 @@ function createVolunteerRouter(db: Kysely<Database>) {
     const hoursPerAttendedDateExpr = sql<number>`GREATEST(
       0,
       EXTRACT(EPOCH FROM (
-        (organization_posting.end_date + organization_posting.end_time)
-        - (organization_posting.start_date + organization_posting.start_time)
+        (enrollment_date.date + organization_posting.end_time)
+        - (enrollment_date.date + organization_posting.start_time)
       )) / 3600.0
     )`;
 
@@ -543,8 +543,8 @@ function createVolunteerRouter(db: Kysely<Database>) {
     const hoursPerAttendedDateExpr = sql<number>`GREATEST(
       0,
       EXTRACT(EPOCH FROM (
-        (organization_posting.end_date + organization_posting.end_time)
-        - (organization_posting.start_date + organization_posting.start_time)
+        (enrollment_date.date + organization_posting.end_time)
+        - (enrollment_date.date + organization_posting.start_time)
       )) / 3600.0
     )`;
 
