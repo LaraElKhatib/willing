@@ -320,6 +320,22 @@ function createOrganizationRouter(db: Kysely<Database>) {
           .execute()
       : [];
 
+    const enrollmentsByPosting = postingIds.length > 0
+      ? await db
+          .selectFrom('enrollment')
+          .select([
+            'posting_id',
+            sql<number>`COUNT(*)`.as('enrollment_count'),
+          ])
+          .where('posting_id', 'in', postingIds)
+          .groupBy('posting_id')
+          .execute()
+      : [];
+
+    const enrollmentCountByPostingId = new Map<number, number>(
+      enrollmentsByPosting.map(row => [row.posting_id, Number(row.enrollment_count ?? 0)]),
+    );
+
     const skillsByPostingId = new Map<number, PostingSkill[]>();
     skills.forEach((skill) => {
       if (!skillsByPostingId.has(skill.posting_id)) {
@@ -331,6 +347,7 @@ function createOrganizationRouter(db: Kysely<Database>) {
     const postingsWithSkills = postings.map(posting => ({
       ...posting,
       skills: skillsByPostingId.get(posting.id) || [],
+      enrollment_count: enrollmentCountByPostingId.get(posting.id) ?? 0,
     }));
 
     res.json({ organization: organizationProfile, postings: postingsWithSkills });
