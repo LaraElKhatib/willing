@@ -11,7 +11,7 @@ import {
 
 import type { OrganizationRequest } from '../db/tables/index.ts';
 
-const SEND_TO = config.WILLING_EMAIL;
+const SEND_TO = config.WILLING_SENDER_EMAIL;
 const TOTAL_ROUNDS = 1;
 const DELAY_MS = 2000;
 const TEMP_PASSWORD = 'TempPass123!';
