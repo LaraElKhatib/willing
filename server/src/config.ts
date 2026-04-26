@@ -47,7 +47,7 @@ const schema = zod.object({
   CERTIFICATE_VERIFICATION_SECRET: zod.string().min(1),
   UPLOAD_DIR: zod.string(),
 
-  WILLING_SENDER_EMAIL: optionalInDev(zod.email()),
+  WILLING_SENDER_EMAIL: optionalInDev(zod.email().optional()),
 
   RESEND_API_KEY: optionalInDev(zod.string().startsWith('re_').optional()),
   OPENAI_API_KEY: optionalInDev(zod.string().optional()),
