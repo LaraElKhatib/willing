@@ -188,6 +188,16 @@ function createPostingRouter(db: Kysely<Database>) {
       }
     }
 
+    if (formatDateToIso(body.end_date) === todayIso && body.end_time) {
+      const parts = body.end_time.split(':').map(Number);
+      const endDateTime = new Date(now);
+      endDateTime.setUTCHours(parts[0] ?? 0, parts[1] ?? 0, 0, 0);
+      if (endDateTime < now) {
+        res.status(400);
+        throw new Error('End time cannot be in the past');
+      }
+    }
+
     if (body.crisis_id != null) {
       await assertCrisisExists(body.crisis_id, db, res);
     }
@@ -601,6 +611,18 @@ function createPostingRouter(db: Kysely<Database>) {
       if (startDateTime < now) {
         res.status(400);
         throw new Error('Start time cannot be in the past');
+      }
+    }
+
+    const effectiveEndDate = body.end_date ?? posting.end_date;
+    const effectiveEndTime = body.end_time ?? posting.end_time;
+    if (formatDateToIso(effectiveEndDate) === todayIso && effectiveEndTime) {
+      const parts = effectiveEndTime.split(':').map(Number);
+      const endDateTime = new Date(now);
+      endDateTime.setUTCHours(parts[0] ?? 0, parts[1] ?? 0, 0, 0);
+      if (endDateTime < now) {
+        res.status(400);
+        throw new Error('End time cannot be in the past');
       }
     }
 

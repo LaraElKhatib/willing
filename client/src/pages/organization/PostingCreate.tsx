@@ -75,6 +75,14 @@ export default function PostingCreate() {
         throw new Error('Organization account not found. Please log in again.');
       }
 
+      const toUtcTime = (localTime: string): string => {
+        const [hh, mm] = localTime.split(':').map(Number);
+        const totalMinutes = (hh * 60 + mm) - 180; // subtract 3 hours (Lebanon UTC+3)
+        const utcHh = ((totalMinutes / 60 | 0) + 24) % 24;
+        const utcMm = ((totalMinutes % 60) + 60) % 60;
+        return `${String(utcHh).padStart(2, '0')}:${String(utcMm).padStart(2, '0')}`;
+      };
+
       const payload = {
         title: data.title.trim(),
         description: data.description.trim(),
@@ -82,9 +90,9 @@ export default function PostingCreate() {
         latitude: position[0],
         longitude: position[1],
         start_date: data.start_date,
-        start_time: data.start_time,
+        start_time: data.start_time ? toUtcTime(data.start_time) : data.start_time,
         end_date: data.end_date,
-        end_time: data.end_time,
+        end_time: data.end_time ? toUtcTime(data.end_time) : data.end_time,
         max_volunteers: data.max_volunteers ? Number(data.max_volunteers) : null,
         minimum_age: data.minimum_age ? Number(data.minimum_age) : null,
         automatic_acceptance: data.automatic_acceptance,

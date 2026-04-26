@@ -136,6 +136,14 @@ const getDateInputValue = (value: Date | string) => {
 
 const getTimeInputValue = (timeValue: string | undefined) => (timeValue ?? '').slice(0, 5);
 
+const toUtcTime = (localTime: string): string => {
+  const [hh, mm] = localTime.split(':').map(Number);
+  const totalMinutes = (hh * 60 + mm) - 180;
+  const utcHh = ((totalMinutes / 60 | 0) + 24) % 24;
+  const utcMm = ((totalMinutes % 60) + 60) % 60;
+  return `${String(utcHh).padStart(2, '0')}:${String(utcMm).padStart(2, '0')}`;
+};
+
 const getPostingStartDateTime = (posting: PostingWithSkills) => {
   const datePart = getDateInputValue(posting.start_date);
   const timePart = (posting.start_time ?? '').slice(0, 5) || '00:00';
@@ -566,9 +574,9 @@ function PostingPage() {
           skills: skills.length > 0 ? skills : undefined,
           crisis_id: selectedCrisisId ?? null,
           start_date: data.start_date,
-          start_time: data.start_time,
+          start_time: data.start_time ? toUtcTime(data.start_time) : data.start_time,
           end_date: data.end_date,
-          end_time: data.end_time,
+          end_time: data.end_time ? toUtcTime(data.end_time) : data.end_time,
         };
 
         const response = await updatePosting(id, payload);
