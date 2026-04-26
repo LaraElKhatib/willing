@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 
-import { Router, type Response } from 'express';
+import { Router, type Request, type Response } from 'express';
 import { sql, type Kysely } from 'kysely';
 import zod from 'zod';
 
@@ -233,7 +233,7 @@ function createUserRouter(db: Kysely<Database>) {
     res.json({});
   });
 
-  userRouter.delete('/account', authorizeOnly('organization', 'volunteer'), async (req, res: Response<UserDeleteAccountResponse>) => {
+  userRouter.delete('/account', authorizeOnly('organization', 'volunteer'), async (req: Request, res: Response<UserDeleteAccountResponse>) => {
     const { password } = zod.object({ password: zod.string().min(1) }).parse(req.body);
     const userId = req.userJWT!.id;
     const role = req.userJWT!.role as 'organization' | 'volunteer';
