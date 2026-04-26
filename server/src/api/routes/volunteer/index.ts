@@ -578,6 +578,11 @@ function createVolunteerRouter(db: Kysely<Database>) {
 
     const totalHours = Number(rows.reduce((sum, row) => sum + Number(row.hours ?? 0), 0).toFixed(2));
 
+    if (totalHours <= 0) {
+      res.status(400);
+      throw new Error('You need completed volunteering hours before generating a certificate.');
+    }
+
     if (selectedOrgIds.length > 0) {
       const activeOrganizations = await db
         .selectFrom('organization_account')
