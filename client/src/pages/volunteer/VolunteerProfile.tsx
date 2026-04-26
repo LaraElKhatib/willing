@@ -17,12 +17,11 @@ import {
   X,
   Users,
 } from 'lucide-react';
-import { useCallback, useContext, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
-import { useForm } from 'react-hook-form';
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 
 import { volunteerAccountSchema } from '../../../../server/src/db/tables';
-import AuthContext from '../../auth/AuthContext';
 import Alert from '../../components/Alert';
 import Button from '../../components/Button';
 import Card from '../../components/Card';
@@ -140,11 +139,6 @@ function VolunteerProfile() {
   const [showAllExperiences, setShowAllExperiences] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [cvBusy, setCvBusy] = useState(false);
-  const [accountDeletionBusy, setAccountDeletionBusy] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [deletePassword, setDeletePassword] = useState('');
-  const [deleteError, setDeleteError] = useState<string | null>(null);
-  const { deleteAccount } = useContext(AuthContext);
   const notifications = useNotifications();
 
   const form = useForm<ProfileFormData>({
@@ -238,7 +232,7 @@ function VolunteerProfile() {
     { notifyOnError: true },
   );
 
-  const formValues = form.watch();
+  const formValues = useWatch ({ control: form.control });
 
   const volunteerName = useMemo(
     () => {
@@ -448,24 +442,6 @@ function VolunteerProfile() {
     }
   };
 
-  const onDeleteAccount = async () => {
-    if (!deletePassword.trim()) {
-      setDeleteError('Please enter your password.');
-      return;
-    }
-    setDeleteError(null);
-
-    try {
-      setAccountDeletionBusy(true);
-      await deleteAccount(deletePassword);
-      notifications.push({ type: 'success', message: 'Your account was deleted.' });
-    } catch (err) {
-      setDeleteError(err instanceof Error ? err.message : 'Failed to delete account.');
-    } finally {
-      setAccountDeletionBusy(false);
-    }
-  };
-
   if (loading) {
     return (
       <div className="grow bg-base-200">
@@ -514,7 +490,7 @@ function VolunteerProfile() {
         subtitle="Manage your details, availability, and focus areas."
         icon={FileText}
         actions={(
-          <>
+          <div className="flex flex-wrap gap-2 justify-end">
             <LinkButton to="/volunteer/certificate" color="secondary" className="btn btn-outline" size="sm">
               <FileText size={16} />
               Generate Certificate
@@ -535,7 +511,7 @@ function VolunteerProfile() {
                 Save Changes
               </Button>
             )}
-          </>
+          </div>
         )}
       />
 
@@ -862,75 +838,6 @@ function VolunteerProfile() {
               </span>
             </div>
           </div>
-        </Card>
-
-        <Card
-          title="Delete Account"
-          description="Permanently delete your volunteer account."
-          Icon={Trash2}
-        >
-          {!showDeleteConfirm
-            ? (
-                <div>
-                  <Button
-                    type="button"
-                    color="error"
-                    style="outline"
-                    onClick={() => {
-                      setShowDeleteConfirm(true);
-                      setDeleteError(null);
-                      setDeletePassword('');
-                    }}
-                    Icon={Trash2}
-                  >
-                    I want to delete my account
-                  </Button>
-                </div>
-              )
-            : (
-                <div className="space-y-3">
-                  <Alert color="error">
-                    <strong>This cannot be undone.</strong>
-                    {' '}
-                    Your upcoming applications will be withdrawn. You will not be able to sign in or recover this account. Your profile will be hidden from the platform, and you will be signed out immediately.
-                  </Alert>
-                  <p className="text-sm font-medium">Enter your password to confirm:</p>
-                  <input
-                    type="password"
-                    className="input input-bordered w-full max-w-sm"
-                    placeholder="Your password"
-                    value={deletePassword}
-                    onChange={e => setDeletePassword(e.target.value)}
-                    disabled={accountDeletionBusy}
-                    onKeyDown={e => e.key === 'Enter' && void onDeleteAccount()}
-                  />
-                  {deleteError && <p className="text-sm text-error">{deleteError}</p>}
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      color="error"
-                      onClick={() => void onDeleteAccount()}
-                      loading={accountDeletionBusy}
-                      Icon={Trash2}
-                    >
-                      Permanently Delete My Account
-                    </Button>
-                    <Button
-                      type="button"
-                      style="outline"
-                      onClick={() => {
-                        setShowDeleteConfirm(false);
-                        setDeleteError(null);
-                        setDeletePassword('');
-                      }}
-                      disabled={accountDeletionBusy}
-                      Icon={X}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </div>
-              )}
         </Card>
       </ColumnLayout>
     </PageContainer>
