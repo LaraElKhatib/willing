@@ -65,7 +65,6 @@ export const formatTime12Hour = (timeValue: string | undefined): string => {
   const hours = Number(hoursRaw);
   const minutes = Number(minutesRaw);
   if (Number.isNaN(hours) || Number.isNaN(minutes)) return timeValue;
-  // Times are stored as UTC; convert to Lebanon local time (UTC+3) for display
   const totalMinutes = (hours * 60 + minutes) + 180;
   const localHours = ((totalMinutes / 60 | 0) + 24) % 24;
   const localMinutes = ((totalMinutes % 60) + 60) % 60;
