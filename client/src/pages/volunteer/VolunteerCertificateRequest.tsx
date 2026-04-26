@@ -295,13 +295,13 @@ function VolunteerCertificateRequest() {
                 return (
                   <label
                     key={organization.id}
-                    className={`flex items-center justify-between gap-3 rounded-box border p-3 ${
+                    className={`flex items-start justify-between gap-3 rounded-box border p-3 ${
                       organization.eligible ? 'cursor-pointer border-base-300' : 'opacity-60 border-base-300'
                     }`}
                   >
-                    <div className="flex items-center gap-3">
-                      <span className="badge badge-ghost">{`#${index + 1}`}</span>
-                      <div>
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className="badge badge-ghost shrink-0">{`#${index + 1}`}</span>
+                      <div className="min-w-0">
                         <p className="font-semibold">{organization.name}</p>
                         {organizationDeleted && (
                           <p className="text-sm opacity-70">Organization account was deleted</p>
@@ -327,9 +327,9 @@ function VolunteerCertificateRequest() {
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 shrink-0">
                       {(organizationDeleted || organizationDisabled || !certificatesNotEnabled) && (
-                        <span className={eligibilityStatus.className}>{eligibilityStatus.label}</span>
+                        <span className={`${eligibilityStatus.className} text-center`}>{eligibilityStatus.label}</span>
                       )}
                       <input
                         type="checkbox"
