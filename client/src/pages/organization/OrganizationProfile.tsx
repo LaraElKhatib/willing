@@ -464,6 +464,7 @@ function OrganizationProfile() {
       <PageHeader
         title="Profile"
         subtitle="Manage your organization profile details."
+        icon={Building2}
         actions={(
           <>
             {isEditMode

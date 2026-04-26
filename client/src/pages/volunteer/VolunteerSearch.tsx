@@ -1,6 +1,8 @@
+import { Search } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 
 import PostingSearchView from '../../components/postings/PostingSearchView.tsx';
+import PostingViewModeToggle from '../../components/postings/PostingViewModeToggle.tsx';
 import PostingViewModeToggle from '../../components/postings/PostingViewModeToggle.tsx';
 import requestServer from '../../utils/requestServer.ts';
 import useAsync from '../../utils/useAsync.ts';
@@ -28,7 +30,7 @@ function VolunteerSearch() {
       <PostingSearchView
         title="Search Opportunities"
         subtitle="Browse all postings, organizations, and crises, and filter them down by dates, location, or skills."
-        icon={undefined}
+        icon={Search}
         showBack={false}
         actions={<PostingViewModeToggle />}
         fetchUrl="/volunteer/posting?include_applied=true"
