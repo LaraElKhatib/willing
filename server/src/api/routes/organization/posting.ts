@@ -89,7 +89,8 @@ const areSkillListsEqual = (left: string[], right: string[]) => {
   if (left.length !== right.length) return false;
   return left.every((value, index) => value === right[index]);
 };
-const formatDateToIso = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+const formatDateToIso = (date: Date) =>
+  `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
 const normalizeStoredDate = (value: Date | string | null | undefined) => {
   if (value instanceof Date) return formatDateToIso(value);
   if (typeof value === 'string') {
@@ -119,12 +120,12 @@ const getPostingDates = (startDate: Date | string, endDate: Date | string): stri
   }
 
   const result: string[] = [];
-  const current = new Date(startParts.year, startParts.month - 1, startParts.day);
-  const end = new Date(endParts.year, endParts.month - 1, endParts.day);
+  const current = new Date(Date.UTC(startParts.year, startParts.month - 1, startParts.day));
+  const end = new Date(Date.UTC(endParts.year, endParts.month - 1, endParts.day));
 
   while (current.getTime() <= end.getTime()) {
     result.push(formatDateToIso(current));
-    current.setDate(current.getDate() + 1);
+    current.setUTCDate(current.getUTCDate() + 1);
   }
 
   return result;
@@ -180,7 +181,7 @@ function createPostingRouter(db: Kysely<Database>) {
     if (formatDateToIso(body.start_date) === todayIso && body.start_time) {
       const parts = body.start_time.split(':').map(Number);
       const startDateTime = new Date(now);
-      startDateTime.setHours(parts[0] ?? 0, parts[1] ?? 0, 0, 0);
+      startDateTime.setUTCHours(parts[0] ?? 0, parts[1] ?? 0, 0, 0);
       if (startDateTime < now) {
         res.status(400);
         throw new Error('Start time cannot be in the past');
@@ -596,7 +597,7 @@ function createPostingRouter(db: Kysely<Database>) {
     if (formatDateToIso(effectiveStartDate) === todayIso && effectiveStartTime) {
       const parts = effectiveStartTime.split(':').map(Number);
       const startDateTime = new Date(now);
-      startDateTime.setHours(parts[0] ?? 0, parts[1] ?? 0, 0, 0);
+      startDateTime.setUTCHours(parts[0] ?? 0, parts[1] ?? 0, 0, 0);
       if (startDateTime < now) {
         res.status(400);
         throw new Error('Start time cannot be in the past');

@@ -438,7 +438,7 @@ function ControlledCalendarInfo({
 
     if (disablePastDates) {
       const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      today.setUTCHours(0, 0, 0, 0);
       matchers.push({ before: today });
     }
 

@@ -42,7 +42,7 @@ import OrganizationProfilePicture from '../components/OrganizationProfilePicture
 import PostingDateTime from '../components/PostingDateTime.tsx';
 import CrisisCard from '../components/postings/CrisisCard.tsx';
 import { hasPostingEnded as hasPostingEndedByTime } from '../components/postings/postingUtils.ts';
-import usePostingStatusNow from '../components/postings/usePostingStatusNow.ts';
+import useNow from '../components/postings/useNow.ts';
 import SkillsInput from '../components/skills/SkillsInput.tsx';
 import SkillsList from '../components/skills/SkillsList.tsx';
 import { ToggleButton } from '../components/ToggleButton.tsx';
@@ -139,7 +139,7 @@ const getTimeInputValue = (timeValue: string | undefined) => (timeValue ?? '').s
 const getPostingStartDateTime = (posting: PostingWithSkills) => {
   const datePart = getDateInputValue(posting.start_date);
   const timePart = (posting.start_time ?? '').slice(0, 5) || '00:00';
-  return new Date(`${datePart}T${timePart}`);
+  return new Date(`${datePart}T${timePart}Z`);
 };
 
 const formatDisplayDate = (value?: string) => {
@@ -228,7 +228,7 @@ function PostingPage() {
   const startTime = useWatch({ control: form.control, name: 'start_time' }) ?? '';
   const endDate = useWatch({ control: form.control, name: 'end_date' }) ?? '';
   const endTime = useWatch({ control: form.control, name: 'end_time' }) ?? '';
-  const statusNow = usePostingStatusNow();
+  const statusNow = useNow();
   const hasEnded = useMemo(() => (
     posting
       ? Boolean(('has_ended' in posting ? posting.has_ended : false) || hasPostingEndedByTime(posting, statusNow))
@@ -1026,13 +1026,14 @@ function PostingPage() {
                   style="outline"
                   Icon={Edit3}
                   size="sm"
+                  disabled={hasEnded}
                 >
                   Edit
                 </Button>
                 <Button
                   color={posting?.is_closed ? 'success' : 'warning'}
                   onClick={onToggleClosed}
-                  disabled={!posting}
+                  disabled={!posting || hasEnded}
                   loading={togglingClosed}
                   Icon={posting?.is_closed ? LockOpen : Lock}
                   size="sm"

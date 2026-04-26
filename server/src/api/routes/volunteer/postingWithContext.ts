@@ -38,8 +38,8 @@ type BuildPostingsWithContextOptions = {
   applicationStatusByPostingId?: ReadonlyMap<number, Extract<PostingApplicationStatus, 'registered' | 'pending'>>;
 };
 
-const formatDateToIso = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-
+const formatDateToIso = (date: Date) =>
+  `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
 const normalizeStoredDate = (value: Date | string | null | undefined) => {
   if (value instanceof Date) return formatDateToIso(value);
   if (typeof value === 'string') {
@@ -71,12 +71,12 @@ export const getPostingDates = (startDate: Date | string, endDate: Date | string
   }
 
   const result: string[] = [];
-  const current = new Date(startParts.year, startParts.month - 1, startParts.day);
-  const end = new Date(endParts.year, endParts.month - 1, endParts.day);
+  const current = new Date(Date.UTC(startParts.year, startParts.month - 1, startParts.day));
+  const end = new Date(Date.UTC(endParts.year, endParts.month - 1, endParts.day));
 
   while (current.getTime() <= end.getTime()) {
     result.push(formatDateToIso(current));
-    current.setDate(current.getDate() + 1);
+    current.setUTCDate(current.getUTCDate() + 1);
   }
 
   return result;

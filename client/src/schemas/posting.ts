@@ -4,7 +4,7 @@ import { newPostingSchema } from '../../../server/src/db/tables';
 
 function getTodayDateString() {
   const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}-${String(now.getUTCDate()).padStart(2, '0')}`;
 }
 
 const notPastDate = (date: string, ctx: z.RefinementCtx, field: string, label: string) => {
@@ -70,6 +70,10 @@ export const postingEditFormSchema = newPostingSchema
     automatic_acceptance: z.boolean(),
     allows_partial_attendance: z.boolean().optional(),
     is_closed: z.boolean(),
+  })
+  .superRefine((data, ctx) => {
+    notPastDate(data.start_date, ctx, 'start_date', 'Start date');
+    notPastDate(data.end_date, ctx, 'end_date', 'End date');
   });
 
 export type PostingEditFormData = z.infer<typeof postingEditFormSchema>;

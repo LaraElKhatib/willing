@@ -14,7 +14,11 @@ export const normalizeTimestamp = (value: string | Date | undefined | null): Dat
 const normalizeDateOnly = (value: string | Date | null | undefined): string | undefined => {
   if (value == null) return undefined;
   if (value instanceof Date) {
-    return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`;
+    if (Number.isNaN(value.getTime())) return undefined;
+    const y = value.getUTCFullYear();
+    const m = String(value.getUTCMonth() + 1).padStart(2, '0');
+    const d = String(value.getUTCDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
   }
 
   const datePart = value.split('T')[0]?.trim();
@@ -28,11 +32,13 @@ const normalizeTime = (value: string | null | undefined): string | undefined => 
 
   const segments = timePart.split(':');
   if (segments.length === 2) {
-    return `${segments[0]}:${segments[1]}:00`;
+    const [hh, mm] = segments;
+    return `${hh}:${mm}:00`;
   }
 
   if (segments.length >= 3) {
-    return `${segments[0]}:${segments[1]}:${segments[2]}`;
+    const [hh, mm, ss] = segments;
+    return `${hh}:${mm}:${ss}`;
   }
 
   return undefined;
@@ -42,15 +48,15 @@ export const getPostingEndDateTime = (posting: PostingEndFields): Date | undefin
   const endDate = normalizeDateOnly(posting.end_date);
   if (!endDate) return undefined;
 
-  const endTime = normalizeTime(posting.end_time);
-  const endDateTime = new Date(endTime ? `${endDate}T${endTime}` : `${endDate}T23:59:59`);
+  const endTime = normalizeTime(posting.end_time) ?? '23:59:59';
+  const endDateTime = new Date(`${endDate}T${endTime}Z`);
 
   return Number.isNaN(endDateTime.getTime()) ? undefined : endDateTime;
 };
 
-export const hasPostingEnded = (posting: PostingEndFields, now = new Date()): boolean => {
+export const hasPostingEnded = (posting: PostingEndFields, now: Date = new Date()): boolean => {
   const endDateTime = getPostingEndDateTime(posting);
-  return endDateTime ? now > endDateTime : false;
+  return endDateTime != null ? now > endDateTime : false;
 };
 
 export const formatTime12Hour = (timeValue: string | undefined): string => {
@@ -71,14 +77,17 @@ export const formatCardDate = (dateValue: Date | null): string => {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
+    timeZone: 'UTC',
   }).format(dateValue);
 };
 
-export const getPostingDates = (startDate: string | Date, endDate: string | Date | null | undefined): string[] => {
+export const getPostingDates = (
+  startDate: string | Date,
+  endDate: string | Date | null | undefined,
+): string[] => {
   const parseIsoDateParts = (value: string) => {
     const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
     if (!match) return undefined;
-
     return {
       year: Number(match[1]),
       month: Number(match[2]),
@@ -86,42 +95,43 @@ export const getPostingDates = (startDate: string | Date, endDate: string | Date
     };
   };
 
-  const formatDateToIso = (value: Date) => `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`;
+  const formatDateToIso = (value: Date) => {
+    const y = value.getUTCFullYear();
+    const m = String(value.getUTCMonth() + 1).padStart(2, '0');
+    const d = String(value.getUTCDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  };
 
   const normalizedStartDate = normalizeDateOnly(startDate);
   const normalizedEndDate = normalizeDateOnly(endDate ?? startDate);
   const startParts = normalizedStartDate ? parseIsoDateParts(normalizedStartDate) : undefined;
   const endParts = normalizedEndDate ? parseIsoDateParts(normalizedEndDate) : undefined;
 
-  if (!startParts || !endParts) {
-    return [];
-  }
+  if (!startParts || !endParts) return [];
 
   const result: string[] = [];
-  const current = new Date(startParts.year, startParts.month - 1, startParts.day);
-  const end = new Date(endParts.year, endParts.month - 1, endParts.day);
+  const current = new Date(Date.UTC(startParts.year, startParts.month - 1, startParts.day));
+  const end = new Date(Date.UTC(endParts.year, endParts.month - 1, endParts.day));
 
   while (current.getTime() <= end.getTime()) {
     result.push(formatDateToIso(current));
-    current.setDate(current.getDate() + 1);
+    current.setUTCDate(current.getUTCDate() + 1); // advance by one UTC day
   }
 
   return result;
 };
 
 export const isPostingFullyBooked = (posting: PostingWithContext): boolean => {
-  if (posting.max_volunteers == null) {
-    return false;
-  }
+  if (posting.max_volunteers == null) return false;
 
   if (!posting.allows_partial_attendance) {
     return (posting.enrollment_count ?? 0) >= posting.max_volunteers;
   }
 
   const postingDates = getPostingDates(posting.start_date, posting.end_date);
-  if (postingDates.length === 0) {
-    return false;
-  }
+  if (postingDates.length === 0) return false;
 
-  return postingDates.every(date => (posting.date_capacity?.[date] ?? 0) >= posting.max_volunteers!);
+  return postingDates.every(
+    date => (posting.date_capacity?.[date] ?? 0) >= posting.max_volunteers!,
+  );
 };

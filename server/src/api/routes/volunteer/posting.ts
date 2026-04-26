@@ -36,7 +36,7 @@ const applyBodySchema = zod.object({
 });
 
 function formatDateToIso(date: Date): string {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
 }
 
 function normalizeStoredDate(value: Date | string | null | undefined): string | undefined {
@@ -82,12 +82,12 @@ function getPostingDates(startDate: Date | string, endDate: Date | string): stri
   }
 
   const result: string[] = [];
-  const current = new Date(startParts.year, startParts.month - 1, startParts.day);
-  const end = new Date(endParts.year, endParts.month - 1, endParts.day);
+  const current = new Date(Date.UTC(startParts.year, startParts.month - 1, startParts.day));
+  const end = new Date(Date.UTC(endParts.year, endParts.month - 1, endParts.day));
 
   while (current.getTime() <= end.getTime()) {
     result.push(formatDateToIso(current));
-    current.setDate(current.getDate() + 1);
+    current.setUTCDate(current.getUTCDate() + 1);
   }
 
   return result;

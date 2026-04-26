@@ -1,7 +1,7 @@
 type DateLike = Date | string | null | undefined;
 
-const formatDateToIso = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-
+const formatDateToIso = (date: Date) =>
+  `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
 export const normalizeStoredDate = (value: DateLike) => {
   if (value instanceof Date) return formatDateToIso(value);
   if (typeof value === 'string') {
@@ -42,8 +42,8 @@ export const getPostingEndDateTime = (
   const endTimeStr = normalizeStoredTime(endTime);
   const endDateTime = new Date(
     endTimeStr
-      ? `${endDateStr}T${endTimeStr}`
-      : `${endDateStr}T23:59:59`,
+      ? `${endDateStr}T${endTimeStr}Z`
+      : `${endDateStr}T23:59:59Z`,
   );
 
   return Number.isNaN(endDateTime.getTime()) ? undefined : endDateTime;

@@ -6,7 +6,7 @@ import Card from './Card';
 import OrganizationProfilePicture from './OrganizationProfilePicture';
 import PostingDateTime from './PostingDateTime.tsx';
 import { formatCardDate, formatTime12Hour, hasPostingEnded, isPostingFullyBooked, normalizeTimestamp } from './postings/postingUtils';
-import usePostingStatusNow from './postings/usePostingStatusNow.ts';
+import useNow from './postings/useNow.ts';
 import SkillsList from './skills/SkillsList';
 
 import type { PostingWithContext } from '../../../server/src/types';
@@ -38,7 +38,7 @@ function PostingCard({
   const endDt = normalizeTimestamp(endDateValue);
   const hasEndDate = Boolean(endDt);
 
-  const now = usePostingStatusNow();
+  const now = useNow();
   const hasEnded = useMemo(
     () => Boolean(posting.has_ended || hasPostingEnded(posting, now)),
     [now, posting],
