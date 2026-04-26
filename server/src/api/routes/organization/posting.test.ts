@@ -10,7 +10,7 @@ import type { Database } from '../../../db/tables/index.ts';
 import type { ControlledTransaction } from 'kysely';
 import type TestAgent from 'supertest/lib/agent.js';
 
-const formatDateToIso = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+const formatDateToIso = (date: Date) => `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
 
 let transaction: ControlledTransaction<Database, []>;
 let server: TestAgent;
@@ -91,7 +91,7 @@ describe('Organization posting applications', () => {
     const { organization, token } = await createOrganizationAccount(transaction, { email: 'org-ended-auto-reject@example.com' });
     const { volunteer } = await createVolunteerAccount(transaction, { email: 'vol-ended-auto-reject@example.com' });
     const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
+    yesterday.setUTCDate(yesterday.getUTCDate() - 1);
 
     const posting = await transaction
       .insertInto('posting')
@@ -1222,7 +1222,7 @@ describe('Organization posting management', () => {
     const { organization, token } = await createOrganizationAccount(transaction, { email: 'org-accept-ended@example.com' });
     const { volunteer } = await createVolunteerAccount(transaction, { email: 'vol-accept-ended@example.com' });
     const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
+    yesterday.setUTCDate(yesterday.getUTCDate() - 1);
 
     const posting = await transaction
       .insertInto('posting')
@@ -1272,7 +1272,7 @@ describe('Organization posting management', () => {
   test('returns 403 when changing closed state for a posting that has already ended', async () => {
     const { organization, token } = await createOrganizationAccount(transaction, { email: 'org-ended-closed-update@example.com' });
     const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
+    yesterday.setUTCDate(yesterday.getUTCDate() - 1);
 
     const posting = await transaction
       .insertInto('posting')
@@ -1316,7 +1316,7 @@ describe('Organization posting management', () => {
   test('returns 403 when changing schedule fields for a posting that has already ended', async () => {
     const { organization, token } = await createOrganizationAccount(transaction, { email: 'org-ended-schedule-update@example.com' });
     const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
+    yesterday.setUTCDate(yesterday.getUTCDate() - 1);
 
     const posting = await transaction
       .insertInto('posting')
@@ -1361,7 +1361,7 @@ describe('Organization posting management', () => {
     const { token } = await createOrganizationAccount(transaction, { email: 'org-past-start@example.com' });
 
     const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
+    yesterday.setUTCDate(yesterday.getUTCDate() - 1);
 
     const response = await server
       .post('/organization/posting')
@@ -1392,7 +1392,7 @@ describe('Organization posting management', () => {
     const { token } = await createOrganizationAccount(transaction, { email: 'org-past-end@example.com' });
 
     const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
+    yesterday.setUTCDate(yesterday.getUTCDate() - 1);
 
     const response = await server
       .post('/organization/posting')
@@ -1542,7 +1542,7 @@ describe('Organization posting management', () => {
       .executeTakeFirstOrThrow();
 
     const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
+    yesterday.setUTCDate(yesterday.getUTCDate() - 1);
 
     const response = await server
       .put(`/organization/posting/${posting.id}`)
@@ -1579,7 +1579,7 @@ describe('Organization posting management', () => {
       .executeTakeFirstOrThrow();
 
     const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
+    yesterday.setUTCDate(yesterday.getUTCDate() - 1);
 
     const response = await server
       .put(`/organization/posting/${posting.id}`)
@@ -1594,7 +1594,7 @@ describe('Organization posting management', () => {
     const { organization, token } = await createOrganizationAccount(transaction, { email: 'org-update-keep-past@example.com' });
 
     const pastDate = new Date();
-    pastDate.setDate(pastDate.getDate() - 5);
+    pastDate.setUTCDate(pastDate.getUTCDate() - 5);
 
     const posting = await transaction
       .insertInto('posting')

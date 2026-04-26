@@ -19,7 +19,7 @@ import type TestAgent from 'supertest/lib/agent.js';
 let transaction: ControlledTransaction<Database>;
 let server: TestAgent;
 
-const formatDateToIso = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+const formatDateToIso = (date: Date) => `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
 
 const generateJWTSpy = vi
   .spyOn(jwtService, 'generateJWT');
@@ -1308,15 +1308,15 @@ describe('DELETE /volunteer/posting/:id/enroll withdrawal behavior', () => {
     const { organization } = await createOrganizationAccount(transaction, { email: 'partial-withdraw-org@example.com' });
 
     const postingStartDate = new Date();
-    postingStartDate.setDate(postingStartDate.getDate() + 3);
+    postingStartDate.setUTCDate(postingStartDate.getUTCDate() + 3);
     const postingEndDate = new Date(postingStartDate);
-    postingEndDate.setDate(postingEndDate.getDate() + 6);
+    postingEndDate.setUTCDate(postingEndDate.getUTCDate() + 6);
 
     const selectedDateOne = new Date(postingStartDate);
     const selectedDateTwo = new Date(postingStartDate);
-    selectedDateTwo.setDate(selectedDateTwo.getDate() + 2);
+    selectedDateTwo.setUTCDate(selectedDateTwo.getUTCDate() + 2);
     const selectedDateThree = new Date(postingStartDate);
-    selectedDateThree.setDate(selectedDateThree.getDate() + 4);
+    selectedDateThree.setUTCDate(selectedDateThree.getUTCDate() + 4);
 
     const posting = await transaction
       .insertInto('posting')
@@ -1580,7 +1580,7 @@ describe('GET /volunteer/posting/:id selected partial dates', () => {
     const { volunteer, token } = await createVolunteerAccount(transaction, { email: 'ended-pending-detail@example.com' });
     const { organization } = await createOrganizationAccount(transaction, { email: 'ended-pending-detail-org@example.com' });
     const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
+    yesterday.setUTCDate(yesterday.getUTCDate() - 1);
 
     const posting = await transaction
       .insertInto('posting')
@@ -2936,10 +2936,10 @@ describe('POST /volunteer/posting/:id/enroll ended posting validation', () => {
     const { organization } = await createOrganizationAccount(transaction, { email: 'today-posting-org@example.com' });
 
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    today.setUTCHours(0, 0, 0, 0);
     const lastWeek = new Date();
-    lastWeek.setDate(lastWeek.getDate() - 7);
-    lastWeek.setHours(0, 0, 0, 0);
+    lastWeek.setUTCDate(lastWeek.getUTCDate() - 7);
+    lastWeek.setUTCHours(0, 0, 0, 0);
 
     const posting = await transaction
       .insertInto('posting')
