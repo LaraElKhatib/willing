@@ -144,6 +144,13 @@ const toUtcTime = (localTime: string): string => {
   return `${String(utcHh).padStart(2, '0')}:${String(utcMm).padStart(2, '0')}`;
 };
 
+const toLocalTime = (utcTime: string): string => {
+  const [hh, mm] = utcTime.split(':').map(Number);
+  const totalMinutes = (hh * 60 + mm) + 180;
+  const localHh = ((totalMinutes / 60 | 0) + 24) % 24;
+  const localMm = ((totalMinutes % 60) + 60) % 60;
+  return `${String(localHh).padStart(2, '0')}:${String(localMm).padStart(2, '0')}`;
+};
 const getPostingStartDateTime = (posting: PostingWithSkills) => {
   const datePart = getDateInputValue(posting.start_date);
   const timePart = (posting.start_time ?? '').slice(0, 5) || '00:00';
@@ -388,9 +395,9 @@ function PostingPage() {
         description: postingResponse.posting.description,
         location_name: postingResponse.posting.location_name,
         start_date: getDateInputValue(postingResponse.posting.start_date),
-        start_time: getTimeInputValue(postingResponse.posting.start_time),
+        start_time: toLocalTime(getTimeInputValue(postingResponse.posting.start_time)),
         end_date: postingResponse.posting.end_date ? getDateInputValue(postingResponse.posting.end_date) : '',
-        end_time: getTimeInputValue(postingResponse.posting.end_time),
+        end_time: toLocalTime(getTimeInputValue(postingResponse.posting.end_time)),
         max_volunteers: postingResponse.posting.max_volunteers?.toString() ?? '',
         minimum_age: postingResponse.posting.minimum_age?.toString() ?? '',
         automatic_acceptance: postingResponse.posting.automatic_acceptance,
@@ -466,9 +473,9 @@ function PostingPage() {
       description: postingResponse.posting.description,
       location_name: postingResponse.posting.location_name,
       start_date: getDateInputValue(postingResponse.posting.start_date),
-      start_time: getTimeInputValue(postingResponse.posting.start_time),
+      start_time: toLocalTime(getTimeInputValue(postingResponse.posting.start_time)),
       end_date: postingResponse.posting.end_date ? getDateInputValue(postingResponse.posting.end_date) : '',
-      end_time: getTimeInputValue(postingResponse.posting.end_time),
+      end_time: toLocalTime(getTimeInputValue(postingResponse.posting.end_time)),
       max_volunteers: postingResponse.posting.max_volunteers?.toString() ?? '',
       minimum_age: postingResponse.posting.minimum_age?.toString() ?? '',
       automatic_acceptance: postingResponse.posting.automatic_acceptance,

@@ -65,10 +65,14 @@ export const formatTime12Hour = (timeValue: string | undefined): string => {
   const hours = Number(hoursRaw);
   const minutes = Number(minutesRaw);
   if (Number.isNaN(hours) || Number.isNaN(minutes)) return timeValue;
-  const normalizedHours = ((hours % 24) + 24) % 24;
+  // Times are stored as UTC; convert to Lebanon local time (UTC+3) for display
+  const totalMinutes = (hours * 60 + minutes) + 180;
+  const localHours = ((totalMinutes / 60 | 0) + 24) % 24;
+  const localMinutes = ((totalMinutes % 60) + 60) % 60;
+  const normalizedHours = ((localHours % 24) + 24) % 24;
   const suffix = normalizedHours >= 12 ? 'PM' : 'AM';
   const hour12 = normalizedHours % 12 === 0 ? 12 : normalizedHours % 12;
-  return `${hour12}:${String(minutes).padStart(2, '0')} ${suffix}`;
+  return `${hour12}:${String(localMinutes).padStart(2, '0')} ${suffix}`;
 };
 
 export const formatCardDate = (dateValue: Date | null): string => {
