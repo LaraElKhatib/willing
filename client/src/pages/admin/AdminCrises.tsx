@@ -498,10 +498,6 @@ function AdminCrises() {
                         crisis={crisis}
                         link={undefined}
                         descriptionFallback={editingCrisisId === crisis.id ? '' : 'No description set'}
-                        right={
-                          crisis.pinned
-                          && <span className="badge badge-secondary">Pinned</span>
-                        }
                       >
 
                         {editingCrisisId === crisis.id

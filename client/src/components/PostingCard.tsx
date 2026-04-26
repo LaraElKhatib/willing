@@ -1,9 +1,10 @@
-import { Cake, Calendar, Clock, ExternalLink, LockOpen, MapPin, Users, AlertCircle, Ban } from 'lucide-react';
+import { AlertTriangle, Ban, Cake, Calendar, CheckCircle2, ClipboardList, Clock, ExternalLink, LockOpen, MapPin, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 import Card from './Card';
 import OrganizationProfilePicture from './OrganizationProfilePicture';
 import PostingDateTime from './PostingDateTime.tsx';
+import { CARD_BADGES } from './postings/cardSemantics';
 import SkillsList from './skills/SkillsList';
 
 import type { PostingWithContext } from '../../../server/src/types';
@@ -143,7 +144,7 @@ function PostingCard({
 
   const crisisTagContent = (
     <>
-      <AlertCircle size={14} />
+      <AlertTriangle size={14} />
       <span className="truncate max-w-40 text-sm font-semibold">
         {posting.crisis_name}
       </span>
@@ -151,7 +152,7 @@ function PostingCard({
   );
 
   return (
-    <Card padding={false} fillHeight={fillHeight} className={fillHeight ? 'h-full min-h-[24rem]' : ''}>
+    <Card padding={false} fillHeight={fillHeight} className={fillHeight ? 'h-full min-h-96' : ''}>
       {showCrisis && posting.crisis_name && posting.crisis_id && (
         crisisTagClickable
           ? (
@@ -225,9 +226,9 @@ function PostingCard({
                   )
                 : posting.application_status === 'registered'
                   ? (
-                      <span className="badge badge-success inline-flex items-center gap-2">
-                        <Users size={14} />
-                        Registered
+                      <span className={CARD_BADGES.enrollment}>
+                        <CheckCircle2 size={14} />
+                        Enrolled
                       </span>
                     )
                   : isPostingFull
@@ -245,9 +246,9 @@ function PostingCard({
                           </span>
                         )
                       : (
-                          <span className="badge badge-secondary inline-flex items-center gap-2 px-3 min-w-[120px] h-7 items-center" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: '120px', maxWidth: '100%', display: 'inline-flex', alignItems: 'center' }}>
-                            <Clock size={16} style={{ marginBottom: '-2px' }} />
-                            Review based
+                          <span className="badge badge-secondary inline-flex items-center gap-2 px-3 min-w-30 h-7">
+                            <ClipboardList size={14} />
+                            Review Based
                           </span>
                         )
           }

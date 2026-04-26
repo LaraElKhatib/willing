@@ -1,10 +1,11 @@
-import { AlertCircle, ArrowRight, ClipboardCheck, Flag, LayoutDashboard } from 'lucide-react';
+import { AlertTriangle, ArrowRight, ClipboardCheck, Flag, LayoutDashboard } from 'lucide-react';
 import { useCallback } from 'react';
 
 import Card from '../../components/Card';
 import PageContainer from '../../components/layout/PageContainer';
 import PageHeader from '../../components/layout/PageHeader';
 import LinkButton from '../../components/LinkButton';
+import { CARD_BADGES, CARD_COLORS } from '../../components/postings/cardSemantics';
 import requestServer from '../../utils/requestServer';
 import useAsync from '../../utils/useAsync';
 
@@ -48,13 +49,14 @@ function AdminHome() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card
           title="Organization Requests"
-          description="Review incoming organization applications and approve or reject requests."
+          description="Review pending organization onboarding requests and approve or reject each submission."
+          color="warning"
           Icon={ClipboardCheck}
           right={
             !organizationRequests
               ? <div className="skeleton w-16 h-6" />
               : (
-                  <span className="badge badge-primary">
+                  <span className={CARD_BADGES.pending}>
                     {organizationRequests.length}
                     {' '}
                     Pending
@@ -75,19 +77,21 @@ function AdminHome() {
 
         <Card
           title="Crises"
+          color={CARD_COLORS.crisis}
+          coloredText={true}
           description={
             crises === undefined
-              ? 'Loading pinned crises...'
+              ? 'Loading crisis overview...'
               : pinnedCrises.length > 0
                 ? `Pinned (${pinnedCrises.length}): ${pinnedCrises.map(crisis => crisis.name).join(', ')}`
-                : 'No pinned crisis at the moment.'
+                : 'No crises are pinned right now.'
           }
-          Icon={AlertCircle}
+          Icon={AlertTriangle}
           right={
             !crises
               ? <div className="skeleton w-16 h-6" />
               : (
-                  <span className="badge badge-secondary">
+                  <span className={CARD_BADGES.crisis}>
                     {crises.length}
                     {' '}
                     Total
@@ -109,12 +113,13 @@ function AdminHome() {
         <Card
           title="Reports"
           description="Review reports submitted by volunteers and organizations and take moderation actions."
+          color="error"
           Icon={Flag}
           right={
             !reports
               ? <div className="skeleton w-16 h-6" />
               : (
-                  <span className="badge badge-accent">
+                  <span className="badge badge-error badge-outline inline-flex items-center gap-1">
                     {totalReports}
                     {' '}
                     Total

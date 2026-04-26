@@ -1,7 +1,8 @@
-import { AlertCircle, Ban, Cake, Calendar, Clock, ExternalLink, LockOpen, MapPin, Users } from 'lucide-react';
+import { AlertTriangle, Ban, Cake, Calendar, CheckCircle2, ClipboardList, Clock, ExternalLink, LockOpen, MapPin, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 import OrganizationProfilePicture from './OrganizationProfilePicture';
+import { CARD_BADGES } from './postings/cardSemantics';
 import SkillsList from './skills/SkillsList';
 
 import type { PostingWithContext } from '../../../server/src/types';
@@ -157,9 +158,9 @@ function PostingList({
         )
       : posting.application_status === 'registered'
         ? (
-            <span className="badge badge-sm badge-success inline-flex items-center gap-1">
-              <Users size={12} />
-              Registered
+            <span className={`${CARD_BADGES.enrollment} badge-sm`}>
+              <CheckCircle2 size={12} />
+              Enrolled
             </span>
           )
         : isPostingFull
@@ -178,7 +179,7 @@ function PostingList({
               )
             : (
                 <span className="badge badge-sm badge-secondary inline-flex items-center gap-1">
-                  <Clock size={12} />
+                  <ClipboardList size={12} />
                   Review Based
                 </span>
               );
@@ -216,7 +217,7 @@ function PostingList({
 
   const crisisTagContent = (
     <>
-      <AlertCircle size={14} />
+      <AlertTriangle size={14} />
       <span className="truncate max-w-40 font-semibold">{posting.crisis_name}</span>
     </>
   );

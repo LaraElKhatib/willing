@@ -722,6 +722,7 @@ function VolunteerProfile() {
         <Card
           title="Skills"
           description="Add skills to highlight your expertise."
+          Icon={Brain}
         >
           {isEditMode
             ? (
@@ -735,6 +736,7 @@ function VolunteerProfile() {
         <Card
           title="Previous Experiences"
           description="Past volunteering experiences completed through the platform."
+          Icon={Users}
         >
           {profile.completed_experiences.length === 0
             ? (
@@ -776,6 +778,7 @@ function VolunteerProfile() {
         <Card
           title="CV"
           description="Upload your CV as a PDF with up to 3 pages."
+          Icon={FileText}
         >
           <div className="flex flex-col gap-3">
             {profile.volunteer.cv_path

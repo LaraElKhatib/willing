@@ -9,6 +9,7 @@ import EmptyState from '../../components/EmptyState';
 import PageContainer from '../../components/layout/PageContainer';
 import PageHeader from '../../components/layout/PageHeader';
 import Loading from '../../components/Loading';
+import { CARD_BADGES } from '../../components/postings/cardSemantics';
 import VolunteerInfoCollapse from '../../components/VolunteerInfoCollapse';
 import useNotifications from '../../notifications/useNotifications';
 import requestServer, { SERVER_BASE_URL } from '../../utils/requestServer';
@@ -473,9 +474,12 @@ function OrganizationPostingAttendance() {
       />
 
       <Card
-        title="Registered Volunteers"
+        title="Enrolled Volunteers"
+        description="Track attendance by volunteer and posting day."
+        color="success"
+        Icon={Users}
         right={
-          <span className="badge badge-primary">{data.enrollments.length}</span>
+          <span className={CARD_BADGES.enrollment}>{data.enrollments.length}</span>
         }
       >
         <div className="mb-4 grid gap-2 md:grid-cols-[1fr_auto]">
