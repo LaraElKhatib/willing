@@ -258,9 +258,9 @@ function createUserRouter(db: Kysely<Database>) {
       throw new Error('Incorrect password');
     }
 
-    const appNow = sql<Date>`timezone('Asia/Beirut', now())`;
-    const today = sql<Date>`date(timezone('Asia/Beirut', now()))`;
-    const currentTime = sql<string>`(timezone('Asia/Beirut', now()))::time`;
+    const appNow = sql<Date>`now()`;
+    const today = sql<Date>`CURRENT_DATE`;
+    const currentTime = sql<string>`now()::time`;
     const isPostingRunningNow = sql<boolean>`
       date_trunc('minute', ${appNow}) >= (organization_posting.start_date + organization_posting.start_time)
       AND date_trunc('minute', ${appNow}) <= (organization_posting.end_date + organization_posting.end_time)
