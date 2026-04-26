@@ -47,7 +47,7 @@ const schema = zod.object({
   CERTIFICATE_VERIFICATION_SECRET: zod.string().min(1),
   UPLOAD_DIR: zod.string(),
 
-  WILLING_EMAIL: optionalInDev(zod.email()),
+  WILLING_SENDER_EMAIL: optionalInDev(zod.email()),
 
   RESEND_API_KEY: optionalInDev(zod.string().startsWith('re_').optional()),
   OPENAI_API_KEY: optionalInDev(zod.string().optional()),
@@ -57,7 +57,7 @@ const schema = zod.object({
     if (values.NODE_ENV !== 'production') return;
 
     const prodRequired: (keyof typeof values)[] = [
-      'WILLING_EMAIL', 'RESEND_API_KEY', 'LOCATION_IQ_API_KEY', 'OPENAI_API_KEY',
+      'WILLING_SENDER_EMAIL', 'RESEND_API_KEY', 'LOCATION_IQ_API_KEY', 'OPENAI_API_KEY',
     ];
 
     prodRequired.forEach((key) => {

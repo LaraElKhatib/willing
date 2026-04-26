@@ -22,7 +22,7 @@ export async function sendEmail(opts: {
 }) {
   if (config.NODE_ENV === 'production') {
     const { error } = await resend.emails.send({
-      from: 'Willing <' + config.WILLING_EMAIL + '>',
+      from: 'Willing <' + config.WILLING_SENDER_EMAIL + '>',
       to: opts.to,
       subject: opts.subject,
       html: opts.html || opts.text,
