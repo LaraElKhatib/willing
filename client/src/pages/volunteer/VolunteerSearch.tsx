@@ -3,7 +3,6 @@ import { useSearchParams } from 'react-router-dom';
 
 import PostingSearchView from '../../components/postings/PostingSearchView.tsx';
 import PostingViewModeToggle from '../../components/postings/PostingViewModeToggle.tsx';
-import PostingViewModeToggle from '../../components/postings/PostingViewModeToggle.tsx';
 import requestServer from '../../utils/requestServer.ts';
 import useAsync from '../../utils/useAsync.ts';
 
