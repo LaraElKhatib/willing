@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Building2, Globe, ImageUp, Mail, MapPin, Phone, ShieldCheck, Trash2, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 
 import { newOrganizationCertificateInfoSchema, organizationAccountSchema } from '../../../../server/src/db/tables';
@@ -200,8 +200,8 @@ function OrganizationProfile() {
     void loadProfile();
   }, [loadProfile]);
 
-  const formValues = form.watch();
-  const certificateValues = certificateForm.watch();
+  const formValues = useWatch ({ control: form.control });
+  const certificateValues = useWatch ({ control: certificateForm.control });
 
   const signatureUrl = useMemo(() => {
     if (!profile || !certificateInfo?.signature_path) return '';

@@ -18,7 +18,7 @@ import {
   Users,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 
 import { volunteerAccountSchema } from '../../../../server/src/db/tables';
@@ -232,7 +232,7 @@ function VolunteerProfile() {
     { notifyOnError: true },
   );
 
-  const formValues = form.watch();
+  const formValues = useWatch ({ control: form.control });
 
   const volunteerName = useMemo(
     () => {
