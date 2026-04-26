@@ -490,19 +490,19 @@ function OrganizationProfile() {
           <>
             {isEditMode
               ? (
-                  <Button color="primary" style="outline" onClick={onCancelEdit} loading={saving} Icon={X}>
+                  <Button color="primary" style="outline" onClick={onCancelEdit} loading={saving} Icon={X} size="sm">
                     Cancel
                   </Button>
                 )
               : (
-                  <button className="btn btn-outline" onClick={() => setIsEditMode(true)}>
+                  <Button style="outline" onClick={() => setIsEditMode(true)} size="sm">
                     Edit Profile
-                  </button>
+                  </Button>
                 )}
             {isEditMode && (
-              <button className="btn btn-primary" onClick={onSave} disabled={saving}>
-                {saving ? 'Saving...' : 'Save Changes'}
-              </button>
+              <Button color="primary" onClick={onSave} loading={saving} size="sm">
+                Save Changes
+              </Button>
             )}
           </>
         )}

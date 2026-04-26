@@ -73,6 +73,8 @@ function AdminRequests() {
     if (nextFilters.search.trim()) {
       query.search = nextFilters.search.trim();
     }
+    query.sortBy = nextFilters.sortBy;
+    query.sortDir = nextFilters.sortDir;
 
     const res = await requestServer<AdminOrganizationRequestsResponse>('/admin/getOrganizationRequests', {
       includeJwt: true,
@@ -83,7 +85,7 @@ function AdminRequests() {
   }, []);
 
   const {
-    data: organizationRequests,
+    data: organizationRequestsData,
     trigger: refreshOrganizationRequests,
   } = useAsync(getOrganizationRequests, { immediate: false });
 
@@ -101,34 +103,7 @@ function AdminRequests() {
     || JSON.stringify(activeFilters) !== JSON.stringify(defaultFilters)
   ), [filters, activeFilters]);
 
-  const sortedOrganizationRequests = useMemo(() => {
-    if (!organizationRequests) return null;
-
-    const sorted = [...organizationRequests];
-
-    if (activeFilters.sortBy === 'name') {
-      sorted.sort((left, right) => {
-        const comparison = left.name.localeCompare(right.name, undefined, { sensitivity: 'base' });
-        return activeFilters.sortDir === 'asc' ? comparison : -comparison;
-      });
-      return sorted;
-    }
-
-    sorted.sort((left, right) => {
-      const leftTime = new Date(left.created_at).getTime();
-      const rightTime = new Date(right.created_at).getTime();
-      const timeComparison = leftTime - rightTime;
-
-      if (timeComparison !== 0) {
-        return activeFilters.sortDir === 'asc' ? timeComparison : -timeComparison;
-      }
-
-      const idComparison = left.id - right.id;
-      return activeFilters.sortDir === 'asc' ? idComparison : -idComparison;
-    });
-
-    return sorted;
-  }, [organizationRequests, activeFilters]);
+  const organizationRequests = organizationRequestsData ?? null;
 
   const applyFilters = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -168,10 +143,10 @@ function AdminRequests() {
     }));
   };
 
-  const badgeContent: ReactNode = sortedOrganizationRequests
+  const badgeContent: ReactNode = organizationRequests
     ? (
         <div className="badge badge-primary">
-          {sortedOrganizationRequests.length}
+          {organizationRequests.length}
           {' '}
           Pending
         </div>
@@ -181,7 +156,7 @@ function AdminRequests() {
       );
 
   let mainContent: ReactNode;
-  if (sortedOrganizationRequests === null) {
+  if (organizationRequests === null) {
     mainContent = (
       <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6">
         <div className="card shadow-sm border border-base-200 skeleton h-169" />
@@ -255,14 +230,14 @@ function AdminRequests() {
           </form>
         </Card>
 
-        {sortedOrganizationRequests.length > 0
+        {organizationRequests.length > 0
           ? (
               <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6">
-                {sortedOrganizationRequests.map((request, index) => (
+                {organizationRequests.map(request => (
                   <OrganizationRequestReviewCard
                     request={request}
                     refreshOrganizationRequests={refreshCurrentRequests}
-                    key={`${activeFilters.sortBy}-${activeFilters.sortDir}-${index}-${request.id}`}
+                    key={request.id}
                   />
                 ))}
               </div>

@@ -26,6 +26,7 @@ import AuthContext from '../../auth/AuthContext';
 import Alert from '../../components/Alert';
 import Button from '../../components/Button';
 import Card from '../../components/Card';
+import EmptyState from '../../components/EmptyState';
 import ColumnLayout from '../../components/layout/ColumnLayout';
 import PageContainer from '../../components/layout/PageContainer';
 import PageHeader from '../../components/layout/PageHeader';
@@ -514,23 +515,23 @@ function VolunteerProfile() {
         icon={FileText}
         actions={(
           <>
-            <LinkButton to="/volunteer/certificate" color="secondary" className="btn btn-outline">
+            <LinkButton to="/volunteer/certificate" color="secondary" className="btn btn-outline" size="sm">
               <FileText size={16} />
               Generate Certificate
             </LinkButton>
             {isEditMode
               ? (
-                  <Button color="primary" style="outline" onClick={onCancelEdit} loading={saving} Icon={X}>
+                  <Button color="primary" style="outline" onClick={onCancelEdit} loading={saving} Icon={X} size="sm">
                     Cancel
                   </Button>
                 )
               : (
-                  <Button color="primary" style="outline" onClick={() => setIsEditMode(true)} Icon={Edit3}>
+                  <Button color="primary" style="outline" onClick={() => setIsEditMode(true)} Icon={Edit3} size="sm">
                     Edit Profile
                   </Button>
                 )}
             {isEditMode && (
-              <Button color="primary" onClick={onSave} loading={saving} Icon={Save}>
+              <Button color="primary" onClick={onSave} loading={saving} Icon={Save} size="sm">
                 Save Changes
               </Button>
             )}
@@ -761,9 +762,12 @@ function VolunteerProfile() {
         >
           {profile.completed_experiences.length === 0
             ? (
-                <div className="alert alert-soft mt-4">
-                  <span className="text-sm">No completed experiences to show yet.</span>
-                </div>
+                <EmptyState
+                  title="No completed experiences to show yet."
+                  description="Register for a posting and complete it to show it here."
+                  Icon={Building2}
+                  compact
+                />
               )
             : (
                 <div className="mt-4 space-y-3">
@@ -825,9 +829,12 @@ function VolunteerProfile() {
                   </div>
                 )
               : (
-                  <Alert style="soft">
-                    No CV uploaded yet.
-                  </Alert>
+                  <EmptyState
+                    title="No CV uploaded yet"
+                    description="Upload your CV to show it here."
+                    Icon={Upload}
+                    compact
+                  />
                 )}
 
             <input
