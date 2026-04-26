@@ -20,23 +20,24 @@ const roundHours = (value: number) => Number(value.toFixed(HOURS_DECIMAL_PLACES)
 const isSameHours = (left: number, right: number) => Math.abs(left - right) <= HOURS_EPSILON;
 
 const getVolunteerHoursSnapshot = async (db: Kysely<Database>, volunteerId: number, issuedAt: Date): Promise<VolunteerHoursSnapshot> => {
-  const hoursPerPostingExpression = sql<number>`GREATEST(
+  const hoursPerAttendedDateExpression = sql<number>`GREATEST(
     0,
     EXTRACT(EPOCH FROM (
-      (posting.end_date + posting.end_time)
-      - (posting.start_date + posting.start_time)
+      (enrollment_date.date + posting.end_time)
+      - (enrollment_date.date + posting.start_time)
     )) / 3600.0
   )`;
 
   const rows = await db
-    .selectFrom('enrollment')
+    .selectFrom('enrollment_date')
+    .innerJoin('enrollment', 'enrollment.id', 'enrollment_date.enrollment_id')
     .innerJoin('posting', 'posting.id', 'enrollment.posting_id')
     .select([
       'posting.organization_id as organization_id',
-      sql<number>`COALESCE(SUM(${hoursPerPostingExpression}), 0)`.as('hours'),
+      sql<number>`COALESCE(SUM(${hoursPerAttendedDateExpression}), 0)`.as('hours'),
     ])
     .where('enrollment.volunteer_id', '=', volunteerId)
-    .where('enrollment.attended', '=', true)
+    .where('enrollment_date.attended', '=', true)
     // Historical attendance timestamps are not fully modeled in schema.
     // We use enrollment.created_at as the strongest available "known by issued_at" bound.
     .where('enrollment.created_at', '<=', issuedAt)

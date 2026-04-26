@@ -31,6 +31,7 @@ import Button from '../components/Button.tsx';
 import CalendarInfo from '../components/CalendarInfo.tsx';
 import Card from '../components/Card.tsx';
 import CustomMessageModal from '../components/CustomMessageModal.tsx';
+import EmptyState from '../components/EmptyState.tsx';
 import ColumnLayout from '../components/layout/ColumnLayout.tsx';
 import PageContainer from '../components/layout/PageContainer.tsx';
 import PageHeader from '../components/layout/PageHeader.tsx';
@@ -838,10 +839,13 @@ function PostingPage() {
 
   const applicationDaysLabel = useMemo(() => {
     if (!posting || (!isEnrolled && !hasPendingApplication)) return null;
-    if (!posting.allows_partial_attendance) return 'All days';
+    if (!posting.allows_partial_attendance) {
+      if (startDate === endDate && startDate) return formatDisplayDate(startDate);
+      return 'All days';
+    }
     if (formattedSelectedDates.length === 0) return null;
     return formattedSelectedDates.join(', ');
-  }, [formattedSelectedDates, hasPendingApplication, isEnrolled, posting]);
+  }, [endDate, formattedSelectedDates, hasPendingApplication, isEnrolled, posting, startDate]);
 
   const shouldShowCommitmentCard = useMemo(() => {
     if (!posting) return false;
@@ -995,23 +999,24 @@ function PostingPage() {
         defaultBackTo={isVolunteerView ? '/volunteer' : '/organization'}
         actions={canManagePosting && (isEditMode
           ? (
-              <>
-                <Button style="outline" onClick={onCancelEdit} disabled={saving} Icon={X}>
+              <span className="flex gap-2 flex-wrap justify-end">
+                <Button style="outline" onClick={onCancelEdit} disabled={saving} Icon={X} size="sm">
                   Cancel
                 </Button>
-                <Button color="primary" onClick={onSave} loading={saving} Icon={Save}>
+                <Button color="primary" onClick={onSave} loading={saving} Icon={Save} size="sm">
                   Save Changes
                 </Button>
-              </>
+              </span>
             )
           : (
-              <>
+              <span className="flex gap-2 flex-wrap justify-end">
                 <LinkButton
                   to={`/organization/posting/${posting.id}/attendance`}
                   color="info"
                   style="outline"
                   disabled={!canOpenAttendancePage}
                   Icon={ListChecks}
+                  size="sm"
                 >
                   Attendance
                 </LinkButton>
@@ -1020,6 +1025,7 @@ function PostingPage() {
                   onClick={() => setIsEditMode(true)}
                   style="outline"
                   Icon={Edit3}
+                  size="sm"
                 >
                   Edit
                 </Button>
@@ -1029,6 +1035,7 @@ function PostingPage() {
                   disabled={!posting}
                   loading={togglingClosed}
                   Icon={posting?.is_closed ? LockOpen : Lock}
+                  size="sm"
                 >
                   {posting?.is_closed ? 'Reopen' : 'Close'}
                 </Button>
@@ -1037,10 +1044,11 @@ function PostingPage() {
                   onClick={onDelete}
                   loading={deleting}
                   Icon={Trash2}
+                  size="sm"
                 >
                   Delete
                 </Button>
-              </>
+              </span>
             )
         )}
       />
@@ -1051,14 +1059,14 @@ function PostingPage() {
             <Card>
               <div className="flex items-start gap-3 mb-4">
                 {postingOrganization && (
-                  <Link to={`/organization/${postingOrganization.id}`} className="shrink-0">
-                    <OrganizationProfilePicture
-                      organizationName={postingOrganization.name}
-                      organizationId={postingOrganization.id}
-                      logoPath={postingOrganization.logoPath}
-                      size={48}
-                    />
-                  </Link>
+                  <OrganizationProfilePicture
+                    organizationName={postingOrganization.name}
+                    organizationId={postingOrganization.id}
+                    logoPath={postingOrganization.logoPath}
+                    size={48}
+                    linkToOrganizationPage
+                    linkClassName="shrink-0"
+                  />
                 )}
 
                 <div className="min-w-0">
@@ -1503,16 +1511,17 @@ function PostingPage() {
         {canManagePosting && !isOpen && (
           <Card
             title="Enrollment Applications"
-            description="Enrollment applications description."
             right={
               <span className="badge badge-primary">{applications.length}</span>
             }
           >
             {applications.length === 0
               ? (
-                  <Alert>
-                    No pending applications.
-                  </Alert>
+                  <EmptyState
+                    title="No pending applications"
+                    description="Wait for volunteers to apply to show here."
+                    Icon={Users}
+                  />
                 )
               : (
                   <div className="space-y-2">
@@ -1522,7 +1531,7 @@ function PostingPage() {
                         volunteer={app}
                         profileLink={`/organization/volunteer/${app.volunteer_id}`}
                         actions={(
-                          <>
+                          <span className="flex gap-2">
                             <Button
                               color="success"
                               style="soft"
@@ -1541,7 +1550,7 @@ function PostingPage() {
                             >
                               Reject
                             </Button>
-                          </>
+                          </span>
                         )}
                       />
                     ))}
@@ -1553,7 +1562,6 @@ function PostingPage() {
         {canManagePosting && (
           <Card
             title="Enrolled Volunteers"
-            // description="Enrolled volunteers description"
             right={
               <span className="badge badge-primary">{enrollments.length}</span>
             }
@@ -1561,9 +1569,11 @@ function PostingPage() {
 
             {enrollments.length === 0
               ? (
-                  <Alert>
-                    No volunteers have enrolled yet.
-                  </Alert>
+                  <EmptyState
+                    title="No volunteers have enrolled yet"
+                    description="Wait for volunteers to enroll to show here."
+                    Icon={Users}
+                  />
                 )
               : (
                   <div className="space-y-2">
