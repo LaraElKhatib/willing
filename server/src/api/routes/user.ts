@@ -291,6 +291,7 @@ function createUserRouter(db: Kysely<Database>) {
           .selectFrom('organization_posting')
           .select('id')
           .where('organization_id', '=', userId)
+          .where('is_closed', '=', false)
           .where(isPostingRunningNow)
           .forUpdate()
           .limit(1)
