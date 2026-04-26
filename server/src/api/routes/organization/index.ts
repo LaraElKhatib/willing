@@ -34,7 +34,7 @@ import {
   type Database,
 } from '../../../db/tables/index.ts';
 import { recomputeOrganizationVector } from '../../../services/embeddings/updates.ts';
-import { sendAdminOrganizationRequestEmail } from '../../../services/smtp/emails.ts';
+import { sendAdminOrganizationRequestEmail } from '../../../services/resend/emails.ts';
 import { orgLogoMulter } from '../../../services/uploads/orgLogo.ts';
 import { CV_UPLOAD_DIR, ORG_LOGO_UPLOAD_DIR, ORG_SIGNATURE_UPLOAD_DIR } from '../../../services/uploads/paths.ts';
 import uploadSingle from '../../../services/uploads/uploadSingle.ts';

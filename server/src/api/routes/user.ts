@@ -17,7 +17,7 @@ import { type Database } from '../../db/tables/index.ts';
 import { emailSchema, passwordSchema } from '../../schemas/index.ts';
 import { compare, hash } from '../../services/bcrypt/index.ts';
 import { generateJWT } from '../../services/jwt/index.ts';
-import { sendPasswordResetEmail, sendPostingDeletedEmail } from '../../services/smtp/emails.ts';
+import { sendPasswordResetEmail, sendPostingDeletedEmail } from '../../services/resend/emails.ts';
 import { loginInfoSchema } from '../../types.ts';
 
 const organizationLoginColumns = [

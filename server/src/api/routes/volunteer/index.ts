@@ -33,7 +33,7 @@ import {
   recomputeVolunteerProfileVector,
 } from '../../../services/embeddings/updates.ts';
 import { generateJWT } from '../../../services/jwt/index.ts';
-import { sendVolunteerVerificationEmail } from '../../../services/smtp/emails.ts';
+import { sendVolunteerVerificationEmail } from '../../../services/resend/emails.ts';
 import { getVolunteerProfile } from '../../../services/volunteer/index.ts';
 import { normalizeSearchTerms } from '../utils/postingList.js';
 import { canRecomputeProfileVector } from '../utils/rateLimit.ts';
