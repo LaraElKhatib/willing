@@ -42,12 +42,12 @@ import Loading from '../components/Loading.tsx';
 import LocationPicker from '../components/LocationPicker.tsx';
 import OrganizationProfilePicture from '../components/OrganizationProfilePicture.tsx';
 import PostingDateTime from '../components/PostingDateTime.tsx';
-import { CARD_BADGES, CARD_COLORS } from '../components/postings/cardSemantics';
 import CrisisCard from '../components/postings/CrisisCard.tsx';
 import SkillsInput from '../components/skills/SkillsInput.tsx';
 import SkillsList from '../components/skills/SkillsList.tsx';
 import { ToggleButton } from '../components/ToggleButton.tsx';
 import VolunteerInfoCollapse from '../components/VolunteerInfoCollapse.tsx';
+import { DOMAIN_COLORS } from '../constants';
 import { useModal } from '../contexts/useModal.ts';
 import useNotifications from '../notifications/useNotifications';
 import { organizationPostingEditFormSchema, type OrganizationPostingEditFormData } from '../schemas/posting';
@@ -817,7 +817,7 @@ function PostingPage() {
       return {
         label: 'Enrolled',
         description: 'Your application was accepted and you are enrolled in this posting.',
-        badgeClassName: CARD_BADGES.enrollment,
+        badgeClassName: `badge badge-${DOMAIN_COLORS.enrollment} inline-flex items-center gap-1`,
         cardColor: 'success' as const,
         Icon: CheckCircle2,
       };
@@ -827,7 +827,7 @@ function PostingPage() {
       return {
         label: 'Pending Review',
         description: 'Your application is waiting for the organization to review it.',
-        badgeClassName: CARD_BADGES.pending,
+        badgeClassName: `badge badge-${DOMAIN_COLORS.pending} inline-flex items-center gap-1`,
         cardColor: 'warning' as const,
         Icon: Clock3,
       };
@@ -836,7 +836,7 @@ function PostingPage() {
     return {
       label: 'Not Applied',
       description: 'You have not applied to this posting yet.',
-      badgeClassName: CARD_BADGES.neutral,
+      badgeClassName: `badge badge-${DOMAIN_COLORS.neutral} inline-flex items-center gap-1`,
       cardColor: 'neutral' as const,
       Icon: ShieldCheck,
     };
@@ -1285,7 +1285,7 @@ function PostingPage() {
                   <Card
                     title="Crisis Tag"
                     description="Add a crisis tag to this posting."
-                    color={CARD_COLORS.crisis}
+                    color={DOMAIN_COLORS.crisis}
                     coloredText={true}
                     Icon={AlertTriangle}
                   >
@@ -1328,7 +1328,7 @@ function PostingPage() {
                       description={selectedCrisisName
                         ? 'Crisis details are currently unavailable.'
                         : 'This posting is not linked to a crisis event.'}
-                      color={CARD_COLORS.crisis}
+                      color={DOMAIN_COLORS.crisis}
                       coloredText={true}
                       Icon={AlertTriangle}
                     />
@@ -1521,7 +1521,7 @@ function PostingPage() {
             color="warning"
             Icon={ClipboardList}
             right={
-              <span className={CARD_BADGES.pending}>{applications.length}</span>
+              <span className={`badge badge-${DOMAIN_COLORS.pending} inline-flex items-center gap-1`}>{applications.length}</span>
             }
           >
             {applications.length === 0
@@ -1575,7 +1575,7 @@ function PostingPage() {
             color="success"
             Icon={CheckCircle2}
             right={
-              <span className={CARD_BADGES.enrollment}>{enrollments.length}</span>
+              <span className={`badge badge-${DOMAIN_COLORS.enrollment} inline-flex items-center gap-1`}>{enrollments.length}</span>
             }
           >
 

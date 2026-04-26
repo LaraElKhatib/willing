@@ -1,8 +1,8 @@
 import { AlertTriangle, Pin } from 'lucide-react';
 import { type ReactNode } from 'react';
 
+import { DOMAIN_COLORS } from '../../constants';
 import Card from '../Card.tsx';
-import { CARD_BADGES, CARD_COLORS } from './cardSemantics';
 
 import type { Crisis } from '../../../../server/src/db/tables/index.ts';
 
@@ -25,13 +25,13 @@ function CrisisCard({
     <Card
       title={crisis.name}
       description={crisis.description || descriptionFallback}
-      color={CARD_COLORS.crisis}
+      color={DOMAIN_COLORS.crisis}
       coloredText={true}
       Icon={AlertTriangle}
       link={link ?? `/volunteer/crises/${crisis.id}/postings`}
       right={right ?? (crisis.pinned
         ? (
-            <span className={CARD_BADGES.crisis}>
+            <span className={`badge badge-${DOMAIN_COLORS.crisis} badge-outline inline-flex items-center gap-1`}>
               <Pin size={12} />
               Pinned
             </span>

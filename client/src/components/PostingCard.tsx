@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import Card from './Card';
 import OrganizationProfilePicture from './OrganizationProfilePicture';
 import PostingDateTime from './PostingDateTime.tsx';
-import { CARD_BADGES } from './postings/cardSemantics';
+import { DOMAIN_COLORS } from '../constants';
 import SkillsList from './skills/SkillsList';
 
 import type { PostingWithContext } from '../../../server/src/types';
@@ -226,7 +226,7 @@ function PostingCard({
                   )
                 : posting.application_status === 'registered'
                   ? (
-                      <span className={CARD_BADGES.enrollment}>
+                      <span className={`badge badge-${DOMAIN_COLORS.enrollment} inline-flex items-center gap-1`}>
                         <CheckCircle2 size={14} />
                         Enrolled
                       </span>

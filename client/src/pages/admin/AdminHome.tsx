@@ -5,7 +5,7 @@ import Card from '../../components/Card';
 import PageContainer from '../../components/layout/PageContainer';
 import PageHeader from '../../components/layout/PageHeader';
 import LinkButton from '../../components/LinkButton';
-import { CARD_BADGES, CARD_COLORS } from '../../components/postings/cardSemantics';
+import { DOMAIN_COLORS } from '../../constants';
 import requestServer from '../../utils/requestServer';
 import useAsync from '../../utils/useAsync';
 
@@ -50,13 +50,13 @@ function AdminHome() {
         <Card
           title="Organization Requests"
           description="Review pending organization onboarding requests and approve or reject each submission."
-          color="warning"
+          color={DOMAIN_COLORS.request}
           Icon={ClipboardCheck}
           right={
             !organizationRequests
               ? <div className="skeleton w-16 h-6" />
               : (
-                  <span className={CARD_BADGES.pending}>
+                  <span className={`badge badge-${DOMAIN_COLORS.pending} badge-outline inline-flex items-center gap-1`}>
                     {organizationRequests.length}
                     {' '}
                     Pending
@@ -77,7 +77,7 @@ function AdminHome() {
 
         <Card
           title="Crises"
-          color={CARD_COLORS.crisis}
+          color={DOMAIN_COLORS.crisis}
           coloredText={true}
           description={
             crises === undefined
@@ -91,7 +91,7 @@ function AdminHome() {
             !crises
               ? <div className="skeleton w-16 h-6" />
               : (
-                  <span className={CARD_BADGES.crisis}>
+                  <span className={`badge badge-${DOMAIN_COLORS.crisis} badge-outline inline-flex items-center gap-1`}>
                     {crises.length}
                     {' '}
                     Total
@@ -113,7 +113,7 @@ function AdminHome() {
         <Card
           title="Reports"
           description="Review reports submitted by volunteers and organizations and take moderation actions."
-          color="error"
+          color={DOMAIN_COLORS.report}
           Icon={Flag}
           right={
             !reports

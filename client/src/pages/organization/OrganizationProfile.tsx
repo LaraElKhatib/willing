@@ -17,6 +17,7 @@ import LocationPicker from '../../components/LocationPicker';
 import OrganizationProfilePicture from '../../components/OrganizationProfilePicture';
 import SignatureUploadField from '../../components/SignatureUploadField';
 import { ToggleButton } from '../../components/ToggleButton';
+import { DOMAIN_COLORS } from '../../constants';
 import useNotifications from '../../notifications/useNotifications';
 import { executeAndShowError, FormField, FormRootError } from '../../utils/formUtils';
 import requestServer, { SERVER_BASE_URL } from '../../utils/requestServer';
@@ -642,6 +643,7 @@ function OrganizationProfile() {
           title="Location"
           description="Update your pinned location for volunteers."
           Icon={MapPin}
+          color={DOMAIN_COLORS.profile}
         >
           <LocationPicker
             position={position}
@@ -655,6 +657,7 @@ function OrganizationProfile() {
           title="Certificate Settings"
           description="Allow volunteers to include this organization on generated certificates."
           Icon={ShieldCheck}
+          color={DOMAIN_COLORS.certificate}
         >
 
           {isEditMode

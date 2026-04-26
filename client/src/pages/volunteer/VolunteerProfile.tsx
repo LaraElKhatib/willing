@@ -34,6 +34,7 @@ import Loading from '../../components/Loading';
 import PostingList from '../../components/PostingList';
 import SkillsInput from '../../components/skills/SkillsInput';
 import SkillsList from '../../components/skills/SkillsList';
+import { DOMAIN_COLORS } from '../../constants';
 import useNotifications from '../../notifications/useNotifications';
 import { FormField } from '../../utils/formUtils';
 import requestServer, { SERVER_BASE_URL } from '../../utils/requestServer';
@@ -723,6 +724,7 @@ function VolunteerProfile() {
           title="Skills"
           description="Add skills to highlight your expertise."
           Icon={Brain}
+          color={DOMAIN_COLORS.skills}
         >
           {isEditMode
             ? (
@@ -737,6 +739,7 @@ function VolunteerProfile() {
           title="Previous Experiences"
           description="Past volunteering experiences completed through the platform."
           Icon={Users}
+          color={DOMAIN_COLORS.experience}
         >
           {profile.completed_experiences.length === 0
             ? (
@@ -779,6 +782,7 @@ function VolunteerProfile() {
           title="CV"
           description="Upload your CV as a PDF with up to 3 pages."
           Icon={FileText}
+          color={DOMAIN_COLORS.cv}
         >
           <div className="flex flex-col gap-3">
             {profile.volunteer.cv_path

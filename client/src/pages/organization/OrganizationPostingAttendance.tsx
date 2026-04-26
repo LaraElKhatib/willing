@@ -9,8 +9,8 @@ import EmptyState from '../../components/EmptyState';
 import PageContainer from '../../components/layout/PageContainer';
 import PageHeader from '../../components/layout/PageHeader';
 import Loading from '../../components/Loading';
-import { CARD_BADGES } from '../../components/postings/cardSemantics';
 import VolunteerInfoCollapse from '../../components/VolunteerInfoCollapse';
+import { DOMAIN_COLORS } from '../../constants';
 import useNotifications from '../../notifications/useNotifications';
 import requestServer, { SERVER_BASE_URL } from '../../utils/requestServer';
 import useAsync from '../../utils/useAsync';
@@ -479,7 +479,7 @@ function OrganizationPostingAttendance() {
         color="success"
         Icon={Users}
         right={
-          <span className={CARD_BADGES.enrollment}>{data.enrollments.length}</span>
+          <span className={`badge badge-${DOMAIN_COLORS.enrollment} inline-flex items-center gap-1`}>{data.enrollments.length}</span>
         }
       >
         <div className="mb-4 grid gap-2 md:grid-cols-[1fr_auto]">

@@ -2,7 +2,7 @@ import { AlertTriangle, Ban, Cake, Calendar, CheckCircle2, ClipboardList, Clock,
 import { Link } from 'react-router-dom';
 
 import OrganizationProfilePicture from './OrganizationProfilePicture';
-import { CARD_BADGES } from './postings/cardSemantics';
+import { DOMAIN_COLORS } from '../constants';
 import SkillsList from './skills/SkillsList';
 
 import type { PostingWithContext } from '../../../server/src/types';
@@ -158,7 +158,7 @@ function PostingList({
         )
       : posting.application_status === 'registered'
         ? (
-            <span className={`${CARD_BADGES.enrollment} badge-sm`}>
+            <span className={`badge badge-${DOMAIN_COLORS.enrollment} badge-sm inline-flex items-center gap-1`}>
               <CheckCircle2 size={12} />
               Enrolled
             </span>
