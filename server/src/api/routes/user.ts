@@ -234,7 +234,11 @@ function createUserRouter(db: Kysely<Database>) {
   });
 
   userRouter.delete('/account', authorizeOnly('organization', 'volunteer'), async (req: Request, res: Response<UserDeleteAccountResponse>) => {
-    const { password } = zod.object({ password: zod.string().min(1) }).parse(req.body);
+    const { password, local_date: localDate, local_time: localTime } = zod.object({
+      password: zod.string().min(1),
+      local_date: zod.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+      local_time: zod.string().regex(/^\d{2}:\d{2}(:\d{2})?$/).optional(),
+    }).parse(req.body);
     const userId = req.userJWT!.id;
     const role = req.userJWT!.role as 'organization' | 'volunteer';
 
@@ -258,7 +262,24 @@ function createUserRouter(db: Kysely<Database>) {
       throw new Error('Incorrect password');
     }
 
-    const today = sql<Date>`CURRENT_DATE`;
+    const now = new Date();
+    const fallbackDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const fallbackTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:00`;
+
+    const requestDate = localDate ?? fallbackDate;
+    const requestTime = localTime
+      ? (localTime.length === 5 ? `${localTime}:00` : localTime)
+      : fallbackTime;
+
+    const today = sql<Date>`CAST(${requestDate} AS date)`;
+    const currentTime = sql<string>`CAST(${requestTime} AS time)`;
+    const isPostingRunningNow = sql<boolean>`
+      (organization_posting.start_date < ${today}
+        OR (organization_posting.start_date = ${today} AND organization_posting.start_time <= ${currentTime}))
+      AND
+      (organization_posting.end_date > ${today}
+        OR (organization_posting.end_date = ${today} AND organization_posting.end_time >= ${currentTime}))
+    `;
 
     if (role === 'volunteer') {
       const activeEnrollment = await db
@@ -267,7 +288,7 @@ function createUserRouter(db: Kysely<Database>) {
         .select('enrollment.id')
         .where('enrollment.volunteer_id', '=', userId)
         .where('enrollment.attended', '=', false)
-        .where('organization_posting.end_date', '>=', today)
+        .where(sql<boolean>`(organization_posting.end_date > ${today} OR (organization_posting.end_date = ${today} AND organization_posting.end_time >= ${currentTime}))`)
         .limit(1)
         .executeTakeFirst();
 
@@ -283,10 +304,10 @@ function createUserRouter(db: Kysely<Database>) {
       if (role === 'organization') {
         const runningPosting = await trx
           .selectFrom('organization_posting')
-          .select('id')
+          .select(['id', 'title', 'start_date', 'start_time', 'end_date', 'end_time'])
           .where('organization_id', '=', userId)
-          .where('start_date', '<=', today)
-          .where('end_date', '>=', today)
+          .where('is_closed', '=', false)
+          .where(isPostingRunningNow)
           .forUpdate()
           .limit(1)
           .executeTakeFirst();
