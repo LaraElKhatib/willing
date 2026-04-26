@@ -30,12 +30,7 @@ function CrisisCard({
       Icon={AlertTriangle}
       link={link ?? `/volunteer/crises/${crisis.id}/postings`}
       right={right ?? (crisis.pinned
-        ? (
-            <span className={`badge badge-${DOMAIN_COLORS.crisis} badge-outline inline-flex items-center gap-1`}>
-              <Pin size={12} />
-              Pinned
-            </span>
-          )
+        ? <Pin size={16} className={`text-${DOMAIN_COLORS.crisis}`} />
         : undefined)}
     >
       {children}
