@@ -801,7 +801,7 @@ function PostingPage() {
     setPosition(coords);
   }, []);
 
-  const formValues = form.watch();
+  const formValues = useWatch({ control: form.control });
 
   const formattedStartDate = useMemo(() => formatDisplayDate(startDate), [startDate]);
   const formattedStartTime = useMemo(() => formatDisplayTime(startTime), [startTime]);
@@ -889,7 +889,7 @@ function PostingPage() {
   const canManagePosting = useMemo(() => {
     if (isVolunteerView || !posting || !account?.id) return false;
     return posting.organization_id === account.id;
-  }, [isVolunteerView, posting, account?.id]);
+  }, [isVolunteerView, posting, account]);
 
   const currentEnrollmentCount = useMemo(() => {
     if (!posting) return 0;
