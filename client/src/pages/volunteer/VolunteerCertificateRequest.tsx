@@ -346,7 +346,7 @@ function VolunteerCertificateRequest() {
             </div>
 
             {hasNoCompletedHours && (
-              <div className="alert alert-warning mt-3">
+              <div className="alert alert-warning -mt-5">
                 <AlertCircle size={16} />
                 <span>You need to complete an opportunity before generating a certificate.</span>
               </div>
