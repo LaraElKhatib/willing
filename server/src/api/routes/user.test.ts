@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import createApp from '../../app.ts';
 import database from '../../db/index.ts';
 import { compare } from '../../services/bcrypt/index.ts';
-import * as emailService from '../../services/smtp/emails.ts';
+import * as emailService from '../../services/resend/emails.ts';
 import { createAdminAccount, createOrganizationAccount, createVolunteerAccount } from '../../tests/fixtures/accounts.ts';
 import { createOrganizationPosting } from '../../tests/fixtures/organizationData.ts';
 

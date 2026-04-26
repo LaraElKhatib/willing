@@ -7,7 +7,7 @@ import database from '../../../db/index.ts';
 import { compare } from '../../../services/bcrypt/index.ts';
 import * as embeddingUpdates from '../../../services/embeddings/updates.ts';
 import * as jwtService from '../../../services/jwt/index.ts';
-import * as emailService from '../../../services/smtp/emails.ts';
+import * as emailService from '../../../services/resend/emails.ts';
 import * as volunteerService from '../../../services/volunteer/index.ts';
 import { createAdminAccount, createOrganizationAccount, createVolunteerAccount } from '../../../tests/fixtures/accounts.ts';
 import { createOrganizationRequest } from '../../../tests/fixtures/organizationData.ts';
