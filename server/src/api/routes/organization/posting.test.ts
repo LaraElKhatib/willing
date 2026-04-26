@@ -87,7 +87,7 @@ describe('Organization posting applications', () => {
   });
 
   test('automatically rejects pending applications for an ended review-based posting', async () => {
-    const rejectionEmailSpy = vi.spyOn(smtpEmails, 'sendVolunteerApplicationRejectedEmail').mockResolvedValue(undefined);
+    const rejectionEmailSpy = vi.spyOn(resendEmails, 'sendVolunteerApplicationRejectedEmail').mockResolvedValue(undefined);
     const { organization, token } = await createOrganizationAccount(transaction, { email: 'org-ended-auto-reject@example.com' });
     const { volunteer } = await createVolunteerAccount(transaction, { email: 'vol-ended-auto-reject@example.com' });
     const yesterday = new Date();
