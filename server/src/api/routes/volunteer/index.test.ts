@@ -1261,7 +1261,7 @@ describe('POST /volunteer/certificate/issue', () => {
       .returning(['id'])
       .executeTakeFirstOrThrow();
 
-    await transaction
+    const enrollments = await transaction
       .insertInto('enrollment')
       .values([
         {
@@ -1277,6 +1277,19 @@ describe('POST /volunteer/certificate/issue', () => {
           created_at: new Date('2026-02-03T00:00:00.000Z'),
         },
       ])
+      .returning(['id', 'posting_id'])
+      .execute();
+
+    await transaction
+      .insertInto('enrollment_date')
+      .values(enrollments.map(enrollment => ({
+        enrollment_id: enrollment.id,
+        posting_id: enrollment.posting_id,
+        date: enrollment.posting_id === activePosting.id
+          ? new Date('2026-02-01T00:00:00.000Z')
+          : new Date('2026-02-02T00:00:00.000Z'),
+        attended: true,
+      })))
       .execute();
 
     const response = await server
