@@ -1086,7 +1086,15 @@ function PostingPage() {
                 )}
 
                 <div className="min-w-0">
-                  <h4 className="text-xl font-bold truncate">{formValues.title}</h4>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h4 className="text-xl font-bold truncate">{formValues.title}</h4>
+                    {hasEnded && (
+                      <span className="badge badge-neutral inline-flex items-center gap-1 shrink-0">
+                        <CalendarX2 size={12} />
+                        Ended
+                      </span>
+                    )}
+                  </div>
                   {postingOrganization && (
                     <Link
                       to={`/organization/${postingOrganization.id}`}
@@ -1374,9 +1382,9 @@ function PostingPage() {
                     </>
                   )
                 : (
-                    <span className={`badge gap-2 ${hasEnded ? 'badge-neutral' : posting?.is_closed ? 'badge-error' : isOpen ? 'badge-primary' : 'badge-secondary'}`}>
-                      {hasEnded ? <CalendarX2 size={12} /> : posting?.is_closed ? <Lock size={12} /> : isOpen ? <LockOpen size={12} /> : <Lock size={12} />}
-                      {hasEnded ? 'Ended' : posting?.is_closed ? 'Closed' : isOpen ? 'Open' : 'Review Based'}
+                    <span className={`badge gap-2 ${posting?.is_closed ? 'badge-error' : isOpen ? 'badge-primary' : 'badge-secondary'}`}>
+                      {posting?.is_closed ? <Lock size={12} /> : isOpen ? <LockOpen size={12} /> : <Lock size={12} />}
+                      {posting?.is_closed ? 'Closed' : isOpen ? 'Open' : 'Review Based'}
                     </span>
                   )}
               <p className="text-xs opacity-70 mt-2">
