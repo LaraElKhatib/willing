@@ -3,7 +3,7 @@ import { type Kysely } from 'kysely';
 import { hasPostingEnded } from './postingTime.ts';
 import executeTransaction from '../../db/executeTransaction.ts';
 import { type Database } from '../../db/tables/index.ts';
-import { sendVolunteerApplicationRejectedEmail } from '../smtp/emails.ts';
+import { sendVolunteerApplicationRejectedEmail } from '../resend/emails.ts';
 
 export async function rejectEndedPendingApplicationsForPostings(
   db: Kysely<Database>,
