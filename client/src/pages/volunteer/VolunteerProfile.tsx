@@ -490,7 +490,7 @@ function VolunteerProfile() {
         subtitle="Manage your details, availability, and focus areas."
         icon={FileText}
         actions={(
-          <>
+          <div className="flex flex-wrap gap-2 justify-end">
             <LinkButton to="/volunteer/certificate" color="secondary" className="btn btn-outline" size="sm">
               <FileText size={16} />
               Generate Certificate
@@ -511,7 +511,7 @@ function VolunteerProfile() {
                 Save Changes
               </Button>
             )}
-          </>
+          </div>
         )}
       />
 
