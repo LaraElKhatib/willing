@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 
-import { Router, type Response } from 'express';
+import { Router, type Request, type Response } from 'express';
 import { sql, type Kysely } from 'kysely';
 import zod from 'zod';
 
@@ -233,7 +233,7 @@ function createUserRouter(db: Kysely<Database>) {
     res.json({});
   });
 
-  userRouter.delete('/account', authorizeOnly('organization', 'volunteer'), async (req, res: Response<UserDeleteAccountResponse>) => {
+  userRouter.delete('/account', authorizeOnly('organization', 'volunteer'), async (req: Request, res: Response<UserDeleteAccountResponse>) => {
     const { password } = zod.object({ password: zod.string().min(1) }).parse(req.body);
     const userId = req.userJWT!.id;
     const role = req.userJWT!.role as 'organization' | 'volunteer';
@@ -258,7 +258,13 @@ function createUserRouter(db: Kysely<Database>) {
       throw new Error('Incorrect password');
     }
 
-    const today = sql<Date>`CURRENT_DATE`;
+    const appNow = sql<Date>`timezone('Asia/Beirut', now())`;
+    const today = sql<Date>`date(timezone('Asia/Beirut', now()))`;
+    const currentTime = sql<string>`(timezone('Asia/Beirut', now()))::time`;
+    const isPostingRunningNow = sql<boolean>`
+      date_trunc('minute', ${appNow}) >= (organization_posting.start_date + organization_posting.start_time)
+      AND date_trunc('minute', ${appNow}) <= (organization_posting.end_date + organization_posting.end_time)
+    `;
 
     if (role === 'volunteer') {
       const activeEnrollment = await db
@@ -267,7 +273,7 @@ function createUserRouter(db: Kysely<Database>) {
         .select('enrollment.id')
         .where('enrollment.volunteer_id', '=', userId)
         .where('enrollment.attended', '=', false)
-        .where('organization_posting.end_date', '>=', today)
+        .where(sql<boolean>`(organization_posting.end_date > ${today} OR (organization_posting.end_date = ${today} AND organization_posting.end_time >= ${currentTime}))`)
         .limit(1)
         .executeTakeFirst();
 
@@ -285,8 +291,7 @@ function createUserRouter(db: Kysely<Database>) {
           .selectFrom('organization_posting')
           .select('id')
           .where('organization_id', '=', userId)
-          .where('start_date', '<=', today)
-          .where('end_date', '>=', today)
+          .where(isPostingRunningNow)
           .forUpdate()
           .limit(1)
           .executeTakeFirst();
