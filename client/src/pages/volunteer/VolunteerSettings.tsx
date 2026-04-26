@@ -87,7 +87,7 @@ function VolunteerSettings() {
                     onKeyDown={e => e.key === 'Enter' && void onDeleteAccount()}
                   />
                   {deleteError && <p className="text-sm text-error">{deleteError}</p>}
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap justify-end gap-2">
                     <Button
                       type="button"
                       color="error"
