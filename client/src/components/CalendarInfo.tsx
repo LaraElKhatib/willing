@@ -563,7 +563,7 @@ function ControlledCalendarInfo({
   }, [isPickerOpen]);
 
   const getPopoverPlacementClass = () => {
-    return pickerPlacement === 'top' ? 'bottom-full mb-2' : 'top-full mt-2';
+    return pickerPlacement === 'top' ? 'sm:bottom-full sm:mb-2' : 'sm:top-full sm:mt-2';
   };
 
   const getPopoverAnimationClass = () => {
@@ -641,7 +641,13 @@ function ControlledCalendarInfo({
             {isPickerOpen && (
               <div
                 ref={activePopoverRef}
-                className={`absolute z-500 w-[95vw] max-w-md left-1/2 -translate-x-1/2 sm:left-0 sm:translate-x-0 sm:w-auto sm:min-w-[20rem] rounded-box border border-base-300 bg-base-100 p-3 shadow-xl ${getPopoverPlacementClass()} ${getPopoverAnimationClass()}`}
+                className={`
+                  fixed inset-x-4 top-20 z-500 max-w-md mx-auto 
+                  sm:absolute sm:top-auto sm:inset-x-auto sm:left-0 sm:translate-x-0 sm:mx-0 sm:w-auto sm:min-w-[20rem] 
+                  rounded-box border border-base-300 bg-base-100 p-3 shadow-xl 
+                  ${getPopoverPlacementClass()} 
+                  ${getPopoverAnimationClass()}
+                `}
               >
                 <DayPicker
                   className="willing-day-picker w-full"
@@ -753,7 +759,13 @@ function ControlledCalendarInfo({
             {isPickerOpen && (
               <div
                 ref={activePopoverRef}
-                className={`absolute z-500 w-[95vw] max-w-md left-1/2 -translate-x-1/2 sm:left-0 sm:translate-x-0 sm:w-auto sm:min-w-[20rem] rounded-box border border-base-300 bg-base-100 p-3 shadow-xl ${getPopoverPlacementClass()} ${getPopoverAnimationClass()}`}
+                className={`
+                  fixed inset-x-4 top-20 z-500 max-w-md mx-auto 
+                  sm:absolute sm:top-auto sm:inset-x-auto sm:left-0 sm:translate-x-0 sm:mx-0 sm:w-auto sm:min-w-[20rem] 
+                  rounded-box border border-base-300 bg-base-100 p-3 shadow-xl 
+                  ${getPopoverPlacementClass()} 
+                  ${getPopoverAnimationClass()}
+                `}
               >
                 <DayPicker
                   className="willing-day-picker w-full"
@@ -843,7 +855,13 @@ function ControlledCalendarInfo({
           {isPickerOpen && (
             <div
               ref={activePopoverRef}
-              className={`absolute z-500 w-[95vw] max-w-md left-1/2 -translate-x-1/2 sm:left-0 sm:translate-x-0 sm:w-auto sm:min-w-[20rem] rounded-box border border-base-300 bg-base-100 p-3 shadow-xl${getPopoverPlacementClass()} ${getPopoverAnimationClass()}`}
+              className={`
+                fixed inset-x-4 top-20 z-500 max-w-md mx-auto 
+                sm:absolute sm:top-auto sm:inset-x-auto sm:left-0 sm:translate-x-0 sm:mx-0 sm:w-auto sm:min-w-[20rem] 
+                rounded-box border border-base-300 bg-base-100 p-3 shadow-xl 
+                ${getPopoverPlacementClass()} 
+                ${getPopoverAnimationClass()}
+              `}
             >
               <DayPicker
                 className="willing-day-picker w-full"
