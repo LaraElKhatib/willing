@@ -274,11 +274,11 @@ function createUserRouter(db: Kysely<Database>) {
     const today = sql<Date>`CAST(${requestDate} AS date)`;
     const currentTime = sql<string>`CAST(${requestTime} AS time)`;
     const isPostingRunningNow = sql<boolean>`
-      (organization_posting.start_date < ${today}
-        OR (organization_posting.start_date = ${today} AND organization_posting.start_time <= ${currentTime}))
+      (posting.start_date < ${today}
+        OR (posting.start_date = ${today} AND posting.start_time <= ${currentTime}))
       AND
-      (organization_posting.end_date > ${today}
-        OR (organization_posting.end_date = ${today} AND organization_posting.end_time >= ${currentTime}))
+      (posting.end_date > ${today}
+        OR (posting.end_date = ${today} AND posting.end_time >= ${currentTime}))
     `;
 
     if (role === 'volunteer') {

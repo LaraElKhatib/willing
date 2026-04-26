@@ -710,7 +710,7 @@ describe('DELETE /user/account', () => {
     });
 
     await transaction
-      .insertInto('organization_posting')
+      .insertInto('posting')
       .values({
         organization_id: organization.id,
         title: 'Running Today Posting',
@@ -747,7 +747,7 @@ describe('DELETE /user/account', () => {
     });
 
     await transaction
-      .insertInto('organization_posting')
+      .insertInto('posting')
       .values({
         organization_id: organization.id,
         title: 'Ends In Five Minutes Posting',
@@ -784,7 +784,7 @@ describe('DELETE /user/account', () => {
     });
 
     await transaction
-      .insertInto('organization_posting')
+      .insertInto('posting')
       .values({
         organization_id: organization.id,
         title: 'Closed Ongoing Posting',
@@ -829,7 +829,7 @@ describe('DELETE /user/account', () => {
     });
 
     await transaction
-      .insertInto('organization_posting')
+      .insertInto('posting')
       .values({
         organization_id: organization.id,
         title: 'Ended Today Posting',
