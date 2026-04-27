@@ -325,18 +325,16 @@ export default function OrganizationPostingCreate() {
                 />
               </div>
 
-              <div className="lg:col-span-1 flex flex-col self-stretch">
-                <fieldset className="fieldset flex flex-col flex-1" style={{ minHeight: '500px' }}>
+              <div className="lg:col-span-1">
+                <fieldset className="fieldset">
                   <label className="label">
                     <span className="label-text font-medium">Pin Location on Map</span>
                   </label>
-                  <div className="flex-1">
-                    <LocationPicker
-                      position={position}
-                      setPosition={onMapPositionPick}
-                      className="h-full w-full"
-                    />
-                  </div>
+                  <LocationPicker
+                    position={position}
+                    setPosition={onMapPositionPick}
+                    className="w-full h-80 sm:h-96 lg:h-[500px]"
+                  />
                 </fieldset>
               </div>
             </div>
