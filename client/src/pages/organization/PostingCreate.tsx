@@ -68,20 +68,22 @@ export default function PostingCreate() {
     loadCrises();
   }, []);
 
+  const getLocalOffsetMinutes = () => -new Date().getTimezoneOffset();
+
+  const toUtcTime = (localTime: string): string => {
+    const [hh, mm] = localTime.split(':').map(Number);
+    const totalMinutes = (hh * 60 + mm) - getLocalOffsetMinutes();
+    const utcHh = ((totalMinutes / 60 | 0) + 24) % 24;
+    const utcMm = ((totalMinutes % 60) + 60) % 60;
+    return `${String(utcHh).padStart(2, '0')}:${String(utcMm).padStart(2, '0')}`;
+  };
+
   const submit = form.handleSubmit(async (data) => {
     console.log('Form submitted with data:', data);
     await executeAndShowError(form, async () => {
       if (!account?.id) {
         throw new Error('Organization account not found. Please log in again.');
       }
-
-      const toUtcTime = (localTime: string): string => {
-        const [hh, mm] = localTime.split(':').map(Number);
-        const totalMinutes = (hh * 60 + mm) - 180; // subtract 3 hours (Lebanon UTC+3)
-        const utcHh = ((totalMinutes / 60 | 0) + 24) % 24;
-        const utcMm = ((totalMinutes % 60) + 60) % 60;
-        return `${String(utcHh).padStart(2, '0')}:${String(utcMm).padStart(2, '0')}`;
-      };
 
       const payload = {
         title: data.title.trim(),

@@ -59,13 +59,15 @@ export const hasPostingEnded = (posting: PostingEndFields, now: Date = new Date(
   return endDateTime != null ? now > endDateTime : false;
 };
 
+const getLocalOffsetMinutes = () => -new Date().getTimezoneOffset();
+
 export const formatTime12Hour = (timeValue: string | undefined): string => {
   if (!timeValue) return '';
   const [hoursRaw, minutesRaw] = timeValue.split(':');
   const hours = Number(hoursRaw);
   const minutes = Number(minutesRaw);
   if (Number.isNaN(hours) || Number.isNaN(minutes)) return timeValue;
-  const totalMinutes = (hours * 60 + minutes) + 180;
+  const totalMinutes = (hours * 60 + minutes) + getLocalOffsetMinutes();
   const localHours = ((totalMinutes / 60 | 0) + 24) % 24;
   const localMinutes = ((totalMinutes % 60) + 60) % 60;
   const normalizedHours = ((localHours % 24) + 24) % 24;
