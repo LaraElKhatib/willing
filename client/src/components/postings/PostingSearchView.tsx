@@ -431,7 +431,7 @@ function PostingSearchView({
     ? (postingsTopContent ?? actions)
     : undefined;
 
-  const headerActions = activeEntity === 'postings'
+  const headerActions = showEntityTabs
     ? undefined
     : actions;
 
