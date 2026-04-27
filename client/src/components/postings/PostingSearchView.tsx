@@ -89,6 +89,7 @@ type PostingSearchViewProps = {
   crisisOptions?: PostingCrisisOption[];
   enableOrganizationSearch?: boolean;
   showEntityTabs?: boolean;
+  postingsTopContent?: ReactNode;
 };
 
 const toPostingSearchFormValues = (filters: PostingSearchFilters): PostingSearchFormValues => ({
@@ -187,6 +188,7 @@ function PostingSearchView({
   crisisOptions = [],
   enableOrganizationSearch = false,
   showEntityTabs = true,
+  postingsTopContent,
 }: PostingSearchViewProps) {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -425,6 +427,14 @@ function PostingSearchView({
     }
   }, [searchParams, setSearchParams, showEntityTabs, storageKey, persistedFilters]);
 
+  const postingsInlineControls = activeEntity === 'postings'
+    ? (postingsTopContent ?? actions)
+    : undefined;
+
+  const headerActions = showEntityTabs
+    ? undefined
+    : actions;
+
   return (
     <PageContainer>
       <PageHeader
@@ -432,7 +442,7 @@ function PostingSearchView({
         subtitle={subtitle}
         icon={icon}
         badge={badge}
-        actions={actions}
+        actions={headerActions}
         showBack={showBack}
         defaultBackTo={defaultBackTo}
       />
@@ -648,6 +658,12 @@ function PostingSearchView({
           </>
         )}
       />
+
+      {postingsInlineControls && (
+        <div className="-mt-1 mb-2 flex justify-end">
+          {postingsInlineControls}
+        </div>
+      )}
 
       {error && <div className="mb-4 text-sm text-base-content/70">Unable to load postings.</div>}
 
