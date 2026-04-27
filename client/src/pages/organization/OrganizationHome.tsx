@@ -327,12 +327,6 @@ function OrganizationHome() {
 
       {error && <div className="mb-4 text-sm text-base-content/70">Unable to load postings.</div>}
 
-      {loading && (
-        <div className="flex justify-center py-8">
-          <span className="loading loading-spinner loading-lg"></span>
-        </div>
-      )}
-
       {!loading && (!postings || postings.length === 0) && (
         <EmptyState
           Icon={ClipboardList}
@@ -341,14 +335,13 @@ function OrganizationHome() {
         />
       )}
 
-      {!loading && postingsWithContext.length > 0 && (
-        <PostingCollection
-          postings={postingsWithContext}
-          crisisTagClickable
-          crisisBasePath="/organization/crises"
-          cardsContainerClassName="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-        />
-      )}
+      <PostingCollection
+        postings={postingsWithContext}
+        loading={loading}
+        crisisTagClickable
+        crisisBasePath="/organization/crises"
+        cardsContainerClassName="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+      />
     </PageContainer>
   );
 }

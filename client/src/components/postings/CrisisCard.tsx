@@ -1,6 +1,7 @@
-import { AlertCircle, Pin } from 'lucide-react';
+import { AlertTriangle, Pin } from 'lucide-react';
 import { type ReactNode } from 'react';
 
+import { DOMAIN_COLORS } from '../../constants';
 import Card from '../Card.tsx';
 
 import type { Crisis } from '../../../../server/src/db/tables/index.ts';
@@ -16,7 +17,7 @@ type CrisisCardProps = {
 function CrisisCard({
   crisis,
   link,
-  descriptionFallback = 'No crisis description provided.',
+  descriptionFallback = 'No crisis details were added for this event yet.',
   right,
   children,
 }: CrisisCardProps) {
@@ -24,9 +25,13 @@ function CrisisCard({
     <Card
       title={crisis.name}
       description={crisis.description || descriptionFallback}
-      Icon={AlertCircle}
+      color={DOMAIN_COLORS.crisis}
+      coloredText={true}
+      Icon={AlertTriangle}
       link={link ?? `/volunteer/crises/${crisis.id}/postings`}
-      right={right ?? (crisis.pinned ? <Pin size={16} className="text-primary shrink-0" /> : undefined)}
+      right={right ?? (crisis.pinned
+        ? <Pin size={16} className={`text-${DOMAIN_COLORS.crisis}`} />
+        : undefined)}
     >
       {children}
     </Card>

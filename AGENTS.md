@@ -91,6 +91,7 @@ Willing connects volunteers with organizations that publish real-world help oppo
 ## Repository Map
 
 - `client/src/main.tsx`: route tree and page wiring
+- `client/src/constants.ts`: shared theme constants (colors, domain mappings)
 - `client/src/auth/*`: auth context, guards, user hooks
 - `client/src/utils/requestServer.ts`: shared HTTP helper (includes JWT support)
 - `client/src/utils/formUtils.tsx`: reusable form components (`FormField`, `FormRootError`, helpers)
@@ -329,6 +330,8 @@ All components are in `client/src/components/`. **Use these instead of recreatin
 - **`IconButton`**: Compact square icon-only action. Requires `Icon`; use for secondary utility actions (for example edit/delete/open details), not primary page CTAs.
 - **`LinkButton`**: Navigation action that routes with React Router (`to`, optional `state`) while keeping button styling. Use this for navigation, not imperative `navigate` calls on click where a link is sufficient.
 - **`Card`**: Reusable content container with optional heading metadata and actions. Optional props: `title`, `description`, `Icon`, `left`, `right`, `link`, `color`, `coloredText`, `padding` (default `true`), `children`.
+- **`StatCard`**: Statistics card with icon, text label, and content value. Required props: `text`, `content`, `icon`. Optional prop: `color` (default `primary`).
+- **`LoadingList`**: Loading skeleton for posting lists (cards/list view based on `usePostingViewMode`). Optional prop: `count` (default `3`).
 - Prefer these reusable components over raw `<button>`/`<Link>` when DaisyUI button styling is desired.
 - Use `loading` for async actions and keep controls disabled during submission (`Button`/`IconButton` already disable while loading).
 - Keep variants semantically consistent: use `color="primary"` for main actions, `ghost`/`outline` for secondary actions, and `error` only for destructive actions.
@@ -343,6 +346,23 @@ All components are in `client/src/components/`. **Use these instead of recreatin
    - Retry/refresh/reset actions → `RotateCcw` or `RefreshCcw`
    - Approve/accept actions → `Check` or `CheckCircle`
    - Reject/decline actions → `X` or `XCircle`
+
+### Shared Theme Constants (`client/src/constants.ts`)
+
+- **`DOMAIN_COLORS`**: Color mapping object for consistent DaisyUI color assignment across domain areas. Used with `color` props in components like `StatCard` and `Card`.
+  - Keys: `profile`, `account`, `stats`, `skills`, `experience`, `cv`, `certificate`, `crisis`, `report`, `request`, `settings`, `attendance`, `verification`, `pending`, `enrollment`, `neutral`.
+  - Values: DaisyUI color names (`primary`, `secondary`, `success`, `error`, `warning`, `info`, `accent`).
+
+### Animation Utilities (`client/src/index.css`)
+
+- **`animate-fade-in-up`**: CSS animation class for fade-in with upward motion (`0.5s ease-out`). Use for loading-to-content transitions.
+
+### UI Guidelines
+
+1. **Cards should have icons and descriptions**: All `Card` components should include both `Icon` and `description` props for consistency across the platform.
+2. **Headers should be consistent**: Use `PageHeader` with appropriate `Icon` and `subtitle` props on all pages.
+3. **Loading states**: Use `LoadingList` for posting list skeletons; ensure smooth transitions with `animate-fade-in-up` when content loads.
+4. **Domain color mapping**: Use `DOMAIN_COLORS` from `client/src/constants.ts` for consistent color assignment in domain-specific components.
 
 ### Skill Components (`client/src/components/skills/`)
 

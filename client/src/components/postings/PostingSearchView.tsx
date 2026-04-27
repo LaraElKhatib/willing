@@ -21,16 +21,15 @@ import {
 import { FormField } from '../../utils/formUtils.tsx';
 import requestServer from '../../utils/requestServer.ts';
 import useAsync from '../../utils/useAsync';
+import Button from '../Button.tsx';
 import CalendarInfo from '../CalendarInfo.tsx';
 import EmptyState from '../EmptyState.tsx';
 import CrisisCard from './CrisisCard.tsx';
-import PageContainer from '../layout/PageContainer.tsx';
-import PageHeader from '../layout/PageHeader.tsx';
-import Loading from '../Loading.tsx';
 import OrganizationCard from './OrganizationCard.tsx';
 import PostingCollection from './PostingCollection.tsx';
 import PostingFiltersCard from './PostingFiltersCard.tsx';
-import Button from '../Button.tsx';
+import PageContainer from '../layout/PageContainer.tsx';
+import PageHeader from '../layout/PageHeader.tsx';
 
 import type {
   VolunteerCrisesResponse,
@@ -669,9 +668,14 @@ function PostingSearchView({
 
       {loading
         ? (
-            <div className="flex justify-center py-10">
-              <Loading size="lg" />
-            </div>
+            <PostingCollection
+              postings={[]}
+              loading={true}
+              showCrisis
+              crisisBasePath={crisisBasePath}
+              cardsContainerClassName="grid grid-cols-1 gap-6 lg:grid-cols-2 2xl:grid-cols-3"
+              listContainerClassName="space-y-4"
+            />
           )
         : activeEntity === 'crises'
           ? (
