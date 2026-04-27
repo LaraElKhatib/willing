@@ -15,6 +15,7 @@ import { ToggleButton } from '../../components/ToggleButton';
 import { postingFormSchema, type PostingFormData } from '../../schemas/posting';
 import { executeAndShowError, FormField, FormRootError } from '../../utils/formUtils';
 import requestServer from '../../utils/requestServer';
+import { toUtcTime } from '../../utils/timeUtils.ts';
 import { useOrganization } from '../../utils/useUsers';
 
 import type { OrganizationCrisesResponse, PostingCreateResponse } from '../../../../server/src/api/types';
@@ -67,16 +68,6 @@ export default function PostingCreate() {
 
     loadCrises();
   }, []);
-
-  const getLocalOffsetMinutes = () => -new Date().getTimezoneOffset();
-
-  const toUtcTime = (localTime: string): string => {
-    const [hh, mm] = localTime.split(':').map(Number);
-    const totalMinutes = (hh * 60 + mm) - getLocalOffsetMinutes();
-    const utcHh = ((totalMinutes / 60 | 0) + 24) % 24;
-    const utcMm = ((totalMinutes % 60) + 60) % 60;
-    return `${String(utcHh).padStart(2, '0')}:${String(utcMm).padStart(2, '0')}`;
-  };
 
   const submit = form.handleSubmit(async (data) => {
     console.log('Form submitted with data:', data);

@@ -1,3 +1,5 @@
+import { getLocalOffsetMinutes } from '../../utils/timeUtils.ts';
+
 import type { PostingWithContext } from '../../../../server/src/types';
 
 type PostingEndFields = {
@@ -58,8 +60,6 @@ export const hasPostingEnded = (posting: PostingEndFields, now: Date = new Date(
   const endDateTime = getPostingEndDateTime(posting);
   return endDateTime != null ? now > endDateTime : false;
 };
-
-const getLocalOffsetMinutes = () => -new Date().getTimezoneOffset();
 
 export const formatTime12Hour = (timeValue: string | undefined): string => {
   if (!timeValue) return '';
