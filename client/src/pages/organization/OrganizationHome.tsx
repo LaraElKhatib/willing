@@ -1,5 +1,5 @@
 import { ClipboardList, Plus } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 import CalendarInfo from '../../components/CalendarInfo';
 import EmptyState from '../../components/EmptyState';
@@ -71,33 +71,6 @@ const defaultFormValues: OrganizationPostingFilterFormValues = {
 };
 const organizationHomeFiltersStorageKey = 'organization-home-posting-filters';
 
-type PostingWithEndDate = {
-  end_date: string | Date;
-  end_time: string;
-};
-
-const parsePostingEndDateTime = (posting: PostingWithEndDate): number => {
-  const endDatePart = posting.end_date instanceof Date
-    ? posting.end_date.toISOString().slice(0, 10)
-    : posting.end_date.slice(0, 10);
-
-  const normalizedTime = /^\d{2}:\d{2}(:\d{2})?$/.test(posting.end_time)
-    ? posting.end_time.length === 5
-      ? `${posting.end_time}:59`
-      : posting.end_time
-    : '23:59:59';
-
-  return Date.parse(`${endDatePart}T${normalizedTime}`);
-};
-
-const isPostingEnded = (posting: PostingWithEndDate, now: number): boolean => {
-  const endDateTime = parsePostingEndDateTime(posting);
-  if (Number.isNaN(endDateTime)) {
-    return false;
-  }
-  return endDateTime < now;
-};
-
 const toOrganizationPostingFilterFormValues = (
   filters: OrganizationPostingFilters,
 ): OrganizationPostingFilterFormValues => ({
@@ -135,12 +108,6 @@ const fromOrganizationPostingFilterFormValues = (
 
 function OrganizationHome() {
   const organization = useOrganization();
-  const [currentTime, setCurrentTime] = useState(0);
-
-  useEffect(() => {
-    setCurrentTime(Date.now());
-  }, []);
-
   const [initialFilters] = useState<OrganizationPostingFilters>(() => {
     if (typeof window === 'undefined') return defaultFilters;
     const raw = window.sessionStorage.getItem(organizationHomeFiltersStorageKey);
@@ -218,17 +185,15 @@ function OrganizationHome() {
     const orgName = organizationMe?.organization.name ?? organization?.name ?? '';
     const orgLogoPath = organizationMe?.organization.logo_path ?? organization?.logo_path ?? null;
 
-    return postings
-      .map<PostingWithContext>(posting => ({
-        ...posting,
-        organization_name: orgName,
-        organization_logo_path: orgLogoPath,
-        crisis_name: posting.crisis_id ? (crisisNameById.get(posting.crisis_id) ?? null) : null,
-        enrollment_count: posting.enrollment_count,
-        application_status: 'none',
-      }))
-      .sort((a, b) => Number(isPostingEnded(a, currentTime)) - Number(isPostingEnded(b, currentTime)));
-  }, [crisisNameById, currentTime, organization?.logo_path, organization?.name, organizationMe?.organization.logo_path, organizationMe?.organization.name, postings]);
+    return postings.map(posting => ({
+      ...posting,
+      organization_name: orgName,
+      organization_logo_path: orgLogoPath,
+      crisis_name: posting.crisis_id ? (crisisNameById.get(posting.crisis_id) ?? null) : null,
+      enrollment_count: posting.enrollment_count,
+      application_status: 'none',
+    }));
+  }, [crisisNameById, organization?.logo_path, organization?.name, organizationMe?.organization.logo_path, organizationMe?.organization.name, postings]);
 
   return (
     <PageContainer>
