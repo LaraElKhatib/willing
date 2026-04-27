@@ -34,6 +34,8 @@ import Loading from '../../components/Loading';
 import PostingList from '../../components/PostingList';
 import SkillsInput from '../../components/skills/SkillsInput';
 import SkillsList from '../../components/skills/SkillsList';
+import StatCard from '../../components/StatCard';
+import { DOMAIN_COLORS } from '../../constants';
 import useNotifications from '../../notifications/useNotifications';
 import { FormField } from '../../utils/formUtils';
 import requestServer, { SERVER_BASE_URL } from '../../utils/requestServer';
@@ -666,62 +668,54 @@ function VolunteerProfile() {
           </Card>
         )}
       >
-        <Card padding={false}>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-0 gap-y-3">
-            <div className="stat place-items-center">
-              <div className="stat-title text-base">Completed Postings</div>
-              <div className="stat-value text-2xl text-primary/80 inline-flex w-full items-center justify-center gap-2">
-                <Users className="h-6 w-6 shrink-0 stroke-current" />
-                <span>{profile.experience_stats.total_completed_experiences}</span>
-              </div>
-            </div>
-            <div className="stat place-items-center">
-              <div className="stat-title text-base">Hours Completed</div>
-              <div className="stat-value text-2xl text-primary/80 inline-flex w-full items-center justify-center gap-2">
-                <Clock3 className="h-6 w-6 shrink-0 stroke-current" />
-                <span>{totalCompletedHours.toFixed(1)}</span>
-              </div>
-            </div>
-            <div className="stat place-items-center">
-              <div className="stat-title text-base">Organizations</div>
-              <div className="stat-value text-2xl text-primary/80 inline-flex w-full items-center justify-center gap-2">
-                <Building2 className="h-6 w-6 shrink-0 stroke-current" />
-                <span>{profile.experience_stats.organizations_supported}</span>
-              </div>
-            </div>
-          </div>
-        </Card>
-
-        <Card padding={false}>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-0 gap-y-3">
-            <div className="stat place-items-center h-full grid-rows-[auto,1fr]">
-              <div className="stat-title text-base">Crisis-Related</div>
-              <div className="stat-value text-2xl text-primary/80 flex w-full items-center justify-center gap-2 self-center">
-                <AlertTriangle className="h-6 w-6 shrink-0 stroke-current" />
-                <span>{profile.experience_stats.crisis_related_experiences}</span>
-              </div>
-            </div>
-            <div className="stat place-items-center h-full grid-rows-[auto,1fr]">
-              <div className="stat-title text-base">Total Skills Used</div>
-              <div className="stat-value text-2xl text-primary/80 flex w-full items-center justify-center gap-2 self-center">
-                <Brain className="h-6 w-6 shrink-0 stroke-current" />
-                <span>{profile.experience_stats.total_skills_used}</span>
-              </div>
-            </div>
-            <div className="stat min-w-0 place-items-center h-full grid-rows-[auto,1fr]">
-              <div className="stat-title text-base">Most Volunteered Crisis</div>
-              <div className="stat-value text-lg text-primary/80 flex w-full min-w-0 items-center justify-center gap-2 px-2 self-center">
-                <span className="max-w-full text-center whitespace-normal break-words leading-tight overflow-hidden [display:-webkit-box] [-webkit-line-clamp:2] [-webkit-box-orient:vertical]">
-                  {profile.experience_stats.most_volunteered_crisis ?? 'N/A'}
-                </span>
-              </div>
-            </div>
-          </div>
-        </Card>
+        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+          <StatCard
+            text="Completed Postings"
+            content={profile.experience_stats.total_completed_experiences}
+            icon={Users}
+            color="secondary"
+          />
+          <StatCard
+            text="Hours Completed"
+            content={totalCompletedHours.toFixed(1)}
+            icon={Clock3}
+            color="secondary"
+          />
+          <StatCard
+            text="Organizations"
+            content={profile.experience_stats.organizations_supported}
+            icon={Building2}
+            color="secondary"
+          />
+          <StatCard
+            text="Crisis-Related"
+            content={profile.experience_stats.crisis_related_experiences}
+            icon={AlertTriangle}
+            color="accent"
+          />
+          <StatCard
+            text="Total Skills Used"
+            content={profile.experience_stats.total_skills_used}
+            icon={Brain}
+            color="secondary"
+          />
+          <StatCard
+            text="Most Volunteered Crisis"
+            content={(
+              <span className="whitespace-normal break-words leading-tight overflow-hidden [display:-webkit-box] [-webkit-line-clamp:2] [-webkit-box-orient:vertical]">
+                {profile.experience_stats.most_volunteered_crisis ?? 'N/A'}
+              </span>
+            )}
+            icon={AlertTriangle}
+            color="accent"
+          />
+        </div>
 
         <Card
           title="Skills"
           description="Add skills to highlight your expertise."
+          Icon={Brain}
+          color={DOMAIN_COLORS.skills}
         >
           {isEditMode
             ? (
@@ -735,6 +729,8 @@ function VolunteerProfile() {
         <Card
           title="Previous Experiences"
           description="Past volunteering experiences completed through the platform."
+          Icon={Users}
+          color={DOMAIN_COLORS.experience}
         >
           {profile.completed_experiences.length === 0
             ? (
@@ -776,6 +772,8 @@ function VolunteerProfile() {
         <Card
           title="CV"
           description="Upload your CV as a PDF with up to 3 pages."
+          Icon={FileText}
+          color={DOMAIN_COLORS.cv}
         >
           <div className="flex flex-col gap-3">
             {profile.volunteer.cv_path

@@ -5,6 +5,9 @@ import {
   Calendar,
   CalendarX2,
   Cake,
+  CheckCircle2,
+  ClipboardList,
+  Clock3,
   Edit3,
   House,
   ListChecks,
@@ -47,6 +50,7 @@ import SkillsInput from '../components/skills/SkillsInput.tsx';
 import SkillsList from '../components/skills/SkillsList.tsx';
 import { ToggleButton } from '../components/ToggleButton.tsx';
 import VolunteerInfoCollapse from '../components/VolunteerInfoCollapse.tsx';
+import { DOMAIN_COLORS } from '../constants';
 import { useModal } from '../contexts/useModal.ts';
 import useNotifications from '../notifications/useNotifications';
 import { postingEditFormSchema, type PostingEditFormData } from '../schemas/posting';
@@ -830,24 +834,30 @@ function PostingPage() {
   const applicationStatus = useMemo(() => {
     if (isEnrolled) {
       return {
-        label: 'Accepted',
+        label: 'Enrolled',
         description: 'Your application was accepted and you are enrolled in this posting.',
-        badgeClassName: 'badge-success',
+        badgeClassName: `badge badge-${DOMAIN_COLORS.enrollment} inline-flex items-center gap-1`,
+        cardColor: 'success' as const,
+        Icon: CheckCircle2,
       };
     }
 
     if (hasPendingApplication) {
       return {
-        label: 'Pending',
+        label: 'Pending Review',
         description: 'Your application is waiting for the organization to review it.',
-        badgeClassName: 'badge-warning',
+        badgeClassName: `badge badge-${DOMAIN_COLORS.pending} inline-flex items-center gap-1`,
+        cardColor: 'warning' as const,
+        Icon: Clock3,
       };
     }
 
     return {
       label: 'Not Applied',
       description: 'You have not applied to this posting yet.',
-      badgeClassName: 'badge-ghost',
+      badgeClassName: `badge badge-${DOMAIN_COLORS.neutral} inline-flex items-center gap-1`,
+      cardColor: 'neutral' as const,
+      Icon: ShieldCheck,
     };
   }, [hasPendingApplication, isEnrolled]);
 
@@ -1304,7 +1314,7 @@ function PostingPage() {
                   <Card
                     title="Crisis Tag"
                     description="Add a crisis tag to this posting."
-                    color="accent"
+                    color={DOMAIN_COLORS.crisis}
                     coloredText={true}
                     Icon={AlertTriangle}
                   >
@@ -1344,7 +1354,10 @@ function PostingPage() {
                 : (
                     <Card
                       title={selectedCrisisName || 'No Crisis'}
-                      color="accent"
+                      description={selectedCrisisName
+                        ? 'Crisis details are currently unavailable.'
+                        : 'This posting is not linked to a crisis event.'}
+                      color={DOMAIN_COLORS.crisis}
                       coloredText={true}
                       Icon={AlertTriangle}
                     />
@@ -1434,15 +1447,16 @@ function PostingPage() {
         {isVolunteerView && (
           <Card
             title="Application Status"
-            Icon={ShieldCheck}
+            description={applicationStatus.description}
+            color={applicationStatus.cardColor}
+            Icon={applicationStatus.Icon}
+            right={(
+              <span className={applicationStatus.badgeClassName}>
+                <applicationStatus.Icon size={12} />
+                {applicationStatus.label}
+              </span>
+            )}
           >
-
-            <span className={`badge mt-1 w-fit ${applicationStatus.badgeClassName}`}>
-              {applicationStatus.label}
-            </span>
-            <p className="text-sm opacity-70 mt-2">
-              {applicationStatus.description}
-            </p>
             {applicationDaysLabel && (
               <div className="mt-3">
                 <p className="text-xs font-medium uppercase tracking-wide opacity-60">Applied Days</p>
@@ -1538,8 +1552,11 @@ function PostingPage() {
         {canManagePosting && !isOpen && (
           <Card
             title="Enrollment Applications"
+            description="Pending volunteer applications that need organization review."
+            color="warning"
+            Icon={ClipboardList}
             right={
-              <span className="badge badge-primary">{applications.length}</span>
+              <span className={`badge badge-${DOMAIN_COLORS.pending} inline-flex items-center gap-1`}>{applications.length}</span>
             }
           >
             {applications.length === 0
@@ -1589,8 +1606,11 @@ function PostingPage() {
         {canManagePosting && (
           <Card
             title="Enrolled Volunteers"
+            description="Volunteers currently enrolled in this posting."
+            color="success"
+            Icon={CheckCircle2}
             right={
-              <span className="badge badge-primary">{enrollments.length}</span>
+              <span className={`badge badge-${DOMAIN_COLORS.enrollment} inline-flex items-center gap-1`}>{enrollments.length}</span>
             }
           >
 

@@ -12,6 +12,7 @@ import ColumnLayout from '../../components/layout/ColumnLayout';
 import PageContainer from '../../components/layout/PageContainer';
 import PageHeader from '../../components/layout/PageHeader';
 import CrisisCard from '../../components/postings/CrisisCard';
+import { DOMAIN_COLORS } from '../../constants';
 import { useModal } from '../../contexts/useModal.ts';
 import useNotifications from '../../notifications/useNotifications';
 import { executeAndShowError, FormField, FormRootError } from '../../utils/formUtils';
@@ -351,6 +352,7 @@ function AdminCrises() {
           <Card
             title="Create Crisis"
             description="Add a new crisis tag."
+            color={DOMAIN_COLORS.crisis}
           >
             <form className="mt-2 space-y-4" onSubmit={onCreateCrisis}>
               <FormField
@@ -498,10 +500,6 @@ function AdminCrises() {
                         crisis={crisis}
                         link={undefined}
                         descriptionFallback={editingCrisisId === crisis.id ? '' : 'No description set'}
-                        right={
-                          crisis.pinned
-                          && <span className="badge badge-secondary">Pinned</span>
-                        }
                       >
 
                         {editingCrisisId === crisis.id

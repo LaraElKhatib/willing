@@ -21,6 +21,7 @@ import {
 import PageContainer from '../../components/layout/PageContainer';
 import PageHeader from '../../components/layout/PageHeader';
 import Loading from '../../components/Loading';
+import StatCard from '../../components/StatCard';
 import requestServer from '../../utils/requestServer';
 import useAsync from '../../utils/useAsync';
 
@@ -232,40 +233,25 @@ function VolunteerCertificateRequest() {
 
       {!loading && !error && (
         <>
-          <div className="grid gap-6 md:grid-cols-3 no-print">
-            <Card>
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-sm opacity-70">Total Volunteering Hours</p>
-                  <p className="text-3xl font-bold mt-1">{formatHours(totalHours)}</p>
-                </div>
-                <div className="rounded-full bg-primary/10 p-2 text-primary">
-                  <Award size={18} />
-                </div>
-              </div>
-            </Card>
-            <Card>
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-sm opacity-70">Organizations Involved</p>
-                  <p className="text-3xl font-bold mt-1">{organizationsWithEligibility.length}</p>
-                </div>
-                <div className="rounded-full bg-secondary/10 p-2 text-secondary">
-                  <Building size={18} />
-                </div>
-              </div>
-            </Card>
-            <Card>
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-sm opacity-70">Eligible Organizations</p>
-                  <p className="text-3xl font-bold mt-1">{eligibleOrganizations.length}</p>
-                </div>
-                <div className="rounded-full bg-success/10 p-2 text-success">
-                  <Users size={18} />
-                </div>
-              </div>
-            </Card>
+          <div className="grid gap-2 md:grid-cols-3 no-print">
+            <StatCard
+              text="Total Volunteering Hours"
+              content={formatHours(totalHours)}
+              icon={Award}
+              color="primary"
+            />
+            <StatCard
+              text="Organizations Involved"
+              content={organizationsWithEligibility.length}
+              icon={Building}
+              color="secondary"
+            />
+            <StatCard
+              text="Eligible Organizations"
+              content={eligibleOrganizations.length}
+              icon={Users}
+              color="success"
+            />
           </div>
 
           <Card

@@ -1,8 +1,9 @@
-import { AlertCircle, Ban, Cake, Calendar, CalendarX2, Clock, ExternalLink, LockOpen, MapPin, Users } from 'lucide-react';
+import { AlertTriangle, Ban, Cake, Calendar, CalendarX2, CheckCircle2, ClipboardList, Clock, ExternalLink, LockOpen, MapPin, Users } from 'lucide-react';
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 
 import OrganizationProfilePicture from './OrganizationProfilePicture';
+import { DOMAIN_COLORS } from '../constants';
 import { formatCardDate, formatTime12Hour, hasPostingEnded, isPostingFullyBooked, normalizeTimestamp } from './postings/postingUtils';
 import useNow from './postings/useNow.ts';
 import SkillsList from './skills/SkillsList';
@@ -77,16 +78,16 @@ function PostingList({
         )
       : posting.application_status === 'pending'
         ? (
-            <span className="badge badge-sm badge-warning inline-flex items-center gap-1">
+            <span className={`badge badge-${DOMAIN_COLORS.pending} badge-sm inline-flex items-center gap-1`}>
               <Clock size={12} />
               Pending
             </span>
           )
         : posting.application_status === 'registered'
           ? (
-              <span className="badge badge-sm badge-success inline-flex items-center gap-1">
-                <Users size={12} />
-                Registered
+              <span className={`badge badge-${DOMAIN_COLORS.enrollment} badge-sm inline-flex items-center gap-1`}>
+                <CheckCircle2 size={12} />
+                Enrolled
               </span>
             )
           : isPostingFull
@@ -105,7 +106,7 @@ function PostingList({
                 )
               : (
                   <span className="badge badge-sm badge-secondary inline-flex items-center gap-1">
-                    <Clock size={12} />
+                    <ClipboardList size={12} />
                     Review Based
                   </span>
                 );
@@ -143,7 +144,7 @@ function PostingList({
 
   const crisisTagContent = (
     <>
-      <AlertCircle size={14} />
+      <AlertTriangle size={14} />
       <span className="truncate max-w-40 font-semibold">{posting.crisis_name}</span>
     </>
   );
