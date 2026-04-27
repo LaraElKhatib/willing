@@ -30,7 +30,7 @@ function VolunteerSearch() {
         subtitle="Browse all postings, organizations, and crises, and filter them down by dates, location, or skills."
         icon={undefined}
         showBack={false}
-        actions={<PostingViewModeToggle />}
+        postingsTopContent={<PostingViewModeToggle />}
         fetchUrl="/volunteer/posting?include_applied=true"
         enableCrisisFilter
         enableOrganizationSearch
