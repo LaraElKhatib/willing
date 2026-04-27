@@ -17,7 +17,6 @@ import AdminReports from './pages/admin/AdminReports';
 import AdminRequests from './pages/admin/AdminRequests';
 import AdminSettings from './pages/admin/AdminSettings';
 import AdminLogin from './pages/AdminLogin';
-import CalendarInfoDemoPage from './pages/CalendarInfoDemoPage';
 import CertificateVerification from './pages/CertificateVerification';
 import ForgotPassword from './pages/ForgotPassword';
 import GuidePage from './pages/GuidePage';
@@ -99,7 +98,6 @@ function App() {
 
                   <Route path="guide" element={<GuidePage />} />
                   <Route path="certificate/verify" element={<CertificateVerification />} />
-                  <Route path="calendar-demo" element={<CalendarInfoDemoPage />} />
 
                   <Route element={<SharedPage roles={['volunteer', 'organization']} />}>
                     <Route path="posting/:id" element={<Posting />} />
