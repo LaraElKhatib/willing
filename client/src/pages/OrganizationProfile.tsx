@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertTriangle, Building2, ClipboardList, Flag, Globe, Mail, MapPin, Phone } from 'lucide-react';
-import { useContext, useMemo, useState } from 'react';
+import { useContext, useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useParams } from 'react-router-dom';
 import zod from 'zod';
@@ -33,12 +33,45 @@ const reportOrganizationSchema = zod.object({
 
 type ReportOrganizationFormData = zod.infer<typeof reportOrganizationSchema>;
 
+type PostingWithEndDate = {
+  end_date: string | Date;
+  end_time: string;
+};
+
+const parsePostingEndDateTime = (posting: PostingWithEndDate): number => {
+  const endDatePart = posting.end_date instanceof Date
+    ? posting.end_date.toISOString().slice(0, 10)
+    : posting.end_date.slice(0, 10);
+
+  const normalizedTime = /^\d{2}:\d{2}(:\d{2})?$/.test(posting.end_time)
+    ? posting.end_time.length === 5
+      ? `${posting.end_time}:59`
+      : posting.end_time
+    : '23:59:59';
+
+  return Date.parse(`${endDatePart}T${normalizedTime}`);
+};
+
+const isPostingEnded = (posting: PostingWithEndDate, now: number): boolean => {
+  const endDateTime = parsePostingEndDateTime(posting);
+  if (Number.isNaN(endDateTime)) {
+    return false;
+  }
+  return endDateTime < now;
+};
+
 function OrganizationProfile() {
   const { id } = useParams<{ id: string }>();
+  const [currentTime, setCurrentTime] = useState(0);
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const notifications = useNotifications();
   const { user } = useContext(AuthContext);
   const isOrganization = user?.role === 'organization';
+
+  useEffect(() => {
+    setCurrentTime(Date.now());
+  }, []);
+
   const reportForm = useForm<ReportOrganizationFormData>({
     resolver: zodResolver(reportOrganizationSchema),
     mode: 'onTouched',
@@ -114,15 +147,17 @@ function OrganizationProfile() {
   const postingsWithContext = useMemo<PostingWithContext[]>(() => {
     if (!data) return [];
 
-    return data.postings.map(posting => ({
-      ...posting,
-      organization_name: data.organization.name,
-      organization_logo_path: data.organization.logo_path,
-      crisis_name: null,
-      enrollment_count: posting.enrollment_count,
-      application_status: 'none',
-    }));
-  }, [data]);
+    return data.postings
+      .map<PostingWithContext>(posting => ({
+        ...posting,
+        organization_name: data.organization.name,
+        organization_logo_path: data.organization.logo_path,
+        crisis_name: null,
+        enrollment_count: posting.enrollment_count,
+        application_status: 'none',
+      }))
+      .sort((a, b) => Number(isPostingEnded(a, currentTime)) - Number(isPostingEnded(b, currentTime)));
+  }, [currentTime, data]);
 
   if (!id) {
     return (
