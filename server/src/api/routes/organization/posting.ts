@@ -36,7 +36,7 @@ import {
   sendPostingDeletedEmail,
   sendVolunteerApplicationAcceptedEmail,
   sendVolunteerApplicationRejectedEmail,
-} from '../../../services/smtp/emails.ts';
+} from '../../../services/resend/emails.ts';
 import {
   parseListQuery,
   parseOptionalBooleanQueryParam,

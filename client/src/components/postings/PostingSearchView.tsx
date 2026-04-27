@@ -360,7 +360,9 @@ function PostingSearchView({
       setOrganizations(organizationResponse.organizations);
 
       let orderedCrises = crisisResponse.crises;
-      if (activeFilters.entity === 'crises') {
+      const shouldApplyClientCrisisSort = activeFilters.entity === 'crises'
+        && crisesFetchBasePath.startsWith('/organization/');
+      if (shouldApplyClientCrisisSort) {
         orderedCrises = [...orderedCrises].sort((a, b) => {
           if (activeFilters.sortBy === 'pinned') {
             if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
@@ -451,7 +453,9 @@ function PostingSearchView({
               }}
               Icon={ClipboardList}
             >
-              Postings
+              <span className="max-sm:hidden">
+                Postings
+              </span>
             </Button>
             {enableOrganizationSearch && (
               <Button
@@ -467,7 +471,9 @@ function PostingSearchView({
                 }}
                 Icon={Building2}
               >
-                Organizations
+                <span className="max-sm:hidden">
+                  Organizations
+                </span>
               </Button>
             )}
             {enableCrisisFilter && (
@@ -484,20 +490,23 @@ function PostingSearchView({
                 }}
                 Icon={AlertTriangle}
               >
-                Crises
+                <span className="max-sm:hidden">
+                  Crises
+                </span>
               </Button>
             )}
           </div>
         </div>
       )}
       <PostingFiltersCard
+        title={'Filter ' + (activeEntity === 'postings' ? 'Postings' : activeEntity === 'organizations' ? 'Organizations' : 'Crises')}
         defaultValues={defaultFormValues}
         resetValues={toPostingSearchFormValues(cleanEntityDefaults)}
         onApply={applyFilters}
         searchFieldName="search"
         searchPlaceholder={activeEntity === 'organizations'
           ? 'Search by name, description, or location'
-          : 'Search by title, description,or location'}
+          : 'Search by title, description, or location'}
         sortFieldName="sortOption"
         sortOptions={activeEntity === 'organizations'
           ? organizationPostingSortOptions
