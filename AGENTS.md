@@ -249,10 +249,10 @@ Set the mock's resolved value in `beforeEach`, reset in `afterEach`.
 7. Keep changes minimal and targeted; avoid unrelated refactors.
 8. For transactional DB logic, prefer `executeTransaction` from `server/src/db/executeTransaction.ts` instead of raw `db.transaction().execute(...)`, especially because tests often pass controlled transactions.
 9. **Time storage convention**: All `start_time` and `end_time` values are stored in UTC in the database. The client is responsible for:
-   - **Before sending to server**: Convert Lebanon local time (UTC+3) to UTC by subtracting 3 hours, using the `toUtcTime` helper defined in `PostingCreate.tsx` and `Posting.tsx`.
-   - **Before displaying to user**: Convert UTC time back to Lebanon local time by adding 3 hours. This is handled by `formatTime12Hour` in `postingUtils.ts` and by the `toLocalTime` helper when populating form fields in `Posting.tsx`.
-   - Never send raw local times to the server. Never display raw UTC times to the user.
-   - The server stores and compares times as UTC and appends `Z` when constructing datetime strings for comparison in `postingTime.ts`.
+   - **Before sending to server**: Convert local time to UTC by subtracting the local timezone offset, using the `toUtcTime` helper defined in `PostingCreate.tsx` and `Posting.tsx`. The offset is obtained via `getLocalOffsetMinutes()` which uses `new Date().getTimezoneOffset()` — never hardcode a timezone offset.
+   - **Before displaying to user**: Convert UTC time back to local time by adding the local timezone offset. This is handled by `formatTime12Hour` in `postingUtils.ts` and by the `toLocalTime` helper when populating form fields in `Posting.tsx`.
+   - Never send raw local times to the server. Never display raw UTC times to the user. Never hardcode a timezone offset value.
+   - The server stores and compares times as UTC and appends `Z` when constructing datetime strings for comparison in `postingTime.ts`
 
 ## Type Safety Requirements
 
