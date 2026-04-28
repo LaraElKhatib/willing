@@ -452,8 +452,8 @@ describe('Organization posting management', () => {
       .send({
         title: 'Minimal Posting',
         description: 'Created without optional skills',
-        latitude: null,
-        longitude: null,
+        latitude: 35.5,
+        longitude: 35.5,
         max_volunteers: null,
         start_date: '2026-09-05',
         start_time: '10:00:00',
