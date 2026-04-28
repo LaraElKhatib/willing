@@ -443,6 +443,39 @@ describe('Organization posting management', () => {
     expect(skillNames).toContain(' First Aid ');
   });
 
+  test('creates a posting without optional fields', async () => {
+    const { token } = await createOrganizationAccount(transaction, { email: 'org-create-posting-no-optional@example.com' });
+
+    const response = await server
+      .post('/organization/posting')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        title: 'Minimal Posting',
+        description: 'Created without optional skills',
+        latitude: 35.5,
+        longitude: 35.5,
+        max_volunteers: null,
+        start_date: '2026-09-05',
+        start_time: '10:00:00',
+        end_date: '2026-09-05',
+        end_time: '14:00:00',
+        minimum_age: null,
+        automatic_acceptance: true,
+        is_closed: false,
+        allows_partial_attendance: false,
+        location_name: 'Optional Location',
+        crisis_id: null,
+      })
+      .expect(200);
+
+    expect(response.body.posting.title).toBe('Minimal Posting');
+    expect(response.body.posting.crisis_id).toBeNull();
+    expect(response.body.posting.max_volunteers).toBeNull();
+    expect(response.body.posting.minimum_age).toBeNull();
+    expect(response.body.posting.allows_partial_attendance).toBe(false);
+    expect(response.body.skills).toEqual([]);
+  });
+
   test('returns 400 when creating a posting with a non-existent crisis tag', async () => {
     const { token } = await createOrganizationAccount(transaction, { email: 'org-create-posting-invalid-crisis@example.com' });
 
