@@ -16,7 +16,9 @@ import LinkButton from '../components/LinkButton';
 import LocationPicker from '../components/LocationPicker';
 import OrganizationProfilePicture from '../components/OrganizationProfilePicture';
 import PostingCollection from '../components/postings/PostingCollection';
+import { hasPostingEnded } from '../components/postings/postingUtils';
 import PostingViewModeToggle from '../components/postings/PostingViewModeToggle';
+import useNow from '../components/postings/useNow';
 import ReportForm from '../components/reporting/ReportForm';
 import { DEFAULT_REPORT_TYPE, REPORT_TYPE_VALUES } from '../components/reporting/reportType.constants';
 import useNotifications from '../notifications/useNotifications';
@@ -37,6 +39,7 @@ function OrganizationProfile() {
   const { id } = useParams<{ id: string }>();
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const notifications = useNotifications();
+  const now = useNow();
   const { user } = useContext(AuthContext);
   const isOrganization = user?.role === 'organization';
   const reportForm = useForm<ReportOrganizationFormData>({
@@ -114,15 +117,24 @@ function OrganizationProfile() {
   const postingsWithContext = useMemo<PostingWithContext[]>(() => {
     if (!data) return [];
 
-    return data.postings.map(posting => ({
+    const mappedPostings = data.postings.map(posting => ({
       ...posting,
       organization_name: data.organization.name,
       organization_logo_path: data.organization.logo_path,
       crisis_name: null,
       enrollment_count: posting.enrollment_count,
-      application_status: 'none',
+      application_status: 'none' as const,
     }));
-  }, [data]);
+
+    return mappedPostings.sort((a, b) => {
+      const aEnded = hasPostingEnded(a, now);
+      const bEnded = hasPostingEnded(b, now);
+
+      if (aEnded && !bEnded) return 1;
+      if (!aEnded && bEnded) return -1;
+      return 0;
+    });
+  }, [data, now]);
 
   if (!id) {
     return (
