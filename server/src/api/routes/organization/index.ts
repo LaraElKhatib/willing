@@ -307,6 +307,16 @@ function createOrganizationRouter(db: Kysely<Database>) {
       .selectFrom('posting')
       .select(postingResponseColumns)
       .where('organization_id', '=', orgId)
+      .orderBy(sql<number>`CASE
+        WHEN posting.end_date IS NOT NULL
+         AND posting.end_time IS NOT NULL
+         AND to_timestamp(
+           to_char(posting.end_date, 'YYYY-MM-DD') || ' ' || posting.end_time,
+           'YYYY-MM-DD HH24:MI'
+         ) < now()
+        THEN 1
+        ELSE 0
+      END`, 'asc')
       .orderBy('posting.start_date', 'asc')
       .orderBy('posting.start_time', 'asc')
       .execute();

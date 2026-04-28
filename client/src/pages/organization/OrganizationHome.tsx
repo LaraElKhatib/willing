@@ -19,9 +19,7 @@ import {
   type SharedPostingFilterFields,
 } from '../../components/postings/postingFilterConfig';
 import PostingFiltersCard from '../../components/postings/PostingFiltersCard';
-import { hasPostingEnded } from '../../components/postings/postingUtils';
 import PostingViewModeToggle from '../../components/postings/PostingViewModeToggle';
-import useNow from '../../components/postings/useNow';
 import { FormField } from '../../utils/formUtils';
 import requestServer from '../../utils/requestServer';
 import useAsync from '../../utils/useAsync';
@@ -110,7 +108,6 @@ const fromPostingFilterFormValues = (
 
 function OrganizationHome() {
   const organization = useOrganization();
-  const now = useNow();
   const [initialFilters] = useState<PostingFilters>(() => {
     if (typeof window === 'undefined') return defaultFilters;
     const raw = window.sessionStorage.getItem(organizationHomeFiltersStorageKey);
@@ -197,15 +194,8 @@ function OrganizationHome() {
       application_status: 'none' as const,
     }));
 
-    return mapped.sort((a, b) => {
-      const aEnded = hasPostingEnded(a, now);
-      const bEnded = hasPostingEnded(b, now);
-
-      if (aEnded && !bEnded) return 1;
-      if (!aEnded && bEnded) return -1;
-      return 0;
-    });
-  }, [crisisNameById, organization?.logo_path, organization?.name, organizationMe?.organization.logo_path, organizationMe?.organization.name, postings, now]);
+    return mapped;
+  }, [crisisNameById, organization?.logo_path, organization?.name, organizationMe?.organization.logo_path, organizationMe?.organization.name, postings]);
 
   return (
     <PageContainer>

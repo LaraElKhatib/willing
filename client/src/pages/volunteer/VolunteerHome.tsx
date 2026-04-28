@@ -1,5 +1,4 @@
 import { House, Clipboard } from 'lucide-react';
-import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 
 import EmptyState from '../../components/EmptyState.tsx';
@@ -7,9 +6,7 @@ import PageContainer from '../../components/layout/PageContainer.tsx';
 import PageHeader from '../../components/layout/PageHeader.tsx';
 import HorizontalScrollSection from '../../components/postings/HorizontalScrollSection.tsx';
 import PostingCollection from '../../components/postings/PostingCollection';
-import { hasPostingEnded } from '../../components/postings/postingUtils';
 import PostingViewModeToggle from '../../components/postings/PostingViewModeToggle.tsx';
-import useNow from '../../components/postings/useNow';
 import { usePostingViewMode } from '../../hooks/usePostingViewMode';
 import requestServer from '../../utils/requestServer';
 import useAsync from '../../utils/useAsync';
@@ -71,7 +68,6 @@ const getPostingCrisisId = (posting: PostingWithContext): number | undefined => 
 
 function VolunteerHome() {
   const { viewMode } = usePostingViewMode();
-  const now = useNow();
 
   const {
     data: enrolledPostings,
@@ -85,17 +81,7 @@ function VolunteerHome() {
     { immediate: true },
   );
 
-  const sortedEnrolledPostings = useMemo(() => {
-    const postings = enrolledPostings?.postings ?? [];
-    return [...postings].sort((a, b) => {
-      const aEnded = hasPostingEnded(a, now);
-      const bEnded = hasPostingEnded(b, now);
-
-      if (aEnded && !bEnded) return 1;
-      if (!aEnded && bEnded) return -1;
-      return 0;
-    });
-  }, [enrolledPostings, now]);
+  const sortedEnrolledPostings = enrolledPostings?.postings ?? [];
 
   const {
     data: allPostings,
