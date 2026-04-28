@@ -1,7 +1,11 @@
-import { AlertCircle, Ban, Cake, Calendar, Clock, ExternalLink, LockOpen, MapPin, Users } from 'lucide-react';
-import { Link } from 'react-router';
+import { AlertTriangle, Ban, Cake, Calendar, CalendarX2, CheckCircle2, ClipboardList, Clock, ExternalLink, LockOpen, MapPin, Users } from 'lucide-react';
+import { useMemo } from 'react';
+import { Link } from 'react-router-dom';
 
 import OrganizationProfilePicture from './OrganizationProfilePicture';
+import { DOMAIN_COLORS } from '../constants';
+import { formatCardDate, formatTime12Hour, hasPostingEnded, isPostingFullyBooked, normalizeTimestamp } from './postings/postingUtils';
+import useNow from './postings/useNow.ts';
 import SkillsList from './skills/SkillsList';
 
 import type { PostingWithContext } from '../../../server/src/types';
@@ -16,95 +20,6 @@ interface PostingListProps {
   volunteerOutsideMetaAt1700?: boolean;
   showOrganizationName?: boolean;
 }
-
-const getPostingDates = (startDate: string | Date, endDate: string | Date | null | undefined) => {
-  const normalizeDateOnly = (value: string | Date | null | undefined) => {
-    if (value == null) return undefined;
-    if (value instanceof Date) {
-      return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`;
-    }
-
-    const datePart = value.split('T')[0]?.trim();
-    return datePart || undefined;
-  };
-
-  const parseIsoDateParts = (value: string) => {
-    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-    if (!match) return undefined;
-
-    return {
-      year: Number(match[1]),
-      month: Number(match[2]),
-      day: Number(match[3]),
-    };
-  };
-
-  const formatDateToIso = (value: Date) => `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`;
-
-  const normalizedStartDate = normalizeDateOnly(startDate);
-  const normalizedEndDate = normalizeDateOnly(endDate ?? startDate);
-  const startParts = normalizedStartDate ? parseIsoDateParts(normalizedStartDate) : undefined;
-  const endParts = normalizedEndDate ? parseIsoDateParts(normalizedEndDate) : undefined;
-
-  if (!startParts || !endParts) {
-    return [];
-  }
-
-  const result: string[] = [];
-  const current = new Date(startParts.year, startParts.month - 1, startParts.day);
-  const end = new Date(endParts.year, endParts.month - 1, endParts.day);
-
-  while (current.getTime() <= end.getTime()) {
-    result.push(formatDateToIso(current));
-    current.setDate(current.getDate() + 1);
-  }
-
-  return result;
-};
-
-const isPostingFullyBooked = (posting: PostingWithContext) => {
-  if (posting.max_volunteers == null) {
-    return false;
-  }
-
-  if (!posting.allows_partial_attendance) {
-    return (posting.enrollment_count ?? 0) >= posting.max_volunteers;
-  }
-
-  const postingDates = getPostingDates(posting.start_date, posting.end_date);
-  if (postingDates.length === 0) {
-    return false;
-  }
-
-  return postingDates.every(date => (posting.date_capacity?.[date] ?? 0) >= posting.max_volunteers!);
-};
-
-const normalizeTimestamp = (value: string | Date | undefined | null) => {
-  if (value == null) return null;
-  const date = value instanceof Date ? value : new Date(value);
-  return Number.isNaN(date.getTime()) ? null : date;
-};
-
-const formatTime12Hour = (timeValue: string | undefined) => {
-  if (!timeValue) return '';
-  const [hoursRaw, minutesRaw] = timeValue.split(':');
-  const hours = Number(hoursRaw);
-  const minutes = Number(minutesRaw);
-  if (Number.isNaN(hours) || Number.isNaN(minutes)) return timeValue;
-  const normalizedHours = ((hours % 24) + 24) % 24;
-  const suffix = normalizedHours >= 12 ? 'PM' : 'AM';
-  const hour12 = normalizedHours % 12 === 0 ? 12 : normalizedHours % 12;
-  return `${hour12}:${String(minutes).padStart(2, '0')} ${suffix}`;
-};
-
-const formatCardDate = (dateValue: Date | null) => {
-  if (!dateValue) return '';
-  return new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  }).format(dateValue);
-};
 
 function PostingList({
   posting,
@@ -122,6 +37,12 @@ function PostingList({
   const startDt = normalizeTimestamp(posting.start_date);
   const endDt = normalizeTimestamp(posting.end_date);
   const hasEndDate = Boolean(endDt);
+
+  const now = useNow();
+  const hasEnded = useMemo(
+    () => Boolean(posting.has_ended || hasPostingEnded(posting, now)),
+    [now, posting],
+  );
 
   const startDateStr = formatCardDate(startDt) || 'TBA';
   const endDateStr = formatCardDate(endDt) || 'TBA';
@@ -141,47 +62,54 @@ function PostingList({
   const locationText = posting.location_name || 'TBA';
   const isPostingFull = isPostingFullyBooked(posting);
 
-  const statusTag = posting.is_closed
+  const statusTag = hasEnded
     ? (
-        <span className="badge badge-sm badge-error inline-flex items-center gap-1">
-          <Ban size={12} />
-          Closed
+        <span className="badge badge-sm badge-neutral inline-flex items-center gap-1">
+          <CalendarX2 size={12} />
+          Ended
         </span>
       )
-    : posting.application_status === 'pending'
+    : posting.is_closed
       ? (
-          <span className="badge badge-sm badge-warning inline-flex items-center gap-1">
-            <Clock size={12} />
-            Pending
+          <span className="badge badge-sm badge-error inline-flex items-center gap-1">
+            <Ban size={12} />
+            Closed
           </span>
         )
-      : posting.application_status === 'registered'
+      : posting.application_status === 'pending'
         ? (
-            <span className="badge badge-sm badge-success inline-flex items-center gap-1">
-              <Users size={12} />
-              Registered
+            <span className={`badge badge-${DOMAIN_COLORS.pending} badge-sm inline-flex items-center gap-1`}>
+              <Clock size={12} />
+              Pending
             </span>
           )
-        : isPostingFull
+        : posting.application_status === 'registered'
           ? (
-              <span className="badge badge-sm badge-error inline-flex items-center gap-1">
-                <Users size={12} />
-                Full
+              <span className={`badge badge-${DOMAIN_COLORS.enrollment} badge-sm inline-flex items-center gap-1`}>
+                <CheckCircle2 size={12} />
+                Enrolled
               </span>
             )
-          : posting.automatic_acceptance
+          : isPostingFull
             ? (
-                <span className="badge badge-sm badge-primary inline-flex items-center gap-1">
-                  <LockOpen size={12} />
-                  Open
+                <span className="badge badge-sm badge-error inline-flex items-center gap-1">
+                  <Users size={12} />
+                  Full
                 </span>
               )
-            : (
-                <span className="badge badge-sm badge-secondary inline-flex items-center gap-1">
-                  <Clock size={12} />
-                  Review Based
-                </span>
-              );
+            : posting.automatic_acceptance
+              ? (
+                  <span className="badge badge-sm badge-primary inline-flex items-center gap-1">
+                    <LockOpen size={12} />
+                    Open
+                  </span>
+                )
+              : (
+                  <span className="badge badge-sm badge-secondary inline-flex items-center gap-1">
+                    <ClipboardList size={12} />
+                    Review Based
+                  </span>
+                );
 
   const organizationMetaGridClasses = compactOrganizationLayout
     ? 'min-[1700px]:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] min-[1700px]:grid-rows-2'
@@ -216,7 +144,7 @@ function PostingList({
 
   const crisisTagContent = (
     <>
-      <AlertCircle size={14} />
+      <AlertTriangle size={14} />
       <span className="truncate max-w-40 font-semibold">{posting.crisis_name}</span>
     </>
   );
@@ -247,14 +175,15 @@ function PostingList({
 
         <div className="collapse-title z-10 pointer-events-none flex items-center gap-3 pr-12">
           <div className="relative shrink-0 pointer-events-auto">
-            <Link to={`/organization/${posting.organization_id}`} onClick={event => event.stopPropagation()} className="avatar avatar-placeholder">
-              <OrganizationProfilePicture
-                organizationName={posting.organization_name ?? 'Organization'}
-                organizationId={posting.organization_id}
-                logoPath={posting.organization_logo_path}
-                size={44}
-              />
-            </Link>
+            <OrganizationProfilePicture
+              organizationName={posting.organization_name ?? 'Organization'}
+              organizationId={posting.organization_id}
+              logoPath={posting.organization_logo_path}
+              size={44}
+              linkToOrganizationPage
+              linkClassName="avatar avatar-placeholder"
+              onLinkClick={event => event.stopPropagation()}
+            />
           </div>
 
           <div className="min-w-0 flex-1 relative">

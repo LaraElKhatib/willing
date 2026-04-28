@@ -1,14 +1,13 @@
-import { House } from 'lucide-react';
+import { House, Clipboard } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-import Alert from '../../components/Alert';
+import EmptyState from '../../components/EmptyState.tsx';
 import PageContainer from '../../components/layout/PageContainer.tsx';
 import PageHeader from '../../components/layout/PageHeader.tsx';
-import Loading from '../../components/Loading.tsx';
 import HorizontalScrollSection from '../../components/postings/HorizontalScrollSection.tsx';
 import PostingCollection from '../../components/postings/PostingCollection';
-import { usePostingViewMode } from '../../components/postings/PostingViewModeState';
 import PostingViewModeToggle from '../../components/postings/PostingViewModeToggle.tsx';
+import { usePostingViewMode } from '../../hooks/usePostingViewMode';
 import requestServer from '../../utils/requestServer';
 import useAsync from '../../utils/useAsync';
 
@@ -19,17 +18,12 @@ import type {
 } from '../../../../server/src/api/types';
 import type { PostingWithContext } from '../../../../server/src/types';
 
-const RailLoadingState = () => (
-  <div className="flex justify-center rounded-box border border-base-300 bg-base-100 px-6 py-12">
-    <Loading size="lg" />
-  </div>
-);
-
 const VerticalPostingSection = ({
   title,
   subtitle,
   action,
   hasItems,
+  loading,
   emptyState,
   children,
 }: {
@@ -37,6 +31,7 @@ const VerticalPostingSection = ({
   subtitle?: string;
   action?: React.ReactNode;
   hasItems: boolean;
+  loading?: boolean;
   emptyState?: React.ReactNode;
   children?: React.ReactNode;
 }) => (
@@ -54,7 +49,9 @@ const VerticalPostingSection = ({
             {children}
           </div>
         )
-      : emptyState}
+      : loading
+        ? <>{children}</>
+        : emptyState}
 
     {action && (
       <div className="pt-1">
@@ -182,23 +179,23 @@ function VolunteerHome() {
                   title="My Enrollments"
                   subtitle="All postings you're currently enrolled in or have applied to."
                   hasItems={!enrolledLoading && (enrolledPostings?.postings.length ?? 0) > 0}
+                  loading={enrolledLoading}
                   action={(
                     <Link to="/volunteer/enrollments" className="btn btn-sm btn-primary">
                       View All
                     </Link>
                   )}
-                  emptyState={enrolledLoading
-                    ? <RailLoadingState />
-                    : enrolledError
-                      ? (
-                          <div className="rounded-box border border-base-300 bg-base-100 px-6 py-4 text-sm text-base-content/70">
-                            Unable to load enrollments.
-                          </div>
-                        )
-                      : null}
+                  emptyState={enrolledError
+                    ? (
+                        <div className="rounded-box border border-base-300 bg-base-100 px-6 py-4 text-sm text-base-content/70">
+                          Unable to load enrollments.
+                        </div>
+                      )
+                    : null}
                 >
                   <PostingCollection
                     postings={enrolledPostings?.postings ?? []}
+                    loading={enrolledLoading}
                     showCrisis
                     listItemClassName="w-full"
                   />
@@ -209,23 +206,23 @@ function VolunteerHome() {
                   title="My Enrollments"
                   subtitle="All postings you're currently enrolled in or have applied to."
                   hasItems={!enrolledLoading && (enrolledPostings?.postings.length ?? 0) > 0}
+                  loading={enrolledLoading}
                   action={(
                     <Link to="/volunteer/enrollments" className="btn btn-sm btn-primary">
                       View All
                     </Link>
                   )}
-                  emptyState={enrolledLoading
-                    ? <RailLoadingState />
-                    : enrolledError
-                      ? (
-                          <div className="rounded-box border border-base-300 bg-base-100 px-6 py-4 text-sm text-base-content/70">
-                            Unable to load enrollments.
-                          </div>
-                        )
-                      : null}
+                  emptyState={enrolledError
+                    ? (
+                        <div className="rounded-box border border-base-300 bg-base-100 px-6 py-4 text-sm text-base-content/70">
+                          Unable to load enrollments.
+                        </div>
+                      )
+                    : null}
                 >
                   <PostingCollection
                     postings={enrolledPostings?.postings ?? []}
+                    loading={enrolledLoading}
                     showCrisis
                     cardItemClassName="h-full shrink-0 snap-start md:w-md w-sm"
                   />
@@ -247,6 +244,7 @@ function VolunteerHome() {
                   title={crisis.name}
                   subtitle={crisis.description || 'No description provided.'}
                   hasItems={!crisisSectionsLoading && postings.length > 0}
+                  loading={crisisSectionsLoading}
                   action={(
                     <Link
                       to={`/volunteer/crises/${crisis.id}/postings`}
@@ -256,12 +254,11 @@ function VolunteerHome() {
                       View All
                     </Link>
                   )}
-                  emptyState={crisisSectionsLoading
-                    ? <RailLoadingState />
-                    : null}
+                  emptyState={null}
                 >
                   <PostingCollection
                     postings={postings}
+                    loading={crisisSectionsLoading}
                     showCrisis
                     listItemClassName="w-full"
                   />
@@ -273,6 +270,7 @@ function VolunteerHome() {
                   title={crisis.name}
                   subtitle={crisis.description || 'No description provided.'}
                   hasItems={!crisisSectionsLoading && postings.length > 0}
+                  loading={crisisSectionsLoading}
                   action={(
                     <Link
                       to={`/volunteer/crises/${crisis.id}/postings`}
@@ -282,12 +280,11 @@ function VolunteerHome() {
                       View All
                     </Link>
                   )}
-                  emptyState={crisisSectionsLoading
-                    ? <RailLoadingState />
-                    : null}
+                  emptyState={null}
                 >
                   <PostingCollection
                     postings={postings}
+                    loading={crisisSectionsLoading}
                     showCrisis
                     cardItemClassName="h-full shrink-0 snap-start md:w-md w-sm"
                   />
@@ -301,23 +298,25 @@ function VolunteerHome() {
                 title="For You"
                 subtitle="Recommended for you."
                 hasItems={!forYouSectionLoading && forYouPostings.length > 0}
+                loading={forYouSectionLoading}
                 action={forYouAction}
-                emptyState={forYouSectionLoading
-                  ? <RailLoadingState />
-                  : allError
-                    ? (
-                        <div className="rounded-box border border-base-300 bg-base-100 px-6 py-4 text-sm text-base-content/70">
-                          Unable to load recommended postings.
-                        </div>
-                      )
-                    : (
-                        <Alert>
-                          No recommended postings are available yet.
-                        </Alert>
-                      )}
+                emptyState={allError
+                  ? (
+                      <div className="rounded-box border border-base-300 bg-base-100 px-6 py-4 text-sm text-base-content/70">
+                        Unable to load recommended postings.
+                      </div>
+                    )
+                  : (
+                      <EmptyState
+                        title="No postings are available"
+                        description="Wait for postings to be created to show here."
+                        Icon={Clipboard}
+                      />
+                    )}
               >
                 <PostingCollection
                   postings={forYouPostings}
+                  loading={forYouSectionLoading}
                   showCrisis
                   listItemClassName="w-full"
                 />
@@ -328,23 +327,25 @@ function VolunteerHome() {
                 title="For You"
                 subtitle="Recommended for you."
                 hasItems={!forYouSectionLoading && forYouPostings.length > 0}
+                loading={forYouSectionLoading}
                 action={forYouAction}
-                emptyState={forYouSectionLoading
-                  ? <RailLoadingState />
-                  : allError
-                    ? (
-                        <div className="rounded-box border border-base-300 bg-base-100 px-6 py-4 text-sm text-base-content/70">
-                          Unable to load recommended postings.
-                        </div>
-                      )
-                    : (
-                        <Alert>
-                          No recommended postings are available yet.
-                        </Alert>
-                      )}
+                emptyState={allError
+                  ? (
+                      <div className="rounded-box border border-base-300 bg-base-100 px-6 py-4 text-sm text-base-content/70">
+                        Unable to load recommended postings.
+                      </div>
+                    )
+                  : (
+                      <EmptyState
+                        title="No postings are available"
+                        description="Wait for postings to be created to show here."
+                        Icon={Clipboard}
+                      />
+                    )}
               >
                 <PostingCollection
                   postings={forYouPostings}
+                  loading={forYouSectionLoading}
                   showCrisis
                   cardItemClassName="h-full shrink-0 snap-start md:w-md w-sm"
                 />

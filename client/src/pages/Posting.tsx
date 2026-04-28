@@ -3,7 +3,11 @@ import {
   Check,
   AlertTriangle,
   Calendar,
+  CalendarX2,
   Cake,
+  CheckCircle2,
+  ClipboardList,
+  Clock3,
   Edit3,
   House,
   ListChecks,
@@ -30,6 +34,7 @@ import Button from '../components/Button.tsx';
 import CalendarInfo from '../components/CalendarInfo.tsx';
 import Card from '../components/Card.tsx';
 import CustomMessageModal from '../components/CustomMessageModal.tsx';
+import EmptyState from '../components/EmptyState.tsx';
 import ColumnLayout from '../components/layout/ColumnLayout.tsx';
 import PageContainer from '../components/layout/PageContainer.tsx';
 import PageHeader from '../components/layout/PageHeader.tsx';
@@ -39,24 +44,28 @@ import LocationPicker from '../components/LocationPicker.tsx';
 import OrganizationProfilePicture from '../components/OrganizationProfilePicture.tsx';
 import PostingDateTime from '../components/PostingDateTime.tsx';
 import CrisisCard from '../components/postings/CrisisCard.tsx';
+import { hasPostingEnded as hasPostingEndedByTime } from '../components/postings/postingUtils.ts';
+import useNow from '../components/postings/useNow.ts';
 import SkillsInput from '../components/skills/SkillsInput.tsx';
 import SkillsList from '../components/skills/SkillsList.tsx';
 import { ToggleButton } from '../components/ToggleButton.tsx';
 import VolunteerInfoCollapse from '../components/VolunteerInfoCollapse.tsx';
+import { DOMAIN_COLORS } from '../constants';
 import { useModal } from '../contexts/useModal.ts';
 import useNotifications from '../notifications/useNotifications';
-import { organizationPostingEditFormSchema, type OrganizationPostingEditFormData } from '../schemas/posting';
+import { postingEditFormSchema, type PostingEditFormData } from '../schemas/posting';
 import { executeAndShowError, FormField } from '../utils/formUtils.tsx';
 import requestServer from '../utils/requestServer.ts';
+import { toLocalTime, toUtcTime } from '../utils/timeUtils.ts';
 import useAsync from '../utils/useAsync';
 import { useOrganization } from '../utils/useUsers.ts';
 
 import type {
   OrganizationCrisisResponse,
   OrganizationCrisesResponse,
-  OrganizationPostingApplicationsReponse,
-  OrganizationPostingEnrollmentsResponse,
-  OrganizationPostingResponse,
+  PostingApplicationsReponse,
+  PostingEnrollmentsResponse,
+  PostingResponse,
   OrganizationProfileResponse,
   VolunteerCrisisResponse,
   VolunteerPostingResponse,
@@ -135,13 +144,7 @@ const getTimeInputValue = (timeValue: string | undefined) => (timeValue ?? '').s
 const getPostingStartDateTime = (posting: PostingWithSkills) => {
   const datePart = getDateInputValue(posting.start_date);
   const timePart = (posting.start_time ?? '').slice(0, 5) || '00:00';
-  return new Date(`${datePart}T${timePart}`);
-};
-
-const getPostingEndDateTime = (posting: PostingWithSkills | PostingWithContext) => {
-  const datePart = getDateInputValue(posting.end_date ?? posting.start_date);
-  const timePart = (posting.end_time ?? '').slice(0, 5) || '23:59';
-  return new Date(`${datePart}T${timePart}`);
+  return new Date(`${datePart}T${timePart}Z`);
 };
 
 const formatDisplayDate = (value?: string) => {
@@ -210,8 +213,8 @@ function PostingPage() {
   const notifications = useNotifications();
   const modal = useModal();
 
-  const form = useForm<OrganizationPostingEditFormData>({
-    resolver: zodResolver(organizationPostingEditFormSchema),
+  const form = useForm<PostingEditFormData>({
+    resolver: zodResolver(postingEditFormSchema),
     mode: 'onTouched',
     reValidateMode: 'onChange',
     defaultValues: {
@@ -230,6 +233,12 @@ function PostingPage() {
   const startTime = useWatch({ control: form.control, name: 'start_time' }) ?? '';
   const endDate = useWatch({ control: form.control, name: 'end_date' }) ?? '';
   const endTime = useWatch({ control: form.control, name: 'end_time' }) ?? '';
+  const statusNow = useNow();
+  const hasEnded = useMemo(() => (
+    posting
+      ? Boolean(('has_ended' in posting ? posting.has_ended : false) || hasPostingEndedByTime(posting, statusNow))
+      : false
+  ), [posting, statusNow]);
 
   const selectedCrisisName = useMemo(() => {
     if (selectedCrisisId == null) return null;
@@ -376,9 +385,9 @@ function PostingPage() {
         description: postingResponse.posting.description,
         location_name: postingResponse.posting.location_name,
         start_date: getDateInputValue(postingResponse.posting.start_date),
-        start_time: getTimeInputValue(postingResponse.posting.start_time),
+        start_time: toLocalTime(getTimeInputValue(postingResponse.posting.start_time)),
         end_date: postingResponse.posting.end_date ? getDateInputValue(postingResponse.posting.end_date) : '',
-        end_time: getTimeInputValue(postingResponse.posting.end_time),
+        end_time: toLocalTime(getTimeInputValue(postingResponse.posting.end_time)),
         max_volunteers: postingResponse.posting.max_volunteers?.toString() ?? '',
         minimum_age: postingResponse.posting.minimum_age?.toString() ?? '',
         automatic_acceptance: postingResponse.posting.automatic_acceptance,
@@ -389,7 +398,7 @@ function PostingPage() {
       return;
     }
 
-    const postingResponse = await requestServer<OrganizationPostingResponse>(`/organization/posting/${id}`, { includeJwt: true });
+    const postingResponse = await requestServer<PostingResponse>(`/organization/posting/${id}`, { includeJwt: true });
     const canManageFetchedPosting = account?.id === postingResponse.posting.organization_id;
 
     const postingWithSkills = {
@@ -400,12 +409,12 @@ function PostingPage() {
     setPosting(postingWithSkills);
     setCurrentPostingCrisis(postingResponse.crisis);
     if (canManageFetchedPosting) {
-      const enrollmentsResponse = await requestServer<OrganizationPostingEnrollmentsResponse>(`/organization/posting/${id}/enrollments`, { includeJwt: true });
+      const enrollmentsResponse = await requestServer<PostingEnrollmentsResponse>(`/organization/posting/${id}/enrollments`, { includeJwt: true });
       setEnrollments(enrollmentsResponse.enrollments);
       setPostingEnrollmentCount(enrollmentsResponse.enrollments.length);
 
       if (!postingResponse.posting.automatic_acceptance) {
-        const applicationsResponse = await requestServer<OrganizationPostingApplicationsReponse>(
+        const applicationsResponse = await requestServer<PostingApplicationsReponse>(
           `/organization/posting/${id}/applications`,
           { includeJwt: true },
         );
@@ -454,9 +463,9 @@ function PostingPage() {
       description: postingResponse.posting.description,
       location_name: postingResponse.posting.location_name,
       start_date: getDateInputValue(postingResponse.posting.start_date),
-      start_time: getTimeInputValue(postingResponse.posting.start_time),
+      start_time: toLocalTime(getTimeInputValue(postingResponse.posting.start_time)),
       end_date: postingResponse.posting.end_date ? getDateInputValue(postingResponse.posting.end_date) : '',
-      end_time: getTimeInputValue(postingResponse.posting.end_time),
+      end_time: toLocalTime(getTimeInputValue(postingResponse.posting.end_time)),
       max_volunteers: postingResponse.posting.max_volunteers?.toString() ?? '',
       minimum_age: postingResponse.posting.minimum_age?.toString() ?? '',
       automatic_acceptance: postingResponse.posting.automatic_acceptance,
@@ -478,7 +487,7 @@ function PostingPage() {
   }, [loadPosting]);
 
   const { trigger: updatePosting } = useAsync(
-    async (postingId: string, payload: Record<string, unknown>) => requestServer<OrganizationPostingResponse>(
+    async (postingId: string, payload: Record<string, unknown>) => requestServer<PostingResponse>(
       `/organization/posting/${postingId}`,
       {
         method: 'PUT',
@@ -526,7 +535,7 @@ function PostingPage() {
   );
 
   const { trigger: loadPostingEnrollments } = useAsync(
-    async (postingId: string) => requestServer<OrganizationPostingEnrollmentsResponse>(
+    async (postingId: string) => requestServer<PostingEnrollmentsResponse>(
       `/organization/posting/${postingId}/enrollments`,
       { includeJwt: true },
     ),
@@ -562,9 +571,9 @@ function PostingPage() {
           skills: skills.length > 0 ? skills : undefined,
           crisis_id: selectedCrisisId ?? null,
           start_date: data.start_date,
-          start_time: data.start_time,
+          start_time: data.start_time ? toUtcTime(data.start_time) : data.start_time,
           end_date: data.end_date,
-          end_time: data.end_time,
+          end_time: data.end_time ? toUtcTime(data.end_time) : data.end_time,
         };
 
         const response = await updatePosting(id, payload);
@@ -665,15 +674,15 @@ function PostingPage() {
   }, []);
 
   const openApplyModal = useCallback(() => {
-    if (!id || hasPendingApplication || isEnrolled) return;
+    if (!id || hasPendingApplication || isEnrolled || hasEnded) return;
     setSelectedApplicationDates([]);
     setIsApplyModalOpen(true);
-  }, [id, hasPendingApplication, isEnrolled]);
+  }, [id, hasPendingApplication, isEnrolled, hasEnded]);
 
   const submitApplication = useCallback(async (message?: string) => {
-    if (!id || hasPendingApplication || isEnrolled || !posting) return;
+    if (!id || hasPendingApplication || isEnrolled || hasEnded || !posting) return;
 
-    if (posting.allows_partial_attendance) {
+    if (posting.allows_partial_attendance && !isSingleDayPosting) {
       if (selectedApplicationDates.length === 0) {
         notifications.push({ type: 'error', message: 'Please select at least one date to apply.' });
         return;
@@ -696,14 +705,12 @@ function PostingPage() {
     } finally {
       setApplying(false);
     }
-  }, [applyToPosting, id, hasPendingApplication, isEnrolled, notifications, loadPosting, posting, postingDates, selectedApplicationDates]);
+  }, [applyToPosting, id, hasPendingApplication, isEnrolled, hasEnded, notifications, loadPosting, posting, postingDates, selectedApplicationDates]);
 
   const canWithdrawFromPosting = useMemo(() => {
     if (!posting) return false;
-
-    const endDateTime = getPostingEndDateTime(posting);
-    return !Number.isNaN(endDateTime.getTime()) && new Date() < endDateTime;
-  }, [posting]);
+    return !hasEnded;
+  }, [hasEnded, posting]);
 
   const withdrawApplication = useCallback(async () => {
     if (!id || (!hasPendingApplication && !isEnrolled)) return;
@@ -800,7 +807,7 @@ function PostingPage() {
     setPosition(coords);
   }, []);
 
-  const formValues = form.watch();
+  const formValues = useWatch({ control: form.control });
 
   const formattedStartDate = useMemo(() => formatDisplayDate(startDate), [startDate]);
   const formattedStartTime = useMemo(() => formatDisplayTime(startTime), [startTime]);
@@ -810,24 +817,30 @@ function PostingPage() {
   const applicationStatus = useMemo(() => {
     if (isEnrolled) {
       return {
-        label: 'Accepted',
+        label: 'Enrolled',
         description: 'Your application was accepted and you are enrolled in this posting.',
-        badgeClassName: 'badge-success',
+        badgeClassName: `badge badge-${DOMAIN_COLORS.enrollment} inline-flex items-center gap-1`,
+        cardColor: 'success' as const,
+        Icon: CheckCircle2,
       };
     }
 
     if (hasPendingApplication) {
       return {
-        label: 'Pending',
+        label: 'Pending Review',
         description: 'Your application is waiting for the organization to review it.',
-        badgeClassName: 'badge-warning',
+        badgeClassName: `badge badge-${DOMAIN_COLORS.pending} inline-flex items-center gap-1`,
+        cardColor: 'warning' as const,
+        Icon: Clock3,
       };
     }
 
     return {
       label: 'Not Applied',
       description: 'You have not applied to this posting yet.',
-      badgeClassName: 'badge-ghost',
+      badgeClassName: `badge badge-${DOMAIN_COLORS.neutral} inline-flex items-center gap-1`,
+      cardColor: 'neutral' as const,
+      Icon: ShieldCheck,
     };
   }, [hasPendingApplication, isEnrolled]);
 
@@ -837,10 +850,13 @@ function PostingPage() {
 
   const applicationDaysLabel = useMemo(() => {
     if (!posting || (!isEnrolled && !hasPendingApplication)) return null;
-    if (!posting.allows_partial_attendance) return 'All days';
+    if (!posting.allows_partial_attendance) {
+      if (startDate === endDate && startDate) return formatDisplayDate(startDate);
+      return 'All days';
+    }
     if (formattedSelectedDates.length === 0) return null;
     return formattedSelectedDates.join(', ');
-  }, [formattedSelectedDates, hasPendingApplication, isEnrolled, posting]);
+  }, [endDate, formattedSelectedDates, hasPendingApplication, isEnrolled, posting, startDate]);
 
   const shouldShowCommitmentCard = useMemo(() => {
     if (!posting) return false;
@@ -885,7 +901,7 @@ function PostingPage() {
   const canManagePosting = useMemo(() => {
     if (isVolunteerView || !posting || !account?.id) return false;
     return posting.organization_id === account.id;
-  }, [isVolunteerView, posting, account?.id]);
+  }, [isVolunteerView, posting, account]);
 
   const currentEnrollmentCount = useMemo(() => {
     if (!posting) return 0;
@@ -966,7 +982,7 @@ function PostingPage() {
         title="Apply to posting"
         placeholder="You can add an optional message to tell the organization why you're interested in this opportunity"
       >
-        {posting?.allows_partial_attendance && (
+        {posting?.allows_partial_attendance && !isSingleDayPosting && (
           <div className="mt-3">
             <p className="text-sm font-medium mb-2">Select your available days (partial attendance)</p>
             <CalendarInfo
@@ -994,23 +1010,24 @@ function PostingPage() {
         defaultBackTo={isVolunteerView ? '/volunteer' : '/organization'}
         actions={canManagePosting && (isEditMode
           ? (
-              <>
-                <Button style="outline" onClick={onCancelEdit} disabled={saving} Icon={X}>
+              <span className="flex gap-2 flex-wrap justify-end">
+                <Button style="outline" onClick={onCancelEdit} disabled={saving} Icon={X} size="sm">
                   Cancel
                 </Button>
-                <Button color="primary" onClick={onSave} loading={saving} Icon={Save}>
+                <Button color="primary" onClick={onSave} loading={saving} Icon={Save} size="sm">
                   Save Changes
                 </Button>
-              </>
+              </span>
             )
           : (
-              <>
+              <span className="flex gap-2 flex-wrap justify-end">
                 <LinkButton
                   to={`/organization/posting/${posting.id}/attendance`}
                   color="info"
                   style="outline"
                   disabled={!canOpenAttendancePage}
                   Icon={ListChecks}
+                  size="sm"
                 >
                   Attendance
                 </LinkButton>
@@ -1019,15 +1036,18 @@ function PostingPage() {
                   onClick={() => setIsEditMode(true)}
                   style="outline"
                   Icon={Edit3}
+                  size="sm"
+                  disabled={hasEnded}
                 >
                   Edit
                 </Button>
                 <Button
                   color={posting?.is_closed ? 'success' : 'warning'}
                   onClick={onToggleClosed}
-                  disabled={!posting}
+                  disabled={!posting || hasEnded}
                   loading={togglingClosed}
                   Icon={posting?.is_closed ? LockOpen : Lock}
+                  size="sm"
                 >
                   {posting?.is_closed ? 'Reopen' : 'Close'}
                 </Button>
@@ -1036,10 +1056,11 @@ function PostingPage() {
                   onClick={onDelete}
                   loading={deleting}
                   Icon={Trash2}
+                  size="sm"
                 >
                   Delete
                 </Button>
-              </>
+              </span>
             )
         )}
       />
@@ -1050,18 +1071,26 @@ function PostingPage() {
             <Card>
               <div className="flex items-start gap-3 mb-4">
                 {postingOrganization && (
-                  <Link to={`/organization/${postingOrganization.id}`} className="shrink-0">
-                    <OrganizationProfilePicture
-                      organizationName={postingOrganization.name}
-                      organizationId={postingOrganization.id}
-                      logoPath={postingOrganization.logoPath}
-                      size={48}
-                    />
-                  </Link>
+                  <OrganizationProfilePicture
+                    organizationName={postingOrganization.name}
+                    organizationId={postingOrganization.id}
+                    logoPath={postingOrganization.logoPath}
+                    size={48}
+                    linkToOrganizationPage
+                    linkClassName="shrink-0"
+                  />
                 )}
 
                 <div className="min-w-0">
-                  <h4 className="text-xl font-bold truncate">{formValues.title}</h4>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h4 className="text-xl font-bold truncate">{formValues.title}</h4>
+                    {hasEnded && (
+                      <span className="badge badge-neutral inline-flex items-center gap-1 shrink-0">
+                        <CalendarX2 size={12} />
+                        Ended
+                      </span>
+                    )}
+                  </div>
                   {postingOrganization && (
                     <Link
                       to={`/organization/${postingOrganization.id}`}
@@ -1120,6 +1149,7 @@ function PostingPage() {
                           <CalendarInfo
                             selectionMode="range"
                             rangeLabel="Date Range"
+                            disablePastDates
                             rangeValue={{ from: startDate, to: endDate }}
                             onRangeChange={({ from, to }) => {
                               form.setValue('start_date', from, {
@@ -1267,7 +1297,7 @@ function PostingPage() {
                   <Card
                     title="Crisis Tag"
                     description="Add a crisis tag to this posting."
-                    color="accent"
+                    color={DOMAIN_COLORS.crisis}
                     coloredText={true}
                     Icon={AlertTriangle}
                   >
@@ -1307,7 +1337,10 @@ function PostingPage() {
                 : (
                     <Card
                       title={selectedCrisisName || 'No Crisis'}
-                      color="accent"
+                      description={selectedCrisisName
+                        ? 'Crisis details are currently unavailable.'
+                        : 'This posting is not linked to a crisis event.'}
+                      color={DOMAIN_COLORS.crisis}
                       coloredText={true}
                       Icon={AlertTriangle}
                     />
@@ -1354,11 +1387,13 @@ function PostingPage() {
                     </span>
                   )}
               <p className="text-xs opacity-70 mt-2">
-                {posting?.is_closed
-                  ? 'This posting is closed and no longer accepting applications.'
-                  : isOpen
-                    ? 'Volunteers are accepted automatically.'
-                    : 'Volunteers must be accepted by the organization.'}
+                {hasEnded
+                  ? 'This posting has ended.'
+                  : posting?.is_closed
+                    ? 'This posting is closed and no longer accepting applications.'
+                    : isOpen
+                      ? 'Volunteers are accepted automatically.'
+                      : 'Volunteers must be accepted by the organization.'}
               </p>
               {!isEditMode && canManagePosting && (
                 null
@@ -1395,15 +1430,16 @@ function PostingPage() {
         {isVolunteerView && (
           <Card
             title="Application Status"
-            Icon={ShieldCheck}
+            description={applicationStatus.description}
+            color={applicationStatus.cardColor}
+            Icon={applicationStatus.Icon}
+            right={(
+              <span className={applicationStatus.badgeClassName}>
+                <applicationStatus.Icon size={12} />
+                {applicationStatus.label}
+              </span>
+            )}
           >
-
-            <span className={`badge mt-1 w-fit ${applicationStatus.badgeClassName}`}>
-              {applicationStatus.label}
-            </span>
-            <p className="text-sm opacity-70 mt-2">
-              {applicationStatus.description}
-            </p>
             {applicationDaysLabel && (
               <div className="mt-3">
                 <p className="text-xs font-medium uppercase tracking-wide opacity-60">Applied Days</p>
@@ -1450,16 +1486,20 @@ function PostingPage() {
                         </Button>
                       </span>
                     )
-                  : (
-                      <Button
-                        color="primary"
-                        onClick={openApplyModal}
-                        loading={applying}
-                        Icon={Send}
-                      >
-                        Apply
-                      </Button>
-                    )}
+                  : hasEnded
+                    ? (
+                        <span className="text-sm text-error font-medium">This posting has ended</span>
+                      )
+                    : (
+                        <Button
+                          color="primary"
+                          onClick={openApplyModal}
+                          loading={applying}
+                          Icon={Send}
+                        >
+                          Apply
+                        </Button>
+                      )}
             </div>
           </Card>
         )}
@@ -1495,16 +1535,20 @@ function PostingPage() {
         {canManagePosting && !isOpen && (
           <Card
             title="Enrollment Applications"
-            description="Enrollment applications description."
+            description="Pending volunteer applications that need organization review."
+            color="warning"
+            Icon={ClipboardList}
             right={
-              <span className="badge badge-primary">{applications.length}</span>
+              <span className={`badge badge-${DOMAIN_COLORS.pending} inline-flex items-center gap-1`}>{applications.length}</span>
             }
           >
             {applications.length === 0
               ? (
-                  <Alert>
-                    No pending applications.
-                  </Alert>
+                  <EmptyState
+                    title="No pending applications"
+                    description="Wait for volunteers to apply to show here."
+                    Icon={Users}
+                  />
                 )
               : (
                   <div className="space-y-2">
@@ -1514,7 +1558,7 @@ function PostingPage() {
                         volunteer={app}
                         profileLink={`/organization/volunteer/${app.volunteer_id}`}
                         actions={(
-                          <>
+                          <span className="flex gap-2">
                             <Button
                               color="success"
                               style="soft"
@@ -1533,7 +1577,7 @@ function PostingPage() {
                             >
                               Reject
                             </Button>
-                          </>
+                          </span>
                         )}
                       />
                     ))}
@@ -1545,17 +1589,21 @@ function PostingPage() {
         {canManagePosting && (
           <Card
             title="Enrolled Volunteers"
-            // description="Enrolled volunteers description"
+            description="Volunteers currently enrolled in this posting."
+            color="success"
+            Icon={CheckCircle2}
             right={
-              <span className="badge badge-primary">{enrollments.length}</span>
+              <span className={`badge badge-${DOMAIN_COLORS.enrollment} inline-flex items-center gap-1`}>{enrollments.length}</span>
             }
           >
 
             {enrollments.length === 0
               ? (
-                  <Alert>
-                    No volunteers have enrolled yet.
-                  </Alert>
+                  <EmptyState
+                    title="No volunteers have enrolled yet"
+                    description="Wait for volunteers to enroll to show here."
+                    Icon={Users}
+                  />
                 )
               : (
                   <div className="space-y-2">

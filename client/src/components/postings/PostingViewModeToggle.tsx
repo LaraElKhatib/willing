@@ -1,6 +1,6 @@
 import { LayoutGrid, List } from 'lucide-react';
 
-import { usePostingViewMode } from './PostingViewModeState';
+import { usePostingViewMode } from '../../hooks/usePostingViewMode';
 
 function PostingViewModeToggle() {
   const { viewMode, setViewMode } = usePostingViewMode();
@@ -14,7 +14,7 @@ function PostingViewModeToggle() {
         aria-pressed={viewMode === 'cards'}
       >
         <LayoutGrid size={14} />
-        Cards
+        <span className="max-lg:hidden">Cards</span>
       </button>
       <button
         type="button"
@@ -23,7 +23,7 @@ function PostingViewModeToggle() {
         aria-pressed={viewMode === 'list'}
       >
         <List size={14} />
-        List
+        <span className="max-lg:hidden">List</span>
       </button>
     </div>
   );

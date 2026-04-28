@@ -1,23 +1,24 @@
-import { CheckCheck, Download, RotateCcw, Save, Undo2, Users } from 'lucide-react';
+import { CheckCheck, Download, RotateCcw, Save, Search, Undo2, Users } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useParams } from 'react-router';
+import { useParams } from 'react-router-dom';
 
-import Alert from '../../components/Alert';
 import Button from '../../components/Button';
 import CalendarInfo from '../../components/CalendarInfo';
 import Card from '../../components/Card';
+import EmptyState from '../../components/EmptyState';
 import PageContainer from '../../components/layout/PageContainer';
 import PageHeader from '../../components/layout/PageHeader';
 import Loading from '../../components/Loading';
 import VolunteerInfoCollapse from '../../components/VolunteerInfoCollapse';
+import { DOMAIN_COLORS } from '../../constants';
 import useNotifications from '../../notifications/useNotifications';
 import requestServer, { SERVER_BASE_URL } from '../../utils/requestServer';
 import useAsync from '../../utils/useAsync';
 
-import type { OrganizationPostingAttendanceResponse } from '../../../../server/src/api/types';
+import type { PostingAttendanceResponse } from '../../../../server/src/api/types';
 import type { PostingEnrollment } from '../../../../server/src/types';
 
-function OrganizationPostingAttendance() {
+function PostingAttendance() {
   const { id } = useParams<{ id: string }>();
   const attendanceFiltersStorageKey = useMemo(
     () => `organization-posting-attendance-filters:${id ?? 'unknown'}`,
@@ -64,12 +65,12 @@ function OrganizationPostingAttendance() {
     loading,
     error,
     trigger: loadAttendance,
-  } = useAsync<OrganizationPostingAttendanceResponse, []>(async () => {
+  } = useAsync<PostingAttendanceResponse, []>(async () => {
     if (!id) {
       throw new Error('Posting ID is missing.');
     }
 
-    const response = await requestServer<OrganizationPostingAttendanceResponse>(`/organization/posting/${id}/attendance`, { includeJwt: true });
+    const response = await requestServer<PostingAttendanceResponse>(`/organization/posting/${id}/attendance`, { includeJwt: true });
     const postingDates = response.posting_dates ?? [];
 
     const dateAttendanceMap: Record<number, Record<string, boolean>> = {};
@@ -415,13 +416,14 @@ function OrganizationPostingAttendance() {
         showBack
         defaultBackTo={`/posting/${data.posting.id}`}
         actions={(
-          <>
+          <span className="flex gap-2 flex-wrap justify-end">
             <Button
               style="outline"
               onClick={() => void exportAttendanceCsv()}
               disabled={data.enrollments.length === 0}
               loading={exportingCsv}
               Icon={Download}
+              size="sm"
             >
               Export CSV
             </Button>
@@ -432,6 +434,7 @@ function OrganizationPostingAttendance() {
               disabled={data.enrollments.length === 0}
               loading={saving}
               Icon={CheckCheck}
+              size="sm"
             >
               Mark All Present
             </Button>
@@ -442,6 +445,7 @@ function OrganizationPostingAttendance() {
               disabled={data.enrollments.length === 0}
               loading={saving}
               Icon={RotateCcw}
+              size="sm"
             >
               Clear All
             </Button>
@@ -451,6 +455,7 @@ function OrganizationPostingAttendance() {
               disabled={!hasUnsavedChanges}
               loading={saving}
               Icon={Undo2}
+              size="sm"
             >
               Undo Changes
             </Button>
@@ -460,17 +465,21 @@ function OrganizationPostingAttendance() {
               disabled={!hasUnsavedChanges}
               loading={saving}
               Icon={Save}
+              size="sm"
             >
               Save Attendance
             </Button>
-          </>
+          </span>
         )}
       />
 
       <Card
-        title="Registered Volunteers"
+        title="Enrolled Volunteers"
+        description="Track attendance by volunteer and posting day."
+        color="success"
+        Icon={Users}
         right={
-          <span className="badge badge-primary">{data.enrollments.length}</span>
+          <span className={`badge badge-${DOMAIN_COLORS.enrollment} inline-flex items-center gap-1`}>{data.enrollments.length}</span>
         }
       >
         <div className="mb-4 grid gap-2 md:grid-cols-[1fr_auto]">
@@ -537,15 +546,20 @@ function OrganizationPostingAttendance() {
         )}
 
         {data.enrollments.length === 0 && (
-          <Alert>
-            No enrolled volunteers to track yet.
-          </Alert>
+          <EmptyState
+            title="No enrolled volunteers"
+            description="Volunteers will show up here once they register for this posting."
+            Icon={Users}
+          />
         )}
 
         {data.enrollments.length > 0 && filteredAndSortedEnrollments.length === 0 && (
-          <Alert>
-            No volunteers signed up for this day yet
-          </Alert>
+          <EmptyState
+            title="No match"
+            description="No volunteers match your query."
+            Icon={Search}
+            compact
+          />
         )}
 
         {data.enrollments.length > 0 && filteredAndSortedEnrollments.length > 0 && (
@@ -591,4 +605,4 @@ function OrganizationPostingAttendance() {
   );
 }
 
-export default OrganizationPostingAttendance;
+export default PostingAttendance;

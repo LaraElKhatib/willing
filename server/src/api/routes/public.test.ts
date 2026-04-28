@@ -17,7 +17,7 @@ import {
 import * as certificateVerificationService from '../../services/certificates/verification.ts';
 import { PLATFORM_SIGNATURE_UPLOAD_DIR } from '../../services/uploads/paths.ts';
 import { createOrganizationAccount, createVolunteerAccount } from '../../tests/fixtures/accounts.ts';
-import { createOrganizationPosting } from '../../tests/fixtures/organizationData.ts';
+import { createPosting } from '../../tests/fixtures/organizationData.ts';
 
 import type { Database } from '../../db/tables/index.ts';
 import type { ControlledTransaction } from 'kysely';
@@ -61,13 +61,13 @@ describe('GET /public/home-stats', () => {
     await createVolunteerAccount(transaction, { email: 'vol2@willing.social' });
     await createVolunteerAccount(transaction, { email: 'vol3@willing.social' });
 
-    await createOrganizationPosting(transaction, { organizationId: org1.organization.id });
-    await createOrganizationPosting(transaction, { organizationId: org2.organization.id });
-    await createOrganizationPosting(transaction, { organizationId: org1.organization.id });
-    await createOrganizationPosting(transaction, { organizationId: org4.organization.id });
-    await createOrganizationPosting(transaction, { organizationId: org3.organization.id });
-    await createOrganizationPosting(transaction, { organizationId: org2.organization.id });
-    await createOrganizationPosting(transaction, { organizationId: org1.organization.id });
+    await createPosting(transaction, { organizationId: org1.organization.id });
+    await createPosting(transaction, { organizationId: org2.organization.id });
+    await createPosting(transaction, { organizationId: org1.organization.id });
+    await createPosting(transaction, { organizationId: org4.organization.id });
+    await createPosting(transaction, { organizationId: org3.organization.id });
+    await createPosting(transaction, { organizationId: org2.organization.id });
+    await createPosting(transaction, { organizationId: org1.organization.id });
 
     const response = await server
       .get('/public/home-stats')
@@ -90,13 +90,13 @@ describe('GET /public/home-stats', () => {
     await createVolunteerAccount(transaction, { email: 'vol2@willing.social', created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000) });
     await createVolunteerAccount(transaction, { email: 'vol3@willing.social' });
 
-    await createOrganizationPosting(transaction, { organizationId: org1.organization.id, created_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000) });
-    await createOrganizationPosting(transaction, { organizationId: org2.organization.id, created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000) });
-    await createOrganizationPosting(transaction, { organizationId: org1.organization.id, created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000) });
-    await createOrganizationPosting(transaction, { organizationId: org4.organization.id, created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000) });
-    await createOrganizationPosting(transaction, { organizationId: org3.organization.id, created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) });
-    await createOrganizationPosting(transaction, { organizationId: org2.organization.id, created_at: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000) });
-    await createOrganizationPosting(transaction, { organizationId: org1.organization.id });
+    await createPosting(transaction, { organizationId: org1.organization.id, created_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000) });
+    await createPosting(transaction, { organizationId: org2.organization.id, created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000) });
+    await createPosting(transaction, { organizationId: org1.organization.id, created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000) });
+    await createPosting(transaction, { organizationId: org4.organization.id, created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000) });
+    await createPosting(transaction, { organizationId: org3.organization.id, created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) });
+    await createPosting(transaction, { organizationId: org2.organization.id, created_at: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000) });
+    await createPosting(transaction, { organizationId: org1.organization.id });
 
     const response = await server
       .get('/public/home-stats')
@@ -244,7 +244,7 @@ describe('POST /public/certificate/verify', () => {
       url: 'https://rescue-two.example.org',
     });
 
-    const postingOne = await createOrganizationPosting(transaction, {
+    const postingOne = await createPosting(transaction, {
       organizationId: organizationOne.id,
       title: 'Medical Tent Setup',
       overrides: {
@@ -254,7 +254,7 @@ describe('POST /public/certificate/verify', () => {
         end_time: '12:00:00',
       },
     });
-    const postingTwo = await createOrganizationPosting(transaction, {
+    const postingTwo = await createPosting(transaction, {
       organizationId: organizationTwo.id,
       title: 'Food Box Coordination',
       overrides: {
@@ -271,7 +271,7 @@ describe('POST /public/certificate/verify', () => {
     const enrollmentCreatedAt = new Date(issuedAtDate);
     enrollmentCreatedAt.setMinutes(enrollmentCreatedAt.getMinutes() - 2);
 
-    await transaction
+    const enrollments = await transaction
       .insertInto('enrollment')
       .values([
         {
@@ -285,6 +285,25 @@ describe('POST /public/certificate/verify', () => {
           posting_id: postingTwo.id,
           attended: true,
           created_at: enrollmentCreatedAt,
+        },
+      ])
+      .returningAll()
+      .execute();
+
+    await transaction
+      .insertInto('enrollment_date')
+      .values([
+        {
+          enrollment_id: enrollments[0]!.id,
+          posting_id: postingOne.id,
+          date: new Date('2026-02-01T00:00:00.000Z'),
+          attended: true,
+        },
+        {
+          enrollment_id: enrollments[1]!.id,
+          posting_id: postingTwo.id,
+          date: new Date('2026-02-03T00:00:00.000Z'),
+          attended: true,
         },
       ])
       .execute();
@@ -461,6 +480,7 @@ describe('POST /public/certificate/verify', () => {
       volunteer_name: `${volunteer.first_name} ${volunteer.last_name}`,
       total_hours: payload.total_hours,
       organizations: [],
+      platform_certificate: null,
     });
   });
 
@@ -496,13 +516,67 @@ describe('POST /public/certificate/verify', () => {
           id: organizationOne.id,
           name: organizationOne.name,
           hours: payload.hours_per_org[String(organizationOne.id)],
+          logo_path: null,
+          signatory_name: null,
+          signatory_position: null,
+          signature_path: null,
         },
         {
           id: organizationTwo.id,
           name: organizationTwo.name,
           hours: payload.hours_per_org[String(organizationTwo.id)],
+          logo_path: null,
+          signatory_name: null,
+          signatory_position: null,
+          signature_path: null,
         },
       ],
+      platform_certificate: null,
+    });
+  });
+
+  test('keeps a previously issued certificate valid when one referenced organization is later disabled', async () => {
+    const { token, payload, volunteer, organizationOne, organizationTwo } = await createValidCertificateVerificationContext();
+
+    await transaction
+      .updateTable('organization_account')
+      .set({ is_disabled: true })
+      .where('id', '=', organizationOne.id)
+      .execute();
+
+    const response = await server
+      .post('/public/certificate/verify')
+      .send({ token })
+      .expect(200);
+
+    expect(response.body).toEqual({
+      valid: true,
+      message: 'Certificate is valid.',
+      issued_at: payload.issued_at,
+      certificate_type: CERTIFICATE_TYPE,
+      volunteer_name: `${volunteer.first_name} ${volunteer.last_name}`,
+      total_hours: payload.total_hours,
+      organizations: [
+        {
+          id: organizationOne.id,
+          name: organizationOne.name,
+          hours: payload.hours_per_org[String(organizationOne.id)],
+          logo_path: null,
+          signatory_name: null,
+          signatory_position: null,
+          signature_path: null,
+        },
+        {
+          id: organizationTwo.id,
+          name: organizationTwo.name,
+          hours: payload.hours_per_org[String(organizationTwo.id)],
+          logo_path: null,
+          signatory_name: null,
+          signatory_position: null,
+          signature_path: null,
+        },
+      ],
+      platform_certificate: null,
     });
   });
 

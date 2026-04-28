@@ -38,27 +38,6 @@ export type VolunteerProfileData = {
   completed_experiences: VolunteerCompletedExperience[];
 };
 
-const combineDateTimeToDate = (date: Date, time: string) => {
-  const [hoursRaw, minutesRaw = '0', secondsRaw = '0'] = time.split(':');
-  const hours = Number(hoursRaw);
-  const minutes = Number(minutesRaw);
-  const seconds = Number(secondsRaw);
-
-  if (Number.isNaN(hours) || Number.isNaN(minutes) || Number.isNaN(seconds)) {
-    return new Date(Number.NaN);
-  }
-
-  return new Date(
-    date.getFullYear(),
-    date.getMonth(),
-    date.getDate(),
-    hours,
-    minutes,
-    seconds,
-    0,
-  );
-};
-
 export const getVolunteerProfile = async (volunteerId: number): Promise<VolunteerProfileData> => {
   const [volunteer, volunteerSkills, completedExperiences, usedPostingSkills] = await Promise.all([
     database
@@ -85,28 +64,28 @@ export const getVolunteerProfile = async (volunteerId: number): Promise<Voluntee
       .execute(),
     database
       .selectFrom('enrollment')
-      .innerJoin('organization_posting', 'organization_posting.id', 'enrollment.posting_id')
-      .innerJoin('organization_account', 'organization_account.id', 'organization_posting.organization_id')
-      .leftJoin('crisis', 'crisis.id', 'organization_posting.crisis_id')
+      .innerJoin('posting', 'posting.id', 'enrollment.posting_id')
+      .innerJoin('organization_account', 'organization_account.id', 'posting.organization_id')
+      .leftJoin('crisis', 'crisis.id', 'posting.crisis_id')
       .select('enrollment.id as enrollment_id')
-      .select('organization_posting.id as posting_id')
-      .select('organization_posting.title as posting_title')
-      .select('organization_posting.organization_id as organization_id')
+      .select('posting.id as posting_id')
+      .select('posting.title as posting_title')
+      .select('posting.organization_id as organization_id')
       .select('organization_account.name as organization_name')
       .select('organization_account.logo_path as organization_logo_path')
-      .select('organization_posting.location_name as location_name')
-      .select('organization_posting.start_date as start_date')
-      .select('organization_posting.start_time as start_time')
-      .select('organization_posting.end_date as end_date')
-      .select('organization_posting.end_time as end_time')
-      .select('organization_posting.is_closed as is_closed')
-      .select('organization_posting.automatic_acceptance as automatic_acceptance')
-      .select(sql<number>`COALESCE((SELECT COUNT(*) FROM enrollment e2 WHERE e2.posting_id = organization_posting.id), 0)`.as('enrollment_count'))
+      .select('posting.location_name as location_name')
+      .select('posting.start_date as start_date')
+      .select('posting.start_time as start_time')
+      .select('posting.end_date as end_date')
+      .select('posting.end_time as end_time')
+      .select('posting.is_closed as is_closed')
+      .select('posting.automatic_acceptance as automatic_acceptance')
+      .select(sql<number>`COALESCE((SELECT COUNT(*) FROM enrollment e2 WHERE e2.posting_id = posting.id), 0)`.as('enrollment_count'))
       .select('crisis.name as crisis_name')
       .where('enrollment.volunteer_id', '=', volunteerId)
       .where('enrollment.attended', '=', true)
-      .orderBy('organization_posting.start_date', 'desc')
-      .orderBy('organization_posting.start_time', 'desc')
+      .orderBy('posting.start_date', 'desc')
+      .orderBy('posting.start_time', 'desc')
       .execute(),
     database
       .selectFrom('enrollment')
@@ -117,20 +96,22 @@ export const getVolunteerProfile = async (volunteerId: number): Promise<Voluntee
       .execute(),
   ]);
 
-  const totalHoursCompletedRaw = completedExperiences.reduce((totalHours, experience) => {
-    if (!experience.end_date || !experience.end_time) return totalHours;
+  const totalHoursRow = await database
+    .selectFrom('enrollment_date')
+    .innerJoin('enrollment', 'enrollment.id', 'enrollment_date.enrollment_id')
+    .innerJoin('posting', 'posting.id', 'enrollment.posting_id')
+    .select(sql<number>`COALESCE(SUM(GREATEST(
+  0,
+  EXTRACT(EPOCH FROM (
+    (enrollment_date.date + posting.end_time)
+    - (enrollment_date.date + posting.start_time)
+  )) / 3600.0
+)), 0)`.as('total_hours'))
+    .where('enrollment.volunteer_id', '=', volunteerId)
+    .where('enrollment_date.attended', '=', true)
+    .executeTakeFirstOrThrow();
 
-    const startMillis = combineDateTimeToDate(experience.start_date, experience.start_time).getTime();
-    const endMillis = combineDateTimeToDate(experience.end_date, experience.end_time).getTime();
-
-    if (Number.isNaN(startMillis) || Number.isNaN(endMillis) || endMillis <= startMillis) {
-      return totalHours;
-    }
-
-    return totalHours + ((endMillis - startMillis) / (1000 * 60 * 60));
-  }, 0);
-
-  const totalHoursCompleted = Math.round(totalHoursCompletedRaw * 10) / 10;
+  const totalHoursCompleted = Math.round((Number(totalHoursRow.total_hours ?? 0)) * 10) / 10;
 
   const crisisCountByName = new Map<string, number>();
   completedExperiences.forEach((experience) => {

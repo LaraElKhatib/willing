@@ -120,23 +120,23 @@ export const applyPostingDateTimeFilters = <Q extends PostingQueryLike>(
   let nextQuery = query;
 
   if (filters.startDateFrom) {
-    nextQuery = nextQuery.where('organization_posting.start_date', '>=', filters.startDateFrom) as Q;
+    nextQuery = nextQuery.where('posting.start_date', '>=', filters.startDateFrom) as Q;
   }
 
   if (filters.endDateTo) {
     nextQuery = nextQuery
-      .where('organization_posting.end_date', 'is not', null)
-      .where('organization_posting.end_date', '<=', filters.endDateTo) as Q;
+      .where('posting.end_date', 'is not', null)
+      .where('posting.end_date', '<=', filters.endDateTo) as Q;
   }
 
   if (filters.startTimeFrom) {
-    nextQuery = nextQuery.where('organization_posting.start_time', '>=', filters.startTimeFrom) as Q;
+    nextQuery = nextQuery.where('posting.start_time', '>=', filters.startTimeFrom) as Q;
   }
 
   if (filters.endTimeTo) {
     nextQuery = nextQuery
-      .where('organization_posting.end_time', 'is not', null)
-      .where('organization_posting.end_time', '<=', filters.endTimeTo) as Q;
+      .where('posting.end_time', 'is not', null)
+      .where('posting.end_time', '<=', filters.endTimeTo) as Q;
   }
 
   return nextQuery;
@@ -207,53 +207,51 @@ export const sortPostingsBySharedSort = <T extends PostingSortLike>(
   postings: T[],
   sortBy: SharedPostingSortBy,
   sortDir: PostingSortDir,
-): T[] => {
-  return [...postings].sort((left, right) => {
-    switch (sortBy) {
-      case 'created_at':
-      {
-        const createdAtCompare = compareNullableKeys(
-          normalizeTimestampKey(left.created_at),
-          normalizeTimestampKey(right.created_at),
-          sortDir,
-        );
+): T[] => [...postings].sort((left, right) => {
+  switch (sortBy) {
+    case 'created_at':
+    {
+      const createdAtCompare = compareNullableKeys(
+        normalizeTimestampKey(left.created_at),
+        normalizeTimestampKey(right.created_at),
+        sortDir,
+      );
 
-        if (createdAtCompare !== 0) {
-          return createdAtCompare;
-        }
-
-        const leftId = left.id ?? 0;
-        const rightId = right.id ?? 0;
-        return sortDir === 'asc' ? leftId - rightId : rightId - leftId;
+      if (createdAtCompare !== 0) {
+        return createdAtCompare;
       }
-      case 'start_date':
-      case 'title': {
-        return compareNullableKeys(
-          left.title ?? '',
-          right.title ?? '',
-          sortDir,
-        );
-      }
-      default: {
-        const dateCompare = compareNullableKeys(
-          normalizeDateKey(left.start_date),
-          normalizeDateKey(right.start_date),
-          sortDir,
-        );
 
-        if (dateCompare !== 0) {
-          return dateCompare;
-        }
-
-        return compareNullableKeys(
-          normalizeTimeKey(left.start_time),
-          normalizeTimeKey(right.start_time),
-          sortDir,
-        );
-      }
+      const leftId = left.id ?? 0;
+      const rightId = right.id ?? 0;
+      return sortDir === 'asc' ? leftId - rightId : rightId - leftId;
     }
-  });
-};
+    case 'start_date':
+    case 'title': {
+      return compareNullableKeys(
+        left.title ?? '',
+        right.title ?? '',
+        sortDir,
+      );
+    }
+    default: {
+      const dateCompare = compareNullableKeys(
+        normalizeDateKey(left.start_date),
+        normalizeDateKey(right.start_date),
+        sortDir,
+      );
+
+      if (dateCompare !== 0) {
+        return dateCompare;
+      }
+
+      return compareNullableKeys(
+        normalizeTimeKey(left.start_time),
+        normalizeTimeKey(right.start_time),
+        sortDir,
+      );
+    }
+  }
+});
 
 export const applySharedPostingSort = <Q extends PostingQueryLike>(
   query: Q,
@@ -263,16 +261,16 @@ export const applySharedPostingSort = <Q extends PostingQueryLike>(
   switch (sortBy) {
     case 'created_at':
       return query
-        .orderBy('organization_posting.created_at', sortDir)
-        .orderBy('organization_posting.id', sortDir) as Q;
+        .orderBy('posting.created_at', sortDir)
+        .orderBy('posting.id', sortDir) as Q;
     case 'title':
       return query
-        .orderBy('organization_posting.title', sortDir)
-        .orderBy('organization_posting.id', sortDir) as Q;
+        .orderBy('posting.title', sortDir)
+        .orderBy('posting.id', sortDir) as Q;
     case 'start_date':
     default:
       return query
-        .orderBy('organization_posting.start_date', sortDir)
-        .orderBy('organization_posting.start_time', sortDir) as Q;
+        .orderBy('posting.start_date', sortDir)
+        .orderBy('posting.start_time', sortDir) as Q;
   }
 };
