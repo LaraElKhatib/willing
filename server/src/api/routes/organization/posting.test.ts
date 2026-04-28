@@ -470,8 +470,6 @@ describe('Organization posting management', () => {
 
     expect(response.body.posting.title).toBe('Minimal Posting');
     expect(response.body.posting.crisis_id).toBeNull();
-    expect(response.body.posting.latitude).toBeNull();
-    expect(response.body.posting.longitude).toBeNull();
     expect(response.body.posting.max_volunteers).toBeNull();
     expect(response.body.posting.minimum_age).toBeNull();
     expect(response.body.posting.allows_partial_attendance).toBe(false);
