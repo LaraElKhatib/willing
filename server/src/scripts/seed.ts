@@ -60,7 +60,7 @@ async function seed() {
     enrollment,
     posting_skill,
     volunteer_skill,
-    organization_posting,
+    posting,
     platform_certificate_settings,
     organization_certificate_info,
     volunteer_pending_account,
@@ -3680,24 +3680,6 @@ async function seed() {
 
     // --- First Aid Support (Nour Relief, review-based) ---
     {
-      volunteer_id: vol('vol3@willing.social'),
-      posting_id: post('First Aid Support'),
-      message: 'Paramedic student with first aid and triage training.',
-      attended: false,
-    },
-    {
-      volunteer_id: vol('vol19@willing.social'),
-      posting_id: post('First Aid Support'),
-      message: 'ICU nurse with triage experience, ready to support the medical team.',
-      attended: false,
-    },
-    {
-      volunteer_id: vol('vol80@willing.social'),
-      posting_id: post('First Aid Support'),
-      message: 'Trauma surgeon with field hospital experience.',
-      attended: false,
-    },
-    {
       volunteer_id: vol('vol73@willing.social'),
       posting_id: post('First Aid Support'),
       message: 'Medical doctor volunteering in crisis clinics across Lebanon.',
@@ -3711,24 +3693,6 @@ async function seed() {
     },
 
     // --- Displaced Families Registration (Nour Relief, review-based, partial) ---
-    {
-      volunteer_id: vol('vol4@willing.social'),
-      posting_id: post('Displaced Families Registration'),
-      message: 'Social worker, Arabic fluent. Comfortable with intake interviews.',
-      attended: false,
-    },
-    {
-      volunteer_id: vol('vol2@willing.social'),
-      posting_id: post('Displaced Families Registration'),
-      message: 'Strong communication and data entry skills.',
-      attended: false,
-    },
-    {
-      volunteer_id: vol('vol46@willing.social'),
-      posting_id: post('Displaced Families Registration'),
-      message: 'Former UNHCR field officer with refugee registration experience.',
-      attended: false,
-    },
     {
       volunteer_id: vol('vol65@willing.social'),
       posting_id: post('Displaced Families Registration'),
@@ -3782,18 +3746,6 @@ async function seed() {
 
     // --- War Survivor Psychosocial Support (Nour Relief, review-based) ---
     {
-      volunteer_id: vol('vol4@willing.social'),
-      posting_id: post('War Survivor Psychosocial Support'),
-      message: 'Social work background, familiar with trauma-informed approaches.',
-      attended: false,
-    },
-    {
-      volunteer_id: vol('vol17@willing.social'),
-      posting_id: post('War Survivor Psychosocial Support'),
-      message: 'Psychology student trained in psychosocial first aid.',
-      attended: false,
-    },
-    {
       volunteer_id: vol('vol61@willing.social'),
       posting_id: post('War Survivor Psychosocial Support'),
       message: 'Child psychologist with psychosocial support training.',
@@ -3833,18 +3785,6 @@ async function seed() {
     },
 
     // --- Psychological First Aid Sessions (Nour Relief, review-based) ---
-    {
-      volunteer_id: vol('vol4@willing.social'),
-      posting_id: post('Psychological First Aid Sessions'),
-      message: 'Social work and mental health background.',
-      attended: false,
-    },
-    {
-      volunteer_id: vol('vol61@willing.social'),
-      posting_id: post('Psychological First Aid Sessions'),
-      message: 'Child psychologist with psychosocial support training.',
-      attended: false,
-    },
     {
       volunteer_id: vol('vol17@willing.social'),
       posting_id: post('Psychological First Aid Sessions'),
@@ -3990,18 +3930,6 @@ async function seed() {
 
     // --- Remote Homework Support (Ajialouna, review-based, partial) ---
     {
-      volunteer_id: vol('vol7@willing.social'),
-      posting_id: post('Remote Homework Support'),
-      message: 'Software developer with strong maths and science background.',
-      attended: false,
-    },
-    {
-      volunteer_id: vol('vol2@willing.social'),
-      posting_id: post('Remote Homework Support'),
-      message: 'Experienced tutor covering Arabic, English, and maths.',
-      attended: false,
-    },
-    {
       volunteer_id: vol('vol28@willing.social'),
       posting_id: post('Remote Homework Support'),
       message: 'Retired schoolteacher, happy to tutor across all subjects.',
@@ -4133,18 +4061,6 @@ async function seed() {
     },
 
     // --- Medical Supplies Inventory & Sorting (Arz Community, review-based) ---
-    {
-      volunteer_id: vol('vol9@willing.social'),
-      posting_id: post('Medical Supplies Inventory & Sorting'),
-      message: 'Detail-oriented and experienced with inventory systems.',
-      attended: false,
-    },
-    {
-      volunteer_id: vol('vol42@willing.social'),
-      posting_id: post('Medical Supplies Inventory & Sorting'),
-      message: 'Supply chain analyst, comfortable managing medical supplies.',
-      attended: false,
-    },
     {
       volunteer_id: vol('vol50@willing.social'),
       posting_id: post('Medical Supplies Inventory & Sorting'),
@@ -4290,18 +4206,6 @@ async function seed() {
 
     // --- Volunteer Helpline Shifts (Cedar Response, review-based, partial) ---
     {
-      volunteer_id: vol('vol13@willing.social'),
-      posting_id: post('Volunteer Helpline Shifts'),
-      message: 'Comfortable with helpline systems across multiple shifts.',
-      attended: false,
-    },
-    {
-      volunteer_id: vol('vol14@willing.social'),
-      posting_id: post('Volunteer Helpline Shifts'),
-      message: 'Strong communication and admin coordination skills.',
-      attended: false,
-    },
-    {
       volunteer_id: vol('vol36@willing.social'),
       posting_id: post('Volunteer Helpline Shifts'),
       message: 'IT support background, comfortable with remote helpline systems.',
@@ -4387,18 +4291,6 @@ async function seed() {
     },
 
     // --- Urban Search & Rescue Logistics (Cedar Response, review-based) ---
-    {
-      volunteer_id: vol('vol26@willing.social'),
-      posting_id: post('Urban Search & Rescue Logistics'),
-      message: 'Former army officer with crisis management experience.',
-      attended: false,
-    },
-    {
-      volunteer_id: vol('vol58@willing.social'),
-      posting_id: post('Urban Search & Rescue Logistics'),
-      message: 'Veteran field coordinator with large deployment experience.',
-      attended: false,
-    },
     {
       volunteer_id: vol('vol76@willing.social'),
       posting_id: post('Urban Search & Rescue Logistics'),
@@ -4497,18 +4389,6 @@ async function seed() {
     },
 
     // --- School Supply Restocking (Bekaa Uplift, review-based, partial) ---
-    {
-      volunteer_id: vol('vol12@willing.social'),
-      posting_id: post('School Supply Restocking'),
-      message: 'Community educator, happy to support schools recovering from flooding.',
-      attended: false,
-    },
-    {
-      volunteer_id: vol('vol11@willing.social'),
-      posting_id: post('School Supply Restocking'),
-      message: 'Warehouse and operations experience, comfortable with inventory.',
-      attended: false,
-    },
     {
       volunteer_id: vol('vol9@willing.social'),
       posting_id: post('School Supply Restocking'),
