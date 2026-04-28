@@ -19,7 +19,9 @@ import {
   type SharedPostingFilterFields,
 } from '../../components/postings/postingFilterConfig';
 import PostingFiltersCard from '../../components/postings/PostingFiltersCard';
+import { hasPostingEnded } from '../../components/postings/postingUtils';
 import PostingViewModeToggle from '../../components/postings/PostingViewModeToggle';
+import useNow from '../../components/postings/useNow';
 import { FormField } from '../../utils/formUtils';
 import requestServer from '../../utils/requestServer';
 import useAsync from '../../utils/useAsync';
@@ -108,6 +110,7 @@ const fromPostingFilterFormValues = (
 
 function OrganizationHome() {
   const organization = useOrganization();
+  const now = useNow();
   const [initialFilters] = useState<PostingFilters>(() => {
     if (typeof window === 'undefined') return defaultFilters;
     const raw = window.sessionStorage.getItem(organizationHomeFiltersStorageKey);
@@ -185,15 +188,24 @@ function OrganizationHome() {
     const orgName = organizationMe?.organization.name ?? organization?.name ?? '';
     const orgLogoPath = organizationMe?.organization.logo_path ?? organization?.logo_path ?? null;
 
-    return postings.map(posting => ({
+    const mapped = postings.map(posting => ({
       ...posting,
       organization_name: orgName,
       organization_logo_path: orgLogoPath,
       crisis_name: posting.crisis_id ? (crisisNameById.get(posting.crisis_id) ?? null) : null,
       enrollment_count: posting.enrollment_count,
-      application_status: 'none',
+      application_status: 'none' as const,
     }));
-  }, [crisisNameById, organization?.logo_path, organization?.name, organizationMe?.organization.logo_path, organizationMe?.organization.name, postings]);
+
+    return mapped.sort((a, b) => {
+      const aEnded = hasPostingEnded(a, now);
+      const bEnded = hasPostingEnded(b, now);
+
+      if (aEnded && !bEnded) return 1;
+      if (!aEnded && bEnded) return -1;
+      return 0;
+    });
+  }, [crisisNameById, organization?.logo_path, organization?.name, organizationMe?.organization.logo_path, organizationMe?.organization.name, postings, now]);
 
   return (
     <PageContainer>
