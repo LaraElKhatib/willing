@@ -91,7 +91,7 @@ function createAttendanceRouter(db: Kysely<Database>) {
     const { id: postingId } = postingIdParamsSchema.parse(req.params);
 
     const posting = await db
-      .selectFrom('organization_posting')
+      .selectFrom('posting')
       .select(['id', 'title', 'location_name', 'start_date', 'end_date', 'allows_partial_attendance'])
       .where('id', '=', postingId)
       .where('organization_id', '=', orgId)
@@ -116,7 +116,7 @@ function createAttendanceRouter(db: Kysely<Database>) {
     const body = attendanceBulkUpdateBodySchema.parse(req.body);
 
     const posting = await db
-      .selectFrom('organization_posting')
+      .selectFrom('posting')
       .select(['id'])
       .where('id', '=', postingId)
       .where('organization_id', '=', orgId)
@@ -153,7 +153,7 @@ function createAttendanceRouter(db: Kysely<Database>) {
     const body = attendanceUpdateBodySchema.parse(req.body);
 
     const posting = await db
-      .selectFrom('organization_posting')
+      .selectFrom('posting')
       .select(['id'])
       .where('id', '=', postingId)
       .where('organization_id', '=', orgId)
@@ -226,7 +226,7 @@ function createAttendanceRouter(db: Kysely<Database>) {
     const { id: postingId } = postingIdParamsSchema.parse(req.params);
 
     const posting = await db
-      .selectFrom('organization_posting')
+      .selectFrom('posting')
       .select(['id', 'title'])
       .where('id', '=', postingId)
       .where('organization_id', '=', orgId)
@@ -270,10 +270,10 @@ function createAttendanceRouter(db: Kysely<Database>) {
     const body = attendanceUpdateBodySchema.parse(req.body);
 
     const posting = await db
-      .selectFrom('organization_posting')
+      .selectFrom('posting')
       .select(['id'])
-      .where('organization_posting.id', '=', postingId)
-      .where('organization_posting.organization_id', '=', orgId)
+      .where('posting.id', '=', postingId)
+      .where('posting.organization_id', '=', orgId)
       .executeTakeFirst();
 
     if (!posting) {

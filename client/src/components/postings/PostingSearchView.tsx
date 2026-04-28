@@ -5,16 +5,16 @@ import { useLocation, useSearchParams } from 'react-router-dom';
 import {
   buildSharedPostingQuery,
   hasSharedAdvancedPostingFilters,
-  organizationPostingSortOptions,
-  resolveOrganizationPostingSortOption,
+  postingSortOptions,
+  resolvePostingSortOption,
   resolveVolunteerPostingSortOption,
-  toOrganizationPostingSortOptionValue,
+  toPostingSortOptionValue,
   toVolunteerPostingSortOptionValue,
   volunteerPostingSortOptions,
   type PostingSortDir,
   type SharedPostingFilterFields,
-  type OrganizationPostingSortBy,
-  type OrganizationPostingSortOptionValue,
+  type PostingSortBy,
+  type PostingSortOptionValue,
   type VolunteerPostingSortBy,
   type VolunteerPostingSortOptionValue,
 } from './postingFilterConfig.ts';
@@ -42,7 +42,7 @@ import type { Crisis } from '../../../../server/src/db/tables/index.ts';
 import type { PostingWithContext } from '../../../../server/src/types.ts';
 
 export type PostingSearchFilters = SharedPostingFilterFields & {
-  sortBy: VolunteerPostingSortBy | OrganizationPostingSortBy | CrisisPostingSortBy;
+  sortBy: VolunteerPostingSortBy | PostingSortBy | CrisisPostingSortBy;
   sortDir: PostingSortDir;
   startDateFrom: string;
   endDateTo: string;
@@ -64,7 +64,7 @@ type CrisisPostingSortBy = 'pinned' | 'title';
 type CrisisPostingSortOptionValue = 'pinned_first' | 'title_asc' | 'title_desc';
 
 type PostingSearchFormValues = Omit<PostingSearchFilters, 'sortBy' | 'sortDir'> & {
-  sortOption: VolunteerPostingSortOptionValue | OrganizationPostingSortOptionValue | CrisisPostingSortOptionValue;
+  sortOption: VolunteerPostingSortOptionValue | PostingSortOptionValue | CrisisPostingSortOptionValue;
   crisisFilter: PostingSearchFilters['crisisFilter'];
   entity: PostingSearchFilters['entity'];
 };
@@ -94,7 +94,7 @@ type PostingSearchViewProps = {
 const toPostingSearchFormValues = (filters: PostingSearchFilters): PostingSearchFormValues => ({
   search: filters.search,
   sortOption: filters.entity === 'organizations'
-    ? toOrganizationPostingSortOptionValue(filters.sortBy as OrganizationPostingSortBy, filters.sortDir)
+    ? toPostingSortOptionValue(filters.sortBy as PostingSortBy, filters.sortDir)
     : filters.entity === 'crises'
       ? (filters.sortBy === 'pinned'
           ? 'pinned_first'
@@ -113,12 +113,12 @@ const toPostingSearchFormValues = (filters: PostingSearchFilters): PostingSearch
 });
 
 const fromPostingSearchFormValues = (values: PostingSearchFormValues): PostingSearchFilters => {
-  let querySortBy: VolunteerPostingSortBy | OrganizationPostingSortBy | CrisisPostingSortBy = 'title';
+  let querySortBy: VolunteerPostingSortBy | PostingSortBy | CrisisPostingSortBy = 'title';
   let querySortDir: PostingSortDir = 'asc';
   let crisisFilter: 'all' | 'pinned_only' | 'unpinned_only' = 'all';
 
   if (values.entity === 'organizations') {
-    const selectedSortOption = resolveOrganizationPostingSortOption(values.sortOption as OrganizationPostingSortOptionValue);
+    const selectedSortOption = resolvePostingSortOption(values.sortOption as PostingSortOptionValue);
     querySortBy = 'title';
     querySortDir = selectedSortOption.sortDir;
   } else if (values.entity === 'crises') {
@@ -518,7 +518,7 @@ function PostingSearchView({
           : 'Search by title, description, or location'}
         sortFieldName="sortOption"
         sortOptions={activeEntity === 'organizations'
-          ? organizationPostingSortOptions
+          ? postingSortOptions
               .filter(option => option.value === 'title_asc' || option.value === 'title_desc')
               .map(option => ({
                 label: option.value === 'title_asc' ? 'Name (A-Z)' : 'Name (Z-A)',

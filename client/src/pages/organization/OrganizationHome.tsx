@@ -10,11 +10,11 @@ import PostingCollection from '../../components/postings/PostingCollection';
 import {
   buildSharedPostingQuery,
   hasSharedAdvancedPostingFilters,
-  organizationPostingSortOptions,
-  resolveOrganizationPostingSortOption,
-  toOrganizationPostingSortOptionValue,
-  type OrganizationPostingSortBy,
-  type OrganizationPostingSortOptionValue,
+  postingSortOptions,
+  resolvePostingSortOption,
+  toPostingSortOptionValue,
+  type PostingSortBy,
+  type PostingSortOptionValue,
   type PostingSortDir,
   type SharedPostingFilterFields,
 } from '../../components/postings/postingFilterConfig';
@@ -28,22 +28,22 @@ import { useOrganization } from '../../utils/useUsers';
 import type {
   OrganizationCrisesResponse,
   OrganizationGetMeResponse,
-  OrganizationPostingListResponse,
+  PostingListResponse,
 } from '../../../../server/src/api/types';
 import type { PostingWithContext } from '../../../../server/src/types';
 
-type OrganizationPostingFilters = SharedPostingFilterFields & {
-  sortBy: OrganizationPostingSortBy;
+type PostingFilters = SharedPostingFilterFields & {
+  sortBy: PostingSortBy;
   sortDir: PostingSortDir;
   hideFull: boolean;
   crisisId: 'all' | `${number}`;
 };
 
-type OrganizationPostingFilterFormValues = Omit<OrganizationPostingFilters, 'sortBy' | 'sortDir'> & {
-  sortOption: OrganizationPostingSortOptionValue;
+type PostingFilterFormValues = Omit<PostingFilters, 'sortBy' | 'sortDir'> & {
+  sortOption: PostingSortOptionValue;
 };
 
-const defaultFilters: OrganizationPostingFilters = {
+const defaultFilters: PostingFilters = {
   search: '',
   sortBy: 'created_at',
   sortDir: 'desc',
@@ -57,9 +57,9 @@ const defaultFilters: OrganizationPostingFilters = {
   organizationCertificateFilter: 'all',
 };
 
-const defaultFormValues: OrganizationPostingFilterFormValues = {
+const defaultFormValues: PostingFilterFormValues = {
   search: defaultFilters.search,
-  sortOption: toOrganizationPostingSortOptionValue(defaultFilters.sortBy, defaultFilters.sortDir),
+  sortOption: toPostingSortOptionValue(defaultFilters.sortBy, defaultFilters.sortDir),
   hideFull: defaultFilters.hideFull,
   crisisId: defaultFilters.crisisId,
   startDateFrom: defaultFilters.startDateFrom,
@@ -71,11 +71,11 @@ const defaultFormValues: OrganizationPostingFilterFormValues = {
 };
 const organizationHomeFiltersStorageKey = 'organization-home-posting-filters';
 
-const toOrganizationPostingFilterFormValues = (
-  filters: OrganizationPostingFilters,
-): OrganizationPostingFilterFormValues => ({
+const toPostingFilterFormValues = (
+  filters: PostingFilters,
+): PostingFilterFormValues => ({
   search: filters.search,
-  sortOption: toOrganizationPostingSortOptionValue(filters.sortBy, filters.sortDir),
+  sortOption: toPostingSortOptionValue(filters.sortBy, filters.sortDir),
   hideFull: filters.hideFull,
   crisisId: filters.crisisId,
   startDateFrom: filters.startDateFrom,
@@ -86,10 +86,10 @@ const toOrganizationPostingFilterFormValues = (
   organizationCertificateFilter: filters.organizationCertificateFilter,
 });
 
-const fromOrganizationPostingFilterFormValues = (
-  values: OrganizationPostingFilterFormValues,
-): OrganizationPostingFilters => {
-  const selectedSortOption = resolveOrganizationPostingSortOption(values.sortOption);
+const fromPostingFilterFormValues = (
+  values: PostingFilterFormValues,
+): PostingFilters => {
+  const selectedSortOption = resolvePostingSortOption(values.sortOption);
 
   return {
     search: values.search,
@@ -108,25 +108,25 @@ const fromOrganizationPostingFilterFormValues = (
 
 function OrganizationHome() {
   const organization = useOrganization();
-  const [initialFilters] = useState<OrganizationPostingFilters>(() => {
+  const [initialFilters] = useState<PostingFilters>(() => {
     if (typeof window === 'undefined') return defaultFilters;
     const raw = window.sessionStorage.getItem(organizationHomeFiltersStorageKey);
     if (!raw) return defaultFilters;
 
     try {
-      const parsed = JSON.parse(raw) as Partial<OrganizationPostingFilters>;
+      const parsed = JSON.parse(raw) as Partial<PostingFilters>;
       return { ...defaultFilters, ...parsed };
     } catch {
       return defaultFilters;
     }
   });
   const initialFormValues = useMemo(
-    () => toOrganizationPostingFilterFormValues(initialFilters),
+    () => toPostingFilterFormValues(initialFilters),
     [initialFilters],
   );
 
-  const fetchOrganizationPostings = useCallback(
-    async (nextFilters: OrganizationPostingFilters) => {
+  const fetchPostingsFn = useCallback(
+    async (nextFilters: PostingFilters) => {
       const query = buildSharedPostingQuery(nextFilters);
       if (nextFilters.hideFull) {
         query.hide_full = 'true';
@@ -136,7 +136,7 @@ function OrganizationHome() {
         query.crisis_id = nextFilters.crisisId;
       }
 
-      const response = await requestServer<OrganizationPostingListResponse>(
+      const response = await requestServer<PostingListResponse>(
         '/organization/posting',
         {
           includeJwt: true,
@@ -153,7 +153,7 @@ function OrganizationHome() {
     loading,
     error,
     trigger: fetchPostings,
-  } = useAsync(fetchOrganizationPostings, { immediate: false });
+  } = useAsync(fetchPostingsFn, { immediate: false });
 
   const { data: crises } = useAsync(
     async () => {
@@ -170,8 +170,8 @@ function OrganizationHome() {
     { immediate: true },
   );
 
-  const applyFilters = useCallback(async (formValues: OrganizationPostingFilterFormValues) => {
-    const normalizedFilters = fromOrganizationPostingFilterFormValues(formValues);
+  const applyFilters = useCallback(async (formValues: PostingFilterFormValues) => {
+    const normalizedFilters = fromPostingFilterFormValues(formValues);
     if (typeof window !== 'undefined') {
       window.sessionStorage.setItem(organizationHomeFiltersStorageKey, JSON.stringify(normalizedFilters));
     }
@@ -232,7 +232,7 @@ function OrganizationHome() {
         searchFieldName="search"
         searchPlaceholder="Search by title, description, or location"
         sortFieldName="sortOption"
-        sortOptions={organizationPostingSortOptions.map(option => ({
+        sortOptions={postingSortOptions.map(option => ({
           label: option.label,
           value: option.value,
         }))}

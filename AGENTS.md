@@ -249,6 +249,11 @@ Set the mock's resolved value in `beforeEach`, reset in `afterEach`.
 6. Keep response and payload shapes consistent across client and server.
 7. Keep changes minimal and targeted; avoid unrelated refactors.
 8. For transactional DB logic, prefer `executeTransaction` from `server/src/db/executeTransaction.ts` instead of raw `db.transaction().execute(...)`, especially because tests often pass controlled transactions.
+9. **Time storage convention**: All `start_time` and `end_time` values are stored in UTC in the database. The client is responsible for:
+   - **Before sending to server**: Convert local time to UTC by subtracting the local timezone offset, using the `toUtcTime` helper defined in `PostingCreate.tsx` and `Posting.tsx`. The offset is obtained via `getLocalOffsetMinutes()` which uses `new Date().getTimezoneOffset()` — never hardcode a timezone offset.
+   - **Before displaying to user**: Convert UTC time back to local time by adding the local timezone offset. This is handled by `formatTime12Hour` in `postingUtils.ts` and by the `toLocalTime` helper when populating form fields in `Posting.tsx`.
+   - Never send raw local times to the server. Never display raw UTC times to the user. Never hardcode a timezone offset value.
+   - The server stores and compares times as UTC and appends `Z` when constructing datetime strings for comparison in `postingTime.ts`
 
 ## Type Safety Requirements
 
@@ -445,8 +450,8 @@ All components are in `client/src/components/`. **Use these instead of recreatin
 5. Until experience entities are implemented in DB, do not generate or recompute experience-derived embeddings from synthetic or temporary tables.
 6. Vector definitions in current schema:
    `organization_account.org_vector`: embedding of organization profile fields.
-   `organization_posting.opportunity_vector`: embedding of posting fields and skills.
-   `organization_posting.posting_context_vector`: normalized weighted combination of posting + organization vectors (70/30).
+   `posting.opportunity_vector`: embedding of posting fields and skills.
+   `posting.posting_context_vector`: normalized weighted combination of posting + organization vectors (70/30).
    `volunteer_account.profile_vector`: embedding of volunteer profile fields, skills, and parsed CV text (if available).
    `volunteer_account.experience_vector`: weighted aggregation from attended posting context vectors (latest-first, max 10).
 

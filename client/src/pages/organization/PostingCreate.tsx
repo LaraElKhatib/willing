@@ -12,19 +12,20 @@ import PageHeader from '../../components/layout/PageHeader';
 import LocationPicker from '../../components/LocationPicker';
 import SkillsInput from '../../components/skills/SkillsInput';
 import { ToggleButton } from '../../components/ToggleButton';
-import { organizationPostingFormSchema, type OrganizationPostingFormData } from '../../schemas/posting';
+import { postingFormSchema, type PostingFormData } from '../../schemas/posting';
 import { executeAndShowError, FormField, FormRootError } from '../../utils/formUtils';
 import requestServer from '../../utils/requestServer';
+import { toUtcTime } from '../../utils/timeUtils.ts';
 import { useOrganization } from '../../utils/useUsers';
 
-import type { OrganizationCrisesResponse, OrganizationPostingCreateResponse } from '../../../../server/src/api/types';
+import type { OrganizationCrisesResponse, PostingCreateResponse } from '../../../../server/src/api/types';
 
-export default function OrganizationPostingCreate() {
+export default function PostingCreate() {
   const account = useOrganization();
   const navigate = useNavigate();
 
-  const form = useForm<OrganizationPostingFormData>({
-    resolver: zodResolver(organizationPostingFormSchema),
+  const form = useForm<PostingFormData>({
+    resolver: zodResolver(postingFormSchema),
     mode: 'onTouched',
     reValidateMode: 'onChange',
     defaultValues: {
@@ -82,9 +83,9 @@ export default function OrganizationPostingCreate() {
         latitude: position[0],
         longitude: position[1],
         start_date: data.start_date,
-        start_time: data.start_time,
+        start_time: data.start_time ? toUtcTime(data.start_time) : data.start_time,
         end_date: data.end_date,
-        end_time: data.end_time,
+        end_time: data.end_time ? toUtcTime(data.end_time) : data.end_time,
         max_volunteers: data.max_volunteers ? Number(data.max_volunteers) : null,
         minimum_age: data.minimum_age ? Number(data.minimum_age) : null,
         automatic_acceptance: data.automatic_acceptance,
@@ -95,7 +96,7 @@ export default function OrganizationPostingCreate() {
 
       console.log('Submitting posting payload:', payload);
 
-      const response = await requestServer<OrganizationPostingCreateResponse>('/organization/posting', {
+      const response = await requestServer<PostingCreateResponse>('/organization/posting', {
         method: 'POST',
         body: payload,
         includeJwt: true,
@@ -209,6 +210,7 @@ export default function OrganizationPostingCreate() {
                     <CalendarInfo
                       selectionMode="range"
                       rangeLabel="Date Range"
+                      disablePastDates
                       rangeValue={{ from: startDate, to: endDate }}
                       onRangeChange={({ from, to }) => {
                         form.setValue('start_date', from, {

@@ -18,6 +18,7 @@ interface CalendarCommonProps {
   endLabel?: string;
   className?: string;
   disabledDates?: string[];
+  disablePastDates?: boolean;
   allowedDates?: string[];
   dateDetails?: Record<string, string>;
   showTopLabels?: boolean;
@@ -117,6 +118,7 @@ export default function CalendarInfo<T extends FieldValues>({
           {...(props.dateLabel ? { singleLabel: props.dateLabel } : {})}
           {...(props.datePlaceholder ? { singlePlaceholder: props.datePlaceholder } : {})}
           {...(props.disabledDates ? { disabledDates: props.disabledDates } : {})}
+          {...(props.disablePastDates ? { disablePastDates: props.disablePastDates } : {})}
           {...(props.allowedDates ? { allowedDates: props.allowedDates } : {})}
           {...(props.dateDetails ? { dateDetails: props.dateDetails } : {})}
         />
@@ -151,6 +153,7 @@ export default function CalendarInfo<T extends FieldValues>({
         }}
         rangeLabel={`${startLabel} - ${endLabel}`}
         {...(props.disabledDates ? { disabledDates: props.disabledDates } : {})}
+        {...(props.disablePastDates ? { disablePastDates: props.disablePastDates } : {})}
         {...(props.allowedDates ? { allowedDates: props.allowedDates } : {})}
         {...(props.dateDetails ? { dateDetails: props.dateDetails } : {})}
       />
@@ -360,6 +363,7 @@ function ControlledCalendarInfo({
   showTopLabels = true,
   selectionMode,
   disabledDates,
+  disablePastDates,
   allowedDates,
   dateDetails,
   rangeValue,
@@ -377,6 +381,7 @@ function ControlledCalendarInfo({
 }: {
   selectionMode?: CalendarSelectionMode;
   disabledDates?: string[];
+  disablePastDates?: boolean;
   allowedDates?: string[];
   dateDetails?: Record<string, string>;
   rangeValue?: CalendarDateRangeValue;
@@ -428,23 +433,33 @@ function ControlledCalendarInfo({
     return new Set((allowedDates ?? []).map(getDatePart).filter(Boolean));
   }, [allowedDates]);
 
-  const disabledMatchers: Matcher[] | undefined = disabledDateSet.size > 0 || allowedDateSet.size > 0
-    ? [
-        (date: Date) => {
-          const formattedDate = formatInputDate(date);
+  const disabledMatchers: Matcher[] | undefined = (() => {
+    const matchers: Matcher[] = [];
 
-          if (disabledDateSet.has(formattedDate)) {
-            return true;
-          }
+    if (disablePastDates) {
+      const today = new Date();
+      today.setUTCHours(0, 0, 0, 0);
+      matchers.push({ before: today });
+    }
 
-          if (allowedDateSet.size > 0 && !allowedDateSet.has(formattedDate)) {
-            return true;
-          }
+    if (disabledDateSet.size > 0 || allowedDateSet.size > 0) {
+      matchers.push((date: Date) => {
+        const formattedDate = formatInputDate(date);
 
-          return false;
-        },
-      ]
-    : undefined;
+        if (disabledDateSet.has(formattedDate)) {
+          return true;
+        }
+
+        if (allowedDateSet.size > 0 && !allowedDateSet.has(formattedDate)) {
+          return true;
+        }
+
+        return false;
+      });
+    }
+
+    return matchers.length > 0 ? matchers : undefined;
+  })();
 
   const dayPickerComponents = Object.keys(normalizedDateDetails).length > 0
     ? {

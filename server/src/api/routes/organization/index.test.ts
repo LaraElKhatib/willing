@@ -59,7 +59,7 @@ describe('Organization index routes', () => {
     });
 
     await transaction
-      .insertInto('organization_posting')
+      .insertInto('posting')
       .values([
         {
           organization_id: firstOrg.id,
@@ -160,7 +160,7 @@ describe('Organization index routes', () => {
     const { volunteer } = await createVolunteerAccount(transaction, { email: 'org-profile-volunteer@example.com' });
 
     const posting = await transaction
-      .insertInto('organization_posting')
+      .insertInto('posting')
       .values({
         organization_id: organization.id,
         title: 'Public Posting',
@@ -443,7 +443,7 @@ describe('Organization index routes', () => {
     const { organization, token } = await createOrganizationAccount(transaction, { email: 'org-cv-success@example.com' });
     const { volunteer } = await createVolunteerAccount(transaction, { email: 'vol-cv@example.com' });
     const posting = await transaction
-      .insertInto('organization_posting')
+      .insertInto('posting')
       .values({
         organization_id: organization.id,
         title: 'CV Event',
@@ -496,7 +496,7 @@ describe('Organization index routes', () => {
     const { organization, token } = await createOrganizationAccount(transaction, { email: 'org-cv-missing@example.com' });
     const { volunteer } = await createVolunteerAccount(transaction, { email: 'vol-cv-missing@example.com' });
     const posting = await transaction
-      .insertInto('organization_posting')
+      .insertInto('posting')
       .values({
         organization_id: organization.id,
         title: 'CV Missing Event',

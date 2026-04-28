@@ -7,7 +7,7 @@ import database from '../../db/index.ts';
 import { compare } from '../../services/bcrypt/index.ts';
 import * as emailService from '../../services/resend/emails.ts';
 import { createAdminAccount, createOrganizationAccount, createVolunteerAccount } from '../../tests/fixtures/accounts.ts';
-import { createOrganizationPosting } from '../../tests/fixtures/organizationData.ts';
+import { createPosting } from '../../tests/fixtures/organizationData.ts';
 
 import type { Database } from '../../db/tables/index.ts';
 import type { ControlledTransaction } from 'kysely';
@@ -652,7 +652,7 @@ describe('DELETE /user/account', () => {
     const pastStart = new Date(today);
     pastStart.setDate(pastStart.getDate() - 1);
 
-    const posting = await createOrganizationPosting(transaction, {
+    const posting = await createPosting(transaction, {
       organizationId: organization.id,
       overrides: { start_date: pastStart, end_date: futureEnd },
     });
@@ -688,7 +688,7 @@ describe('DELETE /user/account', () => {
     const pastStart = new Date(today);
     pastStart.setDate(pastStart.getDate() - 1);
 
-    await createOrganizationPosting(transaction, {
+    await createPosting(transaction, {
       organizationId: organization.id,
       overrides: { start_date: pastStart, end_date: futureEnd },
     });
@@ -710,7 +710,7 @@ describe('DELETE /user/account', () => {
     });
 
     await transaction
-      .insertInto('organization_posting')
+      .insertInto('posting')
       .values({
         organization_id: organization.id,
         title: 'Running Today Posting',
@@ -747,7 +747,7 @@ describe('DELETE /user/account', () => {
     });
 
     await transaction
-      .insertInto('organization_posting')
+      .insertInto('posting')
       .values({
         organization_id: organization.id,
         title: 'Ends In Five Minutes Posting',
@@ -784,7 +784,7 @@ describe('DELETE /user/account', () => {
     });
 
     await transaction
-      .insertInto('organization_posting')
+      .insertInto('posting')
       .values({
         organization_id: organization.id,
         title: 'Closed Ongoing Posting',
@@ -829,7 +829,7 @@ describe('DELETE /user/account', () => {
     });
 
     await transaction
-      .insertInto('organization_posting')
+      .insertInto('posting')
       .values({
         organization_id: organization.id,
         title: 'Ended Today Posting',
@@ -878,7 +878,7 @@ describe('DELETE /user/account', () => {
     const futureEnd = new Date(futureStart);
     futureEnd.setDate(futureEnd.getDate() + 5);
 
-    const posting = await createOrganizationPosting(transaction, {
+    const posting = await createPosting(transaction, {
       organizationId: organization.id,
       overrides: { start_date: futureStart, end_date: futureEnd },
     });
@@ -890,7 +890,7 @@ describe('DELETE /user/account', () => {
       .expect(200);
 
     const deletedPosting = await transaction
-      .selectFrom('organization_posting')
+      .selectFrom('posting')
       .select('id')
       .where('id', '=', posting.id)
       .executeTakeFirst();

@@ -53,7 +53,7 @@ async function seed() {
     enrollment,
     posting_skill,
     volunteer_skill,
-    organization_posting,
+    posting,
     platform_certificate_settings,
     organization_certificate_info,
     volunteer_pending_account,
@@ -1033,7 +1033,7 @@ async function seed() {
 
   // Postings
 
-  const postings = await database.insertInto('organization_posting')
+  const postings = await database.insertInto('posting')
     .values([
 
       {

@@ -274,21 +274,21 @@ function createUserRouter(db: Kysely<Database>) {
     const today = sql<Date>`CAST(${requestDate} AS date)`;
     const currentTime = sql<string>`CAST(${requestTime} AS time)`;
     const isPostingRunningNow = sql<boolean>`
-      (organization_posting.start_date < ${today}
-        OR (organization_posting.start_date = ${today} AND organization_posting.start_time <= ${currentTime}))
+      (posting.start_date < ${today}
+        OR (posting.start_date = ${today} AND posting.start_time <= ${currentTime}))
       AND
-      (organization_posting.end_date > ${today}
-        OR (organization_posting.end_date = ${today} AND organization_posting.end_time >= ${currentTime}))
+      (posting.end_date > ${today}
+        OR (posting.end_date = ${today} AND posting.end_time >= ${currentTime}))
     `;
 
     if (role === 'volunteer') {
       const activeEnrollment = await db
         .selectFrom('enrollment')
-        .innerJoin('organization_posting', 'organization_posting.id', 'enrollment.posting_id')
+        .innerJoin('posting', 'posting.id', 'enrollment.posting_id')
         .select('enrollment.id')
         .where('enrollment.volunteer_id', '=', userId)
         .where('enrollment.attended', '=', false)
-        .where(sql<boolean>`(organization_posting.end_date > ${today} OR (organization_posting.end_date = ${today} AND organization_posting.end_time >= ${currentTime}))`)
+        .where(sql<boolean>`(posting.end_date > ${today} OR (posting.end_date = ${today} AND posting.end_time >= ${currentTime}))`)
         .limit(1)
         .executeTakeFirst();
 
@@ -303,7 +303,7 @@ function createUserRouter(db: Kysely<Database>) {
     await executeTransaction(db, async (trx) => {
       if (role === 'organization') {
         const runningPosting = await trx
-          .selectFrom('organization_posting')
+          .selectFrom('posting')
           .select(['id', 'title', 'start_date', 'start_time', 'end_date', 'end_time'])
           .where('organization_id', '=', userId)
           .where('is_closed', '=', false)
@@ -337,7 +337,7 @@ function createUserRouter(db: Kysely<Database>) {
       if (role === 'organization') {
         // Hard-delete postings that haven't started yet (with FK cleanup)
         const notStartedPostingIds = await trx
-          .selectFrom('organization_posting')
+          .selectFrom('posting')
           .select(['id', 'title'])
           .where('organization_id', '=', userId)
           .where('start_date', '>', today)
@@ -356,12 +356,12 @@ function createUserRouter(db: Kysely<Database>) {
           const enrolledVolunteers = await trx
             .selectFrom('enrollment')
             .innerJoin('volunteer_account', 'volunteer_account.id', 'enrollment.volunteer_id')
-            .innerJoin('organization_posting', 'organization_posting.id', 'enrollment.posting_id')
+            .innerJoin('posting', 'posting.id', 'enrollment.posting_id')
             .select([
               'volunteer_account.email as volunteer_email',
               'volunteer_account.first_name',
               'volunteer_account.last_name',
-              'organization_posting.title as posting_title',
+              'posting.title as posting_title',
             ])
             .where('enrollment.posting_id', 'in', notStartedIds)
             .execute();
@@ -380,12 +380,12 @@ function createUserRouter(db: Kysely<Database>) {
           await trx.deleteFrom('enrollment_application').where('posting_id', 'in', notStartedIds).execute();
           await trx.deleteFrom('enrollment').where('posting_id', 'in', notStartedIds).execute();
           await trx.deleteFrom('posting_skill').where('posting_id', 'in', notStartedIds).execute();
-          await trx.deleteFrom('organization_posting').where('id', 'in', notStartedIds).execute();
+          await trx.deleteFrom('posting').where('id', 'in', notStartedIds).execute();
         }
 
         // Close remaining open postings (already ended, since running ones are blocked above)
         await trx
-          .updateTable('organization_posting')
+          .updateTable('posting')
           .set({ is_closed: true })
           .where('organization_id', '=', userId)
           .where('is_closed', '=', false)
@@ -394,10 +394,10 @@ function createUserRouter(db: Kysely<Database>) {
         // Only delete upcoming applications (preserve past ones)
         const upcomingAppIds = await trx
           .selectFrom('enrollment_application')
-          .innerJoin('organization_posting', 'organization_posting.id', 'enrollment_application.posting_id')
+          .innerJoin('posting', 'posting.id', 'enrollment_application.posting_id')
           .select('enrollment_application.id')
           .where('enrollment_application.volunteer_id', '=', userId)
-          .where('organization_posting.end_date', '>=', today)
+          .where('posting.end_date', '>=', today)
           .execute();
 
         const appIds = upcomingAppIds.map(a => a.id);
@@ -416,11 +416,11 @@ function createUserRouter(db: Kysely<Database>) {
 
         const nonAttendedEnrollmentIds = await trx
           .selectFrom('enrollment')
-          .innerJoin('organization_posting', 'organization_posting.id', 'enrollment.posting_id')
+          .innerJoin('posting', 'posting.id', 'enrollment.posting_id')
           .select('enrollment.id')
           .where('enrollment.volunteer_id', '=', userId)
           .where('enrollment.attended', '=', false)
-          .where('organization_posting.end_date', '>=', today)
+          .where('posting.end_date', '>=', today)
           .execute();
 
         const enrollmentIds = nonAttendedEnrollmentIds.map(e => e.id);
